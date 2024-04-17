@@ -20,10 +20,13 @@ a_earth           = 0.017         # Earth semi-major axis                 [dimen
 Rs  = 6.957e8                     # Solar radius      [m]
 Ms  = 1.98847e30                  # Solar mass        [kg]
 
-
-
-
-
+##### Convertion of units #####
+s2yr                = 1/(3600*24*365)       # convert [seconds] to [years]
+erg2joule           = 1e-7                  # convert [ergs] to [Joules]
+Ls                  = 3.828e26              # Solar luminosity [W]
+Ls_ergs             = 3.839e33              # Solar luminosity [erg/s]
+au2m                = 1.496e11              # convert au to [m]
+ergpersecondtowatt  = 1e-7                  # convert [erg/s] to [W]
 
 
 
