@@ -5,7 +5,6 @@ Main functions for atmospheric escape.
 
 from constants import *
 
-
 ########################################################### Energy-Limited escape (EL) ###########################################################
 
 def dMdt_EL_Baumeister_2023(Rp,Mp,Ratm) :
@@ -74,16 +73,17 @@ def dMdt_EL_Lopez_Fortney_Miller_2012(tidal_contribution,a,e,Mp,Ms,Rxuv,epsilon,
         ksi = Rhill/Rxuv
         K_tide = 1 - (3/(2*ksi)) + (1/(2*(ksi**3)))
     # No tidal contributions : Ktide = 1
-    else tidal_contribution == 'no':
+    else :
         K_tide = 1
 
     # Mass-loss rate for EL escape
-    escape_EL_Lopez_Fortney_Miller = (epsilon * np.pi * (Rxuv**3) *Fxuv) / (G*Mp*K_tide)
-    return escape_EL_Lopez_Fortney_Miller
+    escape_EL = (epsilon * np.pi * (Rxuv**3) *Fxuv) / (G*Mp*K_tide)
+    return escape_EL
 
 
 ########################################################### Diffusion-Limited escape (DL) ###########################################################
 
+## COMMENT THIS SECTION 
 def dMdt_DL_Baumeister_2023(Ratm) :
     baj = bCO2 * chiCO2 + bCO * chiCO + bHO2 * chiHO2
     escape_DL = 4 * np.pi * (Ratm**2) *(mH2/Na) * baj * chiH2 * ((1/Ha)-(1/HH2)) 
