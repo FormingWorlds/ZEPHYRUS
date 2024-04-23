@@ -50,10 +50,10 @@ def Fxuv_Johnstone(t, d, stellar_type):
 
     data = np.loadtxt(path, unpack = True)
     age = data[0]*1e6/s2yr # [s]
-    L_EUV = (data[4] + data[5] + data[6])*erg2joule # [W]
+    L_EUV = (data[4] + data[5] + data[6])*ergpersecondtowatt # [W]
     F_EUV = L_EUV/(4*np.pi*d**2) # [W/m2]
 
-    return np.interp(t, age, F_EUV),np.interp(t, age, L_EUV)
+    return np.interp(t, age, F_EUV), np.interp(t, age, L_EUV)
 
 def Fxuv_Baraffe_Sun(t,d):
     '''
@@ -69,13 +69,12 @@ def Fxuv_Baraffe_Sun(t,d):
     
     path = 'Baraffe_stellar_evolution/baraffe_XUV_Sun.dat'
     data = np.loadtxt(path, usecols=(1,3), skiprows=3)
-    logt  = data[:,0]
-    Lstar = data[:,1]
-    age = (10**logt)/s2yr # years to seconds
-    #age = np.exp(logt/s2yr)
-    Fxuv = (Lstar*Ls_ergs*ergpersecondtowatt)/(4*np.pi*d**2) # W/m2
-    print(logt,Lstar)
-    
-    return np.interp(t,age,Fxuv),logt,Lstar
+    logt  = data[:,0] # time in years
+    logLstar = data[:,1] # luminosity of the star in solar unit
+    age = (10**logt)/s2yr # time in years
+    Lstar = ((10**logLstar)*Ls_ergs)*ergpersecondtowatt # W
+    Flux= (Lstar)/(4*np.pi*d**2) # W/m2
+
+    return np.interp(t,age,Flux),np.interp(t,age,Lstar)
 
 

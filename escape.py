@@ -2,12 +2,12 @@
 escape.py
 Main functions for atmospheric escape.
 '''
-
+import numpy as np
 from constants import *
 
 ########################################################### Energy-Limited escape (EL) ###########################################################
 
-def dMdt_EL_Baumeister_2023(Rp,Mp,Ratm) :
+def dMdt_EL_Baumeister_2023(epsilon,Rp,Ratm,Fxuv,Mp) :
 
     ''''
     Compute the mass-loss rate for EL escape.
@@ -24,10 +24,10 @@ def dMdt_EL_Baumeister_2023(Rp,Mp,Ratm) :
     Output : Mass-loss rate for EL escape [kg.s-1]
     '''
 
-    escape_EL = (epsilon * np.pi * Rp * (Ratm**2) *Fxuv) / (G*Mp)
+    escape_EL = (epsilon * np.pi * Rp * (Ratm**2) * Fxuv) / (G*Mp)
     return escape_EL
 
-def dMdt_EL_Lehmer_Catling_2017(Rxuv,Mp) :
+def dMdt_EL_Lehmer_Catling_2017(epsilon,Rxuv,Fxuv,Mp) :
 
     ''''
     Compute the mass-loss rate for EL escape.
@@ -43,10 +43,10 @@ def dMdt_EL_Lehmer_Catling_2017(Rxuv,Mp) :
     Output : Mass-loss rate for EL escape [kg.s-1]
     '''
 
-    escape_EL = (epsilon * np.pi * (Rxuv**3) *Fxuv) / (G*Mp)
+    escape_EL = (epsilon * np.pi * (Rxuv**3) * Fxuv) / (G*Mp)
     return escape_EL
 
-def dMdt_EL_Lopez_Fortney_Miller_2012(tidal_contribution,a,e,Mp,Ms,Rxuv,epsilon,Fxuv):
+def dMdt_EL_Lopez_Fortney_Miller_2012(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,Fxuv):
 
     ''''
     Compute the mass-loss rate for EL escape.
@@ -58,8 +58,8 @@ def dMdt_EL_Lopez_Fortney_Miller_2012(tidal_contribution,a,e,Mp,Ms,Rxuv,epsilon,
         - e                  : planetary eccentricty                                                                                       [dimensionless]
         - Mp                 : planetary mass                                                                                              [kg]
         - Ms                 : Stellar mass                                                                                                [kg]
-        - Rxuv               : planetary radius at which XUV radiation are opticaly thick (defined at 20 mbar in Baumeister et  al. 2023)  [m]
         - epsilon            : efficiency factor (varies typically 0.1 < epsilon < 0.6)                                                    [dimensionless]
+        - Rxuv               : planetary radius at which XUV radiation are opticaly thick (defined at 20 mbar in Baumeister et  al. 2023)  [m]
         - Fxuv               : XUV incident flux received on the planet from the host star                                                 [W.m-2]
         - G                  : gravitational constant                                                                                      [m3.kg-1.s-2] 
         - K_tide             : tidal correction factor (0 < K_tide < 1)                                                                    [dimensionless]
@@ -69,15 +69,16 @@ def dMdt_EL_Lopez_Fortney_Miller_2012(tidal_contribution,a,e,Mp,Ms,Rxuv,epsilon,
 
     # Take into account tidal contributions : Ktide
     if tidal_contribution == 'yes':
-        Rhill = a * (1-e) * (Mp/(3*Ms))**(1.3)
+        Rhill = a * (1-e) * (Mp/(3*Ms))**(1/3)
         ksi = Rhill/Rxuv
         K_tide = 1 - (3/(2*ksi)) + (1/(2*(ksi**3)))
     # No tidal contributions : Ktide = 1
     else :
         K_tide = 1
 
+    print(K_tide)
     # Mass-loss rate for EL escape
-    escape_EL = (epsilon * np.pi * (Rxuv**3) *Fxuv) / (G*Mp*K_tide)
+    escape_EL = (epsilon * np.pi * (Rxuv**3) * Fxuv) / (G * Mp * K_tide)
     return escape_EL
 
 
