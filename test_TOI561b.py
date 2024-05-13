@@ -1,7 +1,7 @@
 ''''
 Emma Postolec
 test_TOI561b.py
-testing EL atmospheric escape for TOI-561b
+testing EL atmospheric escape for TOI-561b (just a copy of test-earth for now need to re-write it)
 '''
 
 import numpy as np

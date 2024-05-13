@@ -37,7 +37,8 @@ M_TOI561               = 0.805*Ms        # TOI-561 mass                         
 M_TOI561_errorbar      = 0.030*Ms        # Errorbars on TOI-561 mass               [kg]
 L_TOI561               = 0.522*Ls        # TOI-561 luminosity (bolometric ?)       [W]
 L_TOI561_errorbar      = 0.017*Ls        # Errorbars on TOI-561 luminosity         [W]
-#age_TOI561             = 
+age_TOI561             = 10e9            # TOI-561 age                             [years]
+age_TOI561_errorbar    = 3e9             # Errorbars on TOI-561 age                [years]
  
 ## Planet b (Brinkman+2023)
 R_TOI561b               = 1.37*Re        # TOI-561b radius                          [m]
