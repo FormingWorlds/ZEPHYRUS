@@ -22,6 +22,8 @@ Rs      = 6.957e8                     # Solar radius        [m]
 Ms      = 1.98847e30                  # Solar mass          [kg]
 Ls      = 3.828e26                    # Solar luminosity    [W]
 Ls_ergs = 3.839e33                    # Solar luminosity    [erg/s]
+age_sun = 4.603e9                     # Age of the Sun      [years]
+
 
 ##### Convertion of units #####
 s2yr                = 1/(3600*24*365)       # convert [seconds] to [years]
@@ -37,8 +39,8 @@ M_TOI561               = 0.805*Ms        # TOI-561 mass                         
 M_TOI561_errorbar      = 0.030*Ms        # Errorbars on TOI-561 mass               [kg]
 L_TOI561               = 0.522*Ls        # TOI-561 luminosity (bolometric ?)       [W]
 L_TOI561_errorbar      = 0.017*Ls        # Errorbars on TOI-561 luminosity         [W]
-#age_TOI561             = 
- 
+age_TOI561             = 10e9            # TOI-561 age                             [years]
+age_TOI561_errorbar    = 3e9             # Errorbars on TOI-561 age                [years]
 ## Planet b (Brinkman+2023)
 R_TOI561b               = 1.37*Re        # TOI-561b radius                          [m]
 R_TOI561b_errorbar      = 0.04*Re        # Errorbars on TOI-561b radius             [m]
