@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Richard Chatterjee
 Converts stellar XUV luminosity [J⋅s^-1] to a hydrodynamic luminosity of escape [kg⋅s^-1] with some efficiency eta. 
 beta^3 dependence as in Owen R. Lehmer and David C. Catling 2017 ApJ 845 130,taking into account that material 
 is lifted from XUV photosphere rather than surface.

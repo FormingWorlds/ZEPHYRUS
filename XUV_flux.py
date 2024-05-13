@@ -1,4 +1,5 @@
 ''''
+Emma Postolec
 XUV_flux.py
 Compute the XUV flux evolution of a star
 '''
