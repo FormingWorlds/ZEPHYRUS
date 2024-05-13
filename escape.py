@@ -77,7 +77,6 @@ def dMdt_EL_Lopez_Fortney_Miller_2012(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,
     else :
         K_tide = 1
 
-    print(K_tide)
     # Mass-loss rate for EL escape
     escape_EL = (epsilon * np.pi * (Rxuv**3) * Fxuv) / (G * Mp * K_tide)
     return escape_EL
