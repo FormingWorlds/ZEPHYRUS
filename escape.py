@@ -1,4 +1,5 @@
 ''''
+Emma Postolec
 escape.py
 Main functions for atmospheric escape.
 '''

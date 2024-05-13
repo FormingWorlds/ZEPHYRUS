@@ -1,4 +1,5 @@
 ''''
+Emma Postolec
 constants.py
 This file contains some often used physical constants and planets parameters.
 '''

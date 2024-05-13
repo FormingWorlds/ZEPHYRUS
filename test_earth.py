@@ -1,4 +1,5 @@
 ''''
+Emma Postolec
 test_earth.py
 testing EL atmospheric escape on Earth : plots
 '''
