@@ -8,49 +8,10 @@ from constants import *
 
 ########################################################### Energy-Limited escape (EL) ###########################################################
 
-def dMdt_EL_Baumeister_2023(epsilon,Rp,Ratm,Fxuv,Mp) :
+def dMdt_EL_Lopez2012(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,Fxuv):
 
     ''''
-    Compute the mass-loss rate for EL escape.
-    Formula from Baumeister et  al. 2023 (Equation 15)
-    
-    Inputs :
-        - epsilon : efficiency factor (varies typically 0.1 < epsilon < 0.6)                                    [dimensionless]
-        - Rp      : planetary radius                                                                            [m]
-        - Ratm    : planet radius at the top of the atmosphere (defined at 20 mbar in Baumeister et  al. 2023)  [m]
-        - Fxuv    : XUV incident flux received on the planet from the host star                                 [W.m-2]
-        - G       : gravitational constant                                                                      [m3.kg-1.s-2] 
-        - Mp      : planetary mass                                                                              [kg]
-
-    Output : Mass-loss rate for EL escape [kg.s-1]
-    '''
-
-    escape_EL = (epsilon * np.pi * Rp * (Ratm**2) * Fxuv) / (G*Mp)
-    return escape_EL
-
-def dMdt_EL_Lehmer_Catling_2017(epsilon,Rxuv,Fxuv,Mp) :
-
-    ''''
-    Compute the mass-loss rate for EL escape.
-    Formula from Lehmer & Catling, 2017 (Equation 1)
-    
-    Inputs :
-        - epsilon : efficiency factor (varies typically 0.1 < epsilon < 0.6)                                                    [dimensionless]
-        - Rxuv    : planetary radius at which XUV radiation are opticaly thick (defined at 20 mbar in Baumeister et  al. 2023)  [m]
-        - Fxuv    : XUV incident flux received on the planet from the host star                                                 [W.m-2]
-        - G       : gravitational constant                                                                                      [m3.kg-1.s-2] 
-        - Mp      : planetary mass                                                                                              [kg]
-
-    Output : Mass-loss rate for EL escape [kg.s-1]
-    '''
-
-    escape_EL = (epsilon * np.pi * (Rxuv**3) * Fxuv) / (G*Mp)
-    return escape_EL
-
-def dMdt_EL_Lopez_Fortney_Miller_2012(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,Fxuv):
-
-    ''''
-    Compute the mass-loss rate for EL escape.
+    Compute the mass-loss rate for Energy-Limited (EL) escape.
     Formula from Lopez, Fortney & Miller, 2012 (Equation 2,3,4). Based on the formulation in Erkaev et al. 2007.
     
     Inputs :
@@ -80,7 +41,6 @@ def dMdt_EL_Lopez_Fortney_Miller_2012(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,
     # Mass-loss rate for EL escape
     escape_EL = (epsilon * np.pi * (Rxuv**3) * Fxuv) / (G * Mp * K_tide)
     return escape_EL
-
 
 ########################################################### Diffusion-Limited escape (DL) ###########################################################
 

@@ -7,7 +7,7 @@ Compute the XUV flux evolution of a star
 from constants import *
 import numpy as np
 
-def Fxuv(t, F0, t_sat = 5e8, beta = -1.23):
+def Fxuv_Ribas2005(t, F0, t_sat = 5e8, beta = -1.23):
     '''
     Function taken from IsoFate code for tests
     Calculates incident XUV flux
