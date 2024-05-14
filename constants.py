@@ -26,10 +26,11 @@ age_sun = 4.603e9                     # Age of the Sun      [years]
 
 
 ##### Convertion of units #####
-s2yr                = 1/(3600*24*365)       # convert [seconds] to [years]
-erg2joule           = 1e-7                  # convert [ergs]    to [Joules]
-au2m                = 1.496e11              # convert [au]      to [m]
-ergpersecondtowatt  = 1e-7                  # convert [erg/s]   to [W]
+s2yr                = 1/(3600*24*365)       # convert [seconds]   to [years]
+erg2joule           = 1e-7                  # convert [ergs]      to [Joules]
+au2m                = 1.496e11              # convert [au]        to [m]
+ergpersecondtowatt  = 1e-7                  # convert [erg/s]     to [W]
+ergcm2stoWm2        = 1e-3                  # convert [erg/cm2/s] to [W/m2]
 
 ##### TOI-561 parameters #####
 ## Star (Weiss+2021)
