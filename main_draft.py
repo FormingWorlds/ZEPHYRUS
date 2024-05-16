@@ -29,11 +29,15 @@ def open_flux_files(path) :
 
 files = os.listdir('data/XUV_tracks_from_proteus/')                                 # Open all the files in this directory
 sflux_files = [file for file in files if file.endswith('.sflux')]                   # Select only the '.sflux' files
-epsilon = 0.15                                                                      # Efficiency parameter for escape
+def extract_number(file_name):                                                      # Function to sort the files names in the increasing order -> I can put this function in a document_handler.py file later ?
+    number_part = file_name.split('.')[0]                                           # Split the filename at the dot and take the first part (the number)
+    return int(number_part)
+sorted_files = sorted(sflux_files, key=extract_number)                              # Sort the files using the custom key
 
+epsilon = 0.15                                                                      # Efficiency parameter for escape
 time_flux_escape = []                                                               # Create a list with 3 columns : time_step, XUV_flux, Mass_loss_rate_EL
-for file in sflux_files:
-    XUV_flux, time_step = open_flux_files('data/XUV_tracks_from_proteus/'+file) 
+for i in sorted_files:
+    XUV_flux, time_step = open_flux_files('data/XUV_tracks_from_proteus/'+i) 
     mass_loss_rate = dMdt_EL_Lopez2012('yes',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,XUV_flux)
     time_flux_escape.append([time_step, XUV_flux, mass_loss_rate])
 
@@ -43,17 +47,32 @@ df = pd.DataFrame(time_flux_escape, columns = ['Time step [Myr]',               
 
 # __________________________ Plots __________________________ #  
 
-plt.figure(figsize=(12,8))                                                          # Plot : Mass loss rate vs time 
-plt.plot(df['Time step [Myr]'],df['XUV Flux [W.m-2]'], ls=':', color = 'green', label = 'Mors')
+plt.figure(figsize=(12,8))                                                          # Plot : XUV flux vs time 
+plt.plot(df['Time step [Myr]'],df['XUV Flux [W.m-2]'], ls='-', color = 'green', label = 'Mors')
 plt.grid(alpha=0.15)
 plt.legend()
 plt.xlabel('Time [Myr]', fontsize=20)
 plt.ylabel('Planetary incident flux F$_{XUV}$ [W.m$^{2}$] at 1 AU', fontsize=20)
 plt.savefig('plots/test_building_main/test_flux_from_proteus.png',dpi=180)
- 
-plt.figure(figsize=(12,8))                                                          # Plot : Mass loss rate vs time 
-plt.plot(df['Time step [Myr]'],df['Mass loss rate (EL) [kg.s-1]'], ls=':', color = 'blue')
+
+plt.figure(figsize=(12,8))                                                          # Plot : XUV flux vs time - loglog scale
+plt.loglog(df['Time step [Myr]'],df['XUV Flux [W.m-2]'], ls='-', color = 'green', label = 'Mors')
+plt.grid(alpha=0.15)
+plt.legend()
+plt.xlabel('Time [Myr]', fontsize=20)
+plt.ylabel('Planetary incident flux F$_{XUV}$ [W.m$^{2}$] at 1 AU', fontsize=20)
+plt.savefig('plots/test_building_main/test_flux_from_proteus_loglog.png',dpi=180)
+
+plt.figure(figsize=(12,8))                                                          # Plot : Mass loss rate vs time - loglog scale
+plt.plot(df['Time step [Myr]'],df['Mass loss rate (EL) [kg.s-1]'], ls='-', color = 'blue')
 plt.grid(alpha=0.15)
 plt.xlabel('Time [Myr]', fontsize=20)
 plt.ylabel('Mass loss rate [kg.s$^{-1}$]', fontsize=20)
 plt.savefig('plots/test_building_main/test_MLR_computation_from_proteus.png',dpi=180)
+ 
+plt.figure(figsize=(12,8))                                                          # Plot : Mass loss rate vs time - loglog scale
+plt.loglog(df['Time step [Myr]'],df['Mass loss rate (EL) [kg.s-1]'], ls='-', color = 'blue')
+plt.grid(alpha=0.15)
+plt.xlabel('Time [Myr]', fontsize=20)
+plt.ylabel('Mass loss rate [kg.s$^{-1}$]', fontsize=20)
+plt.savefig('plots/test_building_main/test_MLR_computation_from_proteus_loglog.png',dpi=180)
