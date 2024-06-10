@@ -41,13 +41,15 @@ def Fxuv_Johnstone(t, d, stellar_type):
     '''
 
     if stellar_type == 'M1':
-        path = 'RotationXUVTracks/TrackGrid_MstarPercentile/0p5Msun_50percentile_basic.dat'
+        path = 'data/RotationXUVTracks/TrackGrid_MstarPercentile/0p5Msun_50percentile_basic.dat'
     elif stellar_type == 'K5':
-        path = 'RotationXUVTracks/TrackGrid_MstarPercentile/0p7Msun_50percentile_basic.dat'
+        path = 'data/RotationXUVTracks/TrackGrid_MstarPercentile/0p7Msun_50percentile_basic.dat'
     elif stellar_type == 'G5':
-        path = 'RotationXUVTracks/TrackGrid_MstarPercentile/1p0Msun_50percentile_basic.dat'
+        path = 'data/RotationXUVTracks/TrackGrid_MstarPercentile/1p0Msun_50percentile_basic.dat'
+    elif stellar_type == 'G2':
+        path = 'data/RotationXUVTracks/TrackGrid_MstarPercentile/1p0Msun_60percentile_basic.dat'
     else:
-        print('Stellar type not supported. Please input "M1", "K5" or "G5"')
+        print('Stellar type not supported. Please input "M1", "K5", "G2" or "G5"')
 
     data = np.loadtxt(path, unpack = True)
     age = data[0]*1e6/s2yr # [s]
@@ -68,7 +70,7 @@ def Fxuv_Baraffe_Sun(t,d):
     Output: incident XUV flux [W/m2]
     '''
     
-    path = 'Baraffe_stellar_evolution/baraffe_XUV_Sun.dat'
+    path = 'data/Baraffe_stellar_evolution/baraffe_XUV_Sun.dat'
     data = np.loadtxt(path, usecols=(1,3), skiprows=3)
     logt  = data[:,0] # time in years
     logLstar = data[:,1] # luminosity of the star in solar unit
