@@ -113,11 +113,32 @@ plt.loglog(df['Time step [Myr]']*1e6,df['Mass loss rate (EL) [kg.s-1]'], ls='-',
 plt.loglog(df_all['Time step [Myr]']*1e6,df_all['Mass loss rate (EL) [kg.s-1]'], ls='-', color = 'purple', label = 'PROTEUS - Mors (Bolometric model)')
 #plt.axvline(5e7, ls = '--', lw = 0.75, color = 'darksalmon', label = '50 Myr')
 plt.axvline(x = age_earth_year, ls='--', lw=0.7, color = 'gray', label = 't = 4.568 Gyr (Earth today)')
+
 plt.grid(alpha=0.15)
 plt.xlabel('Time [years]', fontsize=15)
 plt.ylabel('Mass loss rate [kg.s$^{-1}$]', fontsize=15)
-#plt.title('Lopez,Fortney,Miller+2012')
 plt.legend()
+
+# Constants
+seconds_per_year = 365.25 * 24 * 3600
+# Conversion function
+def kg_s_to_earth_mass_per_year(mass_loss_rate_kg_s):
+    return mass_loss_rate_kg_s * (seconds_per_year / Me)
+
+# Create second y-axis
+
+ax2 = plt.gca().twinx()
+ax2.set_yscale('log')
+ax2.set_ylabel('Mass loss rate [M$_{\oplus}$.year$^{ -1}$]', fontsize=15)
+
+# Set ticks for the second y-axis
+yticks = plt.gca().get_yticks()
+yticks_earth_mass = kg_s_to_earth_mass_per_year(yticks)
+ax2.set_yticks(yticks)
+ax2.set_yticklabels([f'$10^{{{int(np.log10(y))}}}$' for y in yticks_earth_mass])
+
+
+
 plt.savefig('plots/test_comparison_proteus/plot_comparison_proteus_MLR_comparison_models.png',dpi=180)
 
 ## Extracted spectra 
