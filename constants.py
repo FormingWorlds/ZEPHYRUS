@@ -12,6 +12,7 @@ c   = 2.99792458e8                # Speed of light            [m.s-1]
 ##### Earth parameters #####
 Re                = 6.378e6       # Earth radius                          [m]
 Me                = 5.9722e24     # Earth mass                            [kg]
+Me_atm            = 5.15e18       # Mass of the Earth atmopshere          [kg]
 Fxuv_earth_today  = 4.64e-3       # Stellar flux received on Earth today  [W.m-2]
 age_earth         = 4.543e9       # Age of the Earth                      [years]
 e_earth           = 0.017         # Earth eccentricity                    [dimensionless]
