@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from constants import *
-import XUV_flux
+import XUV_flux 
 from escape import *
 
 ##### Initial parameters ##### 
@@ -206,3 +206,30 @@ ax2.set_yscale('log')
 ax1.legend(loc='upper right')
 plt.savefig('plots/test_comparison_proteus/plot_comparison_integrated_value.png',dpi=180)
 
+mlr_earth_today =  (0.15* np.pi * (6.378e6)**3 * 14.67)/(6.6743e-11*5.9722e24)
+print(mlr_earth_today, "kg.s-1")
+print(mlr_earth_today * (seconds_per_year / Me) , "Me.yr")
+
+def Fxuv_Ribas2005(t, F0, t_sat = 5e8, beta = -1.23):
+    '''
+    Function taken from IsoFate code for tests
+    Calculates incident XUV flux
+    Adapted from Ribas et al 2005
+    Consistent with empirical data from MUSCLES spectra for early M dwarfs
+
+    Inputs:
+        - t: time/age [s]
+        - F0: initial incident XUV flux [W/m2]
+        - t_sat: saturation time [yr]; change this for different stellar types (M1:500Myr, G:50Myr)
+        - beta: exponential term [ndim]
+
+    Output: incident XUV flux [W/m2]
+    '''
+    if t*s2yr < t_sat:
+        return F0
+    else:
+        return F0*(t*s2yr/t_sat)**beta
+
+
+test = Fxuv_Ribas2005(4.568e9/s2yr, initial_incident_flux, t_sat = 5e8, beta = -1.23)
+print(test)

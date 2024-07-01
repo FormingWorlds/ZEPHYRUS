@@ -25,7 +25,6 @@ Ls      = 3.828e26                    # Solar luminosity    [W]
 Ls_ergs = 3.839e33                    # Solar luminosity    [erg/s]
 age_sun = 4.603e9                     # Age of the Sun      [years]
 
-
 ##### Convertion of units #####
 s2yr                = 1/(3600*24*365)       # convert [seconds]   to [years]
 erg2joule           = 1e-7                  # convert [ergs]      to [Joules]
