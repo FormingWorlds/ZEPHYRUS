@@ -1,7 +1,7 @@
 ''''
 Emma Postolec
 escape.py
-Main functions for atmospheric escape.
+Main functions to compute atmospheric escape.
 '''
 import numpy as np
 from constants import *

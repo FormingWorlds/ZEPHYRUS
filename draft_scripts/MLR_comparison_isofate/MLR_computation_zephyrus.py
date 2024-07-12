@@ -6,6 +6,13 @@ This file is a test to verify and validate escape computation.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+import os
+
+# To import functions from src/zephyrus
+main_dir = os.path.dirname('/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/')
+src_zephyrus_folder_path = os.path.join(main_dir, 'src/zephyrus/')
+sys.path.append(src_zephyrus_folder_path)
 
 from escape import dMdt_EL_Lopez2012
 from constants import *
@@ -26,7 +33,7 @@ MLR_10myr_Meyr = [(x / s2yr) / Me for x in MLR_10myr]
 MLR_today_Meyr = [(x / s2yr) / Me for x in MLR_today]
 
 # Save the data to a text file
-np.savetxt('MLR_values_10Myr_and_today_my_computation.txt', np.column_stack((masses, MLR_10myr, MLR_10myr_Meyr, MLR_today, MLR_today_Meyr)), 
+np.savetxt('/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/data/MLR_computations/MLR_values_10Myr_and_today_zephyrus.txt', np.column_stack((masses, MLR_10myr, MLR_10myr_Meyr, MLR_today, MLR_today_Meyr)), 
            header='masses   MLR_10myr [kg/s]    MLR_10myr [Me/yr]    MLR_today [kg/s]   MLR_today [Me/yr]')
 
 
@@ -57,7 +64,7 @@ ax2.set_yscale('log')
 ax2.set_ylabel(r'MLR [Me $yr^{-1}$]')
 
 # Saving the plot
-plt.savefig('plots/test_new/MLR_vs_Me_earth.png', dpi=180)
+plt.savefig('/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/plots/test_MLR_comparison/MLR_vs_Me_earth.png', dpi=180)
 
 # Show the plot
 plt.show()

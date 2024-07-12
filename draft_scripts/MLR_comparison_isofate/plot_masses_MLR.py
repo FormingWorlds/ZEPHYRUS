@@ -1,11 +1,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+import os
+
+# To import functions from src/zephyrus
+main_dir = os.path.dirname('/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/')
+src_zephyrus_folder_path = os.path.join(main_dir, 'src/zephyrus/')
+sys.path.append(src_zephyrus_folder_path)
 
 from constants import *
 from planets_parameters import *
 
-MLR_me = np.loadtxt("MLR_values_10Myr_and_today_my_computation.txt")
-MLR_isofate = np.loadtxt('MLR_values_10Myr_and_today_isofate.txt')
+data_dir_MLR = '/data/MLR_computations/'
+MLR_me = np.loadtxt(main_dir + data_dir_MLR + "MLR_values_10Myr_and_today_zephyrus.txt")
+MLR_isofate = np.loadtxt(main_dir + data_dir_MLR +'MLR_values_10Myr_and_today_isofate.txt')
 
 masses = MLR_me[:,0]
 MLR_10myr_kgs_me = MLR_me[:,1]
@@ -51,7 +59,8 @@ ax2.set_yscale('log')
 ax2.set_ylabel(r'MLR [Me $yr^{-1}$]')
 
 # Saving the plot
-plt.savefig('plots/test_new/plot_compare_MLR_vs_Me_earth_isofate_vs_me.png', dpi=180)
+plot_dir_MLR = '/plots/test_MLR_comparison/'
+plt.savefig(main_dir + plot_dir_MLR + 'plot_compare_MLR_vs_Me_earth_isofate_vs_me.png', dpi=180)
 
 # Show the plot
 plt.show()
