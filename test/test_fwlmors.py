@@ -1,0 +1,2 @@
+from mors.data import DownloadEvolutionTracks
+DownloadEvolutionTracks()
