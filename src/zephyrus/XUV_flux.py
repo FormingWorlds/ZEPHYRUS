@@ -9,7 +9,7 @@ import numpy as np
 
 def Fxuv_Ribas2005(t, F0, t_sat = 5e8, beta = -1.23):
     '''
-    Function taken from IsoFate code for tests
+    Function taken from IsoFate code for tests (Cherubim+2024)
     Calculates incident XUV flux
     Adapted from Ribas et al 2005
     Consistent with empirical data from MUSCLES spectra for early M dwarfs
@@ -29,7 +29,7 @@ def Fxuv_Ribas2005(t, F0, t_sat = 5e8, beta = -1.23):
 
 def Fxuv_Johnstone(t, d, stellar_type):
     '''
-    Function taken from IsoFate code for tests
+    Function taken from IsoFate code for tests (Cherubim+2024)
     Calculates incident XUV flux
     Adapted from Johnstone et al 2021 semi-empirical XUV tracks
 
