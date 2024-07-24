@@ -41,7 +41,7 @@ def dMdt_EL_Lopez2012(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,Fxuv):
 
     # Mass-loss rate for EL escape
     escape_EL = (epsilon * np.pi * (Rxuv**3) * Fxuv) / (G * Mp * K_tide)
-    
+    #escape_EL = (epsilon * (Rxuv**3) * Fxuv) / (4 * G * Mp * K_tide)
     return escape_EL
 
 def dMdt_EL_Attia2021(tidal_contribution,a,e,Mp,Ms,Rp,Rxuv,Lxuv,Fxuv,epsilon,orbit_effect):

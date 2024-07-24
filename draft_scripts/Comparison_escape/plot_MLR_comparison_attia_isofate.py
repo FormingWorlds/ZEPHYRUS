@@ -46,10 +46,20 @@ data_Star_isofate = np.loadtxt(data_dir + 'MLR_computation_Cherubim+2024_with_St
 Time_Star_isofate = data_Star_isofate[:, 0] 
 MLR_Star_isofate = data_Star_isofate[:, 1] 
 
+data_isofate_sun = np.loadtxt(data_dir+'MLR_isofate_sun.txt')
+time_myr_isofate_sun = data_isofate_sun[:, 0] 
+escape_mlr_isofate_sun = data_isofate_sun[:, 2] 
+
+data_isofate_G5 = np.loadtxt(data_dir+'MLR_isofate_G5.txt')
+time_myr_isofate_G5 = data_isofate_G5[:, 0] 
+escape_mlr_isofate_G5 = data_isofate_G5[:, 2]
+
+
 MLR_earth_today_zephyrus = dMdt_EL_Lopez2012('no',a_earth*au2m,e_earth,Me,Ms,0.15,Re,Fxuv_earth_today)
 MLR_earth_today_mara = dMdt_EL_Attia2021('no',a_earth*au2cm,e_earth,Me*1e3,Ms*1e3,Re*1e2,Re*1e2,((Fxuv_earth_today/ergcm2stoWm2)*4*np.pi*au2cm**2),Fxuv_earth_today/ergcm2stoWm2,0.15,'no')
-Vpot = (G*Me)/(Re**3)
-MLR_earth_today_isofate = 0.15*Fxuv_earth_today/(4*Vpot)
+Vpot = G*Me/Re
+MLR_earth_today_isofate = (0.15*Fxuv_earth_today/(4*Vpot)) * 4 * np.pi * Re**2
+
 
 # Create the plot
 fig, ax1 = plt.subplots(figsize=(10, 8))
@@ -57,19 +67,21 @@ fig, ax1 = plt.subplots(figsize=(10, 8))
 # Plotting the data on the primary y-axis
 ax1.loglog(Time_Lxuv_mara, MLR_Lxuv_mara, ':', color='black', label='Flux from mors.Lxuv()')
 ax1.loglog(Time_Star_mara, MLR_Star_mara, color='black', label='Flux from mors.Star()',)
+ax1.loglog(time_myr_isofate_sun, escape_mlr_isofate_sun, '--', color='black', label='Flux from Johnstone+2021')
 ax1.axvline(x=age_earth/1e6, color='lightgrey', linestyle='--', linewidth=1)
 ax1.loglog(age_earth/1e6, MLR_earth_today_zephyrus,'o', color='black', label='Earth today (t = 4.543 Gyr)')
 ax1.loglog(age_earth/1e6, MLR_earth_today_mara/1e3,'o', color='red')
 ax1.loglog(age_earth/1e6, MLR_earth_today_zephyrus,'o', color='steelblue')
 ax1.loglog(age_earth/1e6, MLR_earth_today_isofate,'o', color='gold')
-#ax1.loglog(age_earth/1e6, 1423.221809,'o', color='green')
 ax1.loglog(Time_Lxuv_mara, MLR_Lxuv_mara, ':', color='red')
 ax1.loglog(Time_Lxuv_zephyrus, MLR_Lxuv_zephyrus,':', color='steelblue')
-ax1.loglog(Time_Lxuv_isofate, MLR_Lxuv_isofate,':', color='gold')
+ax1.loglog(Time_Lxuv_isofate, MLR_Lxuv_isofate * 4 * np.pi,':', color='gold') 
 ax1.loglog(Time_Star_mara, MLR_Star_mara, color='red', label='Mara : Attia+2021')
 ax1.loglog(Time_Star_zephyrus, MLR_Star_zephyrus, color='steelblue', label='Zephyrus : Lopez+2012')
-ax1.loglog(Time_Star_isofate, MLR_Star_isofate, color='gold', label='IsoFATE : Cherubim+2024')
+ax1.loglog(Time_Star_isofate, MLR_Star_isofate * 4 * np.pi , color='gold', label='IsoFATE : Cherubim+2024')
 
+ax1.loglog(time_myr_isofate_sun, escape_mlr_isofate_sun, '--', color='green', label='IsoFATE : Sun track from FWL-Mors Feuv, phi_E()*4*pi*Re**2')
+#ax1.loglog(time_myr_isofate_G5, escape_mlr_isofate_G5, '--', color='darkseagreen', label='IsoFATE : G5 track from Johnstone, phi_E()*Re**2')
 
 
 # Adding labels and title for primary y-axis
@@ -93,7 +105,7 @@ ax2.set_ylabel(r'MLR [$M_{\oplus}$ $yr^{-1}$]')
 textstr = r'$\epsilon$ = 0.15' '\n' r'$R_p = R_{\mathrm{XUV}} = R_{\oplus}$' '\n' r'$M_p = M_{\oplus}$'
 props = dict(boxstyle='round', facecolor='white', alpha=0.7)
 # Place the text box in the upper left corner of the plot
-ax1.text(1.2, 6e2, textstr, fontsize=14,
+ax1.text(1.2, 6e3, textstr, fontsize=14,
          verticalalignment='top', bbox=props)
 
 # Saving the plot
