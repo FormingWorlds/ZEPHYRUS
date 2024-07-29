@@ -75,7 +75,7 @@ def open_flux_files(path) :
 
 # __________________________ Extracting XUV flux from PROTEUS simulations + compute EL escape __________________________ #  
 
-files = os.listdir('/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/data/XUV_tracks_from_proteus/')                                 # Open all the files in this directory
+files = os.listdir('/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/data/Fxuv_tracks/PROTEUS_simulation_Sun_Earth_system_Fxuv_tracks')                                 # Open all the files in this directory
 sflux_files = [file for file in files if file.endswith('.sflux')]                   # Select only the '.sflux' files
 def extract_number(file_name):                                                      # Function to sort the files names in the increasing order -> I can put this function in a document_handler.py file later ?
     number_part = file_name.split('.')[0]                                           # Split the filename at the dot and take the first part (the number)
