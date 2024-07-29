@@ -15,8 +15,7 @@ from XUV_flux import *
     
 ########################### Path to directories ###############################
 
-path_to_file_johnstone_2021     = '/Users/emmapostolec/Downloads/RotationXUVTracks/TrackGrid_MstarOmega0/1p0Msun_1p0OmegaSun_basic.dat'
-proteus_sim_dir                 = '/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/data/Escape_computations/MLR_computations_from_PROTEUS_simulation_for_Earth/'
+proteus_sim_dir                 = '/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/data/Fxuv_tracks/PROTEUS_simulation_Sun_Earth_system_Fxuv_tracks/'
 path_plot                       = '../plots/comparison_work/'
 
 
@@ -45,7 +44,7 @@ incident_xuv_flux_hazmat                            = vectorized_hazmat(time_sim
 
 ## Bolometric flux from Baraffe+2015 
 vectorized_Fxuv_Baraffe_Sun                         = np.vectorize(Fbol_Baraffe_Sun)
-incident_xuv_flux_Baraffe, luminosity_Baraffe       = vectorized_Fxuv_Baraffe_Sun(time_simulation, au2m)  
+incident_xuv_flux_Baraffe                           = vectorized_Fxuv_Baraffe_Sun(time_simulation, au2m)  
 
 ## Compute the Fxuv tracks from MORS using mors.Star() or mors.Lxuv() to extract Fxuv
 star_data               = mors.Star(Mstar=1.0, Omega=1.0)
@@ -57,19 +56,7 @@ Lxuv_lxuv               = [mors.Lxuv(Mstar=1.0, Age=age, Omega=1.0)['Lxuv'] for 
 Lxuv_Fxuv               = [lxuv/(4*np.pi*(a_earth*au2cm)**2) for lxuv in Lxuv_lxuv]
 
 ## Load the Fxuv from Johnstone+2021 file : 1.0 Msun, OmegaSun = 1.0
-data_johnstone_2021             = np.loadtxt(path_to_file_johnstone_2021, unpack = True)
-age_johnstone_2021              = data_johnstone_2021[0]                                                                                # [Myr]
-L_XUV_johnstone_2021            = (data_johnstone_2021[3] + data_johnstone_2021[4] + data_johnstone_2021[5] + data_johnstone_2021[6])   # [erg s-1]
-F_XUV_johnstone_2021            = L_XUV_johnstone_2021/(4*np.pi*(a_earth*au2cm)**2)                                                     # [erg s-1 cm-2]
-
-## Load the Fxuv from a PROTEUS simulation for Sun-Earth system using Mors tracks 
-df                      = pd.read_csv(proteus_sim_dir+'EL_escape_only_xuv_flux_from_PROTEUS_simulation.txt', sep='\t')
-df_all                  = pd.read_csv(proteus_sim_dir+'EL_escape_all_wavelength_flux_from_PROTEUS_simulation.txt', sep='\t')
-time_step               = df['Time step [Myr]']
-xuv_flux                = df['XUV Flux [W.m-2]']
-xuv_luminosity_proteus  = xuv_flux*4*np.pi*(a_earth*au2cm)**2
-time_step_all           = df_all['Time step [Myr]']
-bolometric_xuv_flux     = df_all['Bolometric XUV Flux [W.m-2]']
+Fxuv_johnstone2021      = Fxuv_Johnstone_Sun(time_simulation, a_earth*au2cm)                                            # [W m-2]
 
 ########################### Plot ####################################
 
@@ -78,13 +65,12 @@ plt.figure(figsize=(14, 12))
 plt.loglog(time_simulation_Myr,incident_xuv_flux/ergcm2stoWm2, color='green', linestyle='-', label='XUV model 1 : IsoFATE : adapted from Ribas+2005 (consistent for early M dwarfs)')
 plt.loglog(time_simulation_Myr,incident_xuv_flux_Ribas/ergcm2stoWm2, color='yellowgreen', linestyle='-', label='XUV model 1 : IsoFATE : adapted from Ribas+2005')
 plt.loglog(time_simulation_Myr,incident_xuv_flux_Johnstone/ergcm2stoWm2,color = 'yellow', label = 'XUV model 2 : IsoFATE : Johnstone+2021 (G5 star, 1.0 Msun, 50 Percentile)')
-plt.loglog(age_johnstone_2021,F_XUV_johnstone_2021, color='gold', linestyle='-', label='XUV model 2 : Johnstone+2021 (1.0 Msun, 1.0 OmegaSun, downloaded from paper)')
+plt.loglog(time_simulation_Myr,Fxuv_johnstone2021/ergcm2stoWm2, color='gold', linestyle='-', label='XUV model 2 : Johnstone+2021 (1.0 Msun, 1.0 OmegaSun, downloaded from paper)')
 plt.loglog(Star_age,Star_Fxuv, color='orange', linestyle='-', label='XUV model 2 : Extracted from FWL-Mors using Star() class')
 plt.loglog(Star_age,Lxuv_Fxuv, color='orange', linestyle='--', label='XUV model 2 : Extracted from FWL-Mors using Lxuv() function')
 plt.loglog(time_simulation_Myr,(incident_xuv_flux_Baraffe/ergcm2stoWm2)/1e3, color = 'steelblue', label = 'XUV model 3 : Baraffe+2015 (F$_{bol}$/10$^3$, 1.0 Msun)')
 plt.loglog(time_simulation_Myr,incident_xuv_flux_SF/ergcm2stoWm2, color='deeppink', linestyle='-', label='XUV model 4 : IsoFATE : Sanz-Forcada+2011 (for M to F stars)')
 plt.loglog(time_simulation_Myr,incident_xuv_flux_hazmat/ergcm2stoWm2, color='purple', linestyle='-', label='XUV model 5 : IsoFATE : HAZMAT program')
-plt.loglog(time_step,xuv_flux/ergcm2stoWm2, color='red', linestyle='-', label='PROTEUS simulation using old Mors version')
 plt.axvline(x=4543, color='grey', linestyle='--', linewidth=0.7)
 plt.text(3600, 1.1e2, 'Today', color='grey', rotation=90, verticalalignment='bottom')
 plt.loglog(age_earth_year/1e6,present_day_earth_XUV_flux/ergcm2stoWm2, 'o', color = 'black', label = 'Earth today : t = 4 543 Myr')
@@ -99,7 +85,6 @@ plt.text(1.1e1, 2e2, 'XUV model 2', color='gold', verticalalignment='bottom')
 plt.text(1.1e1, 1.1e3, 'XUV model 3', color='steelblue', verticalalignment='bottom')
 plt.text(1.5, 2e5, 'XUV model 4', color='deeppink', verticalalignment='bottom')
 plt.text(1.5, 2.8e2, 'XUV model 5', color='purple', verticalalignment='bottom')
-plt.text(7e1, 4e0,  'PROTEUS simulation', color='red', verticalalignment='bottom')
 
 plt.savefig(path_plot+'Comparison_Fxuv_models_MORS_IsoFate_Baraffe_SUN.pdf',dpi=180)
 

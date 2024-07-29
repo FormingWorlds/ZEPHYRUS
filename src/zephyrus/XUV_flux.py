@@ -169,7 +169,7 @@ def Fbol_Baraffe_Sun(t,d):
         - Incident bolometric flux               [W m-2]
     '''
 
-    path      = '/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/FWL_data/stellar_evolution_tracks/Baraffe/BHAC15-M1p000.txt'
+    path      = 'data/Baraffe_2015/BHAC15-M1p000.txt'
     data      = np.loadtxt(path, usecols=(1,3), skiprows=3)
     logt      = data[:,0]                                    # Time                                [yr]
     logLstar  = data[:,1]                                    # Stellar bolometric luminosity       [Lsun]
@@ -179,4 +179,24 @@ def Fbol_Baraffe_Sun(t,d):
 
     return np.interp(t,age,Flux)
 
+def Fxuv_Johnstone_Sun(t,d):
+    '''
+    Computes the incident XUV flux received by a planet at a distance d for a Sun-like star only (1.0 Msun, 1.0 OmegaSun)
+    Using stellar evolution files from Johnstone et al. 2021
 
+    Inputs:
+        - t : Time/age                           [s]
+        - d : Orbital distance of the planet     [cm]
+
+    Output: 
+        - Incident XUV flux                      [W m-2]
+    '''
+    path_to_file    = 'data/Johnstone_2021/1p0Msun_1p0OmegaSun_basic.dat'
+
+    data        = np.loadtxt(path_to_file, unpack = True)
+    age         = data[0]*1e6/s2yr                                          # [s]
+    Lxuv        = (data[3] + data[4] + data[5] + data[6])                   # [erg s-1]
+    Fxuv        = Lxuv/(4*np.pi*d**2)                                       # [erg s-1 cm-2]
+    Fxuv_SI     = Fxuv * ergcm2stoWm2                                       # [W m-2]
+    
+    return np.interp(t,age,Fxuv_SI)
