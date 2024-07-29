@@ -3,9 +3,8 @@ Emma Postolec
 XUV_flux.py
 Compute the XUV flux evolution of a star
 '''
-
-from constants import *
 import numpy as np
+from constants import *
 from planets_parameters import *
 
 ########################### IsoFATE Fxuv functions ###########################
@@ -31,23 +30,6 @@ def Fxuv(t, F0, t_sat = 5e8, beta = -1.23):
         return F0
     else:
         return F0*(t*s2yr/t_sat)**beta
-    
-def Fxuv_Ribas(t):
-    '''
-    Function taken from IsoFate code for tests (Cherubim+2024)
-    Calculates XUV luminosity
-    Adapted from Ribas et al 2005 Sun in time program (eq 1)
-
-    Inputs:
-       - t: time/age [s]
-    Output: incident XUV flux [W/m2]
-    '''
-    tau = t*s2yr/1e9
-    F = 29.7*tau**-1.23
-    F = F*ergcm2stoWm2 # [W/m2]
-    L = F*4*np.pi*au2m**2
-    return F # [W/m2]
-
 
 def Fxuv_Johnstone(t, d, stellar_type):
     '''
@@ -68,6 +50,8 @@ def Fxuv_Johnstone(t, d, stellar_type):
         path = '/Users/emmapostolec/Downloads/RotationXUVTracks/TrackGrid_MstarPercentile/0p7Msun_50percentile_basic.dat'
     elif stellar_type == 'G5':
         path = '/Users/emmapostolec/Downloads/RotationXUVTracks/TrackGrid_MstarPercentile/1p0Msun_50percentile_basic.dat'
+    elif stellar_type == 'Sun':
+        path = '/Users/emmapostolec/Downloads/RotationXUVTracks/TrackGrid_MstarOmega0/1p0Msun_1p0OmegaSun_basic.dat'
     else:
         print('Stellar type not supported. Please input "M1", "K5", or "G5"')
 
@@ -92,6 +76,22 @@ def Fxuv_SF(t,d):
     L_EUV = 10**(22.12 - 1.24*np.log10(t*s2yr/1e9))
     F_EUV = L_EUV/(4*np.pi*d**2) # [W/m2]
     return F_EUV
+
+def Fxuv_Ribas(t):
+    '''
+    Function taken from IsoFate code for tests (Cherubim+2024)
+    Calculates XUV luminosity
+    Adapted from Ribas et al 2005 Sun in time program (eq 1)
+
+    Inputs:
+       - t: time/age [s]
+    Output: incident XUV flux [W/m2]
+    '''
+    tau = t*s2yr/1e9
+    F = 29.7*tau**-1.23
+    F = F*ergcm2stoWm2 # [W/m2]
+    L = F*4*np.pi*au2m**2
+    return F # [W/m2
 
 def Fxuv_hazmat(t, d, activity):
     '''
@@ -167,17 +167,16 @@ def Fbol_Baraffe_Sun(t,d):
 
     Output: 
         - Incident bolometric flux               [W m-2]
-        - Incident bolometric luminosity         [W]
     '''
 
     path      = '/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/FWL_data/stellar_evolution_tracks/Baraffe/BHAC15-M1p000.txt'
     data      = np.loadtxt(path, usecols=(1,3), skiprows=3)
-    logt      = data[:,0]                                    # Time                     [years]
+    logt      = data[:,0]                                    # Time                                [yr]
     logLstar  = data[:,1]                                    # Stellar bolometric luminosity       [Lsun]
     age       = (10**logt)/s2yr 
     Lstar     = ((10**logLstar)*Ls_ergs)*ergpersecondtowatt  # Stellar bolometric luminosity       [W]
     Flux      = (Lstar)/(4*np.pi*d**2)                       # Stellar bolometric flux             [W m-2]
 
-    return np.interp(t,age,Flux),np.interp(t,age,Lstar)
+    return np.interp(t,age,Flux)
 
 
