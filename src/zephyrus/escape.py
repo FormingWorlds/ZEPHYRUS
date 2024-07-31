@@ -46,7 +46,7 @@ def dMdt_Cherubim2024(Mp,Rp,epsilon,Feuv):
 
     ''''
     Compute the mass-loss rate for Energy-Limited (EL) escape.
-    Formula from Cherubim et al., 2024 (Equation 2,3,4).
+    Formula from Cherubim et al., 2024 (Equation 2).
     
     Inputs :
         - Mp                 : planetary mass                                                       [kg]

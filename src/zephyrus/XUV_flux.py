@@ -169,7 +169,7 @@ def Fbol_Baraffe_Sun(t,d):
         - Incident bolometric flux               [W m-2]
     '''
 
-    path      = 'data/Baraffe_2015/BHAC15-M1p000.txt'
+    path      = '../data/Baraffe_2015/BHAC15-M1p000.txt'
     data      = np.loadtxt(path, usecols=(1,3), skiprows=3)
     logt      = data[:,0]                                    # Time                                [yr]
     logLstar  = data[:,1]                                    # Stellar bolometric luminosity       [Lsun]
@@ -191,7 +191,7 @@ def Fxuv_Johnstone_Sun(t,d):
     Output: 
         - Incident XUV flux                      [W m-2]
     '''
-    path_to_file    = 'data/Johnstone_2021/1p0Msun_1p0OmegaSun_basic.dat'
+    path_to_file    = '../data/Johnstone_2021/1p0Msun_1p0OmegaSun_basic.dat'
 
     data        = np.loadtxt(path_to_file, unpack = True)
     age         = data[0]*1e6/s2yr                                          # [s]
