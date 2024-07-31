@@ -40,7 +40,7 @@ Sun_Fxuv    = (Sun_Lxuv/(4 * np.pi * a_earth*au2cm **2)) * ergcm2stoWm2     # XU
 ########################### Escape computations ####################################
 
 for mass in planet_masses : 
-    zephyrus    = EL_escape('no',a_earth*au2m,e_earth,mass*Me,Ms,epsilon,Re,Fxuv_earth_today)
+    zephyrus    = EL_escape('no',a_earth*au2m,e_earth,mass*Me,Ms,epsilon,Re,Re,Fxuv_earth_today)
     attia_2021  = (dMdt_EL_Attia2021('no',a_earth*au2cm,e_earth,mass*Me*1e3,Ms*1e3,Re*1e2,Re*1e2,(Fxuv_earth_today/ergcm2stoWm2)*4*np.pi*a_earth*au2cm**2,Fxuv_earth_today/ergcm2stoWm2,epsilon,'no')/1e3)
     isofate     = (dMdt_Cherubim2024(mass*Me,Re,epsilon,Fxuv_earth_today)) * (4 * np.pi * Re ** 2) 
 
@@ -51,7 +51,7 @@ for mass in planet_masses :
     })
 
 for fxuv in Sun_Fxuv : 
-    zephyrus    = EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv)
+    zephyrus    = EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv)
     attia_2021  = (dMdt_EL_Attia2021('no',a_earth*au2cm,e_earth,Me*1e3,Ms*1e3,Re*1e2,Re*1e2,(fxuv/ergcm2stoWm2)*4*np.pi*a_earth*au2cm**2,Fxuv_earth_today/ergcm2stoWm2,epsilon,'no')/1e3)
     isofate     = (dMdt_Cherubim2024(Me,Re,epsilon,fxuv)) * (4 * np.pi * Re ** 2) 
 

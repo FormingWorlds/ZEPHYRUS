@@ -23,6 +23,7 @@ semi_major_axis          = a_earth*au2m     # Planetary semi-major axis         
 eccentricity             = e_earth          # Planetary eccentricity                 [dimensionless]
 M_planet                 = Me               # Planetary mass                         [kg]
 epsilon                  = 0.15             # Escape efficiency factor               [dimensionless]  
+R_earth                  = Re               # Planetary radius                       [m]
 Rxuv                     = Re               # XUV planetary radius                   [m]
 
 
@@ -37,7 +38,7 @@ Fxuv_star_SI    = Fxuv_star*ergcm2stoWm2                        # XUV flux      
 
 ########################### EL escape computations #####################################
 
-escape = EL_escape(tidal_contribution, semi_major_axis, eccentricity, M_planet, M_star, epsilon, Rxuv, Fxuv_star_SI)   # Compute EL escape     [kg s-1]
+escape = EL_escape(tidal_contribution, semi_major_axis, eccentricity, M_planet, M_star, epsilon, R_earth, Rxuv, Fxuv_star_SI)   # Compute EL escape     [kg s-1]
 
 
 ########################### Plot #####################################
