@@ -58,6 +58,6 @@ ylims = ax1.get_ylim()
 ax2.set_ylim((ylims[0]/ s2yr) / Me,(ylims[1] / s2yr) / Me)
 ax2.set_yscale('log')
 ax2.set_ylabel(r'Mass loss rate [$M_{\oplus}$ $yr^{-1}$]', fontsize=15)
-plt.savefig(path_plot+'Test_earth_Escape_vs_time_MORS.pdf', dpi=180)
+plt.savefig(path_plot+'test_earth_Escape_vs_time_MORS.pdf', dpi=180)
 
 

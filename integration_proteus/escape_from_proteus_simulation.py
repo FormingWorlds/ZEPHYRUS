@@ -1,13 +1,12 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
+
 import mors 
 
 import os
 import sys
 import re
-
 zephyrus_dir = os.path.dirname('../src/zephyrus/')
 sys.path.extend([zephyrus_dir])
 from constants import *
@@ -58,7 +57,7 @@ Fbol_baraffe                = Fbol_Baraffe_Sun(simulation_time,au2m)
 Fxuv_Baraffe                = Fbol_baraffe/1e3                                                        # [W m-2]
 
 # Johnstone+2021
-Fxuv_johnstone2021           = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)                     # [W m-2]
+Fxuv_johnstone2021          = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)                     # [W m-2]
 
 # MORS
 Sun                         = mors.Star(Mstar=1.0, Omega=1.0)                         # Extract luminosities using the mors.Star() function
@@ -72,26 +71,25 @@ Fxuv_ribas                  = vectorized_Fxuv(simulation_time, Fxuv_earth_10Myr,
 
 ########################### Escape computations ####################################
 
-baraffe_escape = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_Baraffe]
-baraffe_escape_bol = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv*1e3) for fxuv in Fxuv_Baraffe]
-johnstone_escape = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_johnstone2021]
-mors_escape = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Sun_Fxuv]
-ribas_escape = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_ribas]
+baraffe_escape          = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_Baraffe]
+baraffe_escape_bol      = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv*1e3) for fxuv in Fxuv_Baraffe]
+johnstone_escape        = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_johnstone2021]
+mors_escape             = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Sun_Fxuv]
+ribas_escape            = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_ribas]
 
 
-################################################################
+
+####################################################################################
 # Proteus simulation 
-
 ########################### Organize the files #####################################
 files = os.listdir(proteus_data)                        # Open all the files in this directory
 sflux_files = [file for file in files if file.endswith('.sflux')]                   # Select only the '.sflux' files
 sorted_files = sorted(sflux_files, key=extract_number)                              # Sort the files using the custom key
-
 ########################### Compute the escape #####################################
 for i in sorted_files:
     integrated_xuv_flux, time_step, integrated_all_flux, all_wavelength, all_flux, xuv_wavelength, xuv_flux = open_flux_files(proteus_data+i)  
-    mass_loss_rate = EL_escape('no', a_earth * au2m, e_earth, Me, Ms, epsilon, Re, integrated_xuv_flux*ergcm2stoWm2)
-    mass_loss_rate_bol = EL_escape('no', a_earth * au2m, e_earth, Me, Ms, epsilon, Re, integrated_all_flux*ergcm2stoWm2)
+    mass_loss_rate      = EL_escape('no', a_earth * au2m, e_earth, Me, Ms, epsilon, Re, integrated_xuv_flux*ergcm2stoWm2)
+    mass_loss_rate_bol  = EL_escape('no', a_earth * au2m, e_earth, Me, Ms, epsilon, Re, integrated_all_flux*ergcm2stoWm2)
     escape.append({
         'Time': time_step,
         'Fxuv': integrated_xuv_flux,
@@ -104,19 +102,20 @@ mlr = [entry['MLR'] for entry in escape]
 mlr_bol = [entry['MLR_bol'] for entry in escape]
 
 
+
 ########################### Plot #####################################
 
 # Escape vs time
 fig, ax1 = plt.subplots(figsize=(10, 7))
-ax1.loglog(simulation_time_Myr, baraffe_escape, color='steelblue', label='Baraffe+2015 ($F_{bol}$/$10^3$)')
-ax1.loglog(simulation_time_Myr, johnstone_escape, color='orange', label='Johnstone+2021')
-ax1.loglog(Sun_age, mors_escape, color='gold', label='MORS')
-ax1.loglog(simulation_time_Myr, ribas_escape, color='green', label='Ribas+2005')
+ax1.loglog(simulation_time_Myr, baraffe_escape, color='steelblue', label='Baraffe+2015 ($F_{XUV}$ = $F_{bol}$/$10^3$)')
+ax1.loglog(simulation_time_Myr, johnstone_escape, color='orange', label='Johnstone+2021 ($F_{XUV}$)')
+ax1.loglog(Sun_age, mors_escape, color='gold', label='MORS ($F_{XUV}$)')
+ax1.loglog(simulation_time_Myr, ribas_escape, color='green', label='Ribas+2005 ($F_{XUV}$)')
 ax1.loglog(times, mlr, color='red', label='Proteus simulation using old MORS ($F_{XUV}$)')
 ax1.loglog(simulation_time_Myr, baraffe_escape_bol, color='violet', label='Baraffe+2015 ($F_{bol}$)')
 ax1.loglog(times, mlr_bol, color='purple', label='Proteus simulation using old MORS ($F_{bol}$)')
 ax1.axvline(x=age_earth/1e6, color='dimgrey', linestyle='--', linewidth=1)
-ax1.text(3600, 1.1e5, 'Earth today', color='dimgrey', rotation=90, verticalalignment='bottom')
+ax1.text(3600, 1.3e5, 'Earth today', color='dimgrey', rotation=90, verticalalignment='bottom')
 ax1.set_xlabel('Time [Myr]', fontsize=15)
 ax1.set_ylabel(r'Mass loss rate [kg $s^{-1}$]', fontsize=15)
 ax1.set_title('Comparison of EL escape for Sun-Earth system', fontsize=15)
@@ -130,7 +129,7 @@ ax2.set_ylabel(r'Mass loss rate [M$_{\oplus}$ $yr^{-1}$]', fontsize=15)
 textstr = (r'$\epsilon$ = 0.15' '\n' r'$R_p = R_{\mathrm{XUV}} = R_{\oplus}$' '\n' r'$M_p = M_{\oplus}$' '\n' r'a = a$_{\mathrm{Earth}}$' '\n' r'e = e$_{\mathrm{Earth}}$')
 props = dict(boxstyle='round', facecolor='white', alpha=0.7)
 ax1.text(1.2, 3e4, textstr, fontsize=14, verticalalignment='top', bbox=props)
-plt.savefig(path_plot + 'Escape_vs_time_proteus_sim.pdf', dpi=180)
+plt.savefig(path_plot + 'escape_vs_time_proteus_sim.pdf', dpi=180)
 
 
 # Extracted spectra 

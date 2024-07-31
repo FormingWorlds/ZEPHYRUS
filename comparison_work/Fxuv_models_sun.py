@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mors
-import pandas as pd
 
 import sys
 import os

@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mors
-import pandas as pd
 
 import sys
 import os
@@ -36,11 +35,11 @@ Fbol_baraffe                = Fbol_Baraffe_Sun(simulation_time,au2m)
 Fxuv_Baraffe                = Fbol_baraffe/1e3                                                        # [W m-2]
 
 # Johnstone+2021
-Fxuv_johnstone2021           = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)                     # [W m-2]
+Fxuv_johnstone2021          = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)                      # [W m-2]
 
 # MORS
 Sun                         = mors.Star(Mstar=1.0, Omega=Omega_sun)                         # Extract luminosities using the mors.Star() function
-Sun_age                     = Sun.Tracks['Age']
+Sun_age                     = Sun.Tracks['Age']                                             # Age of the Sun            [Myr]
 Sun_Lxuv                    = Sun.Tracks['Lx'] + Sun.Tracks['Leuv']                         # XUV luminosity            [erg s-1]
 Sun_Fxuv                    = (Sun_Lxuv/(4 * np.pi * a_earth*au2cm **2)) * ergcm2stoWm2     # XUV flux                  [W m-2]
 
@@ -51,10 +50,10 @@ Fxuv_ribas                  = vectorized_Fxuv(simulation_time, Fxuv_earth_10Myr,
 
 ########################### Escape computations ####################################
 
-baraffe_escape = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_Baraffe]
-johnstone_escape = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_johnstone2021]
-mors_escape = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Sun_Fxuv]
-ribas_escape = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_ribas]
+baraffe_escape          = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_Baraffe]
+johnstone_escape        = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_johnstone2021]
+mors_escape             = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Sun_Fxuv]
+ribas_escape            = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_ribas]
 
 ########################### Plots ####################################
 

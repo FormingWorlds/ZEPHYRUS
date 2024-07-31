@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mors
-import pandas as pd
 
 import sys
 import os
@@ -14,12 +13,12 @@ from escape import *
 
 ########################### Path to directories ###############################
 
-path_plot                       = '../plots/comparison_work/'
+path_plot           = '../plots/comparison_work/'
 
 
 ########################### Initialization #####################################
 
-Omega_sun        = 1.0                                        # Solar rotation rate        [Omega_sun, rad s-1]
+Omega_sun          = 1.0                                        # Solar rotation rate        [Omega_sun, rad s-1]
 
 planet_masses      = [0.5,1.0,2.0,3.0,4.0,5.0]                # Planet masses               [Me, kg]
 escape_today       = []                                       # Mass Loss Rate              [kg s-1]
