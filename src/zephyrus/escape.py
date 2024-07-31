@@ -9,11 +9,11 @@ from planets_parameters import *
 
 ########################################################### Energy-Limited escape (EL) ###########################################################
 
-def EL_escape(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,Fxuv):
+def EL_escape(tidal_contribution,a,e,Mp,Ms,epsilon,Rp,Rxuv,Fxuv):
 
     ''''
     Compute the mass-loss rate for Energy-Limited (EL) escape.
-    Formula from Lopez, Fortney & Miller, 2012 (Equation 2,3,4). Based on the formulation in Erkaev et al. 2007.
+    Based on the formula from Lopez, Fortney & Miller, 2012 (Equation 2,3,4).
     
     Inputs :
         - tidal_contribution : 'yes'or 'no' -> K_tide = tidal correction factor (0 < K_tide < 1)                                           [dimensionless]
@@ -22,6 +22,7 @@ def EL_escape(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,Fxuv):
         - Mp                 : planetary mass                                                                                              [kg]
         - Ms                 : Stellar mass                                                                                                [kg]
         - epsilon            : efficiency factor (varies typically 0.1 < epsilon < 0.6)                                                    [dimensionless]
+        - Rp                 : planetary radius                                                                                            [m]
         - Rxuv               : planetary radius at which XUV radiation are opticaly thick (defined at 20 mbar in Baumeister et  al. 2023)  [m]
         - Fxuv               : XUV incident flux received on the planet from the host star                                                 [W m-2]
     Constants :
@@ -38,7 +39,7 @@ def EL_escape(tidal_contribution,a,e,Mp,Ms,epsilon,Rxuv,Fxuv):
         K_tide = 1
 
     # Mass-loss rate for EL escape
-    escape_EL = (epsilon * np.pi * (Rxuv**3) * Fxuv) / (G * Mp * K_tide)
+    escape_EL = (epsilon * np.pi * Rp * (Rxuv**2) * Fxuv) / (G * Mp * K_tide)
 
     return escape_EL
 

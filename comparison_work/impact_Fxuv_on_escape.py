@@ -50,10 +50,10 @@ Fxuv_ribas                  = vectorized_Fxuv(simulation_time, Fxuv_earth_10Myr,
 
 ########################### Escape computations ####################################
 
-baraffe_escape          = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_Baraffe]
-johnstone_escape        = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_johnstone2021]
-mors_escape             = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Sun_Fxuv]
-ribas_escape            = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,fxuv) for fxuv in Fxuv_ribas]
+baraffe_escape          = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_Baraffe]
+johnstone_escape        = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_johnstone2021]
+mors_escape             = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Sun_Fxuv]
+ribas_escape            = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_ribas]
 
 ########################### Plots ####################################
 
