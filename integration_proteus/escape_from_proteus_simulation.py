@@ -71,11 +71,11 @@ Fxuv_ribas                  = vectorized_Fxuv(simulation_time, Fxuv_earth_10Myr,
 
 ########################### Escape computations ####################################
 
-baraffe_escape          = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_Baraffe]
-baraffe_escape_bol      = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv*1e3) for fxuv in Fxuv_Baraffe]
-johnstone_escape        = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_johnstone2021]
-mors_escape             = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Sun_Fxuv]
-ribas_escape            = [EL_escape('no',a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_ribas]
+baraffe_escape          = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_Baraffe]
+baraffe_escape_bol      = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv*1e3) for fxuv in Fxuv_Baraffe]
+johnstone_escape        = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_johnstone2021]
+mors_escape             = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Sun_Fxuv]
+ribas_escape            = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_ribas]
 
 
 
@@ -88,8 +88,8 @@ sorted_files = sorted(sflux_files, key=extract_number)                          
 ########################### Compute the escape #####################################
 for i in sorted_files:
     integrated_xuv_flux, time_step, integrated_all_flux, all_wavelength, all_flux, xuv_wavelength, xuv_flux = open_flux_files(proteus_data+i)  
-    mass_loss_rate      = EL_escape('no', a_earth * au2m, e_earth, Me, Ms, epsilon, Re, Re, integrated_xuv_flux*ergcm2stoWm2)
-    mass_loss_rate_bol  = EL_escape('no', a_earth * au2m, e_earth, Me, Ms, epsilon, Re, Re, integrated_all_flux*ergcm2stoWm2)
+    mass_loss_rate      = EL_escape(0, a_earth * au2m, e_earth, Me, Ms, epsilon, Re, Re, integrated_xuv_flux*ergcm2stoWm2)
+    mass_loss_rate_bol  = EL_escape(0, a_earth * au2m, e_earth, Me, Ms, epsilon, Re, Re, integrated_all_flux*ergcm2stoWm2)
     escape.append({
         'Time': time_step,
         'Fxuv': integrated_xuv_flux,
