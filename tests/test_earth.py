@@ -16,10 +16,12 @@ TEST_DATA = (
 @pytest.mark.parametrize("inp,expected", TEST_DATA)
 def test_earth(inp, expected):
 
-    tidal_contribution       = 'no'             # Tidal correction factor                [dimensionless]
-
-    star = mors.Star(Mstar=1.0, Omega=1.0)       # Load the stellar evolution tracks from MORS
     age_star = inp
+    tidal_contribution = 'no'# Tidal correction factor [dimensionless]
+
+    # Load the stellar evolution tracks from MORS
+    mors.DownloadEvolutionTracks('Spada')
+    star = mors.Star(Mstar=1.0, Omega=1.0)
 
     Lxuv_star = (star.Value(age_star, 'Lx')+star.Value(age_star, 'Leuv'))
     Fxuv_star_SI = Lxuv_star * ergcm2stoWm2 / (4*np.pi*(a_earth*au2cm)**2) 
