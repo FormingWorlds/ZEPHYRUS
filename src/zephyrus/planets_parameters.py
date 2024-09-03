@@ -23,7 +23,6 @@ age_earth         = 4.543e9            # Age of the Earth                      [
 e_earth           = 0.017              # Earth eccentricity                    [dimensionless]
 a_earth           = 1                  # Earth semi-major axis                 [au]
 
-
 ######################################### TOI-561 system #########################################
 
 # Star (Weiss+2021)
@@ -46,10 +45,3 @@ M_TOI561b_errorbar      = 0.20*Me        # Errorbars on TOI-561b mass           
 e_TOI561b               = 0              # TOI-561b eccentricity                        [dimensionless]
 a_TOI561b               = 0.0106         # TOI-561b semi-major axis                     [au]
 a_TOI561b_errorbar      = 0.0004         # Errorbars onTOI-561b semi-major axis         [au]
-
-
-
-
-
-
-

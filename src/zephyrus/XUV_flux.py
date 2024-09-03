@@ -4,8 +4,8 @@ XUV_flux.py
 Compute the XUV flux evolution of a star
 '''
 import numpy as np
-from constants import *
-from planets_parameters import *
+from zephyrus.constants import *
+from zephyrus.planets_parameters import *
 
 ########################### IsoFATE Fxuv functions ###########################
 #### The following functions are taken from the IsoFATE code written by Colin Cherubim 
