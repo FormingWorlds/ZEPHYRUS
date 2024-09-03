@@ -4,8 +4,8 @@ escape.py
 Main functions to compute atmospheric escape.
 '''
 import numpy as np
-from constants import *
-from planets_parameters import *
+from zephyrus.constants import *
+from zephyrus.planets_parameters import *
 
 ########################################################### Energy-Limited escape (EL) ###########################################################
 
