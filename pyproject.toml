@@ -32,7 +32,7 @@ homepage = "https://github.com/FormingWorlds/ZEPHYRUS"
 develop = [
   "bump-my-version",
   "coverage[toml]",
-  'fwl-mors',
+  'fwl-mors>=24.8.29',
   "pytest"
 ]
 docs = [
