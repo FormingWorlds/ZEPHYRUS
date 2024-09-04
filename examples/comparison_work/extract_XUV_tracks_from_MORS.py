@@ -46,7 +46,7 @@ plt.grid(alpha=0.5)
 plt.title(f'Stellar Evolution Tracks from MORS (Omega = {Omega_sun} $\Omega_{{\odot}}$)', fontsize=15)
 plt.axvline(x=4603, color='dimgrey', linestyle='--', linewidth=0.7)
 plt.text(3600, 1.1e30, 'Today', color='dimgrey', rotation=90, verticalalignment='bottom')
-plt.savefig('MORS_Stellar_evolution_Lbol_vs_time_masses_using_Star.pdf')
+plt.savefig('output/MORS_Stellar_evolution_Lbol_vs_time_masses_using_Star.pdf')
 
 # XUV luminosity vs time
 plt.figure(figsize=(10, 8))
@@ -62,5 +62,5 @@ plt.grid(alpha=0.5)
 plt.title(f'Stellar Evolution Tracks from MORS (Omega = {Omega_sun} $\Omega_{{\odot}}$)', fontsize=15)
 plt.axvline(x=4603, color='dimgrey', linestyle='--', linewidth=0.7)
 plt.text(3600, 1.1e30, 'Today', color='dimgrey', rotation=90, verticalalignment='bottom')
-plt.savefig('MORS_Stellar_evolution_Lxuv_vs_time_masses_using_Star_and_Lxuv.pdf')
+plt.savefig('output/MORS_Stellar_evolution_Lxuv_vs_time_masses_using_Star_and_Lxuv.pdf')
 

@@ -74,6 +74,6 @@ plt.text(1.1e1, 1.1e3, 'XUV model 3', color='steelblue', verticalalignment='bott
 plt.text(1.5, 2e5, 'XUV model 4', color='deeppink', verticalalignment='bottom')
 plt.text(1.5, 2.8e2, 'XUV model 5', color='purple', verticalalignment='bottom')
 
-plt.savefig('Comparison_Fxuv_models_MORS_IsoFate_Baraffe_SUN.pdf',dpi=180)
+plt.savefig('output/Comparison_Fxuv_models_MORS_IsoFate_Baraffe_SUN.pdf',dpi=180)
 
 
