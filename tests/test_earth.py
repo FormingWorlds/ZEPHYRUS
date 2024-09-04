@@ -17,7 +17,6 @@ TEST_DATA = (
 def test_earth(inp, expected):
 
     age_star = inp
-    tidal_contribution = 'no'# Tidal correction factor [dimensionless]
 
     # Load the stellar evolution tracks from MORS
     mors.DownloadEvolutionTracks('Spada')
@@ -25,7 +24,7 @@ def test_earth(inp, expected):
 
     Lxuv_star = (star.Value(age_star, 'Lx')+star.Value(age_star, 'Leuv'))
     Fxuv_star_SI = Lxuv_star * ergcm2stoWm2 / (4*np.pi*(a_earth*au2cm)**2) 
-    escape = EL_escape('no', a_earth*au2m, e_earth, Me, 1.0, 0.15, Re, Re, Fxuv_star_SI)   # Compute EL escape     [kg s-1]
+    escape = EL_escape(False, a_earth*au2m, e_earth, Me, 1.0, 0.15, Re, Re, Fxuv_star_SI)   # Compute EL escape     [kg s-1]
 
     ret = (
         Fxuv_star_SI,
