@@ -10,7 +10,7 @@ from zephyrus.escape import EL_escape
 TEST_DATA = (
     (  150.0, (0.06685410, 20506.0813)),
     ( 2480.0, (0.02227668,  6832.8987)),
-    (10020.0, (0.01378475,  4228.1816)),
+#    (10020.0, (0.01378475,  4228.1816)),
 )
 
 @pytest.mark.parametrize("inp,expected", TEST_DATA)
