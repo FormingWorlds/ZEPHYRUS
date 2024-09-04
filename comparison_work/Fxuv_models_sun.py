@@ -34,16 +34,17 @@ vectorized_Fxuv                                     = np.vectorize(Fxuv)
 incident_xuv_flux                                   = vectorized_Fxuv(time_simulation, initial_incident_flux, t_sat=50e6, beta=-1.23)
 vectorized_Fxuv_Ribas                               = np.vectorize(Fxuv_Ribas)
 incident_xuv_flux_Ribas                             = vectorized_Fxuv_Ribas(time_simulation)
-vectorized_Fxuv_Johnstone                           = np.vectorize(Fxuv_Johnstone)
-incident_xuv_flux_Johnstone, luminosity_Johnstone   = vectorized_Fxuv_Johnstone(time_simulation, au2m, 'G5')
+#vectorized_Fxuv_Johnstone                           = np.vectorize(Fxuv_Johnstone)
+#incident_xuv_flux_Johnstone, luminosity_Johnstone   = vectorized_Fxuv_Johnstone(time_simulation, au2m, 'G5')
 vectorized_SF                                       = np.vectorize(Fxuv_SF)
 incident_xuv_flux_SF                                = vectorized_SF(time_simulation,au2m)
 vectorized_hazmat                                   = np.vectorize(Fxuv_hazmat)
 incident_xuv_flux_hazmat                            = vectorized_hazmat(time_simulation,au2m,'medium')
 
-## Bolometric flux from Baraffe+2015 
-vectorized_Fxuv_Baraffe_Sun                         = np.vectorize(Fbol_Baraffe_Sun)
-incident_xuv_flux_Baraffe                           = vectorized_Fxuv_Baraffe_Sun(time_simulation, au2m)  
+## Bolometric flux from Baraffe+2015
+mors.DownloadEvolutionTracks('Baraffe')
+baraffe = mors.BaraffeTrack(1.0)
+incident_xuv_flux_Baraffe = [baraffe.BaraffeSolarConstant(t*s2yr, 1.0)/ergcm2stoWm2/1e3 for t in time_simulation]
 
 ## Compute the Fxuv tracks from MORS using mors.Star() or mors.Lxuv() to extract Fxuv
 star_data               = mors.Star(Mstar=1.0, Omega=1.0)
@@ -63,11 +64,11 @@ plt.figure(figsize=(14, 12))
 
 plt.loglog(time_simulation_Myr,incident_xuv_flux/ergcm2stoWm2, color='green', linestyle='-', label='XUV model 1 : IsoFATE : adapted from Ribas+2005 (consistent for early M dwarfs)')
 plt.loglog(time_simulation_Myr,incident_xuv_flux_Ribas/ergcm2stoWm2, color='yellowgreen', linestyle='-', label='XUV model 1 : IsoFATE : adapted from Ribas+2005')
-plt.loglog(time_simulation_Myr,incident_xuv_flux_Johnstone/ergcm2stoWm2,color = 'yellow', label = 'XUV model 2 : IsoFATE : Johnstone+2021 (G5 star, 1.0 Msun, 50 Percentile)')
+#plt.loglog(time_simulation_Myr,incident_xuv_flux_Johnstone/ergcm2stoWm2,color = 'yellow', label = 'XUV model 2 : IsoFATE : Johnstone+2021 (G5 star, 1.0 Msun, 50 Percentile)')
 plt.loglog(time_simulation_Myr,Fxuv_johnstone2021/ergcm2stoWm2, color='gold', linestyle='-', label='XUV model 2 : Johnstone+2021 (1.0 Msun, 1.0 OmegaSun, downloaded from paper)')
 plt.loglog(Star_age,Star_Fxuv, color='orange', linestyle='-', label='XUV model 2 : Extracted from FWL-Mors using Star() class')
 plt.loglog(Star_age,Lxuv_Fxuv, color='orange', linestyle='--', label='XUV model 2 : Extracted from FWL-Mors using Lxuv() function')
-plt.loglog(time_simulation_Myr,(incident_xuv_flux_Baraffe/ergcm2stoWm2)/1e3, color = 'steelblue', label = 'XUV model 3 : Baraffe+2015 (F$_{bol}$/10$^3$, 1.0 Msun)')
+plt.loglog(time_simulation_Myr, incident_xuv_flux_Baraffe, color = 'steelblue', label = 'XUV model 3 : Baraffe+2015 (F$_{bol}$/10$^3$, 1.0 Msun)')
 plt.loglog(time_simulation_Myr,incident_xuv_flux_SF/ergcm2stoWm2, color='deeppink', linestyle='-', label='XUV model 4 : IsoFATE : Sanz-Forcada+2011 (for M to F stars)')
 plt.loglog(time_simulation_Myr,incident_xuv_flux_hazmat/ergcm2stoWm2, color='purple', linestyle='-', label='XUV model 5 : IsoFATE : HAZMAT program')
 plt.axvline(x=4543, color='grey', linestyle='--', linewidth=0.7)
