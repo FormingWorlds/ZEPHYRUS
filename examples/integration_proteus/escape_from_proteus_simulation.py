@@ -33,7 +33,7 @@ def extract_number(file_name):                                                  
 
 ########################### Path to directories ###############################
 
-proteus_data                    = '../../data/PROTEUS_simulation_Fxuv_sun_earth/'
+proteus_data                    = 'data/PROTEUS_simulation_Fxuv_sun_earth/'
 
 
 ########################### Initialization #####################################
@@ -124,7 +124,7 @@ ax2.set_ylabel(r'Mass loss rate [M$_{\oplus}$ $yr^{-1}$]', fontsize=15)
 textstr = (r'$\epsilon$ = 0.15' '\n' r'$R_p = R_{\mathrm{XUV}} = R_{\oplus}$' '\n' r'$M_p = M_{\oplus}$' '\n' r'a = a$_{\mathrm{Earth}}$' '\n' r'e = e$_{\mathrm{Earth}}$')
 props = dict(boxstyle='round', facecolor='white', alpha=0.7)
 ax1.text(1.2, 3e4, textstr, fontsize=14, verticalalignment='top', bbox=props)
-plt.savefig('Escape_vs_time_proteus_sim.pdf', dpi=180)
+plt.savefig('output/Escape_vs_time_proteus_sim.pdf', dpi=180)
 
 
 # Extracted spectra 
@@ -151,5 +151,5 @@ ax2 = ax1.twinx()
 ax2.set_ylabel('Stellar flux at 1 AU [W/m$^2$]', fontsize=15)
 ax2.set_yscale('log')
 ax1.legend(loc='upper right')
-plt.savefig('plot_comparison_integrated_value.pdf',dpi=180)
+plt.savefig('output/plot_comparison_integrated_value.pdf',dpi=180)
 plt.show()
