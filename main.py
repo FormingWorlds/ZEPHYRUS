@@ -1,16 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 import mors
 
-import os
-import sys
-zephyrus_dir = os.path.dirname('src/zephyrus/')
-sys.path.extend([zephyrus_dir])
-from constants import *
-from planets_parameters import *
-from escape import EL_escape
-
+from zephyrus.constants import *
+from zephyrus.planets_parameters import *
+from zephyrus.escape import EL_escape
 
 ########################### Initialization #####################################
 
@@ -18,7 +12,7 @@ M_star                   = 1.0              # Star mass in solar mass           
 Omega_sun                = 1.0              # Solar rotation rate                    [rad s-1]
 semi_major_axis_cm       = a_earth*au2cm    # Planetary semi-major axis              [cm]
 
-tidal_contribution       = 'no'             # Tidal correction factor                [dimensionless]
+tidal_contribution       = False            # Tidal correction factor                [dimensionless]
 semi_major_axis          = a_earth*au2m     # Planetary semi-major axis              [m]
 eccentricity             = e_earth          # Planetary eccentricity                 [dimensionless]
 M_planet                 = Me               # Planetary mass                         [kg]
