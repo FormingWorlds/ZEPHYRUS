@@ -4,6 +4,7 @@ XUV_flux.py
 Compute the XUV flux evolution of a star
 '''
 import numpy as np
+import pathlib
 from zephyrus.constants import *
 from zephyrus.planets_parameters import *
 
@@ -44,14 +45,16 @@ def Fxuv_Johnstone(t, d, stellar_type):
     Output: incident XUV flux [W/m2]
     '''
 
+    data_path = str(pathlib.Path(__file__).parent.absolute())+'/data/Johnstone_2021/'
+
     if stellar_type == 'M1':
-        path = '/Users/emmapostolec/Downloads/RotationXUVTracks/TrackGrid_MstarPercentile/0p5Msun_50percentile_basic.dat'
+        path = data_path + '0p5Msun_50percentile_basic.dat'
     elif stellar_type == 'K5':
-        path = '/Users/emmapostolec/Downloads/RotationXUVTracks/TrackGrid_MstarPercentile/0p7Msun_50percentile_basic.dat'
+        path = data_path + '0p7Msun_50percentile_basic.dat'
     elif stellar_type == 'G5':
-        path = '/Users/emmapostolec/Downloads/RotationXUVTracks/TrackGrid_MstarPercentile/1p0Msun_50percentile_basic.dat'
+        path = data_path + '1p0Msun_50percentile_basic.dat'
     elif stellar_type == 'Sun':
-        path = '/Users/emmapostolec/Downloads/RotationXUVTracks/TrackGrid_MstarOmega0/1p0Msun_1p0OmegaSun_basic.dat'
+        path = data_path + '1p0Msun_1p0OmegaSun_basic.dat'
     else:
         print('Stellar type not supported. Please input "M1", "K5", or "G5"')
 
@@ -156,29 +159,6 @@ def Fxuv_hazmat(t, d, activity):
         
 ########################### Zephyrus Fxuv functions ###########################
 
-def Fbol_Baraffe_Sun(t,d):
-    '''
-    Computes the incident bolometric flux received by a planet at a distance d for a Sun-like star only (1.0 Msun)
-    Using stellar evolution files from Baraffe et al. 2015
-
-    Inputs:
-        - t : Time/age                           [s]
-        - d : Orbital distance of the planet     [m]
-
-    Output: 
-        - Incident bolometric flux               [W m-2]
-    '''
-
-    path      = '../data/Baraffe_2015/BHAC15-M1p000.txt'
-    data      = np.loadtxt(path, usecols=(1,3), skiprows=3)
-    logt      = data[:,0]                                    # Time                                [yr]
-    logLstar  = data[:,1]                                    # Stellar bolometric luminosity       [Lsun]
-    age       = (10**logt)/s2yr 
-    Lstar     = ((10**logLstar)*Ls_ergs)*ergpersecondtowatt  # Stellar bolometric luminosity       [W]
-    Flux      = (Lstar)/(4*np.pi*d**2)                       # Stellar bolometric flux             [W m-2]
-
-    return np.interp(t,age,Flux)
-
 def Fxuv_Johnstone_Sun(t,d):
     '''
     Computes the incident XUV flux received by a planet at a distance d for a Sun-like star only (1.0 Msun, 1.0 OmegaSun)
@@ -191,7 +171,8 @@ def Fxuv_Johnstone_Sun(t,d):
     Output: 
         - Incident XUV flux                      [W m-2]
     '''
-    path_to_file    = '../data/Johnstone_2021/1p0Msun_1p0OmegaSun_basic.dat'
+
+    path_to_file    = str(pathlib.Path(__file__).parent.absolute())+'/data/Johnstone_2021/1p0Msun_1p0OmegaSun_basic.dat'
 
     data        = np.loadtxt(path_to_file, unpack = True)
     age         = data[0]*1e6/s2yr                                          # [s]

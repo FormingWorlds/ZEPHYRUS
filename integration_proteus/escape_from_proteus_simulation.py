@@ -48,8 +48,9 @@ epsilon                 = 0.15                                      # Escape eff
 ########################### Extract Fxuv from different models #####################################
 
 # Baraffe+2015
-Fbol_baraffe                = Fbol_Baraffe_Sun(simulation_time,au2m)
-Fxuv_Baraffe                = Fbol_baraffe/1e3                                                        # [W m-2]
+mors.DownloadEvolutionTracks('Baraffe')
+baraffe = mors.BaraffeTrack(1.0)
+Fxuv_Baraffe = [baraffe.BaraffeSolarConstant(t*s2yr, 1.0)/1.e3 for t in simulation_time]
 
 # Johnstone+2021
 Fxuv_johnstone2021          = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)                     # [W m-2]
