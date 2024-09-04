@@ -1,22 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 import mors
 
-import sys
-import os
-zephyrus_dir = os.path.dirname('../src/zephyrus/')
-sys.path.extend([zephyrus_dir])
-from constants import *
-from planets_parameters import *
-from XUV_flux import *
-
-    
-########################### Path to directories ###############################
-
-proteus_sim_dir                 = '/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/ZEPHYRUS/data/Fxuv_tracks/PROTEUS_simulation_Sun_Earth_system_Fxuv_tracks/'
-path_plot                       = '../plots/comparison_work/'
-
+from zephyrus.constants import *
+from zephyrus.planets_parameters import *
+from zephyrus.XUV_flux import *
 
 ########################### Initialization #####################################
 
@@ -86,6 +74,6 @@ plt.text(1.1e1, 1.1e3, 'XUV model 3', color='steelblue', verticalalignment='bott
 plt.text(1.5, 2e5, 'XUV model 4', color='deeppink', verticalalignment='bottom')
 plt.text(1.5, 2.8e2, 'XUV model 5', color='purple', verticalalignment='bottom')
 
-plt.savefig(path_plot+'Comparison_Fxuv_models_MORS_IsoFate_Baraffe_SUN.pdf',dpi=180)
+plt.savefig('Comparison_Fxuv_models_MORS_IsoFate_Baraffe_SUN.pdf',dpi=180)
 
 

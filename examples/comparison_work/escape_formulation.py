@@ -1,16 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 import mors
 
 from zephyrus.constants import *
 from zephyrus.planets_parameters import *
 from zephyrus.escape import *
-
-########################### Path to directories ###############################
-
-path_plot           = '../plots/comparison_work/'
-
 
 ########################### Initialization #####################################
 
@@ -77,7 +71,7 @@ ylims = ax1.get_ylim()
 ax2.set_ylim((ylims[0] / s2yr) / Me, (ylims[1] / s2yr) / Me)
 ax2.set_yscale('log')
 ax2.set_ylabel(r'Mass loss rate [M$_{\oplus}$ $yr^{-1}$]', fontsize=15)
-plt.savefig(path_plot+'Escape_vs_masses_3_models.pdf', dpi=180)
+plt.savefig('Escape_vs_masses_3_models.pdf', dpi=180)
 
 # Escape vs time
 fig, ax1 = plt.subplots(figsize=(10, 7))
@@ -100,4 +94,4 @@ ax2.set_ylabel(r'Mass loss rate [M$_{\oplus}$ $yr^{-1}$]', fontsize=15)
 textstr = r'$\epsilon$ = 0.15' '\n' r'$R_p = R_{\mathrm{XUV}} = R_{\oplus}$' '\n' r'$M_p = M_{\oplus}$' '\n' r'F$_{\mathrm{XUV}}$ = MORS' '\n' r'a = a$_{\mathrm{Earth}}$' '\n' r'e = e$_{\mathrm{Earth}}$'
 props = dict(boxstyle='round', facecolor='white', alpha=0.7)
 ax1.text(1.2, 5e4, textstr, fontsize=14,verticalalignment='top', bbox=props)
-plt.savefig(path_plot+'Escape_vs_time_3_models.pdf', dpi=180)
+plt.savefig('Escape_vs_time_3_models.pdf', dpi=180)

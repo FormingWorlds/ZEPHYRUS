@@ -7,11 +7,6 @@ from zephyrus.planets_parameters import *
 from zephyrus.escape import *
 from zephyrus.XUV_flux import *
 
-########################### Path to directories ###############################
-
-path_plot                       = '../plots/comparison_work/'
-
-
 ########################### Initialization #####################################
 
 simulation_time         = np.logspace(6,10, 100)/s2yr               # Simulation time [s]
@@ -75,4 +70,4 @@ ax2.set_ylabel(r'Mass loss rate [M$_{\oplus}$ $yr^{-1}$]', fontsize=15)
 textstr = r'$\epsilon$ = 0.15' '\n' r'$R_p = R_{\mathrm{XUV}} = R_{\oplus}$' '\n' r'$M_p = M_{\oplus}$' '\n' r'a = a$_{\mathrm{Earth}}$' '\n' r'e = e$_{\mathrm{Earth}}$'
 props = dict(boxstyle='round', facecolor='white', alpha=0.7)
 ax1.text(1.2, 4e4, textstr, fontsize=14,verticalalignment='top', bbox=props)
-plt.savefig(path_plot+'Escape_vs_time_3_Fxuv_models.pdf', dpi=180)
+plt.savefig('Escape_vs_time_3_Fxuv_models.pdf', dpi=180)

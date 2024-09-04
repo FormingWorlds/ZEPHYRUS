@@ -33,7 +33,7 @@ def extract_number(file_name):                                                  
 
 ########################### Path to directories ###############################
 
-proteus_data                    = '../data/PROTEUS_simulation_Fxuv_sun_earth/'
+proteus_data                    = '../../data/PROTEUS_simulation_Fxuv_sun_earth/'
 
 
 ########################### Initialization #####################################
