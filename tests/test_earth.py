@@ -22,13 +22,16 @@ def test_earth(inp, expected):
     mors.DownloadEvolutionTracks('Spada')
     star = mors.Star(Mstar=1.0, Omega=1.0)
 
-    Lxuv_star = (star.Value(age_star, 'Lx')+star.Value(age_star, 'Leuv'))
-    Fxuv_star_SI = Lxuv_star * ergcm2stoWm2 / (4*np.pi*(a_earth*au2cm)**2) 
+    Lx = np.interp(age_star, star.Tracks['Age'], star.Tracks['Lx'])
+    Leuv = np.interp(age_star, star.Tracks['Age'], star.Tracks['Leuv'])
+    #Lx = star.Value(age_star, 'Lx')
+    #Leuv = star.Value(age_star, 'Leuv')
+    Fxuv_star_SI = (Lx+Leuv) * ergcm2stoWm2 / (4*np.pi*(a_earth*au2cm)**2)
     escape = EL_escape(False, a_earth*au2m, e_earth, Me, 1.0, 0.15, Re, Re, Fxuv_star_SI)   # Compute EL escape     [kg s-1]
 
     ret = (
-        star.Value(age_star, 'Lx'),
-        star.Value(age_star, 'Leuv'),
+        Lx,
+        Leuv,
         Fxuv_star_SI,
         escape,
         )
