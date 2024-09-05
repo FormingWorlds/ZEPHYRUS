@@ -9,6 +9,8 @@ description = "Atmospheric escape models of exoplanets."
 readme = "README.md"
 authors = [
     {name = "Emma Postolec", email = "e.n.postolec@rug.nl"},
+    {name = "Tim Lichtenberg", email = "tim.lichtenberg@rug.nl"},
+    {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
 ]
 license = {text = "Apache 2.0 License"}
 classifiers = [
@@ -21,6 +23,7 @@ classifiers = [
 keywords = ["exoplanet", "escape"]
 requires-python = '>=3.10'
 dependencies = [
+  'fwl-mors>=24.8.29',
   'matplotlib',
   'numpy',
 ]
@@ -32,7 +35,6 @@ homepage = "https://github.com/FormingWorlds/ZEPHYRUS"
 develop = [
   "bump-my-version",
   "coverage[toml]",
-  'fwl-mors>=24.8.29',
   "pytest"
 ]
 docs = [

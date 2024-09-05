@@ -16,7 +16,7 @@ mkdocs serve
 You can find the documentation source in the [docs](https://github.com/FormingWorlds/ZEPHYRUS/tree/main/docs) directory.
 If you are adding new pages, make sure to update the listing in the [`mkdocs.yml`](https://github.com/FormingWorlds/ZEPHYRUS/blob/main/mkdocs.yml) under the `nav` entry.
 
-The documentation is hosted on [readthedocs](https://readthedocs.io/projects/fwl-zephyrus).
+The documentation is hosted on [readthedocs](https://fwl-zephyrus.readthedocs.io).
 
 ### Running tests
 
