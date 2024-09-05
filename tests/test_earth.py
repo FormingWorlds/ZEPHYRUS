@@ -8,9 +8,9 @@ from zephyrus.planets_parameters import Me, Re, e_earth, a_earth
 from zephyrus.escape import EL_escape
 
 TEST_DATA = (
-    (  150.0, (0.06685410, 20506.0813)),
-    ( 2480.0, (0.02227668,  6832.8987)),
-#    (10020.0, (0.01378475,  4228.1816)),
+    (  150.0, (7.53422377e+28, 1.12676493e+29, 0.06685410, 20506.0813)),
+    ( 2480.0, (1.78184954e+28, 4.48318430e+28, 0.02227668,  6832.8987)),
+    (10020.0, (6.67781787e+27, 3.20900636e+28, 0.01378475,  4228.1816)),
 )
 
 @pytest.mark.parametrize("inp,expected", TEST_DATA)
@@ -27,6 +27,8 @@ def test_earth(inp, expected):
     escape = EL_escape(False, a_earth*au2m, e_earth, Me, 1.0, 0.15, Re, Re, Fxuv_star_SI)   # Compute EL escape     [kg s-1]
 
     ret = (
+        star.Value(age_star, 'Lx'),
+        star.Value(age_star, 'Leuv'),
         Fxuv_star_SI,
         escape,
         )
