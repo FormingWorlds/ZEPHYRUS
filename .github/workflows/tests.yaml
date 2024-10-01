@@ -12,44 +12,39 @@ on:
 jobs:
   test:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: ['3.10', '3.11', '3.12']
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup system
-        run: |
-          sudo apt-get update
-          sudo apt-get install libnetcdff-dev netcdf-bin
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         id: cache-virtualenv
         with:
           path: ${{ env.pythonLocation }}
           key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Build ZEPHYRUS
-        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
         run: |
           python -m pip install -e .[develop]
 
       - uses: actions/cache@v3
         id: cache-fwl-data
         with:
-          path: /home/runner/work/fwl_data
+          path: $HOME/work/fwl_data
           key: fwl-data-1
 
       - name: Test with pytest
         run: |
-          export FWL_DATA="/home/runner/work/fwl_data"
+          export FWL_DATA="$HOME/work/fwl_data"
           coverage run -m pytest
 
       - name: Report coverage
