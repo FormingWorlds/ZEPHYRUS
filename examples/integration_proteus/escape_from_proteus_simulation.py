@@ -1,18 +1,13 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
-
 import mors 
-
 import os
-import sys
 import re
-zephyrus_dir = os.path.dirname('../src/zephyrus/')
-sys.path.extend([zephyrus_dir])
-from constants import *
-from planets_parameters import *
-from escape import *
-from XUV_flux import *
+
+from zephyrus.constants import *
+from zephyrus.planets_parameters import *
+from zephyrus.escape import *
+from zephyrus.XUV_flux import *
 
 ########################### Functions ###############################
 
@@ -38,8 +33,7 @@ def extract_number(file_name):                                                  
 
 ########################### Path to directories ###############################
 
-proteus_data                    = '../data/PROTEUS_simulation_Fxuv_sun_earth/'
-path_plot                       = '../plots/test_comparison_proteus/'
+proteus_data                    = 'data/PROTEUS_simulation_Fxuv_sun_earth/'
 
 
 ########################### Initialization #####################################
@@ -53,8 +47,9 @@ epsilon                 = 0.15                                      # Escape eff
 ########################### Extract Fxuv from different models #####################################
 
 # Baraffe+2015
-Fbol_baraffe                = Fbol_Baraffe_Sun(simulation_time,au2m)
-Fxuv_Baraffe                = Fbol_baraffe/1e3                                                        # [W m-2]
+mors.DownloadEvolutionTracks('Baraffe')
+baraffe = mors.BaraffeTrack(1.0)
+Fxuv_Baraffe = [baraffe.BaraffeSolarConstant(t*s2yr, 1.0)/1.e3 for t in simulation_time]
 
 # Johnstone+2021
 Fxuv_johnstone2021          = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)                     # [W m-2]
@@ -71,11 +66,11 @@ Fxuv_ribas                  = vectorized_Fxuv(simulation_time, Fxuv_earth_10Myr,
 
 ########################### Escape computations ####################################
 
-baraffe_escape          = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_Baraffe]
-baraffe_escape_bol      = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv*1e3) for fxuv in Fxuv_Baraffe]
-johnstone_escape        = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_johnstone2021]
-mors_escape             = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Sun_Fxuv]
-ribas_escape            = [EL_escape(0,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_ribas]
+baraffe_escape          = [EL_escape(False,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_Baraffe]
+baraffe_escape_bol      = [EL_escape(False,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv*1e3) for fxuv in Fxuv_Baraffe]
+johnstone_escape        = [EL_escape(False,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_johnstone2021]
+mors_escape             = [EL_escape(False,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Sun_Fxuv]
+ribas_escape            = [EL_escape(False,a_earth*au2m,e_earth,Me,Ms,epsilon,Re,Re,fxuv) for fxuv in Fxuv_ribas]
 
 
 
@@ -88,8 +83,8 @@ sorted_files = sorted(sflux_files, key=extract_number)                          
 ########################### Compute the escape #####################################
 for i in sorted_files:
     integrated_xuv_flux, time_step, integrated_all_flux, all_wavelength, all_flux, xuv_wavelength, xuv_flux = open_flux_files(proteus_data+i)  
-    mass_loss_rate      = EL_escape(0, a_earth * au2m, e_earth, Me, Ms, epsilon, Re, Re, integrated_xuv_flux*ergcm2stoWm2)
-    mass_loss_rate_bol  = EL_escape(0, a_earth * au2m, e_earth, Me, Ms, epsilon, Re, Re, integrated_all_flux*ergcm2stoWm2)
+    mass_loss_rate      = EL_escape(False, a_earth * au2m, e_earth, Me, Ms, epsilon, Re, Re, integrated_xuv_flux*ergcm2stoWm2)
+    mass_loss_rate_bol  = EL_escape(False, a_earth * au2m, e_earth, Me, Ms, epsilon, Re, Re, integrated_all_flux*ergcm2stoWm2)
     escape.append({
         'Time': time_step,
         'Fxuv': integrated_xuv_flux,
@@ -129,7 +124,7 @@ ax2.set_ylabel(r'Mass loss rate [M$_{\oplus}$ $yr^{-1}$]', fontsize=15)
 textstr = (r'$\epsilon$ = 0.15' '\n' r'$R_p = R_{\mathrm{XUV}} = R_{\oplus}$' '\n' r'$M_p = M_{\oplus}$' '\n' r'a = a$_{\mathrm{Earth}}$' '\n' r'e = e$_{\mathrm{Earth}}$')
 props = dict(boxstyle='round', facecolor='white', alpha=0.7)
 ax1.text(1.2, 3e4, textstr, fontsize=14, verticalalignment='top', bbox=props)
-plt.savefig(path_plot + 'escape_vs_time_proteus_sim.pdf', dpi=180)
+plt.savefig('output/Escape_vs_time_proteus_sim.pdf', dpi=180)
 
 
 # Extracted spectra 
@@ -156,5 +151,5 @@ ax2 = ax1.twinx()
 ax2.set_ylabel('Stellar flux at 1 AU [W/m$^2$]', fontsize=15)
 ax2.set_yscale('log')
 ax1.legend(loc='upper right')
-plt.savefig(path_plot + 'plot_comparison_integrated_value.pdf',dpi=180)
+plt.savefig('output/plot_comparison_integrated_value.pdf',dpi=180)
 plt.show()

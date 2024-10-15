@@ -1,21 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 import mors
 
-import sys
-import os
-zephyrus_dir = os.path.dirname('../src/zephyrus/')
-sys.path.extend([zephyrus_dir])
-from constants import *
-from planets_parameters import *
-from escape import *
-from XUV_flux import *
-
-########################### Path to directories ###############################
-
-path_plot                       = '../plots/comparison_work/'
-
+from zephyrus.constants import *
+from zephyrus.planets_parameters import *
+from zephyrus.escape import *
+from zephyrus.XUV_flux import *
 
 ########################### Initialization #####################################
 
@@ -31,8 +21,9 @@ epsilon                 = 0.15                                      # Escape eff
 ########################### Extract Fxuv from different models #####################################
 
 # Baraffe+2015
-Fbol_baraffe                = Fbol_Baraffe_Sun(simulation_time,au2m)
-Fxuv_Baraffe                = Fbol_baraffe/1e3                                                        # [W m-2]
+mors.DownloadEvolutionTracks('Baraffe')
+baraffe = mors.BaraffeTrack(1.0)
+Fxuv_Baraffe = [baraffe.BaraffeSolarConstant(t*s2yr, 1.0)/1.e3 for t in simulation_time]
 
 # Johnstone+2021
 Fxuv_johnstone2021          = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)                      # [W m-2]
@@ -79,4 +70,4 @@ ax2.set_ylabel(r'Mass loss rate [M$_{\oplus}$ $yr^{-1}$]', fontsize=15)
 textstr = r'$\epsilon$ = 0.15' '\n' r'$R_p = R_{\mathrm{XUV}} = R_{\oplus}$' '\n' r'$M_p = M_{\oplus}$' '\n' r'a = a$_{\mathrm{Earth}}$' '\n' r'e = e$_{\mathrm{Earth}}$'
 props = dict(boxstyle='round', facecolor='white', alpha=0.7)
 ax1.text(1.2, 4e4, textstr, fontsize=14,verticalalignment='top', bbox=props)
-plt.savefig(path_plot+'Escape_vs_time_3_Fxuv_models.pdf', dpi=180)
+plt.savefig('output/Escape_vs_time_3_Fxuv_models.pdf', dpi=180)
