@@ -4,34 +4,43 @@ escape.py
 Main functions to compute atmospheric escape.
 '''
 import numpy as np
-from constants import *
-from planets_parameters import *
+from zephyrus.constants import *
+from zephyrus.planets_parameters import *
 
 ########################################################### Energy-Limited escape (EL) ###########################################################
 
-def EL_escape(tidal_contribution,a,e,Mp,Ms,epsilon,Rp,Rxuv,Fxuv):
+def EL_escape(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,epsilon:float,Rp:float,Rxuv:float,Fxuv:float):
 
     ''''
     Compute the mass-loss rate for Energy-Limited (EL) escape.
     Based on the formula from Lopez, Fortney & Miller, 2012 (Equation 2,3,4).
     
     Inputs :
-        - tidal_contribution : 'yes'or 'no' -> K_tide = tidal correction factor (0 < K_tide < 1)                                           [dimensionless]
-        - a                  : planetary semi-major axis                                                                                   [m]
-        - e                  : planetary eccentricty                                                                                       [dimensionless]
-        - Mp                 : planetary mass                                                                                              [kg]
-        - Ms                 : Stellar mass                                                                                                [kg]
-        - epsilon            : efficiency factor (varies typically 0.1 < epsilon < 0.6)                                                    [dimensionless]
-        - Rp                 : planetary radius                                                                                            [m]
-        - Rxuv               : planetary radius at which XUV radiation are opticaly thick (defined at 20 mbar in Baumeister et  al. 2023)  [m]
-        - Fxuv               : XUV incident flux received on the planet from the host star                                                 [W m-2]
-    Constants :
-        - G                  : gravitational constant                                                                                      [m3 kg-1 s-2] 
+        - tidal_contribution : bool
+            True K_tilde=1, False K_tide = tidal correction factor (0 < K_tide < 1)
+        - a : float
+            planetary semi-major axis [m]
+        - e : float
+            planetary eccentricty [dimensionless]
+        - Mp : float
+            planetary mass [kg]
+        - Ms : float
+            Stellar mass [kg]
+        - epsilon : float
+            efficiency factor (varies typically 0.1 < epsilon < 0.6) [dimensionless]
+        - Rp : float
+            planetary radius [m]
+        - Rxuv : float
+            planetary radius at which XUV radiation are opticaly thick (defined at 20 mbar in Baumeister et  al. 2023) [m]
+        - Fxuv : float
+            XUV incident flux received on the planet from the host star [W m-2]
 
-    Output : Mass-loss rate for EL escape [kg s-1]
+    Output :
+        - escape_EL : float
+            Mass-loss rate for EL escape [kg s-1]
     '''
     # Tidal contribution
-    if tidal_contribution == 'yes':                 # Take into account tidal contributions : Ktide
+    if tidal_contribution:                 # Take into account tidal contributions : Ktide
         Rhill = a * (1-e) * (Mp/(3*Ms))**(1/3)
         ksi = Rhill/Rxuv
         K_tide = 1 - (3/(2*ksi)) + (1/(2*(ksi**3)))
@@ -43,21 +52,24 @@ def EL_escape(tidal_contribution,a,e,Mp,Ms,epsilon,Rp,Rxuv,Fxuv):
 
     return escape_EL
 
-def dMdt_Cherubim2024(Mp,Rp,epsilon,Feuv):
+def dMdt_Cherubim2024(Mp:float,Rp:float,epsilon:float,Feuv:float):
 
     ''''
     Compute the mass-loss rate for Energy-Limited (EL) escape.
     Formula from Cherubim et al., 2024 (Equation 2).
     
     Inputs :
-        - Mp                 : planetary mass                                                       [kg]
-        - Rp                 : planetary radius                                                     [m]
-        - epsilon            : efficiency factor (varies typically 0.1 < epsilon < 0.6)             [dimensionless]
-        - Feuv               : EUV incident flux received on the planet from the host star          [W m-2]
-    Constants :
-        - G                  : gravitational constant                                               [m3 kg-1 s-2] 
+        - Mp : float
+            planetary mass [kg]
+        - Rp : float
+            planetary radius [m]
+        - epsilon : float
+            efficiency factor (varies typically 0.1 < epsilon < 0.6) [dimensionless]
+        - Feuv : float
+            EUV incident flux received on the planet from the host star [W m-2]
 
-    Output : Mass-flux for EL escape [kg m-2 s-1]
+    Output : float
+        Mass-flux for EL escape [kg m-2 s-1]
     '''
 
     # Mass-flux for EL escape
@@ -67,27 +79,37 @@ def dMdt_Cherubim2024(Mp,Rp,epsilon,Feuv):
     
     return escape_EL
 
-def dMdt_EL_Attia2021(tidal_contribution,a,e,Mp,Ms,Rp,Rxuv,Lxuv,Fxuv,epsilon,orbit_effect):
+def dMdt_EL_Attia2021(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,
+                      Rp:float,Lxuv:float,Fxuv:float,
+                      Rxuv:float=None,epsilon:float=None,orbit_effect:float=1.0):
 
     ''''
     Compute the mass-loss rate for Energy-Limited (EL) escape.
     Formula from Attia et al. 2021 (Equation 25,26,27,28,29). 
     (ATTENTION : All units in CGS)
-    
+
     Inputs :
-        - tidal_contribution : 'yes'or 'no' -> K_tide = tidal correction factor (0 < K_tide < 1)  [dimensionless]
-        - a                  : planetary semi-major axis                                          [cm]
-        - e                  : planetary eccentricty                                              [dimensionless]
-        - Mp                 : planetary mass                                                     [g]
-        - Ms                 : stellar mass                                                       [g]
-        - Rp                 : planetary radius                                                   [cm]
-        - Rxuv               : 'computation' or user value (usually planet radius)                [cm] 
-        - Lxuv               : XUV luminosity received on the planet from the host star           [erg s-1]
-        - Fxuv               : XUV incident flux received by the planet from the host star        [erg cm-2 s-1]
-        - epsilon            : 'computation'or user value : 0.1 < epsilon < 0.6                   [dimensionless]
-        - orbit_effect       : 'yes'or 'no'                                                       [dimensionless]
-    Constants :
-        - G_cgs              : gravitational constant in cgs units                                [cm3 g-1 s-2] 
+        - tidal_contribution : bool
+            True K_tilde=1, False K_tide = tidal correction factor (0 < K_tide < 1)
+        - a : float
+            planetary semi-major axis [m]
+        - e : float
+            planetary eccentricty [dimensionless]
+        - Mp : float
+            planetary mass [kg]
+        - Ms : float
+            Stellar mass [kg]
+        - Rp : float
+            planetary radius [m]
+        - Lxuv : float
+            XUV luminosity received on the planet from the host star [erg s-1]
+        - Fxuv : float
+            XUV incident flux received on the planet from the host star [W m-2]
+        - Rxuv (optional) : float
+            planetary radius at which XUV radiation are opticaly thick computed from  [m]
+        - epsilon (optional) : float
+            efficiency factor (varies typically 0.1 < epsilon < 0.6) [dimensionless]
+        - orbit_effect (optional) : float
 
     Output : Mass-loss rate for EL escape [g s-1]
     '''
@@ -100,30 +122,23 @@ def dMdt_EL_Attia2021(tidal_contribution,a,e,Mp,Ms,Rp,Rxuv,Lxuv,Fxuv,epsilon,orb
     else :
         K_tide = 1
 
-    if Rxuv == 'computation' :
+    if Rxuv == None:
         Rxuv = Rp * 10 ** (-0.185 * np.log10(G_cgs * Mp / Rp)+ 0.021 * np.log10(Fxuv)+2.42)
         if Rxuv > 0 :
             Rxuv = Rxuv   
         else :
             Rxuv = Rp
-    else :
-        Rxuv = Rxuv
-          
-    if epsilon == 'computation' :
+
+    if epsilon == None:
         v = np.log10(G_cgs * Mp / Rp)
         if v <= 13.11: 
             epsilon = 10**(-0.50 - 0.44 * (v - 12.00))
         else:
             epsilon = 10**(-0.98 - 7.29 * (v - 13.11))
-    else :
-        epsilon = epsilon
 
     # Take into account orbital contributions : orbit_effect
-    if orbit_effect=='yes':
+    if orbit_effect != 1.0:
         orbit_effect = np.sqrt(1 - e**2)
-    # No orbital contributions : orbit_effect = 1
-    else :
-        orbit_effect = 1
 
     # Mass-loss rate for EL escape
     escape_EL = (epsilon * Lxuv * Rp * Rxuv**2) / (4 * G_cgs * Mp * K_tide * orbit_effect * a**2)

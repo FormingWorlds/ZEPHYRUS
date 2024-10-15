@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fwl-zephyrus"
+version = "24.10.15"
+description = "Atmospheric escape models of exoplanets."
+readme = "README.md"
+authors = [
+    {name = "Emma Postolec", email = "e.n.postolec@rug.nl"},
+    {name = "Tim Lichtenberg", email = "tim.lichtenberg@rug.nl"},
+    {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
+]
+license = {text = "Apache 2.0 License"}
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["exoplanet", "escape"]
+requires-python = '>=3.10'
+dependencies = [
+  'fwl-mors>=24.10.1',
+  'matplotlib',
+  'numpy',
+]
+
+[project.urls]
+homepage = "https://github.com/FormingWorlds/ZEPHYRUS"
+
+[project.optional-dependencies]
+develop = [
+  "bump-my-version",
+  "coverage[toml]",
+  "pytest"
+]
+docs = [
+    "markdown-include",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+]
+publishing = [
+  "twine",
+  "wheel",
+  "build"
+]
+
+[tool.setuptools]
+package-dir = {"zephyrus" = "src/zephyrus"}
+include-package-data = true
+
+[tool.coverage.run]
+branch = true
+source = ["zephyrus"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.bumpversion]
+# https://callowayproject.github.io/bump-my-version/howtos/calver/
+current_version = "24.10.15"
+parse = """(?x)                     # Verbose mode
+    (?P<release>                    # The release part
+        (?:[1-9][0-9])\\.           # YY.
+        (?:[0-1][0-9])\\.           # MM.
+        (?:[0-3][1-9])              # DD
+    )
+    (?:\\.(?P<patch>\\d+))?         # .patch, optional
+"""
+serialize = ["{release}.{patch}", "{release}"]
+
+[tool.bumpversion.parts.release]
+calver_format = "{YY}.{0M}.{0D}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""

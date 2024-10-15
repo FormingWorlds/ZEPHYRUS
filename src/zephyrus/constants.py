@@ -17,8 +17,3 @@ au2m                = 1.496e11              # convert [au]           to [m]
 au2cm               = 1.496e13              # convert [au]           to [cm]
 ergpersecondtowatt  = 1e-7                  # convert [erg s-1]      to [W]
 ergcm2stoWm2        = 1e-3                  # convert [erg s-1 cm-2] to [W m-2]
-
-
-
-
-
