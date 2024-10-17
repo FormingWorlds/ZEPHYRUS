@@ -56,7 +56,7 @@ def Fxuv_Johnstone(t, d, stellar_type):
     elif stellar_type == 'Sun':
         path = data_path + '1p0Msun_1p0OmegaSun_basic.dat'
     else:
-        print('Stellar type not supported. Please input "M1", "K5", or "G5"')
+        print('Stellar type not supported. Please input "M1", "K5","G5" or "Sun"')
 
     data = np.loadtxt(path, unpack = True)
     age = data[0]*1e6/s2yr # [s]
