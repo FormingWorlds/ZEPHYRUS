@@ -23,7 +23,3 @@ plt.grid(alpha=0.5)
 plt.title('Test of the Fxuv_mors() function, using Star()', fontsize=15)
 
 plt.savefig('output/test_Fxuv_mors_function.pdf',dpi=180)
-
-
-
-
