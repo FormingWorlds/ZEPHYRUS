@@ -26,7 +26,6 @@ Sun_age     = Sun.Tracks['Age']
 Sun_Lxuv    = Sun.Tracks['Lx'] + Sun.Tracks['Leuv']                         # XUV luminosity            [erg s-1]
 Sun_Fxuv    = (Sun_Lxuv/(4 * np.pi * a_earth*au2cm **2)) * ergcm2stoWm2     # XUV flux                  [W m-2]
 
-
 ########################### Escape computations ####################################
 
 for mass in planet_masses : 
