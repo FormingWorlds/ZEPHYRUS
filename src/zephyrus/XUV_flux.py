@@ -7,6 +7,7 @@ import numpy as np
 import pathlib
 from zephyrus.constants import *
 from zephyrus.planets_parameters import *
+import mors
 
 ########################### IsoFATE Fxuv functions ###########################
 #### The following functions are taken from the IsoFATE code written by Colin Cherubim 
@@ -181,3 +182,25 @@ def Fxuv_Johnstone_Sun(t,d):
     Fxuv_SI     = Fxuv * ergcm2stoWm2                                       # [W m-2]
     
     return np.interp(t,age,Fxuv_SI)
+
+
+def Fxuv_mors(M_star,Omega_star,d):
+    '''
+    Computes the incident XUV flux received by a planet at a distance d for a given star mass and rotation rate
+    Using stellar evolution files from MORS (Star() function)
+
+    Inputs:
+        - M_star : Mass of the star               [Msun]   
+        - Omega_star : Rotation rate of the star  [Omega sun]
+        - t : Time/age                            [s]
+        - d : Orbital distance of the planet      [AU]
+
+    Output: 
+        - Age of the star                         [Myr]
+        - Incident XUV flux                       [W m-2]
+    '''
+    star_data   = mors.Star(Mstar=M_star, Omega=Omega_star)                                                     # Extract luminosities using the mors.Star() function
+    Star_age    = star_data.Tracks['Age']                                                                       # Age of the Star            [Myr]
+    Star_Fxuv   = ((star_data.Tracks['Lx']+star_data.Tracks['Leuv'])/(4*np.pi*(d*au2cm)**2)) * ergcm2stoWm2     # XUV flux                   [W m-2]
+
+    return Star_age,Star_Fxuv
