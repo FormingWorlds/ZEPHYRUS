@@ -23,7 +23,7 @@ classifiers = [
 keywords = ["exoplanet", "escape"]
 requires-python = '>=3.10'
 dependencies = [
-  'fwl-mors>=24.10.1',
+  'fwl-mors>=24.11.18',
   'matplotlib',
   'numpy',
 ]
