@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-zephyrus"
-version = "24.10.15"
+version = "25.03.11"
 description = "Atmospheric escape models of exoplanets."
 readme = "README.md"
 authors = [
     {name = "Emma Postolec", email = "e.n.postolec@rug.nl"},
     {name = "Tim Lichtenberg", email = "tim.lichtenberg@rug.nl"},
     {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
+    {name = "Harrison Nicholls", email = "harrison.nicholls@physics.ox.ac.uk"}
 ]
 license = {text = "Apache 2.0 License"}
 classifiers = [
@@ -62,7 +63,7 @@ testpaths = ["tests"]
 
 [tool.bumpversion]
 # https://callowayproject.github.io/bump-my-version/howtos/calver/
-current_version = "24.10.15"
+current_version = "25.03.11"
 parse = """(?x)                     # Verbose mode
     (?P<release>                    # The release part
         (?:[1-9][0-9])\\.           # YY.
