@@ -9,12 +9,15 @@ from zephyrus.planets_parameters import *
 
 ########################################################### Energy-Limited escape (EL) ###########################################################
 
-def EL_escape(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,epsilon:float,Rp:float,Rxuv:float,Fxuv:float):
+def EL_escape(tidal_contribution:bool, a:float,e:float,
+                Mp:float,Ms:float,epsilon:float,
+                Rp:float,Rxuv:float,Fxuv:float, scaling:int=2):
 
     ''''
     Compute the mass-loss rate for Energy-Limited (EL) escape.
     Based on the formula from Lopez, Fortney & Miller, 2012 (Equation 2,3,4).
-    
+    Alternatively based on the scaling from Lehmer & Catling (2017), Equation 1.
+
     Inputs :
         - tidal_contribution : bool
             True K_tilde=1, False K_tide = tidal correction factor (0 < K_tide < 1)
@@ -35,6 +38,9 @@ def EL_escape(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,epsilon:
         - Fxuv : float
             XUV incident flux received on the planet from the host star [W m-2]
 
+        - scaling : int
+            Planet radius scaling exponent (2: R_xuv^2 * R_int, 3: R_xuv^3)
+
     Output :
         - escape_EL : float
             Mass-loss rate for EL escape [kg s-1]
@@ -47,8 +53,17 @@ def EL_escape(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,epsilon:
     else :                                           # No tidal contributions : Ktide = 1
         K_tide = 1
 
+    # Radius
+    match scaling:
+        case 2:
+            R_cubed = Rp * Rxuv**2
+        case 3:
+            R_cubed = Rxuv**3
+        case _:
+            raise ValueError(f"Invalid radius exponent: {scaling}")
+
     # Mass-loss rate for EL escape
-    escape_EL = (epsilon * np.pi * Rp * (Rxuv**2) * Fxuv) / (G * Mp * K_tide)
+    escape_EL = (epsilon * np.pi * R_cubed * Fxuv) / (G * Mp * K_tide)
 
     return escape_EL
 
@@ -57,7 +72,7 @@ def dMdt_Cherubim2024(Mp:float,Rp:float,epsilon:float,Feuv:float):
     ''''
     Compute the mass-loss rate for Energy-Limited (EL) escape.
     Formula from Cherubim et al., 2024 (Equation 2).
-    
+
     Inputs :
         - Mp : float
             planetary mass [kg]
@@ -73,10 +88,10 @@ def dMdt_Cherubim2024(Mp:float,Rp:float,epsilon:float,Feuv:float):
     '''
 
     # Mass-flux for EL escape
-    
+
     Vpot = (G * Mp) / Rp
     escape_EL = (epsilon * Feuv) / (4 * Vpot)
-    
+
     return escape_EL
 
 def dMdt_EL_Attia2021(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,
@@ -85,7 +100,7 @@ def dMdt_EL_Attia2021(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,
 
     ''''
     Compute the mass-loss rate for Energy-Limited (EL) escape.
-    Formula from Attia et al. 2021 (Equation 25,26,27,28,29). 
+    Formula from Attia et al. 2021 (Equation 25,26,27,28,29).
     (ATTENTION : All units in CGS)
 
     Inputs :
@@ -116,7 +131,7 @@ def dMdt_EL_Attia2021(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,
 
     # Take into account tidal contributions : Ktide
     if tidal_contribution == 'yes':
-        ksi = (Mp/(3*Ms))**(1/3) * (a/Rp)  * (1+((e**2)/2))  
+        ksi = (Mp/(3*Ms))**(1/3) * (a/Rp)  * (1+((e**2)/2))
         K_tide = 1 - (3/(2*ksi)) + (1/(2*(ksi**3)))
     # No tidal contributions : Ktide = 1
     else :
@@ -125,13 +140,13 @@ def dMdt_EL_Attia2021(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,
     if Rxuv == None:
         Rxuv = Rp * 10 ** (-0.185 * np.log10(G_cgs * Mp / Rp)+ 0.021 * np.log10(Fxuv)+2.42)
         if Rxuv > 0 :
-            Rxuv = Rxuv   
+            Rxuv = Rxuv
         else :
             Rxuv = Rp
 
     if epsilon == None:
         v = np.log10(G_cgs * Mp / Rp)
-        if v <= 13.11: 
+        if v <= 13.11:
             epsilon = 10**(-0.50 - 0.44 * (v - 12.00))
         else:
             epsilon = 10**(-0.98 - 7.29 * (v - 13.11))
@@ -150,7 +165,7 @@ def dMdt_EL_Attia2021(tidal_contribution:bool,a:float,e:float,Mp:float,Ms:float,
 ## COMMENT THIS SECTION LATER
 def dMdt_DL_Baumeister_2023(Ratm) :
     baj = bCO2 * chiCO2 + bCO * chiCO + bHO2 * chiHO2
-    escape_DL = 4 * np.pi * (Ratm**2) *(mH2/Na) * baj * chiH2 * ((1/Ha)-(1/HH2)) 
+    escape_DL = 4 * np.pi * (Ratm**2) *(mH2/Na) * baj * chiH2 * ((1/Ha)-(1/HH2))
     return escape_DL
 
 def dMdt_ELtoDL_Baumeister_2023(Rp,Mp,Ratm) :
