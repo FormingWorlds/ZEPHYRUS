@@ -52,10 +52,10 @@ baraffe = mors.BaraffeTrack(1.0)
 Fxuv_Baraffe = [baraffe.BaraffeSolarConstant(t*s2yr, 1.0)/1.e3 for t in simulation_time]
 
 # Johnstone+2021
-Fxuv_johnstone2021          = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)                     # [W m-2]
+Fxuv_johnstone2021          = Fxuv_Johnstone_Sun(simulation_time, a_earth*au2cm)            # [W m-2]
 
 # MORS
-Sun                         = mors.Star(Mstar=1.0, Omega=1.0)                         # Extract luminosities using the mors.Star() function
+Sun                         = mors.Star(Mstar=1.0, Omega=1.0)                               # Extract luminosities using the mors.Star() function
 Sun_age                     = Sun.Tracks['Age']
 Sun_Lxuv                    = Sun.Tracks['Lx'] + Sun.Tracks['Leuv']                         # XUV luminosity            [erg s-1]
 Sun_Fxuv                    = (Sun_Lxuv/(4 * np.pi * a_earth*au2cm **2)) * ergcm2stoWm2     # XUV flux                  [W m-2]
