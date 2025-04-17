@@ -30,7 +30,7 @@ Fxuv_star       = Lxuv_star/(4*np.pi*(semi_major_axis_cm)**2)   # XUV flux      
 Fxuv_star_SI    = Fxuv_star*ergcm2stoWm2                        # XUV flux                                         [W m-2]
 
 
-########################### EL escape computations #####################################
+########################### EL escape computation #################################
 
 escape = EL_escape(tidal_contribution, semi_major_axis, eccentricity, M_planet, M_star, epsilon, R_earth, Rxuv, Fxuv_star_SI)   # Compute EL escape     [kg s-1]
 
