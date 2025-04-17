@@ -21,7 +21,7 @@ R_earth                  = Re               # Planetary radius                  
 Rxuv                     = Re               # XUV planetary radius                   [m]
 
 
-########################### Fxuv computations #####################################
+########################### Fxuv computation #####################################
 
 star            = mors.Star(Mstar=M_star, Omega=Omega_sun)      # Load the stellar evolution tracks from MORS
 Age_star        = star.Tracks['Age']                            # Stellar age                                      [Myr]
@@ -50,5 +50,5 @@ ylims = ax1.get_ylim()
 ax2.set_ylim((ylims[0]/ s2yr) / Me,(ylims[1] / s2yr) / Me)
 ax2.set_yscale('log')
 ax2.set_ylabel(r'Mass loss rate [$M_{\oplus}$ $yr^{-1}$]', fontsize=15)
-plt.savefig('output/Test_earth_Escape_vs_time_MORS.pdf', dpi=180)
+plt.savefig('output/demo_earth_escape_vs_time_MORS.pdf', dpi=180)
 
