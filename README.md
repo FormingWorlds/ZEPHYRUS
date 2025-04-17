@@ -41,7 +41,7 @@ pip install -e .
 The `fwl-mors` python package is used to compute the XUV stellar incoming flux on the planet, which most escape models rely on. This package requires a set of stellar evolution data, stored in the [OSF repository](https://osf.io/9u3fb/). To download the data follow the following steps.
     * Set the environment variable FWL_DATA to define where the data files will be stored
         * `export FWL_DATA=...`
-        * This can be done permanently by entering this line into you `~/.bashrc` file.
+        * This can be done permanently by entering this line into your `~/.bashrc` file.
     * Run the following command to download all evolution track data
         * `mors download all`
 
