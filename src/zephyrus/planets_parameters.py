@@ -23,25 +23,3 @@ age_earth         = 4.543e9            # Age of the Earth                      [
 e_earth           = 0.017              # Earth eccentricity                    [dimensionless]
 a_earth           = 1                  # Earth semi-major axis                 [au]
 
-######################################### TOI-561 system #########################################
-
-# Star (Weiss+2021)
-R_TOI561               = 0.832*Rs        # TOI-561 radius                               [m]
-R_TOI561_errorbar      = 0.019*Rs        # Errorbars on TOI-561 radius                  [m]
-M_TOI561               = 0.805*Ms        # TOI-561 mass                                 [kg]
-M_TOI561_errorbar      = 0.030*Ms        # Errorbars on TOI-561 mass                    [kg]
-L_TOI561               = 0.522*Ls        # TOI-561 luminosity (bolometric ?)            [W]
-L_TOI561_errorbar      = 0.017*Ls        # Errorbars on TOI-561 luminosity              [W]
-age_TOI561             = 10e9            # TOI-561 age                                  [yr]
-age_TOI561_errorbar    = 3e9             # Errorbars on TOI-561 age                     [yr]
-
-# Planet b (Brinkman+2023)
-R_TOI561b               = 1.37*Re        # TOI-561b radius                              [m]
-R_TOI561b_errorbar      = 0.04*Re        # Errorbars on TOI-561b radius                 [m]
-M_TOI561b               = 2.24*Me        # TOI-561b mass                                [kg]
-M_TOI561b_errorbar      = 0.20*Me        # Errorbars on TOI-561b mass                   [kg]
-#Fxuv_TOI561b_today      =                # Stellar flux received on TOI-561b today      [W m-2]
-#age_TOI561b             =                # Age of the TOI-561b                          [yr]
-e_TOI561b               = 0              # TOI-561b eccentricity                        [dimensionless]
-a_TOI561b               = 0.0106         # TOI-561b semi-major axis                     [au]
-a_TOI561b_errorbar      = 0.0004         # Errorbars onTOI-561b semi-major axis         [au]

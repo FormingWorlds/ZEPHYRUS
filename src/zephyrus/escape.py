@@ -1,13 +1,12 @@
 ''''
-Emma Postolec, Harrison Nichols
+Emma Postolec, Harrison Nicholls
 escape.py
-Main functions to compute atmospheric escape.
+Functions to compute bulk atmospheric escape (energy-limited).
 '''
 import numpy as np
 from zephyrus.constants import *
 from zephyrus.planets_parameters import *
 
-########################################################### Energy-Limited escape (EL) ###########################################################
 
 def EL_escape(tidal_contribution:bool, a:float,e:float,
                 Mp:float,Ms:float,epsilon:float,
