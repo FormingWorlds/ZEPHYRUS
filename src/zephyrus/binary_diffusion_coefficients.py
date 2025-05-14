@@ -2,7 +2,7 @@
 Emma Postolec, Collin Cherubim
 binary_diffusion_coefficients.py
 Functions to get binary diffusion coefficients for different gas mixtures.
-''''
+'''
 
 def b_H_O(T):
     '''
@@ -57,7 +57,7 @@ def b_H_O2(T):
         - b_HO2 : float 
             Binary diffusion coefficient for H in O2 [molecules/m/s] from Zahnle and Kasting, 2023 
     '''
-    b_HO2 = 6.5e21*(T/1000)**0.7
+    b_HO2 = 6.5e21*(T/1000)**0.75
     return b_HO2
 
 def b_H_N2(T):

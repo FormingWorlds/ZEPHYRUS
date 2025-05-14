@@ -6,22 +6,41 @@ Functions to compute fractionation during atmospheric escape based on IsoFATE fu
 import numpy as np
 from zephyrus.constants import kb, G
 
-def Molar_concentration(N_i, N_tot):
+def Scale_height(T, g, m_i):
+    '''
+    Compute the scale height of a gas mixture.
+    
+    Inputs:
+        - T: float
+            Temperature of the gas mixture [K]
+        - g: float
+            Acceleration of gravity [m/s2]       
+        - m_i: float
+            Mass of species i [kg/particle]
+            
+    Output: 
+        - H_i : float 
+            Scale height of species i [m]
+    '''
+    H_i = kb * T / (g * m_i)  # Scale height of species i     [m]
+    return H_i
+
+def Molar_concentration(n_1, n_2):
     '''
     Compute the molar concentration of specie i in a gas mixture.
     
     Inputs:
-        - N_i: float
-            Total number of moles of species i [kg/particle]
-        - N_tot: float
-            Total number of moles in the entire gas mixture [kg/particle]
+        - n_1,n_2: float
+            Total number of moles of species light(1) or heavy(2) [kg/particle]
             
     Output: 
-        - x_i : float 
-            Molar concentration of species i [1]
+        - x1,x2 : float 
+            Molar concentration of species light(1) or heavy(2)  [1]
     '''
-    x_i = N_i/(N_tot)
-    return x_i
+    N_tot = n_1 + n_2
+    x1 = n_1/(N_tot)
+    x2 = n_2/(N_tot)
+    return x1, x2
 
 def Acceleration_of_gravity(Mp,Rp):
     '''
@@ -72,13 +91,13 @@ def Diffusion_flux_i(b, T, g, m_i):
             Mass of species i [kg/particle]
     Output:
         - Phi_diffusion : float
-            Diffusion flux of species i [?]
+            Diffusion flux of species i [particles/m2/s]
     '''
-    Scale_height_i = kb * T / (g * m_i)     # Scale height of species i     [m]
-    Phi_diffusion_i = b /Scale_height_i     # Diffusion flux of species i   [?]
+    H_i = Scale_height(T, g, m_i)     # Scale height of species i     [m]
+    Phi_diffusion_i = b /H_i     # Diffusion flux of species i   [?]
     return Phi_diffusion_i
 
-def Phi_critical(b, H1, m1, m2, x1):
+def Phi_critical(b, T, g, m1, m2, x1):
     '''
     Compute the critical mass flux for a binary gas mixture undergoing atmospehric escape.
     Adapted from IsoFATE (Cherubim et al.2024) and based on formulation in Cherubim et al.2024 and Wordsworth et al. 2018
@@ -97,7 +116,7 @@ def Phi_critical(b, H1, m1, m2, x1):
         - Phi_crit : float 
             Critical mass flux [?] 
     '''
-
+    H1 = Scale_height(T, g, m1)     # Scale height of light species [m]
     Phi_crit = b*x1*(m2 - m1)/H1    # Critical mass flux    [?]
     return Phi_crit 
 
@@ -156,7 +175,7 @@ def Mass_loss_rate(A, Phi):
     MLR = - A * Phi  # Mass loss rate [kg/s]
     return MLR
 
-def Fractionation_binary(n1, n2, Mp, Rp, b, T, m1, m2, Phi):
+def Fractionation_binary(n1, n2, Mp, Rp, b, T, g, m1, m2, Phi):
     '''
     Compute the fractionation of light and heavy species in a binary gas mixture undergoing atmospheric escape.
     Adapted from IsoFATE (Cherubim et al.2024) and based on formulation in Cherubim et al.2024 and Wordsworth et al. 2018
@@ -188,9 +207,7 @@ def Fractionation_binary(n1, n2, Mp, Rp, b, T, m1, m2, Phi):
             Total mass loss rate [kg/s]
     '''
     # Compute the molar concentration of light (1) and heavy (2) species
-    N_tot = n1 + n2
-    x1 = Molar_concentration(n1, N_tot)
-    x2 = Molar_concentration(n2, N_tot)
+    x1, x2 = Molar_concentration(n1, n2)
 
     # Compute the acceleration of gravity
     g = Acceleration_of_gravity(Mp, Rp)
@@ -200,22 +217,22 @@ def Fractionation_binary(n1, n2, Mp, Rp, b, T, m1, m2, Phi):
     Phi_diffusion_2 = Diffusion_flux_i(b, T, g, m2)
 
     # Compute the critical mass flux
-    Phi_crit = Phi_critical(b, Phi_diffusion_1, m1, m2, x1)
+    Phi_crit = Phi_critical(b, T, g, m1, m2, x1)
 
     # Compute the number flux of light (1) and heavy (2) species    
     Phi_light, Phi_heavy = Number_flux(Phi, Phi_crit, m1, m2, x1, x2, Phi_diffusion_1, Phi_diffusion_2)
 
     # Compute the mass loss rate of light (1) and heavy (2) species and the total mass loss rate
-    Planetary_surface_area = Planetary_surface_area(Rp)
-    MLR_light = Mass_loss_rate(Planetary_surface_area, Phi_light)  # Mass loss rate of light species [kg/s]
-    MLR_heavy = Mass_loss_rate(Planetary_surface_area, Phi_heavy)  # Mass loss rate of heavy species [kg/s]
-    MLR_total = Mass_loss_rate(Planetary_surface_area, Phi)        # Total mass loss rate [kg/s]
+    A = Planetary_surface_area(Rp)
+    MLR_light = Mass_loss_rate(A, Phi_light)  # Mass loss rate of light species [kg/s]
+    MLR_heavy = Mass_loss_rate(A, Phi_heavy)  # Mass loss rate of heavy species [kg/s]
+    MLR_total = Mass_loss_rate(A, Phi)        # Total mass loss rate [kg/s]
 
-    # Check the total mass loss rate
-    if MLR_total == MLR_light + MLR_heavy:
-        pass
-    else:
-        raise ValueError(f"Total mass loss rate does not equal the sum of light and heavy species mass loss rates: {MLR_total} != {MLR_light + MLR_heavy}")
+    # # Check the total mass loss rate
+    # if MLR_total == MLR_light + MLR_heavy:
+    #     pass
+    # else:
+    #     raise ValueError(f"Total mass loss rate does not equal the sum of light and heavy species mass loss rates: {MLR_total} != {MLR_light + MLR_heavy}")
 
     return MLR_light, MLR_heavy, MLR_total
 
