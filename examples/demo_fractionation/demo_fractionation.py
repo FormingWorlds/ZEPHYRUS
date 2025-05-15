@@ -19,6 +19,7 @@ mass_H = df['H_kg_atm'].values      # [kg]
 mass_O = df['O_kg_atm'].values      # [kg]
 Fxuv   = df['F_xuv'].values          # [W/m2]
 Matm   = df['M_atm'].values          # [kg]
+Mp   = df['M_planet'].values          # [kg]
 
 N_light = np.zeros(len(time))   
 N_heavy = np.zeros(len(time))
@@ -32,11 +33,11 @@ Phi_diffusion_critical = np.zeros(len(time))
 Phi_EUV_Collin = np.zeros(len(time))
 
 for i,t in enumerate(time):
-    Phi_EUV_Collin_i = (epsilon * Fxuv[i]) / (4 * (G * Mp / Rp**2))  # [particles/m2/s]
+    Phi_EUV_Collin_i = (epsilon * Fxuv[i]) / (4 * (G * Mp[i] / Rp**2))  # [particles/m2/s]
     b_HO_i = b_H_O(Teq[i])  # Binary diffusion coefficient for H and O
     n_H_i = mass_H[i] / (M_H)  # Number of H particles in the atmosphere [mol]
     n_O_i = mass_O[i] / (M_O)  # Number of O particles in the atmosphere [mol]
-    Phi_dl, Phi_df, Phi_c, Phi_l, Phi_h, Phi_tot = Fractionation_binary_mixture(n_light=n_H_i, n_heavy=n_O_i, Mp=Mp, Rp=Rp, b=b_HO_i, T=Teq[i], M_light=M_H, M_heavy=M_O, Phi=Phi_EUV_Collin_i)
+    Phi_dl, Phi_df, Phi_c, Phi_l, Phi_h, Phi_tot = Fractionation_binary_mixture(n_light=n_H_i, n_heavy=n_O_i, Mp=Mp[i], Rp=Rp, b=b_HO_i, T=Teq[i], M_light=M_H, M_heavy=M_O, Phi=Phi_EUV_Collin_i)
     
     N_light[i] = n_H_i  
     N_heavy[i] = n_O_i
