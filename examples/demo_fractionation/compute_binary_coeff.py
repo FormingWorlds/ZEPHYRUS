@@ -1,17 +1,20 @@
+from zephyrus.constants import amutokg
 import numpy as np 
 
 def mass_atom_kg(m_atom):
-    m_atom_kg = m_atom * 1.66053906660e-27  # Convert amu to kg
+    m_atom_kg = m_atom * amutokg  # Convert amu to kg
     return m_atom_kg
 
 def mass_molecule_2atoms_kg(m_atom1, m_atom2):
     m_molecule = m_atom1 + m_atom2 # molecule mass in amu
-    m_mol_kg = m_molecule * 1.66053906660e-27  # Convert to kg
+    m_mol_kg = m_molecule * amutokg  # Convert to kg
     return m_mol_kg
 
 def factor_Genda_Ikoma_2008_approx(m1, m2, m3, m4):
     factor = np.sqrt( ((m1 + m2)/(m1 * m2)) / ((m3 + m4) / (m3 * m4)) ) # Equation C3 from Genda and Ikoma 2008
     return factor
+
+
 
 print("---------------------------------")
 print ('Test to retrieve the mass of H2, HD and D2')
@@ -73,3 +76,8 @@ print("---------------------------------")
 #print(f"Factor between the 2 binary diffusion coefficients for H and C with H and O: {factor_HC_HO:.5e}")
 #print(f"Factor between the 2 binary diffusion coefficients for H and C with H and H: {factor_HC_HH:.5e}")
 
+# To test later on 
+def new_value_A_binary_diffusion_coefficients(A_b_approx, m1, m2, m3, m4):
+    factor = factor_Genda_Ikoma_2008_approx(m1, m2, m3, m4)
+    A_b_new = A_b_approx * factor
+    return A_b_new
