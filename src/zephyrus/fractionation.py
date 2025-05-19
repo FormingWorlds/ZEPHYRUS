@@ -56,6 +56,7 @@ def Mass_species(n, M):
     '''
     m = n * M  # Mass of the species [kg]
     return m
+
 ##################### Binary mixture #####################
 
 def Scale_height_single_species(T, g, M_i):
