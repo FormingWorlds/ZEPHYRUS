@@ -8,14 +8,14 @@ Te = 288  # Earth temperature [K]
 n_H = 1.0e20  # Number of H particules in the atmosphere [mol]
 n_O = 1.0e20  # Number of O particules in the atmosphere [mol]
 b_HO = b_H_O(Te)
-Phi = 1.0e35  # Total flux of particles in the atmosphere [particles/m2/s]
+Phi = 1.0e33  # Total flux of particles in the atmosphere [particles/m2/s]
 
 # Test the general function 
 ge = Acceleration_of_gravity(Mp=Me, Rp=Re)  # Gravitational field strength [m/s2]
 H_light_H = Scale_height_single_species(T=Te, g=ge, M_i=M_H)
 H_heavy_O = Scale_height_single_species(T=Te, g=ge, M_i=M_O)
 X_light, X_heavy = Molar_concentration_binary_mixture(n_light=n_H, n_heavy=n_O)
-H_atm = Scale_height_binary_mixture(T=Te, g=ge, X_light=X_light, M_light=M_H, X_heavy=X_heavy, M_heavy=M_O) 
+H_atm = Scale_height_binary_mixture(T=Te, g=ge, X_light=X_light, M_light=M_H, X_heavy=X_heavy, M_heavy=M_O)
 
 # Test individual flux functions
 Phi_diffusion_light = Diffusion_flux(b=b_HO, T=Te, g=ge, M_i=M_H)
@@ -30,6 +30,7 @@ Phi_dl, Phi_df, Phi_c, Phi_l, Phi_h, Phi_tot =  Fractionation_binary_mixture(n_l
 print('------------------------------------------------------------')
 print('Test of the fractionation functions for a binary mixture')
 print('------------------------------------------------------------')
+print(f'Binary diffusion coefficient for H and O: {b_HO:.2e} m-1 s-1')
 print(f'Acceleration of gravity: {ge:.2f} m/s2')
 print(f"Scale height of light species (H): {H_light_H:.2f} m")
 print(f"Scale height of heavy species (O): {H_heavy_O:.2f} m")
@@ -45,10 +46,5 @@ print('------------------------------------------------------------')
 print(f'Flux of light species (H): {Phi_light:.2e} particles/m2/s')
 print(f'Flux of heavy species (O): {Phi_heavy:.2e} particles/m2/s')
 print('------------------------------------------------------------')
-print(f'Fractionation diffusion flux of light species (H): {Phi_dl:.2e} particles/m2/s')
-print(f'Fractionation diffusion flux of heavy species (O): {Phi_df:.2e} particles/m2/s')
-print(f'Fractionation critical flux: {Phi_c:.2e} particles/m2/s')
-print(f'Fractionation flux of light species (H): {Phi_l:.2e} particles/m2/s')
-print(f'Fractionation flux of heavy species (O): {Phi_h:.2e} particles/m2/s')
 print(f'Fractionation total flux: {Phi_tot:.2e} particles/m2/s')
 print('------------------------------------------------------------')

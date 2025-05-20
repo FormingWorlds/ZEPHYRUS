@@ -138,11 +138,10 @@ def b_H_CO2(T):
 
 
 # To compute to take into account all species available in PROTEUS simulations 
-
-def b_H_N2(T):
-def b_H_S2(T):
-def b_H_S02(T):
-def b_H_H2S(T):
-def b_H_NH3(T):
-def b_H_CH4(T):
-def b_H_CO(T):
+# def b_H_N2(T):
+# def b_H_S2(T):
+# def b_H_S02(T):
+# def b_H_H2S(T):
+# def b_H_NH3(T):
+# def b_H_CH4(T):
+# def b_H_CO(T):

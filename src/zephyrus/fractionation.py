@@ -275,7 +275,7 @@ def Fractionation_binary_mixture(n_light, n_heavy, Mp, Rp, b, T, M_light, M_heav
     # Compute the number flux of light (1) and heavy (2) species    
     Phi_light, Phi_heavy = Number_flux(Phi, Phi_crit, n_light, n_heavy, M_light, M_heavy, X_light, X_heavy, Phi_diffusion_light,Phi_diffusion_heavy)
     Phi_total = Phi_light + Phi_heavy
-    
+
     return Phi_diffusion_light, Phi_diffusion_heavy, Phi_crit, Phi_light, Phi_heavy, Phi_total
 
 ##################### Ternary mixture #####################
