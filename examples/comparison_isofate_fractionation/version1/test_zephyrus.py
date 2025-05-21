@@ -11,7 +11,7 @@ Mp = 1.0 * Me
 Mstar = 1.0 * Ms
 Rstar = 1.0 * Rs
 Tstar = 5600 # [K]
-T = 280 # K
+T = 1000 # K
 d = 1.0 * au2m
 L = Luminosity(Rstar, Tstar)
 Fp = Insolation(L, d)
@@ -44,7 +44,9 @@ N1_a_isofate = sol_isofate['N1']            # light species number [particles]
 N2_a_isofate = sol_isofate['N2']            # heavy species number [particles]
 x1_a_isofate = sol_isofate['x1']            # light species molar concentration [ndim]
 x2_a_isofate = sol_isofate['x2']            # heavy species molar concentration [ndim]
-Phi1_a_isofate= sol_isofate['Phi1']        # light species number flux [particles/s/m2]
+dh_a_isofate = sol_isofate['X2']            # N2/N1 mole ratio [ndim]
+dhfinal_a_isofate = sol_isofate['X2_final'] # final N2/N1 mole ratio [ndim]
+Phi1_a_isofate= sol_isofate['Phi1']         # light species number flux [particles/s/m2]
 Phi2_a_isofate = sol_isofate['Phi2']        # heavy species number flux [particles/s/m2]  
 
 t_a_zephyrus = sol_zephyrus['time']
@@ -58,181 +60,270 @@ N1_a_zephyrus = sol_zephyrus['N1']            # light species number [particles]
 N2_a_zephyrus = sol_zephyrus['N2']            # heavy species number [particles]
 x1_a_zephyrus = sol_zephyrus['x1']            # light species molar concentration [ndim]
 x2_a_zephyrus = sol_zephyrus['x2']            # heavy species molar concentration [ndim]
+dh_a_zephyrus = sol_zephyrus['X2']            # N2/N1 mole ratio [ndim]
+dhfinal_a_zephyrus = sol_zephyrus['X2_final'] # final N2/N1 mole ratio [ndim]
 Phi1_a_zephyrus = sol_zephyrus['Phi1']        # light species number flux [particles/s/m2]
 Phi2_a_zephyrus = sol_zephyrus['Phi2']        # heavy species number flux [particles/s/m2]
 
-print('IsoFate:')
-print(phic_a_isofate[0][0], phic_a_isofate[0][1])
-print('ZEPHYRUS:')
-print(phic_a_zephyrus[0][0], phic_a_zephyrus[0][1])
+#print(phic_a_isofate[0][0], phic_a_zephyrus[0][0])
 
 # # Plot
 
 # Fig 1: Atmospheric mass loss
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(14, 8))
 plt.plot(t_a_isofate*s2yr, phi_a_isofate[0],  linestyle='-',  label='Total flux',       color='darkviolet')
-plt.plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux',    color='red')
+plt.plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux',    color='orange')
 plt.plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-',  label='H flux',           color='lightblue')
 plt.plot(t_a_isofate*s2yr, Phi2_a_isofate[0]*mu_O, linestyle='-',  label='O flux',           color='red')
 cross_isofate = np.where(np.abs(phi_a_isofate[0] - phic_a_isofate[0]) < 1e-15)
 if len(cross_isofate[0]) != 0:
-    plt.axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
+    plt.axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral', label='End fractionation ?')
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel('Time [yr]', fontsize=16)
 plt.ylabel(r'Mass flux $\Phi$ [kg m$^{-2}$ s$^{-1}$]', fontsize=16)
 plt.tight_layout()
 plt.legend()
-plt.show()
+plt.savefig('plots/mass_flux_isofate.png', dpi=300)
+plt.close()
 
 # Fig 1: Atmospheric mass loss
 plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, phi_a_isofate[0],  linestyle='-',  label='IsoFATE',       color='black')
+plt.plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', label='Zephyrus', color='black', linewidth=2)
+
 plt.plot(t_a_isofate*s2yr, phi_a_isofate[0],  linestyle='-',  label='Total flux',       color='darkviolet')
-plt.plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux',    color='red')
+plt.plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux',    color='orange')
 plt.plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-',  label='H flux',           color='lightblue')
 plt.plot(t_a_isofate*s2yr, Phi2_a_isofate[0]*mu_O, linestyle='-',  label='O flux',           color='red')
 cross_isofate = np.where(np.abs(phi_a_isofate[0] - phic_a_isofate[0]) < 1e-15)
 if len(cross_isofate[0]) != 0:
     plt.axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
-plt.plot(t_a_zephyrus[1:]*s2yr, phi_a_zephyrus[0][1:], linestyle=':', label='Total flux ZEPHYRUS', color='darkviolet')
-plt.plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', label='Critical flux ZEPHYRUS', color='red')
-plt.plot(t_a_zephyrus[1:]*s2yr, Phi1_a_zephyrus[0][1:]*mu_H, linestyle=':', label='H flux ZEPHYRUS', color='lightblue') 
-plt.plot(t_a_zephyrus[1:]*s2yr, Phi2_a_zephyrus[0][1:]*mu_O, linestyle=':', label='O flux ZEPHYRUS', color='red')
+plt.plot(t_a_zephyrus[1:]*s2yr, phi_a_zephyrus[0][1:], linestyle=':', color='darkviolet', linewidth=2)
+plt.plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', color='orange', linewidth=2)
+plt.plot(t_a_zephyrus[1:]*s2yr, Phi1_a_zephyrus[0][1:]*mu_H, linestyle=':', color='lightblue', linewidth=2)
+plt.plot(t_a_zephyrus[1:]*s2yr, Phi2_a_zephyrus[0][1:]*mu_O, linestyle=':',color='red', linewidth=2)
 cross_zephyrus = np.where(np.abs(phi_a_zephyrus[0] - phic_a_zephyrus[0]) < 1e-15)
 if len(cross_zephyrus[0]) != 0:
     plt.axvline(t_a_zephyrus[cross_zephyrus][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
-
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel('Time [yr]', fontsize=16)
 plt.ylabel(r'Mass flux $\Phi$ [kg m$^{-2}$ s$^{-1}$]', fontsize=16)
 plt.tight_layout()
 plt.legend()
-plt.show()
+plt.savefig('plots/mass_flux_comparison_zephyrus.png', dpi=300)
+plt.close()
 
-# # Fig 2: Moles of H and O
-# plt.figure(figsize=(10, 6))
-# plt.plot(t_a*s2yr, N1_a[0]/avogadro, linestyle='-', label=r'$N_H$', color='lightblue')
-# plt.plot(t_a*s2yr, N2_a[0]/avogadro, linestyle='-', label=r'$N_O$', color='red')
-# plt.xscale('log')
-# plt.yscale('log')
-# plt.xlabel('Time [yr]', fontsize=16)
-# plt.ylabel('Number of particles [moles]', fontsize=16)
-# plt.tight_layout()
-# plt.legend()
-# plt.show()
+# Fig 2: Moles of H and O
+plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, N1_a_isofate[0]/avogadro, linestyle='-', label=r'$N_H$ IsoFATE', color='lightblue')
+plt.plot(t_a_isofate*s2yr, N2_a_isofate[0]/avogadro, linestyle='-', label=r'$N_O$ IsoFATE', color='red')
+plt.plot(t_a_zephyrus*s2yr, N1_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_H$ Zephyrus', color='lightblue', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, N2_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_O$ Zephyrus', color='red', linewidth=2)
+cross_isofate = np.where(np.abs(phi_a_isofate[0] - phic_a_isofate[0]) < 1e-15)
+if len(cross_isofate[0]) != 0:
+    plt.axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
+cross_zephyrus = np.where(np.abs(phi_a_zephyrus[0] - phic_a_zephyrus[0]) < 1e-15)
+if len(cross_zephyrus[0]) != 0:
+    plt.axvline(t_a_zephyrus[cross_zephyrus][0]*s2yr, ls = '--', lw = 0.5, color = 'coral', label='End fractionation ?')
+plt.xscale('log')
+plt.yscale('log')
+plt.xlabel('Time [yr]', fontsize=16)
+plt.ylabel('Number of particles [moles]', fontsize=16)
+plt.tight_layout()
+plt.legend()
+plt.savefig('plots/moles_comparison_zephyrus.png', dpi=300)
+plt.close()
 
-# # Fig 3: Radius
-# plt.figure(figsize=(10, 6))
-# plt.plot(t_a*s2yr, rp_a[0]/Re, linestyle='-', color='green')
-# plt.xscale('log')   
-# plt.xlabel('Time [yr]', fontsize=16)
-# plt.ylabel(r'Radius [R$_\oplus$]', fontsize=16)
-# plt.tight_layout()
-# plt.show()
+# Fig 3: Radius
+plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, rp_a_isofate[0]/Re, linestyle='-', label=r'IsoFATE', color='green')
+plt.plot(t_a_zephyrus*s2yr, rp_a_zephyrus[0]/Re, linestyle=':', label=r'Zephyrus', color='green', linewidth=2)
+plt.xscale('log')   
+plt.xlabel('Time [yr]', fontsize=16)
+plt.ylabel(r'Radius [R$_\oplus$]', fontsize=16)
+plt.tight_layout()
+plt.legend()
+plt.savefig('plots/radius_comparison_zephyrus.png', dpi=300)
+plt.close()
 
-# # Fig 4: M_atmosphere
-# plt.figure(figsize=(10, 6))
-# plt.plot(t_a*s2yr, menv_a[0]/Me, linestyle='-', color='darkblue')
-# plt.xscale('log')     
-# plt.xlabel('Time [yr]', fontsize=16)
-# plt.ylabel(r'M$_{ATM}$ [M$_\oplus$]', fontsize=16)
-# plt.tight_layout()
-# plt.show()
+# Fig 4: M_atmosphere
+plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, menv_a_isofate[0]/Me, linestyle='-', label=r'IsoFATE', color='darkblue')
+plt.plot(t_a_zephyrus*s2yr, menv_a_zephyrus[0]/Me, linestyle=':', label=r'Zephyrus', color='darkblue', linewidth=2)
+plt.xscale('log')     
+plt.xlabel('Time [yr]', fontsize=16)
+plt.ylabel(r'M$_{ATM}$ [M$_\oplus$]', fontsize=16)
+plt.tight_layout()
+plt.legend()
+plt.savefig('plots/mass_atmosphere_comparison_zephyrus.png', dpi=300)
+plt.close()
 
-# # Fig 3: Mass Loss
-# plt.figure(figsize=(10, 6))
-# plt.plot(t_a*s2yr, mloss_a[0]/Me, linestyle='-', label='Mass loss', color='crimson')
-# plt.xscale('log')   
-# plt.yscale('log')
-# plt.xlabel('Time [yr]', fontsize=16)
-# plt.ylabel(r'$\Delta$ mass [M$_\oplus$]', fontsize=16)
-# plt.tight_layout()
-# plt.legend()
-# plt.show()
+# Fig 5: Mass Loss
+plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, mloss_a_isofate[0]/Me, linestyle='-', label='IsoFATE', color='crimson')
+plt.plot(t_a_zephyrus*s2yr, mloss_a_zephyrus[0]/Me, linestyle=':', label='Zephyrus', color='crimson', linewidth=2)
+plt.xscale('log')   
+plt.yscale('log')
+plt.xlabel('Time [yr]', fontsize=16)
+plt.ylabel(r'$\Delta$ mass [M$_\oplus$]', fontsize=16)
+plt.tight_layout()
+plt.legend()
+plt.savefig('plots/mass_loss_comparison_zephyrus.png', dpi=300)
+plt.close()
 
-# # Fig 4: Atmospheric mass fraction 
-# plt.figure(figsize=(10, 6))
-# plt.plot(t_a*s2yr, fenv_a[0]*100, linestyle='-', color='gold')
-# plt.xscale('log')   
-# plt.xlabel('Time [yr]', fontsize=16)    
-# plt.ylabel(r'f$_{ATM}$ [%]', fontsize=16)
-# plt.tight_layout()
-# plt.show()
+# Fig 6: Atmospheric mass fraction 
+plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, fenv_a_isofate[0]*100, linestyle='-', label=r'IsoFATE', color='gold')
+plt.plot(t_a_zephyrus*s2yr, fenv_a_zephyrus[0]*100, linestyle=':', label=r'Zephyrus', color='gold', linewidth=2)
+plt.xscale('log')   
+plt.xlabel('Time [yr]', fontsize=16)    
+plt.ylabel(r'f$_{ATM}$ [%]', fontsize=16)
+plt.tight_layout()
+plt.legend()
+plt.savefig('plots/fenv_comparison_zephyrus.png', dpi=300)
+plt.close()
 
-fig, axs = plt.subplots(3, 2, figsize=(10, 8))
+# Fig 8 :  species/H
+plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, x1_a_isofate[0]*100, linestyle='-', label=r'$x_H$ IsoFATE', color='lightblue')
+plt.plot(t_a_isofate*s2yr, x2_a_isofate[0]*100, linestyle='-', label=r'$x_O$ IsoFATE', color='red')
+plt.plot(t_a_zephyrus*s2yr, x1_a_zephyrus[0]*100, linestyle=':', label=r'$x_H$ Zephyrus', color='lightblue', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, x2_a_zephyrus[0]*100, linestyle=':', label=r'$x_O$ Zephyrus', color='red', linewidth=2)
+plt.xscale('log')
+plt.xlabel('Time [yr]', fontsize=16)
+plt.ylabel(r'$\chi_{i}^{ATM}$ [%]', fontsize=16)
+plt.tight_layout()
+plt.legend()
+plt.savefig('plots/species_comparison_zephyrus.png', dpi=300)
+plt.close()
+
+# Fig 9 : mole ratio
+plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, (N2_a_isofate[0]/N1_a_isofate[0])/OtoH_protosolar, linestyle='-', label=r'IsoFATE', color='maroon')
+plt.plot(t_a_zephyrus*s2yr, (N2_a_zephyrus[0]/N1_a_zephyrus[0])/OtoH_protosolar, linestyle=':', label=r'Zephyrus', color='maroon', linewidth=2)
+plt.xscale('log')
+plt.xlabel('Time [yr]', fontsize=16)
+plt.ylabel(r'O/H [Solar]', fontsize=16)
+plt.tight_layout()
+plt.legend()
+plt.savefig('plots/mole_ratio_comparison_zephyrus.png', dpi=300)
+plt.close()
+
+# Fig 7: All panels in one figure
+fig, axs = plt.subplots(4, 2, figsize=(10, 10))
 axs = axs.flatten()  # Flatten for easier indexing
 
 # Panel 1: Flux
+axs[0].plot(t_a_isofate*s2yr, phi_a_isofate[0], linestyle='-', label='IsoFATE', color='black')
+axs[0].plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', label='Zephyrus', color='black', linewidth=2)
 axs[0].plot(t_a_isofate*s2yr, phi_a_isofate[0], linestyle='-', label='Total flux', color='darkviolet')
-axs[0].plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux', color='red')
+axs[0].plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux', color='orange')
 axs[0].plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-', label='H flux', color='lightblue')
 axs[0].plot(t_a_isofate*s2yr, Phi2_a_isofate[0]*mu_O, linestyle='-', label='O flux', color='red')
 cross_isofate = np.where(np.abs(phi_a_isofate[0] - phic_a_isofate[0]) < 1e-15)
 if len(cross_isofate[0]) != 0:
     axs[0].axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
-
-axs[0].plot(t_a_zephyrus[1:]*s2yr, phi_a_zephyrus[0][1:], linestyle=':', label='Total flux ZEPHYRUS', color='darkviolet')
-axs[0].plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', label='Critical flux ZEPHYRUS', color='red')
-axs[0].plot(t_a_zephyrus[1:]*s2yr, Phi1_a_zephyrus[0][1:]*mu_H, linestyle=':', label='H flux ZEPHYRUS', color='lightblue')      
-axs[0].plot(t_a_zephyrus[1:]*s2yr, Phi2_a_zephyrus[0][1:]*mu_O, linestyle=':', label='O flux ZEPHYRUS', color='red')
+axs[0].plot(t_a_zephyrus[1:]*s2yr, phi_a_zephyrus[0][1:], linestyle=':', color='darkviolet', linewidth=2)
+axs[0].plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', color='orange', linewidth=2)
+axs[0].plot(t_a_zephyrus[1:]*s2yr, Phi1_a_zephyrus[0][1:]*mu_H, linestyle=':', color='lightblue', linewidth=2)      
+axs[0].plot(t_a_zephyrus[1:]*s2yr, Phi2_a_zephyrus[0][1:]*mu_O, linestyle=':',color='red', linewidth=2)
 cross_zephyrus = np.where(np.abs(phi_a_zephyrus[0] - phic_a_zephyrus[0]) < 1e-15)
 if len(cross_zephyrus[0]) != 0:
     axs[0].axvline(t_a_zephyrus[cross_zephyrus][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
-
 axs[0].set_xscale('log')
 axs[0].set_yscale('log')
-axs[0].set_xlabel('Time [yr]', fontsize=12)
-axs[0].set_ylabel(r'Mass flux $\Phi$ [kg m$^{-2}$ s$^{-1}$]', fontsize=12)
+axs[0].set_xlabel('Time [yr]', fontsize=14)
+axs[0].set_ylabel(r'$\Phi$ [kg m$^{-2}$ s$^{-1}$]', fontsize=14)
 axs[0].legend()
 
 # Panel 2: Moles of H and O
-axs[1].plot(t_a_isofate*s2yr, N1_a_isofate[0]/avogadro, linestyle='-', label=r'$N_H$', color='lightblue')
-axs[1].plot(t_a_isofate*s2yr, N2_a_isofate[0]/avogadro, linestyle='-', label=r'$N_O$', color='red')
+axs[1].plot(t_a_isofate*s2yr, N1_a_isofate[0]/avogadro, linestyle='-', label=r'$N_H$ IsoFATE', color='lightblue')
+axs[1].plot(t_a_isofate*s2yr, N2_a_isofate[0]/avogadro, linestyle='-', label=r'$N_O$ IsoFATE', color='red')
+axs[1].plot(t_a_zephyrus*s2yr, N1_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_H$ Zephyrus', color='lightblue', linewidth=2)
+axs[1].plot(t_a_zephyrus*s2yr, N2_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_O$ Zephyrus', color='red', linewidth=2)
 if len(cross_isofate[0]) != 0:
-    axs[1].axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
+    axs[1].axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral', label='End fractionation ?')
 if len(cross_zephyrus[0]) != 0:
     axs[1].axvline(t_a_zephyrus[cross_zephyrus][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
-
-axs[1].plot(t_a_zephyrus*s2yr, N1_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_H$ ZEPHYRUS', color='lightblue')
-axs[1].plot(t_a_zephyrus*s2yr, N2_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_O$ ZEPHYRUS', color='red')
 axs[1].set_xscale('log')
 axs[1].set_yscale('log')
-axs[1].set_xlabel('Time [yr]', fontsize=12)
-axs[1].set_ylabel('Number of particles [moles]', fontsize=12)
+axs[1].set_xlabel('Time [yr]', fontsize=14)
+axs[1].set_ylabel(r'$N_i$ [Moles]', fontsize=14)
 axs[1].legend()
 
 # Panel 3: Radius
-axs[2].plot(t_a_isofate*s2yr, rp_a_isofate[0]/Re, linestyle='-', color='green')
-axs[2].plot(t_a_zephyrus*s2yr, rp_a_zephyrus[0]/Re, linestyle=':', color='green')
-axs[2].set_xscale('log')
-axs[2].set_yscale('log')
-axs[2].set_xlabel('Time [yr]', fontsize=12)
-axs[2].set_ylabel(r'Radius [R$_\oplus$]', fontsize=12)
-
-# Panel 4: M_atmosphere
-axs[3].plot(t_a_isofate*s2yr, menv_a_isofate[0]/Me, linestyle='-', color='darkblue')
-axs[3].plot(t_a_zephyrus*s2yr, menv_a_zephyrus[0]/Me, linestyle=':', color='darkblue')
-axs[3].set_xscale('log')
-axs[3].set_yscale('log')
-axs[3].set_xlabel('Time [yr]', fontsize=12)
-axs[3].set_ylabel(r'M$_{ATM}$ [M$_\oplus$]', fontsize=12)
-
-# Panel 5: Mass Loss
-axs[4].plot(t_a_isofate*s2yr, mloss_a_isofate[0]/Me, linestyle='-', label='Mass loss', color='crimson')
-axs[4].plot(t_a_zephyrus*s2yr, mloss_a_zephyrus[0]/Me, linestyle=':', label='Mass loss ZEPHYRUS', color='crimson')
+axs[4].plot(t_a_isofate*s2yr, rp_a_isofate[0]/Re, label=r'IsoFATE', linestyle='-', color='green')
+axs[4].plot(t_a_zephyrus*s2yr, rp_a_zephyrus[0]/Re, label=r'Zephyrus', linestyle=':', color='green', linewidth=2)
 axs[4].set_xscale('log')
 axs[4].set_yscale('log')
-axs[4].set_xlabel('Time [yr]', fontsize=12)
-axs[4].set_ylabel(r'$\Delta$ mass [M$_\oplus$]', fontsize=12)
+axs[4].set_xlabel('Time [yr]', fontsize=14)
+axs[4].set_ylabel(r'Radius [R$_\oplus$]', fontsize=14)
 axs[4].legend()
 
+# Panel 3: Species mole fraction
+axs[3].plot(t_a_isofate*s2yr, x1_a_isofate[0]*100, linestyle='-', label=r'$x_H$ IsoFATE', color='lightblue')
+axs[3].plot(t_a_isofate*s2yr, x2_a_isofate[0]*100, linestyle='-', label=r'$x_O$ IsoFATE', color='red')          
+axs[3].plot(t_a_zephyrus*s2yr, x1_a_zephyrus[0]*100, linestyle=':', label=r'$x_H$ Zephyrus', color='lightblue', linewidth=2)
+axs[3].plot(t_a_zephyrus*s2yr, x2_a_zephyrus[0]*100, linestyle=':', label=r'$x_O$ Zephyrus', color='red', linewidth=2)
+axs[3].set_xscale('log')
+# axs[3].set_yscale('log')
+axs[3].set_xlabel('Time [yr]', fontsize=14)
+axs[3].set_ylabel(r'$\chi_{i}^{ATM}$ [%]', fontsize=14)
+axs[3].legend()
+
+# Panel 4: Mole ratio vs solar
+#axs[2].plot(t_a_isofate*s2yr, dh_a_isofate[0]/dh_a_isofate[0,0], linestyle='-', label=r'IsoFATE', color='maroon')       
+#axs[2].plot(t_a_zephyrus*s2yr, dh_a_zephyrus[0]/dh_a_zephyrus[0,0], linestyle=':', label=r'Zephyrus', color='maroon', linewidth=2)
+axs[2].plot(t_a_isofate*s2yr, (N2_a_isofate[0]/N1_a_isofate[0])/OtoH_protosolar, linestyle='-', label=r'IsoFATE', color='maroon')
+axs[2].plot(t_a_zephyrus*s2yr, (N2_a_zephyrus[0]/N1_a_zephyrus[0])/OtoH_protosolar, linestyle=':', label=r'Zephyrus', color='maroon', linewidth=2)
+axs[2].set_xscale('log')
+# axs[2].set_yscale('log')
+axs[2].set_xlabel('Time [yr]', fontsize=14)
+axs[2].set_ylabel(r'O/H [Solar]', fontsize=14)
+axs[2].legend()
+
 # Panel 6: Atmospheric Mass Fraction
-axs[5].plot(t_a_isofate*s2yr, fenv_a_isofate[0]*100, linestyle='-', color='gold')
-axs[5].plot(t_a_zephyrus*s2yr, fenv_a_zephyrus[0]*100, linestyle=':', color='gold')
+axs[5].plot(t_a_isofate*s2yr, fenv_a_isofate[0]*100, label=r'IsoFATE', linestyle='-', color='gold')
+axs[5].plot(t_a_zephyrus*s2yr, fenv_a_zephyrus[0]*100, label=r'Zephyrus', linestyle=':', color='gold', linewidth=2)
 axs[5].set_xscale('log')
-axs[5].set_xlabel('Time [yr]', fontsize=12)
-axs[5].set_ylabel(r'f$_{ATM}$ [%]', fontsize=12)
+axs[5].set_xlabel('Time [yr]', fontsize=14)
+axs[5].set_ylabel(r'f$_{ATM}$ [%]', fontsize=14)
+axs[5].legend()
+
+# Panel 7: M_atmosphere
+axs[6].plot(t_a_isofate*s2yr, menv_a_isofate[0]/Me, label=r'IsoFATE', linestyle='-', color='darkblue')
+axs[6].plot(t_a_zephyrus*s2yr, menv_a_zephyrus[0]/Me, label=r'Zephyrus', linestyle=':', color='darkblue', linewidth=2)
+axs[6].set_xscale('log')
+axs[6].set_yscale('log')
+axs[6].set_xlabel('Time [yr]', fontsize=14)
+axs[6].set_ylabel(r'M$_{ATM}$ [M$_\oplus$]', fontsize=14)
+axs[6].legend()
+
+# Panel 8: Mass Loss
+axs[7].plot(t_a_isofate*s2yr, mloss_a_isofate[0]/Me, linestyle='-', label='IsoFate', color='crimson')
+axs[7].plot(t_a_zephyrus*s2yr, mloss_a_zephyrus[0]/Me, linestyle=':', label='Zephyrus', color='crimson', linewidth=2)
+axs[7].set_xscale('log')
+axs[7].set_yscale('log')
+axs[7].set_xlabel('Time [yr]', fontsize=14)
+axs[7].set_ylabel(r'$\Delta$ mass [M$_\oplus$]', fontsize=14)
+axs[7].legend()
+
+
+# Box input parameters
+# Add a box with input parameters
+param_text = (
+    f"$f_{{atm}}$ = {f_atm*100} % \n"
+    f"$M_p$ = {Mp/Me:.2f} $M_\\oplus$\n"
+    f"$T_{{p}}$ = {T} K\n"
+    f"$d$ = {d/au2m:.2f} AU\n"
+    f"$M_{{star}}$ = {Mstar/Ms:.2f} $M_\\odot$\n"
+    f"$R_{{star}}$ = {Rstar/Rs:.2f} $R_\\odot$\n"
+    f"$T_{{star}}$ = {Tstar} K")
+fig.text(0.62, 0.322, param_text, fontsize=10, va='bottom', ha='left',
+         bbox=dict(boxstyle="round,pad=0.5", fc="white", ec="black", alpha=0.8))
 
 plt.tight_layout()
-plt.show()
+plt.savefig('plots/8panels_comparison_zephyrus.png', dpi=300)
+plt.close()
