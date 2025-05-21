@@ -108,6 +108,8 @@ beta = -1.23):
     vpot_a = np.zeros((len(f_atm), n_tot)) # grav potential timeseries for each f_atm
     fenv_a = np.zeros((len(f_atm), n_tot)) # atm mass fraction timeseries for each f_atm
     mloss_a = np.zeros((len(f_atm), n_tot)) # atm mass lost per time step timeseries for each f_atm
+    mlossl_a = np.zeros((len(f_atm), n_tot)) # light species mass lost per time step timeseries for each f_atm
+    mlossh_a = np.zeros((len(f_atm), n_tot)) # heavy species mass lost per time step timeseries for each f_atm
     phi_a = np.zeros((len(f_atm), n_tot)) # mass flux timeseries for each f_atm
     phic_a = np.zeros((len(f_atm), n_tot)) # critical mass flux timeseries for each f_atm
     x1_aa = np.zeros((len(f_atm), n_tot)) # mole fraction of light species for each f_atm
@@ -263,7 +265,8 @@ beta = -1.23):
         Phi1 = Phi_1(phi, b, H1, H2, mu1, mu2, x1, x2) # light species number flux [particles/s/m2]
         Phi2 = Phi_2(phi, b, H1, H2, mu1, mu2, x1, x2) # heavy species number flux
         phi_c = b*x1*(mu2 - mu1)/H1 # critical mass flux for heavy species escape [kg/s/m2]
-
+        Mass_loss_light = Phi1*A*delta_t # mass lost in first time step [kg]
+        Mass_loss_heavy = Phi2*A*delta_t # mass lost in first time step [kg]
     ###_____Initialize arrays_____###
 
         t_a = delta_t*np.linspace(1, n_tot + 1, n_tot) + t0 # time array [s]
@@ -275,6 +278,8 @@ beta = -1.23):
         fatm_a = np.zeros(n_tot) # atm mass fraction [ndim]
         Vpot_a = np.zeros(n_tot) # grav potential, diagnostic [J/kg]
         Mloss_a = np.zeros(n_tot) # mass lost per timestep [kg]
+        Mll_a = np.zeros(n_tot) # mass lost for light species computed with zephyrus per timestep [kg]
+        Mlh_a = np.zeros(n_tot) # mass lost for heavy species computed with zephyrus per timestep [kg]
 
         y1_a = np.zeros(n_tot) # light species number array [particles]
         y2_a = np.zeros(n_tot) # heavy species number array [particles]
@@ -297,6 +302,8 @@ beta = -1.23):
             Phi_a[n] = phi
             Phic_a[n] = phi_c
             Mloss_a[n] = mass_loss
+            Mll_a[n] = Mass_loss_light
+            Mlh_a[n] = Mass_loss_heavy
 
             y1_a[n] = y1
             y2_a[n] = y2
@@ -325,6 +332,8 @@ beta = -1.23):
                     Vpot_a[n:] = Vpot_a[n-1]
                     Phi_a[n:] = 0
                     Mloss_a[n:] = 0
+                    Mll_a[n:] = 0
+                    Mlh_a[n:] = 0
 
                     y1_a[n:] = y1_a[n-1]
                     y2_a[n:] = y2_a[n-1]
@@ -353,6 +362,8 @@ beta = -1.23):
                     Vpot_a[n:] = Vpot_a[n-1]
                     Phi_a[n:] = 0
                     Mloss_a[n:] = 0
+                    Mll_a[n:] = 0
+                    Mlh_a[n:] = 0
 
                     y1_a[n:] = y1_a[n-1]
                     y2_a[n:] = y2_a[n-1]
@@ -375,6 +386,8 @@ beta = -1.23):
                 Vpot_a[n:] = K*G*Mp/radius_core
                 Phi_a[n:] = 0
                 Mloss_a[n+1:] = 0
+                Mll_a[n+1:] = 0
+                Mlh_a[n+1:] = 0
 
                 y1_a[n:] = y1
                 y2_a[n:] = y2
@@ -440,6 +453,8 @@ beta = -1.23):
             Phi1 = Phi_1(phi, b, H1, H2, mu1, mu2, x1, x2)
             Phi2 = Phi_2(phi, b, H1, H2, mu1, mu2, x1, x2)
             phi_c = b*x1*(mu2 - mu1)/H1
+            Mass_loss_light = Phi1*A*delta_t # mass lost in first time step [kg]
+            Mass_loss_heavy = Phi2*A*delta_t # mass lost in first time step [kg]
 
     # 2 dimensional arrays; f_atm x n_steps
         rp_a[i, :] = Rp_a[:] # total planet radius [m]
@@ -448,6 +463,8 @@ beta = -1.23):
         vpot_a[i, :] = Vpot_a[:] # gravitational potential [J/kg]
         fenv_a[i, :] = fatm_a[:] # atmospheric mass fraction [ndim]
         mloss_a[i, :] = Mloss_a[:] # mass loss per timestep [kg]
+        mlossl_a[i, :] = Mll_a[:] # light species mass loss per timestep [kg]
+        mlossh_a[i, :] = Mlh_a[:] # heavy species mass loss per timestep [kg]
         X2_a[i, :] = X2_aa[:] # N2/N1 mole ratio [ndim]
         X2_final[i] = X2_aa[-1] # final N2/N1 mole ratio for each f_atm (1D array)
         phi_a[i, :] = Phi_a[:] # mass flux [kg/2/m2]
@@ -468,6 +485,8 @@ beta = -1.23):
         'vpot': vpot_a,
         'fenv': fenv_a,
         'mloss': mloss_a,
+        'mlossl': mlossl_a,
+        'mlossh': mlossh_a,        
         'X2': X2_a,
         'X2_final': X2_final,
         'phi': phi_a,
@@ -489,6 +508,8 @@ beta = -1.23):
         'vpot': vpot_a,
         'fenv': fenv_a,
         'mloss': mloss_a,
+        'mlossl': mlossl_a,
+        'mlossh': mlossh_a,
         'X2': X2_a,
         'X2_final': X2_final,
         'phi': phi_a,

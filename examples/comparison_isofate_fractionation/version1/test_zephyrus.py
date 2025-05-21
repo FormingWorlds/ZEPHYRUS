@@ -65,6 +65,11 @@ dhfinal_a_zephyrus = sol_zephyrus['X2_final'] # final N2/N1 mole ratio [ndim]
 Phi1_a_zephyrus = sol_zephyrus['Phi1']        # light species number flux [particles/s/m2]
 Phi2_a_zephyrus = sol_zephyrus['Phi2']        # heavy species number flux [particles/s/m2]
 
+mlossl_a_isofate = sol_isofate['mlossl']      # mass loss per timestep [kg]
+mlossh_a_isofate = sol_isofate['mlossh']      # mass loss per timestep [kg]
+mlossl_a_zephyrus = sol_zephyrus['mlossl']      # mass loss per timestep [kg]
+mlossh_a_zephyrus = sol_zephyrus['mlossh']      # mass loss per timestep [kg]
+
 #print(phic_a_isofate[0][0], phic_a_zephyrus[0][0])
 
 # # Plot
@@ -73,7 +78,7 @@ Phi2_a_zephyrus = sol_zephyrus['Phi2']        # heavy species number flux [parti
 plt.figure(figsize=(14, 8))
 plt.plot(t_a_isofate*s2yr, phi_a_isofate[0],  linestyle='-',  label='Total flux',       color='darkviolet')
 plt.plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux',    color='orange')
-plt.plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-',  label='H flux',           color='lightblue')
+plt.plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-',  label='H flux',           color='dodgerblue')
 plt.plot(t_a_isofate*s2yr, Phi2_a_isofate[0]*mu_O, linestyle='-',  label='O flux',           color='red')
 cross_isofate = np.where(np.abs(phi_a_isofate[0] - phic_a_isofate[0]) < 1e-15)
 if len(cross_isofate[0]) != 0:
@@ -94,15 +99,15 @@ plt.plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', label='Ze
 
 plt.plot(t_a_isofate*s2yr, phi_a_isofate[0],  linestyle='-',  label='Total flux',       color='darkviolet')
 plt.plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux',    color='orange')
-plt.plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-',  label='H flux',           color='lightblue')
+plt.plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-',  label='H flux',           color='dodgerblue')
 plt.plot(t_a_isofate*s2yr, Phi2_a_isofate[0]*mu_O, linestyle='-',  label='O flux',           color='red')
 cross_isofate = np.where(np.abs(phi_a_isofate[0] - phic_a_isofate[0]) < 1e-15)
 if len(cross_isofate[0]) != 0:
     plt.axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
-plt.plot(t_a_zephyrus[1:]*s2yr, phi_a_zephyrus[0][1:], linestyle=':', color='darkviolet', linewidth=2)
-plt.plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', color='orange', linewidth=2)
-plt.plot(t_a_zephyrus[1:]*s2yr, Phi1_a_zephyrus[0][1:]*mu_H, linestyle=':', color='lightblue', linewidth=2)
-plt.plot(t_a_zephyrus[1:]*s2yr, Phi2_a_zephyrus[0][1:]*mu_O, linestyle=':',color='red', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, phi_a_zephyrus[0], linestyle=':', color='darkviolet', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, phic_a_zephyrus[0], linestyle=':', color='orange', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, Phi1_a_zephyrus[0]*mu_H, linestyle=':', color='dodgerblue', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, Phi2_a_zephyrus[0]*mu_O, linestyle=':',color='red', linewidth=2)
 cross_zephyrus = np.where(np.abs(phi_a_zephyrus[0] - phic_a_zephyrus[0]) < 1e-15)
 if len(cross_zephyrus[0]) != 0:
     plt.axvline(t_a_zephyrus[cross_zephyrus][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
@@ -117,9 +122,9 @@ plt.close()
 
 # Fig 2: Moles of H and O
 plt.figure(figsize=(10, 6))
-plt.plot(t_a_isofate*s2yr, N1_a_isofate[0]/avogadro, linestyle='-', label=r'$N_H$ IsoFATE', color='lightblue')
+plt.plot(t_a_isofate*s2yr, N1_a_isofate[0]/avogadro, linestyle='-', label=r'$N_H$ IsoFATE', color='dodgerblue')
 plt.plot(t_a_isofate*s2yr, N2_a_isofate[0]/avogadro, linestyle='-', label=r'$N_O$ IsoFATE', color='red')
-plt.plot(t_a_zephyrus*s2yr, N1_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_H$ Zephyrus', color='lightblue', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, N1_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_H$ Zephyrus', color='dodgerblue', linewidth=2)
 plt.plot(t_a_zephyrus*s2yr, N2_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_O$ Zephyrus', color='red', linewidth=2)
 cross_isofate = np.where(np.abs(phi_a_isofate[0] - phic_a_isofate[0]) < 1e-15)
 if len(cross_isofate[0]) != 0:
@@ -187,9 +192,9 @@ plt.close()
 
 # Fig 8 :  species/H
 plt.figure(figsize=(10, 6))
-plt.plot(t_a_isofate*s2yr, x1_a_isofate[0]*100, linestyle='-', label=r'$x_H$ IsoFATE', color='lightblue')
+plt.plot(t_a_isofate*s2yr, x1_a_isofate[0]*100, linestyle='-', label=r'$x_H$ IsoFATE', color='dodgerblue')
 plt.plot(t_a_isofate*s2yr, x2_a_isofate[0]*100, linestyle='-', label=r'$x_O$ IsoFATE', color='red')
-plt.plot(t_a_zephyrus*s2yr, x1_a_zephyrus[0]*100, linestyle=':', label=r'$x_H$ Zephyrus', color='lightblue', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, x1_a_zephyrus[0]*100, linestyle=':', label=r'$x_H$ Zephyrus', color='dodgerblue', linewidth=2)
 plt.plot(t_a_zephyrus*s2yr, x2_a_zephyrus[0]*100, linestyle=':', label=r'$x_O$ Zephyrus', color='red', linewidth=2)
 plt.xscale('log')
 plt.xlabel('Time [yr]', fontsize=16)
@@ -220,15 +225,15 @@ axs[0].plot(t_a_isofate*s2yr, phi_a_isofate[0], linestyle='-', label='IsoFATE', 
 axs[0].plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', label='Zephyrus', color='black', linewidth=2)
 axs[0].plot(t_a_isofate*s2yr, phi_a_isofate[0], linestyle='-', label='Total flux', color='darkviolet')
 axs[0].plot(t_a_isofate*s2yr, phic_a_isofate[0], linestyle='--', label='Critical flux', color='orange')
-axs[0].plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-', label='H flux', color='lightblue')
+axs[0].plot(t_a_isofate*s2yr, Phi1_a_isofate[0]*mu_H, linestyle='-', label='H flux', color='dodgerblue')
 axs[0].plot(t_a_isofate*s2yr, Phi2_a_isofate[0]*mu_O, linestyle='-', label='O flux', color='red')
 cross_isofate = np.where(np.abs(phi_a_isofate[0] - phic_a_isofate[0]) < 1e-15)
 if len(cross_isofate[0]) != 0:
     axs[0].axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
-axs[0].plot(t_a_zephyrus[1:]*s2yr, phi_a_zephyrus[0][1:], linestyle=':', color='darkviolet', linewidth=2)
-axs[0].plot(t_a_zephyrus[1:]*s2yr, phic_a_zephyrus[0][1:], linestyle=':', color='orange', linewidth=2)
-axs[0].plot(t_a_zephyrus[1:]*s2yr, Phi1_a_zephyrus[0][1:]*mu_H, linestyle=':', color='lightblue', linewidth=2)      
-axs[0].plot(t_a_zephyrus[1:]*s2yr, Phi2_a_zephyrus[0][1:]*mu_O, linestyle=':',color='red', linewidth=2)
+axs[0].plot(t_a_zephyrus*s2yr, phi_a_zephyrus[0], linestyle=':', color='darkviolet', linewidth=2)
+axs[0].plot(t_a_zephyrus*s2yr, phic_a_zephyrus[0], linestyle=':', color='orange', linewidth=2)
+axs[0].plot(t_a_zephyrus*s2yr, Phi1_a_zephyrus[0]*mu_H, linestyle=':', color='dodgerblue', linewidth=2)      
+axs[0].plot(t_a_zephyrus*s2yr, Phi2_a_zephyrus[0]*mu_O, linestyle=':',color='red', linewidth=2)
 cross_zephyrus = np.where(np.abs(phi_a_zephyrus[0] - phic_a_zephyrus[0]) < 1e-15)
 if len(cross_zephyrus[0]) != 0:
     axs[0].axvline(t_a_zephyrus[cross_zephyrus][0]*s2yr, ls = '--', lw = 0.5, color = 'coral')
@@ -239,9 +244,9 @@ axs[0].set_ylabel(r'$\Phi$ [kg m$^{-2}$ s$^{-1}$]', fontsize=14)
 axs[0].legend()
 
 # Panel 2: Moles of H and O
-axs[1].plot(t_a_isofate*s2yr, N1_a_isofate[0]/avogadro, linestyle='-', label=r'$N_H$ IsoFATE', color='lightblue')
+axs[1].plot(t_a_isofate*s2yr, N1_a_isofate[0]/avogadro, linestyle='-', label=r'$N_H$ IsoFATE', color='dodgerblue')
 axs[1].plot(t_a_isofate*s2yr, N2_a_isofate[0]/avogadro, linestyle='-', label=r'$N_O$ IsoFATE', color='red')
-axs[1].plot(t_a_zephyrus*s2yr, N1_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_H$ Zephyrus', color='lightblue', linewidth=2)
+axs[1].plot(t_a_zephyrus*s2yr, N1_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_H$ Zephyrus', color='dodgerblue', linewidth=2)
 axs[1].plot(t_a_zephyrus*s2yr, N2_a_zephyrus[0]/avogadro, linestyle=':', label=r'$N_O$ Zephyrus', color='red', linewidth=2)
 if len(cross_isofate[0]) != 0:
     axs[1].axvline(t_a_isofate[cross_isofate][0]*s2yr, ls = '--', lw = 0.5, color = 'coral', label='End fractionation ?')
@@ -263,9 +268,9 @@ axs[4].set_ylabel(r'Radius [R$_\oplus$]', fontsize=14)
 axs[4].legend()
 
 # Panel 3: Species mole fraction
-axs[3].plot(t_a_isofate*s2yr, x1_a_isofate[0]*100, linestyle='-', label=r'$x_H$ IsoFATE', color='lightblue')
+axs[3].plot(t_a_isofate*s2yr, x1_a_isofate[0]*100, linestyle='-', label=r'$x_H$ IsoFATE', color='dodgerblue')
 axs[3].plot(t_a_isofate*s2yr, x2_a_isofate[0]*100, linestyle='-', label=r'$x_O$ IsoFATE', color='red')          
-axs[3].plot(t_a_zephyrus*s2yr, x1_a_zephyrus[0]*100, linestyle=':', label=r'$x_H$ Zephyrus', color='lightblue', linewidth=2)
+axs[3].plot(t_a_zephyrus*s2yr, x1_a_zephyrus[0]*100, linestyle=':', label=r'$x_H$ Zephyrus', color='dodgerblue', linewidth=2)
 axs[3].plot(t_a_zephyrus*s2yr, x2_a_zephyrus[0]*100, linestyle=':', label=r'$x_O$ Zephyrus', color='red', linewidth=2)
 axs[3].set_xscale('log')
 # axs[3].set_yscale('log')
@@ -302,8 +307,12 @@ axs[6].set_ylabel(r'M$_{ATM}$ [M$_\oplus$]', fontsize=14)
 axs[6].legend()
 
 # Panel 8: Mass Loss
-axs[7].plot(t_a_isofate*s2yr, mloss_a_isofate[0]/Me, linestyle='-', label='IsoFate', color='crimson')
-axs[7].plot(t_a_zephyrus*s2yr, mloss_a_zephyrus[0]/Me, linestyle=':', label='Zephyrus', color='crimson', linewidth=2)
+axs[7].plot(t_a_isofate*s2yr, mloss_a_isofate[0]/Me, linestyle='-', label='IsoFate', color='green')
+axs[7].plot(t_a_zephyrus*s2yr, mloss_a_zephyrus[0]/Me, linestyle=':', label='Zephyrus', color='green', linewidth=2)
+axs[7].plot(t_a_isofate*s2yr, mlossl_a_isofate[0]*mu_H/Me, linestyle='-', label='H loss IsoFATE', color='dodgerblue')
+axs[7].plot(t_a_isofate*s2yr, mlossh_a_isofate[0]*mu_O/Me, linestyle='-', label='O loss IsoFATE', color='red')
+axs[7].plot(t_a_zephyrus*s2yr, mlossl_a_zephyrus[0]*mu_H/Me, linestyle=':', label='H loss Zephyrus', color='dodgerblue', linewidth=2)
+axs[7].plot(t_a_zephyrus*s2yr, mlossh_a_zephyrus[0]*mu_O/Me, linestyle=':', label='O loss Zephyrus', color='red', linewidth=2)
 axs[7].set_xscale('log')
 axs[7].set_yscale('log')
 axs[7].set_xlabel('Time [yr]', fontsize=14)
@@ -326,4 +335,21 @@ fig.text(0.62, 0.322, param_text, fontsize=10, va='bottom', ha='left',
 
 plt.tight_layout()
 plt.savefig('plots/8panels_comparison_zephyrus.png', dpi=300)
+plt.close()
+
+# Figure 10: Mass loss per timestep
+plt.figure(figsize=(10, 6))
+plt.plot(t_a_isofate*s2yr, mloss_a_isofate[0]/Me, linestyle='-', label='IsoFATE', color='green')
+plt.plot(t_a_zephyrus*s2yr, mloss_a_zephyrus[0]/Me, linestyle=':', label='Zephyrus', color='green', linewidth=2)
+plt.plot(t_a_isofate*s2yr, mlossl_a_isofate[0]*mu_H/Me, linestyle='-', label='H loss IsoFATE', color='dodgerblue')
+plt.plot(t_a_isofate*s2yr, mlossh_a_isofate[0]*mu_O/Me, linestyle='-', label='O loss IsoFATE', color='red')
+plt.plot(t_a_zephyrus*s2yr, mlossl_a_zephyrus[0]*mu_H/Me, linestyle=':', label='H loss Zephyrus', color='dodgerblue', linewidth=2)
+plt.plot(t_a_zephyrus*s2yr, mlossh_a_zephyrus[0]*mu_O/Me, linestyle=':', label='O loss Zephyrus', color='red', linewidth=2)       
+plt.xscale('log')
+plt.yscale('log')
+plt.xlabel('Time [yr]', fontsize=16)
+plt.ylabel(r'$\Delta$ mass [M$_\oplus$]', fontsize=16)
+plt.tight_layout()
+plt.legend()    
+plt.savefig('plots/mass_loss_per_timestep_comparison_zephyrus.png', dpi=300)
 plt.close()
