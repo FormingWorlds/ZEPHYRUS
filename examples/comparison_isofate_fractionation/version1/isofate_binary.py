@@ -89,6 +89,10 @@ beta = -1.23):
         b = 1.04e20*T**0.732 # [molecules/m/s] from Mason & Marrero 1970 for H in He
     elif species == 'H/O':
         b = 4.8e19*T**0.75 # [molecules/m/s] from Wordsworth et al 2018 for H in O
+    elif species == 'H/N':
+        b = 4.85e19*T**0.75
+    elif species == 'H/S':
+        b = 4.73e19*T**0.75
     radius_core = R_core(Mp) # planet core (rocky component) radius [m]
     R_B = R_Bondi(Mp, mu, T) # Bondi radius [m]
     R_H = R_Hill(Mp, Mstar, d) # Hill radius [m]
@@ -144,8 +148,17 @@ beta = -1.23):
             He0 = (1/13.6)*M_atm/mu_avg # initial He number [atoms]
             H2_0 = (1/2)*H0 # initial H2 number [molecules]
         elif species == 'H/O':
-            H0 = (12.6/13.6)*M_atm/mu_H # initial H number [atoms]
-            O0 = (12.6/13.6)*M_atm/mu_O # initial O number [atoms]
+            mu_avg = (1-OtoH_protosolar)*mu_H + OtoH_protosolar*mu_O
+            H0 = (1 - OtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]
+            O0 = OtoH_protosolar*M_atm/mu_avg # initial O number [atoms] # use OtoH_protosolar
+        elif species == 'H/N':
+            mu_avg = (1-NtoH_protosolar)*mu_H + NtoH_protosolar*mu_N
+            H0 = (1 - NtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]      
+            N0 = NtoH_protosolar*M_atm/mu_avg # initial N number [atoms] # use NtoH_protosolar
+        elif species == 'H/S':
+            mu_avg = (1-StoH_protosolar)*mu_H + StoH_protosolar*mu_S
+            H0 = (1 - StoH_protosolar)*M_atm/mu_avg # initial H number [atoms]      
+            S0 = StoH_protosolar*M_atm/mu_avg # initial S number [atoms] # use StoH_protosolar
 
         if rad_evol == True:
             if Rp_override == False:
@@ -176,6 +189,8 @@ beta = -1.23):
         H_D = R_gas*T/(M_D*g) # D scale height [m]
         H_He = R_gas*T/(M_He*g) # He scale height [m]
         H_O = R_gas*T/(M_O*g) # O scale height [m]
+        H_N = R_gas*T/(M_N*g) # N scale height [m]
+        H_S = R_gas*T/(M_S*g) # S scale height [m]
 
     ###_____Set species values_____###
 
@@ -224,6 +239,24 @@ beta = -1.23):
             H2 = H_O
             N1 = H0
             N2 = O0
+        elif species == 'H/N':
+            mu1 = mu_H
+            mu2 = mu_N
+            M1 = M_H
+            M2 = M_N
+            H1 = H_H
+            H2 = H_N
+            N1 = H0
+            N2 = N0
+        elif species == 'H/S':
+            mu1 = mu_H
+            mu2 = mu_S
+            M1 = M_H
+            M2 = M_S
+            H1 = H_H
+            H2 = H_S
+            N1 = H0
+            N2 = S0
 
     # sets initial mass flux phi [kg/m2/s]
         if mechanism == 'XUV':
@@ -265,8 +298,8 @@ beta = -1.23):
         Phi1 = Phi_1(phi, b, H1, H2, mu1, mu2, x1, x2) # light species number flux [particles/s/m2]
         Phi2 = Phi_2(phi, b, H1, H2, mu1, mu2, x1, x2) # heavy species number flux
         phi_c = b*x1*(mu2 - mu1)/H1 # critical mass flux for heavy species escape [kg/s/m2]
-        Mass_loss_light = Phi1*A*delta_t # mass lost in first time step [kg]
-        Mass_loss_heavy = Phi2*A*delta_t # mass lost in first time step [kg]
+        Mass_loss_light = Phi1*mu1*A*delta_t # mass lost in first time step [particules]
+        Mass_loss_heavy = Phi2*mu2*A*delta_t # mass lost in first time step [particules]
     ###_____Initialize arrays_____###
 
         t_a = delta_t*np.linspace(1, n_tot + 1, n_tot) + t0 # time array [s]
@@ -278,8 +311,8 @@ beta = -1.23):
         fatm_a = np.zeros(n_tot) # atm mass fraction [ndim]
         Vpot_a = np.zeros(n_tot) # grav potential, diagnostic [J/kg]
         Mloss_a = np.zeros(n_tot) # mass lost per timestep [kg]
-        Mll_a = np.zeros(n_tot) # mass lost for light species computed with zephyrus per timestep [kg]
-        Mlh_a = np.zeros(n_tot) # mass lost for heavy species computed with zephyrus per timestep [kg]
+        Mll_a = np.zeros(n_tot) # mass lost for light species computed with zephyrus per timestep [particules]
+        Mlh_a = np.zeros(n_tot) # mass lost for heavy species computed with zephyrus per timestep [particules]
 
         y1_a = np.zeros(n_tot) # light species number array [particles]
         y2_a = np.zeros(n_tot) # heavy species number array [particles]
@@ -307,7 +340,7 @@ beta = -1.23):
 
             y1_a[n] = y1
             y2_a[n] = y2
-            if species == 'H/D' or species == 'H/He' or species == 'H/O':
+            if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S':
                 X2_aa[n] = y2/y1
             elif species == 'H2/HD':
                 X2_aa[n] = y2/(2*y1 + y2) # because N_H = 2*N_H2, checked with D0/H0 = HD_0/(2*H2_0 + HD_0)
@@ -337,7 +370,7 @@ beta = -1.23):
 
                     y1_a[n:] = y1_a[n-1]
                     y2_a[n:] = y2_a[n-1]
-                    if species == 'H/D' or species == 'H/He' or species == 'H/O':
+                    if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S':
                         X2_aa[n:] = y2_a[n-1]/y1_a[n-1]
                     elif species == 'H2/HD' or species == 'H2/He':
                         X2_aa[n:] = y2_a[n-1]/(2*y1_a[n-1]) 
@@ -367,7 +400,7 @@ beta = -1.23):
 
                     y1_a[n:] = y1_a[n-1]
                     y2_a[n:] = y2_a[n-1]
-                    if species == 'H/D' or species == 'H/He' or species == 'H/O':
+                    if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S':
                         X2_aa[n:] = y2_a[n-1]/y1_a[n-1]
                     elif species == 'H2/HD' or species == 'H2/He':
                         X2_aa[n:] = y2_a[n-1]/(2*y1_a[n-1]) 
@@ -391,7 +424,7 @@ beta = -1.23):
 
                 y1_a[n:] = y1
                 y2_a[n:] = y2
-                if species == 'H/D' or species == 'H/He' or species == 'H/O':
+                if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S':
                     X2_aa[n:] = y2/y1
                 elif species == 'H2/HD' or species == 'H2/He':
                     X2_aa[n:] = y2/(2*y1)
@@ -445,16 +478,17 @@ beta = -1.23):
             g = G*Mp/radius_p**2
             H1 = R_gas*T/(M1*g) # light species scale height [m]
             H2 = R_gas*T/(M2*g) # heavy species scale height [m]
-            
+
             y1 -= Phi1*A*delta_t
             y2 -= Phi2*A*delta_t
             x1 = y1/(y1 + y2)
             x2 = y2/(y1 + y2)
+
             Phi1 = Phi_1(phi, b, H1, H2, mu1, mu2, x1, x2)
             Phi2 = Phi_2(phi, b, H1, H2, mu1, mu2, x1, x2)
             phi_c = b*x1*(mu2 - mu1)/H1
-            Mass_loss_light = Phi1*A*delta_t # mass lost in first time step [kg]
-            Mass_loss_heavy = Phi2*A*delta_t # mass lost in first time step [kg]
+            Mass_loss_light = Phi1*mu1*A*delta_t # mass lost in first time step [particules]
+            Mass_loss_heavy = Phi2*mu2*A*delta_t # mass lost in first time step [particules]
 
     # 2 dimensional arrays; f_atm x n_steps
         rp_a[i, :] = Rp_a[:] # total planet radius [m]
@@ -463,8 +497,8 @@ beta = -1.23):
         vpot_a[i, :] = Vpot_a[:] # gravitational potential [J/kg]
         fenv_a[i, :] = fatm_a[:] # atmospheric mass fraction [ndim]
         mloss_a[i, :] = Mloss_a[:] # mass loss per timestep [kg]
-        mlossl_a[i, :] = Mll_a[:] # light species mass loss per timestep [kg]
-        mlossh_a[i, :] = Mlh_a[:] # heavy species mass loss per timestep [kg]
+        mlossl_a[i, :] = Mll_a[:] # light species mass loss per timestep [particules]
+        mlossh_a[i, :] = Mlh_a[:] # heavy species mass loss per timestep [particules]
         X2_a[i, :] = X2_aa[:] # N2/N1 mole ratio [ndim]
         X2_final[i] = X2_aa[-1] # final N2/N1 mole ratio for each f_atm (1D array)
         phi_a[i, :] = Phi_a[:] # mass flux [kg/2/m2]
