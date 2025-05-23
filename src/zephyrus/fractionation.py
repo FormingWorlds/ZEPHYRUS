@@ -220,14 +220,14 @@ def Mass_loss(A, Phi):
     Mass_loss = A * Phi  # Mass loss rate [kg/s]
     return Mass_loss
 
-def Fractionation_binary_mixture(n_light, n_heavy, Mp, Rp, b, T, mu_light, mu_heavy, M_light, M_heavy, Phi):
+def Fractionation_binary_mixture(X_light, X_heavy, Mp, Rp, b, T, mu_light, mu_heavy, M_light, M_heavy, Phi):
     '''
     Compute the fractionation of light and heavy species in a binary gas mixture undergoing atmospheric escape.
     Adapted from IsoFATE (Cherubim et al.2024) and based on formulation in Cherubim et al.2024 and Wordsworth et al. 2018
     
     Inputs:
-        - n_light/n_heavy: float     
-            Total number of moles of light/heavy species [mol]
+        - X_light/X_heavy: float     
+            Molar concentration of species light or heavy  [1]
         - Mp: float
             Mass of the planet [kg]
         - Rp: float
@@ -236,22 +236,21 @@ def Fractionation_binary_mixture(n_light, n_heavy, Mp, Rp, b, T, mu_light, mu_he
             Binary diffusion coefficient for the considered binary mixture [particles/m/s]
         - T: float
             Temperature of the gas mixture [K]
+        - mu_light/mu_heavy: float
+            Molar mass of light/heavy species [kg/mol]
         - M_light/M_heavy: float
             Molar mass of light/heavy species [kg/mol]
         - Phi: float
             Number flux [particle/m2/s]
     
     Output:
-        - Mass_loss_light: float  
-            Mass loss of light species [kg]
-        - Mass_loss_heavy: float
-            Mass loss of heavy species [kg]
-        - Mass_loss_total: float
-            Total mass loss [kg]
+        - Phi_crit: float
+            Critical mass flux [kg/m2/s]
+        - Phi_light/Phi_heavy: float
+            Number flux of light/heavy species [particles/m2/s]
+        - Phi_total: float
+            Total number flux [particles/m2/s]
     '''
-    # Compute the molar concentration of light (1) and heavy (2) species
-    X_light, X_heavy = Molar_concentration_binary_mixture(n_light, n_heavy)
-
     # Compute the gravity and scale height of the planet
     g = Acceleration_of_gravity(Mp, Rp)
     H_light = Scale_height_single_species(T, g, M_light)
@@ -268,6 +267,6 @@ def Fractionation_binary_mixture(n_light, n_heavy, Mp, Rp, b, T, mu_light, mu_he
     Phi_light, Phi_heavy = Number_flux(Phi, Phi_crit, mu_light, mu_heavy, X_light, X_heavy, Phi_diffusion_light, Phi_diffusion_heavy)
     Phi_total = Phi_light + Phi_heavy
 
-    return Phi_diffusion_light, Phi_diffusion_heavy, Phi_crit, Phi_light, Phi_heavy, Phi_total
+    return Phi_crit, Phi_light, Phi_heavy, Phi_total
 
 ##################### Ternary mixture #####################
