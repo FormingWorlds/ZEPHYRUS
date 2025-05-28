@@ -8,9 +8,8 @@ from isofunks import *
 from constants import *
 from orbit_params import *
 import numpy as np
-from zephyrus.fractionation import *
 
-def isocalc_zephyrus(f_atm, Mp, Mstar, F0, Fp, T, d, time = 5e9, mechanism = 'XUV', species = 'H/D', rad_evol = True,
+def isocalc(f_atm, Mp, Mstar, F0, Fp, T, d, time = 5e9, mechanism = 'XUV', species = 'H/D', rad_evol = True,
 mu = mu_solar, eps = 0.15, activity = 'medium', flux_model = 'power law', stellar_type = 'M1',
 Rp_override = False, t_sat = 5e8, f_atm_final = 'null', n_TO_final = 'null', 
 n_steps = int(1e6), t0 = 1e6, rho_rcb = 1.0, Johnson = False, RR = True, f_pred = False, thermal = True, 
@@ -153,20 +152,20 @@ beta = -1.23):
         elif species == 'H/O':
             mu_avg = (1-OtoH_protosolar)*mu_H + OtoH_protosolar*mu_O
             H0 = (1 - OtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]
-            O0 = OtoH_protosolar *M_atm/mu_avg # initial O number [atoms] # use OtoH_protosolar
+            O0 = OtoH_protosolar*M_atm/mu_avg # initial O number [atoms] # use OtoH_protosolar
         elif species == 'H/N':
             mu_avg = (1-NtoH_protosolar)*mu_H + NtoH_protosolar*mu_N
             H0 = (1 - NtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]      
-            N0 = NtoH_protosolar *M_atm/mu_avg # initial N number [atoms] # use NtoH_protosolar
+            N0 = NtoH_protosolar*M_atm/mu_avg # initial N number [atoms] # use NtoH_protosolar
         elif species == 'H/S':
             mu_avg = (1-StoH_protosolar)*mu_H + StoH_protosolar*mu_S
             H0 = (1 - StoH_protosolar)*M_atm/mu_avg # initial H number [atoms]      
-            S0 = StoH_protosolar *M_atm/mu_avg # initial S number [atoms] # use StoH_protosolar
+            S0 = StoH_protosolar*M_atm/mu_avg # initial S number [atoms] # use StoH_protosolar
         elif species == 'H/C':
             mu_avg = (1-CtoH_protosolar)*mu_H + CtoH_protosolar*mu_C
             H0 = (1 - CtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]
             C0 = CtoH_protosolar *M_atm/mu_avg # initial C number [atoms] # use CtoH_protosolar
-                    
+
         if rad_evol == True:
             if Rp_override == False:
                 radius_env = R_env(Mp, f_atm, Fp, t0, thermal) # convective atm depth [m]
@@ -243,17 +242,17 @@ beta = -1.23):
             mu2 = mu_O
             M1 = M_H
             M2 = M_O
-            H1 = Effective_scale_height(T, g, M1) # H scale height [m]
-            H2 = Effective_scale_height(T, g, M2) # O scale height [m]
+            H1 = H_H
+            H2 = H_O
             N1 = H0
             N2 = O0
-        elif species == 'H/N':  
+        elif species == 'H/N':
             mu1 = mu_H
             mu2 = mu_N
             M1 = M_H
             M2 = M_N
-            H1 = Effective_scale_height(T, g, M1) # H scale height [m]    
-            H2 = Effective_scale_height(T, g, M2) # N scale height [m]
+            H1 = H_H
+            H2 = H_N
             N1 = H0
             N2 = N0
         elif species == 'H/S':
@@ -261,8 +260,8 @@ beta = -1.23):
             mu2 = mu_S
             M1 = M_H
             M2 = M_S
-            H1 = Effective_scale_height(T, g, M1) # H scale height [m]     
-            H2 = Effective_scale_height(T, g, M2) # S scale height [m]
+            H1 = H_H
+            H2 = H_S
             N1 = H0
             N2 = S0
         elif species == 'H/C':
@@ -270,8 +269,8 @@ beta = -1.23):
             mu2 = mu_C
             M1 = M_H
             M2 = M_C
-            H1 = Effective_scale_height(T, g, M1) # H scale height [m]     
-            H2 = Effective_scale_height(T, g, M2) # C scale height [m]
+            H1 = H_H  
+            H2 = H_C
             N1 = H0
             N2 = C0
 
@@ -307,12 +306,16 @@ beta = -1.23):
         
         mass_loss = phi*A*delta_t # mass lost in first time step [kg]
 
-        x1,x2 = Molar_concentration_binary_mixture(n_light=N1, n_heavy=N2)
+        x1 = N1/(N1 + N2) # molar concentration light species [ndim]
+        x2 = N2/(N1 + N2) # molar concentration heavy species [ndim]
 
         y1 = 1*N1 # light species number [atoms or molecules]
         y2 = 1*N2 # heavy species number [atoms or molecules]
+        
+        Phi1 = Phi_1(phi, b, H1, H2, mu1, mu2, x1, x2) # light species number flux [particles/s/m2]
+        Phi2 = Phi_2(phi, b, H1, H2, mu1, mu2, x1, x2) # heavy species number flux
+        phi_c = b*x1*(mu2 - mu1)/H1 # critical mass flux for heavy species escape [kg/s/m2]
 
-        phi_c, Phi1, Phi2, Phi_tot = Fractionation_binary_mixture(X_light=x1, X_heavy=x2, Mp=Mp, Rp=radius_p, b=b, T=T, mu_light=mu1, mu_heavy=mu2, M_light=M1, M_heavy=M2, Phi=phi) 
         Mass_loss_light = Phi1*mu1*A*delta_t # mass lost in first time step [kg]
         Mass_loss_heavy = Phi2*mu2*A*delta_t # mass lost in first time step [kg]
 
@@ -356,7 +359,7 @@ beta = -1.23):
 
             y1_a[n] = y1
             y2_a[n] = y2
-            if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':  
+            if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':
                 X2_aa[n] = y2/y1
             elif species == 'H2/HD':
                 X2_aa[n] = y2/(2*y1 + y2) # because N_H = 2*N_H2, checked with D0/H0 = HD_0/(2*H2_0 + HD_0)
@@ -416,7 +419,7 @@ beta = -1.23):
 
                     y1_a[n:] = y1_a[n-1]
                     y2_a[n:] = y2_a[n-1]
-                    if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':   
+                    if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':  
                         X2_aa[n:] = y2_a[n-1]/y1_a[n-1]
                     elif species == 'H2/HD' or species == 'H2/He':
                         X2_aa[n:] = y2_a[n-1]/(2*y1_a[n-1]) 
@@ -440,7 +443,7 @@ beta = -1.23):
 
                 y1_a[n:] = y1
                 y2_a[n:] = y2
-                if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':   
+                if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':  
                     X2_aa[n:] = y2/y1
                 elif species == 'H2/HD' or species == 'H2/He':
                     X2_aa[n:] = y2/(2*y1)
@@ -492,19 +495,18 @@ beta = -1.23):
                 phi = phi_XUV + phiE_CP(T, Mp, rho_rcb, eps, Vpot, A, mu, radius_env)
             mass_loss = phi*A*delta_t
             g = G*Mp/radius_p**2
-            H1 = Effective_scale_height(T, g, M1) # H scale height [m]
-            H2 = Effective_scale_height(T, g, M2) # O scale height [m]
-            # redondant computation of H to check
+            H1 = R_gas*T/(M1*g) # light species scale height [m]
+            H2 = R_gas*T/(M2*g) # heavy species scale height [m]
             y1 -= Phi1*A*delta_t
             y2 -= Phi2*A*delta_t
             x1 = y1/(y1 + y2)
             x2 = y2/(y1 + y2)
 
-            phi_c, Phi1, Phi2, Phi_tot= Fractionation_binary_mixture(X_light=x1, X_heavy=x2, Mp=Mp, Rp=radius_p, b=b, T=T, mu_light=mu1, mu_heavy=mu2, M_light=M1, M_heavy=M2, Phi=phi) 
+            Phi1 = Phi_1(phi, b, H1, H2, mu1, mu2, x1, x2)
+            Phi2 = Phi_2(phi, b, H1, H2, mu1, mu2, x1, x2)
+            phi_c = b*x1*(mu2 - mu1)/H1
             Mass_loss_light = Phi1*mu1*A*delta_t # mass lost in first time step [kg]
             Mass_loss_heavy = Phi2*mu2*A*delta_t # mass lost in first time step [kg]
-
-
     # 2 dimensional arrays; f_atm x n_steps
         rp_a[i, :] = Rp_a[:] # total planet radius [m]
         renv_a[i, :] = Renv_a[:] # convective atm depth [m]

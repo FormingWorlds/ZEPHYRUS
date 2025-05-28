@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import sys
+import os 
+sys.path.append(os.path.abspath("/Users/emmapostolec/Documents/PHD/SCIENCE/CODES/PROTEUS/ZEPHYRUS/examples/comparison_isofate_fractionation/isofate_version1_modified_for_tests"))
 from zephyrus_binary import isocalc_zephyrus
 from isofate_binary import isocalc
 from isofunks import *

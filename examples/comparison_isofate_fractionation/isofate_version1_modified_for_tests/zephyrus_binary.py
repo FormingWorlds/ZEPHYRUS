@@ -8,8 +8,9 @@ from isofunks import *
 from constants import *
 from orbit_params import *
 import numpy as np
+from zephyrus.fractionation import *
 
-def isocalc(f_atm, Mp, Mstar, F0, Fp, T, d, time = 5e9, mechanism = 'XUV', species = 'H/D', rad_evol = True,
+def isocalc_zephyrus(f_atm, Mp, Mstar, F0, Fp, T, d, time = 5e9, mechanism = 'XUV', species = 'H/D', rad_evol = True,
 mu = mu_solar, eps = 0.15, activity = 'medium', flux_model = 'power law', stellar_type = 'M1',
 Rp_override = False, t_sat = 5e8, f_atm_final = 'null', n_TO_final = 'null', 
 n_steps = int(1e6), t0 = 1e6, rho_rcb = 1.0, Johnson = False, RR = True, f_pred = False, thermal = True, 
@@ -242,8 +243,8 @@ beta = -1.23):
             mu2 = mu_O
             M1 = M_H
             M2 = M_O
-            H1 = H_H
-            H2 = H_O
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]
+            H2 = Effective_scale_height(T, g, M2) # O scale height [m]
             N1 = H0
             N2 = O0
         elif species == 'H/N':
@@ -251,8 +252,8 @@ beta = -1.23):
             mu2 = mu_N
             M1 = M_H
             M2 = M_N
-            H1 = H_H
-            H2 = H_N
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]    
+            H2 = Effective_scale_height(T, g, M2) # N scale height [m]
             N1 = H0
             N2 = N0
         elif species == 'H/S':
@@ -260,8 +261,8 @@ beta = -1.23):
             mu2 = mu_S
             M1 = M_H
             M2 = M_S
-            H1 = H_H
-            H2 = H_S
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]     
+            H2 = Effective_scale_height(T, g, M2) # S scale height [m]
             N1 = H0
             N2 = S0
         elif species == 'H/C':
@@ -269,8 +270,8 @@ beta = -1.23):
             mu2 = mu_C
             M1 = M_H
             M2 = M_C
-            H1 = H_H  
-            H2 = H_C
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]     
+            H2 = Effective_scale_height(T, g, M2) # C scale height [m]
             N1 = H0
             N2 = C0
 
@@ -306,16 +307,16 @@ beta = -1.23):
         
         mass_loss = phi*A*delta_t # mass lost in first time step [kg]
 
-        x1 = N1/(N1 + N2) # molar concentration light species [ndim]
-        x2 = N2/(N1 + N2) # molar concentration heavy species [ndim]
+        x1,x2 = Molar_concentration_binary_mixture(n_light=N1, n_heavy=N2)
+
         y1 = 1*N1 # light species number [atoms or molecules]
         y2 = 1*N2 # heavy species number [atoms or molecules]
+        
+        phi_c, Phi1, Phi2, Phi_tot = Fractionation_binary_mixture(X_light=x1, X_heavy=x2, Mp=Mp, Rp=radius_p, b=b, T=T, mu_light=mu1, mu_heavy=mu2, M_light=M1, M_heavy=M2, Phi=phi) 
 
-        Phi1 = Phi_1(phi, b, H1, H2, mu1, mu2, x1, x2) # light species number flux [particles/s/m2]
-        Phi2 = Phi_2(phi, b, H1, H2, mu1, mu2, x1, x2) # heavy species number flux
-        phi_c = b*x1*(mu2 - mu1)/H1 # critical mass flux for heavy species escape [kg/s/m2]
-        Mass_loss_light = Phi1*mu1*A*delta_t # mass lost in first time step [particules]
-        Mass_loss_heavy = Phi2*mu2*A*delta_t # mass lost in first time step [particules]
+        Mass_loss_light = Phi1*mu1*A*delta_t # mass lost in first time step [kg]
+        Mass_loss_heavy = Phi2*mu2*A*delta_t # mass lost in first time step [kg]
+
     ###_____Initialize arrays_____###
 
         t_a = delta_t*np.linspace(1, n_tot + 1, n_tot) + t0 # time array [s]
@@ -327,8 +328,8 @@ beta = -1.23):
         fatm_a = np.zeros(n_tot) # atm mass fraction [ndim]
         Vpot_a = np.zeros(n_tot) # grav potential, diagnostic [J/kg]
         Mloss_a = np.zeros(n_tot) # mass lost per timestep [kg]
-        Mll_a = np.zeros(n_tot) # mass lost for light species computed with zephyrus per timestep [particules]
-        Mlh_a = np.zeros(n_tot) # mass lost for heavy species computed with zephyrus per timestep [particules]
+        Mll_a = np.zeros(n_tot) # mass lost for light species computed with zephyrus per timestep [kg]
+        Mlh_a = np.zeros(n_tot) # mass lost for heavy species computed with zephyrus per timestep [kg]
 
         y1_a = np.zeros(n_tot) # light species number array [particles]
         y2_a = np.zeros(n_tot) # heavy species number array [particles]
@@ -492,20 +493,16 @@ beta = -1.23):
                 phi = phi_XUV + phiE_CP(T, Mp, rho_rcb, eps, Vpot, A, mu, radius_env)
             mass_loss = phi*A*delta_t
             g = G*Mp/radius_p**2
-            H1 = R_gas*T/(M1*g) # light species scale height [m]
-            H2 = R_gas*T/(M2*g) # heavy species scale height [m]
-
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]
+            H2 = Effective_scale_height(T, g, M2) # O scale height [m]          
             y1 -= Phi1*A*delta_t
             y2 -= Phi2*A*delta_t
             x1 = y1/(y1 + y2)
             x2 = y2/(y1 + y2)
 
-            Phi1 = Phi_1(phi, b, H1, H2, mu1, mu2, x1, x2)
-            Phi2 = Phi_2(phi, b, H1, H2, mu1, mu2, x1, x2)
-            phi_c = b*x1*(mu2 - mu1)/H1
-            Mass_loss_light = Phi1*mu1*A*delta_t # mass lost in first time step [particules]
-            Mass_loss_heavy = Phi2*mu2*A*delta_t # mass lost in first time step [particules]
-
+            phi_c, Phi1, Phi2, Phi_tot= Fractionation_binary_mixture(X_light=x1, X_heavy=x2, Mp=Mp, Rp=radius_p, b=b, T=T, mu_light=mu1, mu_heavy=mu2, M_light=M1, M_heavy=M2, Phi=phi)        
+            Mass_loss_light = Phi1*mu1*A*delta_t # mass lost in first time step [kg]
+            Mass_loss_heavy = Phi2*mu2*A*delta_t # mass lost in first time step [kg]
     # 2 dimensional arrays; f_atm x n_steps
         rp_a[i, :] = Rp_a[:] # total planet radius [m]
         renv_a[i, :] = Renv_a[:] # convective atm depth [m]
@@ -513,8 +510,8 @@ beta = -1.23):
         vpot_a[i, :] = Vpot_a[:] # gravitational potential [J/kg]
         fenv_a[i, :] = fatm_a[:] # atmospheric mass fraction [ndim]
         mloss_a[i, :] = Mloss_a[:] # mass loss per timestep [kg]
-        mlossl_a[i, :] = Mll_a[:] # light species mass loss per timestep [particules]
-        mlossh_a[i, :] = Mlh_a[:] # heavy species mass loss per timestep [particules]
+        mlossl_a[i, :] = Mll_a[:] # mass loss for light species [kg]
+        mlossh_a[i, :] = Mlh_a[:] # mass loss for heavy species [kg]
         X2_a[i, :] = X2_aa[:] # N2/N1 mole ratio [ndim]
         X2_final[i] = X2_aa[-1] # final N2/N1 mole ratio for each f_atm (1D array)
         phi_a[i, :] = Phi_a[:] # mass flux [kg/2/m2]
@@ -536,7 +533,7 @@ beta = -1.23):
         'fenv': fenv_a,
         'mloss': mloss_a,
         'mlossl': mlossl_a,
-        'mlossh': mlossh_a,        
+        'mlossh': mlossh_a,
         'X2': X2_a,
         'X2_final': X2_final,
         'phi': phi_a,
