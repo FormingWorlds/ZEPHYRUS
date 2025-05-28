@@ -148,17 +148,17 @@ beta = -1.23):
             He0 = (1/13.6)*M_atm/mu_avg # initial He number [atoms]
             H2_0 = (1/2)*H0 # initial H2 number [molecules]
         elif species == 'H/O':
-            mu_avg = (1-OtoH_protosolar)*mu_H + OtoH_protosolar*mu_O
-            H0 = (1 - OtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]
-            O0 = OtoH_protosolar*M_atm/mu_avg # initial O number [atoms] # use OtoH_protosolar
+            mu_avg = (1-OtoH_protosolar*100)*mu_H + OtoH_protosolar*100*mu_O
+            H0 = (1 - OtoH_protosolar*100)*M_atm/mu_avg # initial H number [atoms]
+            O0 = OtoH_protosolar*100*M_atm/mu_avg # initial O number [atoms] # use OtoH_protosolar
         elif species == 'H/N':
-            mu_avg = (1-NtoH_protosolar)*mu_H + NtoH_protosolar*mu_N
-            H0 = (1 - NtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]      
-            N0 = NtoH_protosolar*M_atm/mu_avg # initial N number [atoms] # use NtoH_protosolar
+            mu_avg = (1-NtoH_protosolar*100)*mu_H + NtoH_protosolar*100*mu_N
+            H0 = (1 - NtoH_protosolar*100)*M_atm/mu_avg # initial H number [atoms]      
+            N0 = NtoH_protosolar*100*M_atm/mu_avg # initial N number [atoms] # use NtoH_protosolar
         elif species == 'H/S':
-            mu_avg = (1-StoH_protosolar)*mu_H + StoH_protosolar*mu_S
-            H0 = (1 - StoH_protosolar)*M_atm/mu_avg # initial H number [atoms]      
-            S0 = StoH_protosolar*M_atm/mu_avg # initial S number [atoms] # use StoH_protosolar
+            mu_avg = (1-StoH_protosolar*100)*mu_H + StoH_protosolar*100*mu_S
+            H0 = (1 - StoH_protosolar*100)*M_atm/mu_avg # initial H number [atoms]      
+            S0 = StoH_protosolar*100*M_atm/mu_avg # initial S number [atoms] # use StoH_protosolar
 
         if rad_evol == True:
             if Rp_override == False:

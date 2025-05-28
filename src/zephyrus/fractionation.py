@@ -5,7 +5,7 @@ fractionation.py
 Functions to compute fractionation during atmospheric escape based on IsoFATE functions written by Collin Cherubim (Cherubim et al. 2024).
 '''
 import numpy as np
-from zephyrus.constants import kb, G, amu, R
+from zephyrus.constants import G, R, kb, amu
 
 ##################### General functions #####################
 
@@ -41,32 +41,15 @@ def Planetary_surface_area(Rp):
     A = 4 * np.pi * (Rp**2)  # Surface area of the planet [m2]
     return A
 
-def Mass_species(n, M):
-    '''
-    Compute the mass of a species in the atmosphere.
-    
-    Inputs:
-        - n: float
-            Number of moles of the species [mol]
-        - M: float
-            Molar mass of the species [kg/mol]
-            
-    Output: 
-        - m : float 
-            Mass of the species [kg]
-    '''
-    m = n * M  # Mass of the species [kg]
-    return m
-
 ##################### Binary mixture #####################
 
-def Scale_height_single_species(T, g, M_i):
+def Effective_scale_height(T, g, M_i):
     '''
-    Compute the scale height of a single species.
+    Compute the effective scale height of a single species i at the base of the escaping region.
     
     Inputs:
         - T: float
-            Temperature of the atmosphere [K]
+            Temperature of the atmosphere at the base of the escaping region [K]
         - g: float
             Acceleration of gravity [m/s2]
         - M_i: float
@@ -74,48 +57,22 @@ def Scale_height_single_species(T, g, M_i):
             
     Output: 
         - H : float 
-            Scale height of the atmosphere [m]
+            Effective scale height of species i at the base of the escaping region [m]
     '''
-    H = R * T / (M_i * g)  # Scale height of species i     [m]
-    return H
-
-def Scale_height_binary_mixture(T, g, X_light, M_light, X_heavy, M_heavy):
-    '''
-    Compute the scale height of a gas mixture.
-    
-    Inputs:
-        - T: float
-            Temperature of the atmosphere [K]
-        - g: float
-            Acceleration of gravity [m/s2]
-        - X_light: float
-            Molar fraction of light species [1]
-        - M_light: float
-            Molar mass of light species [kg/mol]
-        - X_heavy: float
-            Molar fraction of heavy species [1]                                             
-        - M_heavy: float
-            Molar mass of heavy species [kg/mol]       
-        
-    Output: 
-        - H : float 
-            Scale height of the atmosphere [m]
-    '''
-    mu_mix = X_light*M_light + X_heavy*M_heavy  # Mean molecular weight (MMW) of the atmosphere [kg/mol]
-    H = kb * T / (mu_mix * amu *  g)            # Scale height of the atmosphere     [m]
+    H = R * T / (g * M_i)  # Scale height of species i     [m]
     return H
 
 def Molar_concentration_binary_mixture(n_light, n_heavy):
     '''
-    Compute the molar concentration of specie i in a gas mixture.
+    Compute the molar concentration of specie i in a binary gas mixture.
     
     Inputs:
         - n_light,n_heavy: float
-            Total number of moles of species light/heavy [mol]
+            Total number of moles of light/heavy species [mol]
             
     Output: 
         - x_light,x_heavy : float 
-            Molar concentration of species light or heavy  [1]
+            Molar concentration of light/heavy species  [1]
     '''
     N_tot = n_light + n_heavy
     x_light = n_light/(N_tot)
@@ -124,72 +81,63 @@ def Molar_concentration_binary_mixture(n_light, n_heavy):
 
 def Diffusion_flux(b,H_i):
     '''
-    Compute the equivalent diffusion flux of species i relative to  primary escaping species the in a binary gas mixture.
+    Compute the equivalent diffusion flux of species i relative to the primary escaping light species (usually H) in a binary gas mixture.
     Adapted from IsoFATE (Cherubim et al.2024) and based on formulation in Cherubim et al.2024 and Wordsworth et al. 2018
+
     Inputs:
         - b: float
-            Binary diffusion coefficient for the considered binary mixture[particles/m/s]
-        - T: float
-            Temperature of the gas mixture [K]
-        - g: float
-            Acceleration of gravity [m/s2]       
-        - m_i: float
-            Mass of species i [kg/particle]
+            Binary diffusion coefficient for the considered binary mixture [particles/m/s]
+        - H_i: float
+            Effective scale height of species i at the base of the escaping region [m]
+
     Output:
         - Phi_diffusion : float
-            Diffusion flux of species i [particles/m2/s]
+            Equivalent diffusion flux for species i [particles/m2/s]
     '''
-    Phi_diffusion_i = b/H_i     # Diffusion flux of species i   [?]
+    Phi_diffusion_i = b/H_i     # Diffusion flux of species i   [particles/m2/s]
     return Phi_diffusion_i
 
-def Phi_critical(H_light, mu_light, mu_heavy, b, x_light):
+def Phi_critical(b, x_light, H_light, mu_light, mu_heavy):
     '''
-    Compute the critical mass flux for a binary gas mixture undergoing atmospehric escape.
+    Compute the critical mass flux for a binary gas mixture.
     Adapted from IsoFATE (Cherubim et al.2024) and based on formulation in Cherubim et al.2024 and Wordsworth et al. 2018
     
     Inputs:
-        - T: float
-            Temperature of the gas mixture [K]
-        - g: float
-            Acceleration of gravity [m/s2]
-        - M_light/M_heavy: float
-            Molar mass of light/heavy species [kg/mol]
         - b: float
-            Binary diffusion coefficient for the considered binary mixture[particles/m/s]
+            Binary diffusion coefficient for the considered binary mixture [particles/m/s]
         - x_light: float
-            Molar fraction of light species [1]
-        - n_light/n_heavy: float
-            Number of moles of light/heavy species [mol]
+            Molar concentration of light species [1]
+        - H_light: float
+            Effective scale height of light species at the base of the escaping region [m]
+        - mu_light/mu_heavy: float
+            Molecular mass of light/heavy species [kg/particles]
 
     Output: 
         - Phi_crit : float 
-            Critical mass flux [particles/m2/s] 
+            Critical mass flux [kg/m2/s] 
     '''
-    Phi_crit = (b*x_light*(mu_heavy - mu_light))/H_light         # Critical mass flux    [particles/m2/s]
+    Phi_crit = (b*x_light*(mu_heavy - mu_light))/H_light         # Critical mass flux    [kg/m2/s]
     return Phi_crit 
 
 def Number_flux(Phi, Phi_crit, mu_light, mu_heavy, X_light, X_heavy, Phi_diffusion_light, Phi_diffusion_heavy):
     '''
-    Compute the number flux of light and heavy species in a binary gas mixture undergoing atmospheric escape.
+    Compute the number flux of light and heavy species in a binary gas mixture.
     Adapted from IsoFATE (Cherubim et al.2024) and based on formulation in Cherubim et al.2024 and Wordsworth et al. 2018
+
     Inputs:
         - Phi: float
-            Number flux [particles/m2/s]
+            Mass flux for the escape [kg/m2/s]
         - Phi_crit: float
-            Critical mass flux [particles/m2/s]
-        - n_light,n_heavy: float
-            Total number of moles of species light/heavy [mol]
-        - M_light/M_heavy: float
-            Molar mass of light/heavy species [kg/mol]
+            Critical mass flux [kg/m2/s]
+        - mu_light/mu_heavy: float
+            Molecular mass of light/heavy species [kg/particles]
         - X_light/X_heavy: float
             Molar concentration of light/heavy species [1]          
         - Phi_diffusion_light/Phi_diffusion_heavy: float
             Diffusion flux of light/heavy species [particles/m2/s]
     Output:
-        - Phi_light: float
-            Number flux of light species [particles/m2/s]   
-        - Phi_heavy: float
-            Number flux of heavy species [particles/m2/s]
+        - Phi_light/Phi_heavy: float
+            Number flux of light/heavy species [particles/m2/s]
     '''
     mean_particle_mass = mu_light*X_light + mu_heavy*X_heavy  # Mean particle mass of the escaping outflow [kg/particle]  
 
@@ -203,45 +151,28 @@ def Number_flux(Phi, Phi_crit, mu_light, mu_heavy, X_light, X_heavy, Phi_diffusi
 
     return Phi_light, Phi_heavy
 
-def Mass_loss(A, Phi):
-    '''
-    Compute the mass loss of the atmosphere undergoing atmospheric escape.
-    
-    Inputs:
-        - A: float
-            Surface area of the planet [m2]
-        - Phi: float
-            Number flux [particles/m2/s]
-            
-    Output: 
-        - Mass_loss : float 
-            Mass loss [particle/s]
-    '''
-    Mass_loss = A * Phi  # Mass loss rate [kg/s]
-    return Mass_loss
-
-def Fractionation_binary_mixture(X_light, X_heavy, Mp, Rp, b, T, mu_light, mu_heavy, M_light, M_heavy, Phi):
+def Fractionation_binary_mixture(Mp, Rp, T, M_light, M_heavy, b, X_light, X_heavy, mu_light, mu_heavy, Phi):
     '''
     Compute the fractionation of light and heavy species in a binary gas mixture undergoing atmospheric escape.
     Adapted from IsoFATE (Cherubim et al.2024) and based on formulation in Cherubim et al.2024 and Wordsworth et al. 2018
     
     Inputs:
-        - X_light/X_heavy: float     
-            Molar concentration of species light or heavy  [1]
         - Mp: float
             Mass of the planet [kg]
         - Rp: float
             Radius of the planet [m]
-        - b: float
-            Binary diffusion coefficient for the considered binary mixture [particles/m/s]
         - T: float
-            Temperature of the gas mixture [K]
-        - mu_light/mu_heavy: float
-            Molar mass of light/heavy species [kg/mol]
+            Temperature of the atmosphere at the base of the escaping region [K]
         - M_light/M_heavy: float
             Molar mass of light/heavy species [kg/mol]
+        - b: float
+            Binary diffusion coefficient for the considered binary mixture [particles/m/s]
+        - X_light/X_heavy: float     
+            Molar concentration of species light or heavy  [1]
+        - mu_light/mu_heavy: float
+            Molecular mass of light/heavy species [kg/particles]
         - Phi: float
-            Number flux [particle/m2/s]
+            Mass flux for the escape [kg/m2/s]
     
     Output:
         - Phi_crit: float
@@ -253,17 +184,17 @@ def Fractionation_binary_mixture(X_light, X_heavy, Mp, Rp, b, T, mu_light, mu_he
     '''
     # Compute the gravity and scale height of the planet
     g = Acceleration_of_gravity(Mp, Rp)
-    H_light = Scale_height_single_species(T, g, M_light)
-    H_heavy = Scale_height_single_species(T, g, M_heavy)
+    H_light = Effective_scale_height(T, g, M_light)
+    H_heavy = Effective_scale_height(T, g, M_heavy)
 
-    # Compute the diffusion flux of light (1) and heavy (2) species
+    # Compute the diffusion flux of light and heavy species
     Phi_diffusion_light = Diffusion_flux(b,H_light)
     Phi_diffusion_heavy = Diffusion_flux(b,H_heavy)
 
     # Compute the critical mass flux
     Phi_crit = Phi_critical(H_light, mu_light, mu_heavy, b, X_light)
 
-    # Compute the number flux of light (1) and heavy (2) species    
+    # Compute the number flux of light and heavy species    
     Phi_light, Phi_heavy = Number_flux(Phi, Phi_crit, mu_light, mu_heavy, X_light, X_heavy, Phi_diffusion_light, Phi_diffusion_heavy)
     Phi_total = Phi_light + Phi_heavy
 
