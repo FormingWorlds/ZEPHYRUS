@@ -8,7 +8,7 @@ from isofunks import *
 from constants import *
 from orbit_params import *
 import numpy as np
-from fractionation import *
+from zephyrus.fractionation import *
 
 def isocalc_zephyrus(f_atm, Mp, Mstar, F0, Fp, T, d, time = 5e9, mechanism = 'XUV', species = 'H/D', rad_evol = True,
 mu = mu_solar, eps = 0.15, activity = 'medium', flux_model = 'power law', stellar_type = 'M1',
@@ -94,6 +94,8 @@ beta = -1.23):
         b = 4.85e19*T**0.75
     elif species == 'H/S':
         b = 4.73e19*T**0.75
+    elif species == 'H/C':
+        b = 4.85e19*T**0.75
     radius_core = R_core(Mp) # planet core (rocky component) radius [m]
     R_B = R_Bondi(Mp, mu, T) # Bondi radius [m]
     R_H = R_Hill(Mp, Mstar, d) # Hill radius [m]
@@ -149,17 +151,21 @@ beta = -1.23):
             He0 = (1/13.6)*M_atm/mu_avg # initial He number [atoms]
             H2_0 = (1/2)*H0 # initial H2 number [molecules]
         elif species == 'H/O':
-            mu_avg = (1-OtoH_protosolar*100)*mu_H + OtoH_protosolar*100*mu_O
-            H0 = (1 - OtoH_protosolar*100)*M_atm/mu_avg # initial H number [atoms]
-            O0 = OtoH_protosolar*100*M_atm/mu_avg # initial O number [atoms] # use OtoH_protosolar
+            mu_avg = (1-OtoH_protosolar)*mu_H + OtoH_protosolar*mu_O
+            H0 = (1 - OtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]
+            O0 = OtoH_protosolar *M_atm/mu_avg # initial O number [atoms] # use OtoH_protosolar
         elif species == 'H/N':
-            mu_avg = (1-NtoH_protosolar*100)*mu_H + NtoH_protosolar*100*mu_N
-            H0 = (1 - NtoH_protosolar*100)*M_atm/mu_avg # initial H number [atoms]      
-            N0 = NtoH_protosolar*100*M_atm/mu_avg # initial N number [atoms] # use NtoH_protosolar
+            mu_avg = (1-NtoH_protosolar)*mu_H + NtoH_protosolar*mu_N
+            H0 = (1 - NtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]      
+            N0 = NtoH_protosolar *M_atm/mu_avg # initial N number [atoms] # use NtoH_protosolar
         elif species == 'H/S':
-            mu_avg = (1-StoH_protosolar*100)*mu_H + StoH_protosolar*100*mu_S
-            H0 = (1 - StoH_protosolar*100)*M_atm/mu_avg # initial H number [atoms]      
-            S0 = StoH_protosolar*100*M_atm/mu_avg # initial S number [atoms] # use StoH_protosolar
+            mu_avg = (1-StoH_protosolar)*mu_H + StoH_protosolar*mu_S
+            H0 = (1 - StoH_protosolar)*M_atm/mu_avg # initial H number [atoms]      
+            S0 = StoH_protosolar *M_atm/mu_avg # initial S number [atoms] # use StoH_protosolar
+        elif species == 'H/C':
+            mu_avg = (1-CtoH_protosolar)*mu_H + CtoH_protosolar*mu_C
+            H0 = (1 - CtoH_protosolar)*M_atm/mu_avg # initial H number [atoms]
+            C0 = CtoH_protosolar *M_atm/mu_avg # initial C number [atoms] # use CtoH_protosolar
                     
         if rad_evol == True:
             if Rp_override == False:
@@ -192,6 +198,7 @@ beta = -1.23):
         H_O = R_gas*T/(M_O*g) # O scale height [m]
         H_N = R_gas*T/(M_N*g) # N scale height [m]
         H_S = R_gas*T/(M_S*g) # S scale height [m]
+        H_C = R_gas*T/(M_C*g) # C scale height [m]
 
     ###_____Set species values_____###
 
@@ -236,8 +243,8 @@ beta = -1.23):
             mu2 = mu_O
             M1 = M_H
             M2 = M_O
-            H1 = Scale_height_single_species(T, g, M1) # H scale height [m]
-            H2 = Scale_height_single_species(T, g, M2) # O scale height [m]
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]
+            H2 = Effective_scale_height(T, g, M2) # O scale height [m]
             N1 = H0
             N2 = O0
         elif species == 'H/N':  
@@ -245,8 +252,8 @@ beta = -1.23):
             mu2 = mu_N
             M1 = M_H
             M2 = M_N
-            H1 = Scale_height_single_species(T, g, M1) # H scale height [m]    
-            H2 = Scale_height_single_species(T, g, M2) # N scale height [m]
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]    
+            H2 = Effective_scale_height(T, g, M2) # N scale height [m]
             N1 = H0
             N2 = N0
         elif species == 'H/S':
@@ -254,10 +261,19 @@ beta = -1.23):
             mu2 = mu_S
             M1 = M_H
             M2 = M_S
-            H1 = Scale_height_single_species(T, g, M1) # H scale height [m]     
-            H2 = Scale_height_single_species(T, g, M2) # S scale height [m]
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]     
+            H2 = Effective_scale_height(T, g, M2) # S scale height [m]
             N1 = H0
             N2 = S0
+        elif species == 'H/C':
+            mu1 = mu_H
+            mu2 = mu_C
+            M1 = M_H
+            M2 = M_C
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]     
+            H2 = Effective_scale_height(T, g, M2) # C scale height [m]
+            N1 = H0
+            N2 = C0
 
     # sets initial mass flux phi [kg/m2/s]
         if mechanism == 'XUV':
@@ -340,7 +356,7 @@ beta = -1.23):
 
             y1_a[n] = y1
             y2_a[n] = y2
-            if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S':
+            if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':  
                 X2_aa[n] = y2/y1
             elif species == 'H2/HD':
                 X2_aa[n] = y2/(2*y1 + y2) # because N_H = 2*N_H2, checked with D0/H0 = HD_0/(2*H2_0 + HD_0)
@@ -370,7 +386,7 @@ beta = -1.23):
 
                     y1_a[n:] = y1_a[n-1]
                     y2_a[n:] = y2_a[n-1]
-                    if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S':
+                    if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':  
                         X2_aa[n:] = y2_a[n-1]/y1_a[n-1]
                     elif species == 'H2/HD' or species == 'H2/He':
                         X2_aa[n:] = y2_a[n-1]/(2*y1_a[n-1]) 
@@ -400,7 +416,7 @@ beta = -1.23):
 
                     y1_a[n:] = y1_a[n-1]
                     y2_a[n:] = y2_a[n-1]
-                    if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S':   
+                    if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':   
                         X2_aa[n:] = y2_a[n-1]/y1_a[n-1]
                     elif species == 'H2/HD' or species == 'H2/He':
                         X2_aa[n:] = y2_a[n-1]/(2*y1_a[n-1]) 
@@ -424,7 +440,7 @@ beta = -1.23):
 
                 y1_a[n:] = y1
                 y2_a[n:] = y2
-                if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S':   
+                if species == 'H/D' or species == 'H/He' or species == 'H/O' or species == 'H/N' or species == 'H/S' or species == 'H/C':   
                     X2_aa[n:] = y2/y1
                 elif species == 'H2/HD' or species == 'H2/He':
                     X2_aa[n:] = y2/(2*y1)
@@ -476,8 +492,8 @@ beta = -1.23):
                 phi = phi_XUV + phiE_CP(T, Mp, rho_rcb, eps, Vpot, A, mu, radius_env)
             mass_loss = phi*A*delta_t
             g = G*Mp/radius_p**2
-            H1 = Scale_height_single_species(T, g, M1) # H scale height [m]
-            H2 = Scale_height_single_species(T, g, M2) # O scale height [m]
+            H1 = Effective_scale_height(T, g, M1) # H scale height [m]
+            H2 = Effective_scale_height(T, g, M2) # O scale height [m]
             # redondant computation of H to check
             y1 -= Phi1*A*delta_t
             y2 -= Phi2*A*delta_t
