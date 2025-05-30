@@ -1,13 +1,13 @@
-from zephyrus.constants import amutokg
+from zephyrus.constants import amu
 import numpy as np 
 
 def mass_atom_kg(m_atom):
-    m_atom_kg = m_atom * amutokg  # Convert amu to kg
+    m_atom_kg = m_atom * amu  # Convert amu to kg
     return m_atom_kg
 
 def mass_molecule_2atoms_kg(m_atom1, m_atom2):
     m_molecule = m_atom1 + m_atom2 # molecule mass in amu
-    m_mol_kg = m_molecule * amutokg  # Convert to kg
+    m_mol_kg = m_molecule * amu  # Convert to kg
     return m_mol_kg
 
 def factor_Genda_Ikoma_2008_approx(m1, m2, m3, m4):
