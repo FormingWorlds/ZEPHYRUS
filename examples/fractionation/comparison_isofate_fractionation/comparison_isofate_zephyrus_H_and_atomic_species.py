@@ -141,7 +141,7 @@ def process_mixture(species_mixture):
     fig.suptitle(f'Comparison fractionation IsoFATE vs Zephyrus : {species_mixture}', fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     o_species = species_mixture.replace('/', '')
-    output_dir = 'plot_comparison_isofate_zephyrus_H_and_atomic_species'
+    output_dir = 'plot'
     filename = f'{output_dir}/8panels_comparison_{o_species}.pdf'
     plt.savefig(filename, dpi=300)
     plt.close()
