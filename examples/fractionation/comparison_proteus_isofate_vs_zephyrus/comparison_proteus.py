@@ -204,5 +204,5 @@ axs[3].legend()
 
 # Adjust layout and save
 plt.tight_layout()
-plt.savefig('plot/comparison_proteus_4panels.png', dpi=300)
+plt.savefig('plot/comparison_proteus_4panels.pdf', dpi=300)
 plt.close()
