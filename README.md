@@ -7,10 +7,10 @@
 
 # ZEPHYRUS for atmospheric escape
 
-**Zephyrus** is a module used to compute atmospheric escape of exoplanets. In Greek mythology, Zephyrus is the God of the West wind. He is often associated with a small breeze. Zephyrus is also the messenger of spring. 
+**Zephyrus** is a module used to compute atmospheric escape of exoplanets. In Greek mythology, Zephyrus is the God of the West wind. He is often associated with a small breeze. Zephyrus is also the messenger of spring.
 
 ### Documentation
-https://fwl-zephyrus.readthedocs.io
+[https://fwl-zephyrus.readthedocs.io](https://fwl-zephyrus.readthedocs.io)
 
 ### Contributors
 * Emma Postolec (e.n.postolec@rug.nl)
@@ -24,7 +24,6 @@ https://fwl-zephyrus.readthedocs.io
 * `src/zephyrus/`   - Zephyrus sources
 * `examples/`       - Typical use scripts
 * `tests/`          - Zephyrus tests
-* `tools/`          - Useful tools
 
 ### Installation instructions
 1. Basic install

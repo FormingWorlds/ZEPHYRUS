@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-zephyrus"
-version = "25.03.11"
+version = "25.10.28"
 description = "Atmospheric escape models of exoplanets."
 readme = "README.md"
 authors = [
@@ -26,7 +26,7 @@ requires-python = '>=3.10'
 dependencies = [
   'fwl-mors>=24.11.18',
   'matplotlib',
-  'numpy',
+  'numpy'
 ]
 
 [project.urls]
@@ -63,7 +63,7 @@ testpaths = ["tests"]
 
 [tool.bumpversion]
 # https://callowayproject.github.io/bump-my-version/howtos/calver/
-current_version = "25.03.11"
+current_version = "25.10.28"
 parse = """(?x)                     # Verbose mode
     (?P<release>                    # The release part
         (?:[1-9][0-9])\\.           # YY.
