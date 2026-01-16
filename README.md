@@ -10,7 +10,7 @@
 **Zephyrus** is a module used to compute atmospheric escape of exoplanets. In Greek mythology, Zephyrus is the God of the West wind. He is often associated with a small breeze. Zephyrus is also the messenger of spring.
 
 ### Documentation
-[https://fwl-zephyrus.readthedocs.io](https://fwl-zephyrus.readthedocs.io)
+[https://proteus-framework.org/ZEPHYRUS/](https://proteus-framework.org/ZEPHYRUS/)
 
 ### Contributors
 * Emma Postolec (e.n.postolec@rug.nl)
@@ -30,7 +30,7 @@
 ```console
 pip install fwl-zephyrus
 ```
-2. Developper install with code sources
+2. Developer install with code sources
 ```console
 git clone git@github.com:FormingWorlds/ZEPHYRUS.git
 cd ZEPHYRUS
