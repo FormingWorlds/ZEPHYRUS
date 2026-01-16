@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/fwl-zephyrus/badge/?version=latest)](https://fwl-zephyrus.readthedocs.io/en/latest/?badge=latest)
+[![Documentation](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/ZEPHYRUS/)
 ![Coverage](https://gist.githubusercontent.com/lsoucasse/152250f71914339d24537977e64aba55/raw/covbadge_zephyrus.svg)
 
 ![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_white.png#gh-light-mode-only)
