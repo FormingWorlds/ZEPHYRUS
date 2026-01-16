@@ -26,7 +26,7 @@ theme:
 
   # Default assets (used unless overridden per palette below)
   favicon: logo/PROTEUS_black_on_white_logo_only.png
-  logo: logo/PROTEUS_black_on_white.png
+  logo: logo/PROTEUS_white_on_black.png
 
   palette:
     # Auto: follow system preference (and show a toggle)
@@ -73,7 +73,7 @@ plugins:
     handlers:
       python:
         paths: [src]
-        import:
+        inventories:
         - https://installer.readthedocs.io/en/stable/objects.inv
         - https://numpy.org/doc/stable/objects.inv
         - https://docs.scipy.org/doc/scipy/objects.inv
