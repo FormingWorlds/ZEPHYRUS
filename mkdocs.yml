@@ -1,5 +1,5 @@
 site_name: ZEPHYRUS
-site_url: https://fwl-zephyrus.readthedocs.io
+site_url: https://proteus-framework.org/ZEPHYRUS/
 repo_url: https://github.com/FormingWorlds/ZEPHYRUS
 repo_name: GitHub
 
@@ -9,23 +9,46 @@ nav:
   - Code of Conduct: CODE_OF_CONDUCT.md
   - Source code: https://github.com/FormingWorlds/ZEPHYRUS
   - Issues page: https://github.com/FormingWorlds/ZEPHYRUS/issues
-  - 🔗 PROTEUS: https://fwl-proteus.readthedocs.io/
-  - 🔗 JANUS: https://fwl-janus.readthedocs.io/
-  - 🔗 CALLIOPE: https://fwl-calliope.readthedocs.io/
-  - 🔗 MORS: https://fwl-mors.readthedocs.io/
-  - 🔗 AGNI: https://h-nicholls.space/AGNI/
-  - 🔗 LovePy: https://github.com/nichollsh/lovepy
+  - 🔗 PROTEUS: https://proteus-framework.org/PROTEUS/
+  - 🔗 JANUS: https://proteus-framework.org/JANUS/
+  - 🔗 CALLIOPE: https://proteus-framework.org/CALLIOPE/
+  - 🔗 MORS: https://proteus-framework.org/MORS/
+  - 🔗 AGNI: https://h-nicholls.space/AGNI/dev/
+  - 🔗 Obliqua: https://proteus-framework.org/Obliqua/ 
   - 🔗 VULCAN: https://github.com/FormingWorlds/VULCAN
-  - 🔗 Zalmoxis: https://zalmoxis.readthedocs.io/
-  - 🔗 Aragog: https://github.com/FormingWorlds/aragog
+  - 🔗 Zalmoxis: https://proteus-framework.org/Zalmoxis/
+  - 🔗 Aragog: https://proteus-framework.org/aragog/
   - 🔗 SPIDER: https://github.com/djbower/spider
-
 
 theme:
   name: material
+  custom_dir: docs/overrides
+
+  # Default assets (used unless overridden per palette below)
+  favicon: logo/PROTEUS_black_on_white_logo_only.png
+  logo: logo/PROTEUS_white_on_black.png
+
   palette:
-    primary: black
-    accent: deep orange
+    # Auto: follow system preference (and show a toggle)
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: deep orange
+      favicon: logo/PROTEUS_black_on_white_logo_only.png
+      logo: logo/PROTEUS_white_on_black.png
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: deep orange
+      favicon: logo/PROTEUS_white_on_black_logo_only.png
+      logo: logo/PROTEUS_white_on_black.png
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
 
 extra_css:
   - stylesheets/extra.css
@@ -50,7 +73,7 @@ plugins:
     handlers:
       python:
         paths: [src]
-        import:
+        inventories:
         - https://installer.readthedocs.io/en/stable/objects.inv
         - https://numpy.org/doc/stable/objects.inv
         - https://docs.scipy.org/doc/scipy/objects.inv
