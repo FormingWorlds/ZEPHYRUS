@@ -1,8 +1,8 @@
 [![Documentation](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/ZEPHYRUS/)
 ![Coverage](https://gist.githubusercontent.com/lsoucasse/152250f71914339d24537977e64aba55/raw/covbadge_zephyrus.svg)
 
-![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_white.png#gh-light-mode-only)
-![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_black.png#gh-dark-mode-only)
+![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_white.png#only-light)
+![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_black.png#only-dark)
 
 
 # ZEPHYRUS for atmospheric escape
