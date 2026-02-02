@@ -85,7 +85,10 @@ plugins:
             ignore_init_summary: yes
           show_submodules: no
           show_source: true
-          show_root_heading: false
+          show_symbol_type_heading: True
+          show_root_heading: true
+          show_root_toc_entry: true
+          show_docstring_attributes: true
           show_root_full_path: false
           docstring_section_style: list
           members_order: alphabetical
