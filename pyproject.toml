@@ -39,6 +39,7 @@ develop = [
   "pytest"
 ]
 docs = [
+    "zensical==0.0.39",
     "markdown-include",
     "mkdocs",
     "mkdocs-material",
