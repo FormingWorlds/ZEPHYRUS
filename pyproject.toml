@@ -11,7 +11,7 @@ authors = [
     {name = "Emma Postolec", email = "e.n.postolec@rug.nl"},
     {name = "Tim Lichtenberg", email = "tim.lichtenberg@rug.nl"},
     {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
-    {name=  "Harrison Nicholls",       email="contact@h-nicholls.space"},
+    {name=  "Harrison Nicholls", email= "contact@h-nicholls.space"},
     {name = "Karen Stuitje", email = "stuitje@proton.me"}
 ]
 license = {text = "Apache 2.0 License"}
