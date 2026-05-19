@@ -1,6 +1,6 @@
 # ZEPHYRUS parameter reference
 
-This is a reference page for all parameters and constants used in ZEPHYRUS. For the physical motivation behind them, see the [model overview](../Explanations/model.md).
+This is a reference page for all parameters and constants used in ZEPHYRUS. For the physical model, see the [model overview](../Explanations/model.md).
 
 ---
 
