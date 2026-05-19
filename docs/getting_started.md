@@ -19,7 +19,6 @@ Here is the quickest path to getting started:
 
 ## What do you want to do?
 
-### Get started
 
 <div class="grid cards" markdown>
 
@@ -30,6 +29,30 @@ Here is the quickest path to getting started:
 -   :material-rocket-launch: **Run ZEPHYRUS**
 
     [Go to tutorial](Tutorials/first_run.md)
+
+-   :material-library: **Understand the model**
+
+    [Go to model overview](Explanations/model.md)
+
+-   :octicons-file-code-16: **Browse the API**
+
+    [Go to API reference](Reference/api/index.md)
+
+-  :fontawesome-solid-earth: **Understand the use in PROTEUS**
+
+    [Go to coupling to PROTEUS](Explanations/proteus.md)
+
+-   :material-bug: **Raise an issue**
+
+    [Go to issues](https://github.com/FormingWorlds/MORS/issues)
+
+-   :material-github: **Contribute / browse code**
+
+    [Go to source code](https://github.com/FormingWorlds/MORS)
+
+-   :material-email: **Get in touch**
+
+    [Go to contact](Community/contact.md)
 
 
 </div>
