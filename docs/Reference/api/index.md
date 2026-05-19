@@ -8,7 +8,7 @@ This is an overview of ZEPHYRUS' API for the user's reference. If you want to un
 | [`zephyrus.escape`](escape.md) | `EL_escape`: energy-limited atmospheric mass-loss rate |
 | **Reference values** | |
 | [`zephyrus.constants`](constants.md) | Physical constants and unit conversions (SI and CGS) |
-| [`zephyrus.planets_parameters`](planets_parameters.md) | Sun, Earth, and TOI-561 system reference values |
+| [`zephyrus.planets_parameters`](planet_parameters.md) | Sun, Earth, and TOI-561 system reference values |
 
 
 The **source tree** is given by:
