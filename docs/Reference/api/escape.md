@@ -2,6 +2,6 @@
 
 ::: zephyrus.escape
     options:
-      members: true
-      inherited_members: false
+      members:
+        - EL_escape
       show_source: true

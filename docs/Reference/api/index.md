@@ -11,7 +11,7 @@ This is an overview of ZEPHYRUS' API for the user's reference. If you want to un
 | [`zephyrus.planets_parameters`](planets_parameters.md) | Sun, Earth, and TOI-561 system reference values |
 
 
-A **source tree** is given by:
+The **source tree** is given by:
 
 ```
 src/zephyrus
