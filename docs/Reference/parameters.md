@@ -35,7 +35,6 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `Rs` | $R_\odot$ | $6.957 \times 10^{8}$ | m |
 | `Ms` | $M_\odot$ | $1.98847 \times 10^{30}$ | kg |
 | `Ls` | $L_\odot$ | $3.828 \times 10^{26}$ | W |
-| `Ls_ergs` | $L_\odot$ | $3.839 \times 10^{33}$ | erg s⁻¹ |
 | `age_sun` | – | $4.603 \times 10^{9}$ | yr |
 
 

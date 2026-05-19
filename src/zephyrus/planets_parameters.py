@@ -10,7 +10,6 @@
 Rs      = 6.957e8                      # Solar radius                          [m]
 Ms      = 1.98847e30                   # Solar mass                            [kg]
 Ls      = 3.828e26                     # Solar luminosity                      [W]
-Ls_ergs = 3.839e33                     # Solar luminosity                      [erg s-1]
 age_sun = 4.603e9                      # Age of the Sun                        [yr]
 
 # Earth parameters 
