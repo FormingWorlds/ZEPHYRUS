@@ -21,9 +21,12 @@ nav:
       - Coupling to PROTEUS: Explanations/proteus.md
 
   - Reference:
-      - Publications and bibliography: Reference/publications.md
+      - Model parameters: Reference/parameters.md
       - API reference:
         - Overview: Reference/api/index.md
+        - Escape: Reference/api/escape.md
+        - Constants: Reference/api/constants.md
+        - Planet parameters: Reference/api/planet_parameters.md
     
   - Community:
       - Contact: Community/contact.md
