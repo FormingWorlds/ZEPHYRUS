@@ -1,7 +1,7 @@
-''''
-Emma Postolec
-constants.py
-This file contains star-planet system parameters for running escape simulations.
+'''
+!!! info "`planets_parameters.py`"
+    Star-planet system parameters for running escape simulations.<br>
+    Author: Emma Postolec
 '''
 
 ######################################### Sun-Earth system #########################################
