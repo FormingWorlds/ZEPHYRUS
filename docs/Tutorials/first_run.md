@@ -67,7 +67,7 @@ Rxuv                     = Re               # XUV planetary radius              
 
 A few choices worth noting:
 
-- `epsilon = 0.15` is the conservative value adopted by Kasting & Pollack (1983) and used in many subsequent rocky-planet studies. The full plausible range is roughly $0.1$–$0.6$.
+- `epsilon = 0.15` is the conservative value adopted by Kasting & Pollack (1983) [^kp83] and used in many subsequent rocky-planet studies. The full plausible range is roughly $0.1$–$0.6$.
 - `Rxuv = Re` sets the XUV-absorbing radius equal to the planetary radius. This is a lower bound on the mass-loss rate; allowing $R_\mathrm{XUV} > R_p$ would increase escape.
 - `tidal_contribution = False` ignores the Roche-lobe enhancement of escape. At 1 au this is a negligible correction, but for close-in planets it should be enabled.
 
@@ -168,3 +168,5 @@ Things to try from here:
 - **Sweep $\epsilon$**: loop `epsilon` over `[0.1, 0.3, 0.5, 1.0]` and plot all four curves on the same axes. 
 - **Sweep semi-major axis**: keep $\epsilon = 0.15$ fixed and try `[0.05, 0.1, 0.5, 1.0]` au. The integral of each curve over the stellar lifetime gives the total atmospheric mass lost; compare it to one Earth atmosphere ($M_\mathrm{atm,\oplus} \approx 5.15 \times 10^{18}$ kg, available as `Me_atm`).
 - **Vary $R_\mathrm{XUV}$**: try `Rxuv = 1.5 * Re` to see how an extended XUV-absorbing region amplifies the mass-loss rate. 
+
+[^kp83]: Kasting, J. F., & Pollack, J. B. (1983). Loss of water from Venus. I. Hydrodynamic escape of hydrogen. *Icarus, 53*(3), 479–508. https://doi.org/10.1016/0019-1035(83)90212-9
