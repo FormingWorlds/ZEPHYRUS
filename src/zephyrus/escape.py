@@ -25,7 +25,7 @@ def EL_escape(tidal_contribution:bool, a:float, e:float,
 
     where $R^3$ is either $R_p R_\mathrm{XUV}^2$ or $R_\mathrm{XUV}^3$
     depending on ``scaling``, and $K_\mathrm{tide}$ is the tidal
-    correction factor of Erkaev et al. (2007) when ``tidal_contribution``
+    correction factor of Lopez et al. (2012) when ``tidal_contribution``
     is True, else 1.
 
     Parameters
@@ -73,14 +73,12 @@ def EL_escape(tidal_contribution:bool, a:float, e:float,
     ValueError
         If ``scaling`` is not ``2`` or ``3``.
 
-    Notes
-    -----
+    References
+    ----------
     Based on the formulation of Lopez, Fortney & Miller (2012),
     Equations 2-4. The alternative radius scaling (``scaling=3``)
     follows Lehmer & Catling (2017), Equation 1.
 
-    References
-    ----------
     1. Lopez, E. D., Fortney, J. J., & Miller, N. (2012).
        How thermal evolution and mass-loss sculpt populations of
        super-Earths and sub-Neptunes. *ApJ*, 761(1), 59.
