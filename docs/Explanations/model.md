@@ -57,7 +57,7 @@ Similarly, the bulk-removal assumption breaks down when the hydrodynamic particl
 
 [^luger]: Luger, R., & Barnes, R. (2015). Extreme water loss and abiotic O$_2$ buildup on planets throughout the habitable zones of M dwarfs. *Astrobiology, 15*(2), 119–143. https://doi.org/10.1089/ast.2014.1231
 
-[^moore]: Moore, K., Cowan, N. B., & Boukaré, C.-É. (2023). Atmospheric retention on Earth-sized planets around M dwarfs through magma-ocean outgassing. *Monthly Notices of the Royal Astronomical Society, 526*(4), 6235–6249. https://doi.org/10.1093/mnras/stad3098
+[^moore]: Moore, K., Cowan, N. B., & Boukaré, C.-É. (2023). The role of magma oceans in maintaining surface water on rocky planets orbiting M-dwarfs. *Monthly Notices of the Royal Astronomical Society, 526*(4), 6235–6249. https://doi.org/10.1093/mnras/stad3138
 
 [^lammer2003]: Lammer, H., Selsis, F., Ribas, I., et al. (2003). Atmospheric loss of exoplanets resulting from stellar X-ray and extreme-ultraviolet heating. *The Astrophysical Journal, 598*(2), L121–L124. https://doi.org/10.1086/380815
 
@@ -65,6 +65,6 @@ Similarly, the bulk-removal assumption breaks down when the hydrodynamic particl
 
 [^wordsworth2018]: Wordsworth, R. D., Schaefer, L. K., & Fischer, R. A. (2018). Redox evolution via gravitational differentiation on low-mass planets: implications for abiotic oxygen, water loss, and habitability. *The Astronomical Journal, 155*(5), 195. https://doi.org/10.3847/1538-3881/aab608
 
-[^cherubim2024]: Cherubim, C., Wordsworth, R., Hu, R., & Shkolnik, E. (2024). Strong water loss and atmospheric escape from oxygen-rich rocky exoplanets. *The Astrophysical Journal, 967*(2), 139. https://doi.org/10.3847/1538-4357/ad3e6a
+[^cherubim2024]: Cherubim, C., Wordsworth, R., Hu, R., & Shkolnik, E. (2024). Strong Fractionation of Deuterium and Helium in Sub-Neptune Atmospheres along the Radius Valley. *The Astrophysical Journal, 967*(2), 139. https://doi.org/10.3847/1538-4357/ad3e77
 
-[^yoshida]: Yoshida, T., Terada, N., Ikoma, M., & Kuramoto, K. (2022). Effect of radiative cooling on the heating efficiency and mass-loss rate of hot Jupiters in hydrodynamic escape. *The Astrophysical Journal, 934*(2), 137. https://doi.org/10.3847/1538-4357/ac7be7
+[^yoshida]: Yoshida, T., Terada, N., Ikoma, M., & Kuramoto, K. (2022). Less Effective Hydrodynamic Escape of H$_2$–H$_2$O Atmospheres on Terrestrial Planets Orbiting Pre-main-sequence M Dwarfs. *The Astrophysical Journal, 934*(2), 137. https://doi.org/10.3847/1538-4357/ac7be7
