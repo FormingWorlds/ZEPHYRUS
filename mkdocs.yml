@@ -12,6 +12,7 @@ nav:
 
   - How-to guides:
       - Installation: How-to/installation.md
+      - Build documentation: How-to/documentation.md
 
   - Tutorials:
       - First run: Tutorials/first_run.md
@@ -19,6 +20,7 @@ nav:
   - Explanations:
       - Model overview: Explanations/model.md
       - Coupling to PROTEUS: Explanations/proteus.md
+      - Limitations: Explanations/limitations.md
 
   - Reference:
       - Model parameters: Reference/parameters.md
