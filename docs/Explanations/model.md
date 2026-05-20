@@ -1,6 +1,6 @@
 # ZEPHYRUS model overview
 
-ZEPHYRUS computes the bulk hydrodynamic atmospheric escape rate driven by stellar XUV irradiation for rocky exoplanets coupled to the [PROTEUS](https://proteus-framework.org) interior–atmosphere framework. It implements an energy-limited (EL) formalism following Watson et al. (1981) [^watson], Erkaev et al. (2007) [^erkaev], and Lopez & Fortney (2013) [^lopez]. ZEPHYRUS is called at each PROTEUS time step with the current planetary radius and mass, the stellar XUV flux supplied by [MORS](https://proteus-framework.org/MORS) , and the escape radius computed from the atmospheric structure produced by AGNI or JANUS. The mass-loss rate it returns is distributed across atmospheric species according to their elemental mass mixing ratios, so the atmosphere is depleted in bulk without elemental fractionation.
+ZEPHYRUS computes the bulk hydrodynamic atmospheric escape rate driven by stellar XUV irradiation for rocky exoplanets coupled to the [PROTEUS](https://proteus-framework.org) interior–atmosphere framework. It implements an energy-limited (EL) formalism following Watson et al. (1981) [^watson] and Lopez & Fortney (2013) [^lopez]. ZEPHYRUS is called at each PROTEUS time step with the current planetary radius and mass, the stellar XUV flux supplied by [MORS](https://proteus-framework.org/MORS) , and the escape radius computed from the atmospheric structure produced by AGNI or JANUS. The mass-loss rate it returns is distributed across atmospheric species according to their elemental mass mixing ratios, so the atmosphere is depleted in bulk without elemental fractionation.
 
 A model parameter reference can be found [here](../Reference/parameters.md).
 
@@ -25,7 +25,7 @@ Both forms reduce to $R_p^3$ when $R_\mathrm{XUV} = R_p$, which is the conservat
 
 ### Tidal correction $K_\mathrm{tide}$
 
-When the `tidal_contribution` flag is `True`, the reduction of the effective gravitational potential by the host star's tidal field is included following Erkaev et al. (2007) [^erkaev]:
+When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field through the factor
 
 $$K_\mathrm{tide} = 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R_\mathrm{XUV}} \tag{2}$$
 
@@ -52,7 +52,6 @@ Similarly, the bulk-removal assumption breaks down when the hydrodynamic particl
 
 [^watson]: Watson, A. J., Donahue, T. M., & Walker, J. C. G. (1981). The dynamics of a rapidly escaping atmosphere: applications to the evolution of Earth and Venus. *Icarus, 48*(2), 150–166. https://doi.org/10.1016/0019-1035(81)90101-9
 
-[^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
 
 [^lopez]: Lopez, E. D., & Fortney, J. J. (2013). The role of core mass in controlling evaporation: the Kepler radius distribution and the Kepler-36 density dichotomy. *The Astrophysical Journal, 776*(1), 2. https://doi.org/10.1088/0004-637X/776/1/2
 
