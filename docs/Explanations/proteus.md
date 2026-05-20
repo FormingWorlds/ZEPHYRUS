@@ -53,21 +53,23 @@ The PROTEUS configuration block for ZEPHYRUS lives under `[escape]` and `[escape
 flowchart TD
     Start([<b>Start of escape step</b>])
 
-    Pull1["Pull <b>planetary state</b> from  <code>hf_row </code><br/>( <code>semimajorax</code>,  <code>eccentricity</code>,  <code>M_planet</code>,<br/> <code>R_int</code>,  <code>R_xuv</code>,  <code>F_xuv</code>)"]
+    Pull1["Pull <b>planetary state</b> from <code>hf_row</code><br/>(<code>semimajorax</code>, <code>eccentricity</code>, <code>M_planet</code>,<br/><code>R_int</code>, <code>R_xuv</code>, <code>F_xuv</code>)"]
     Pull2["Pull <b>config</b><br/>(tidal, efficiency, star mass)"]
 
     Call["Call <b><code>EL_escape</code></b> with scaling=3"]
 
-    Store["1. Store <code>esc_rate_total</code> in <code>hf_row</code><br/>2. Set <code>p_xuv</code> from config<br/>3. Reset <code>R_xuv</code> to 0.0."]
+    Store["1. Store <code>esc_rate_total</code> in <code>hf_row</code><br/>2. Set <code>p_xuv</code> from config<br/>3. Reset <code>R_xuv</code> to 0.0"]
 
-    Distribute["<b><code>calc_unfract_fluxes</code></b><br/>distributes bulk rate across<br/>elements by mass mixing ratio"]
+    Distribute["<b><code>calc_unfract_fluxes</code></b><br/>distributes bulk rate across elements by mass mixing ratio"]
 
-    Integrate["<b><code>calc_new_elements</code></b><br/>decrements per-element<br/>inventories over dt"]
+    Integrate["<b><code>calc_new_elements</code></b><br/>for each element except oxygen"]
 
-    Threshold{"Element mass<br/>below threshold?"}
+    SkipO["Oxygen skipped<br/>(set by <code>fO2</code>)"]
+
+    Threshold{"Updated inventory<br/>below threshold?"}
 
     Zero["Set inventory to 0"]
-    Keep["Write updated inventory<br/>to <code>hf_row</code>"]
+    Keep["Write updated inventory<br/>to <code>{e}_kg_total</code> in <code>hf_row</code>"]
 
     Done([<b>End of escape step</b>])
 
@@ -78,6 +80,7 @@ flowchart TD
     Call --> Store
     Store --> Distribute
     Distribute --> Integrate
+    Integrate -.-> SkipO
     Integrate --> Threshold
     Threshold -->|yes| Zero
     Threshold -->|no| Keep
@@ -86,6 +89,10 @@ flowchart TD
 ```
 
 The wrapper logs the bulk rate and each non-zero elemental rate to the PROTEUS log.
+
+!!! info "fO2"
+    Oxygen is excluded from the loss calculation regardless of reservoir: the wrapper preserves it because it is set by the prescribed mantle redox state (`outgas.fO2_shift_IW`).
+
 
 ---
 
@@ -100,8 +107,6 @@ The wrapper logs the bulk rate and each non-zero elemental rate to the PROTEUS l
 | `"pxuv"` | Reserved for fractionation at the XUV-opaque pressure level. Currently raises `ValueError: Fractionation at p_xuv is not yet supported`. |
 
 Any other string raises `ValueError`.
-
-Oxygen is excluded from the loss calculation regardless of reservoir: the wrapper preserves it because it is set by the prescribed mantle redox state (`outgas.fO2_shift_IW`).
 
 After the loss step, inventories that fall below `config.outgas.mass_thresh` are zeroed out.
 
