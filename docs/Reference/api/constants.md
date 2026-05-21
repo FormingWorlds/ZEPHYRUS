@@ -1,4 +1,4 @@
-#zephyrus.constants
+# zephyrus.constants
 
 ::: zephyrus.constants
     options:
