@@ -11,10 +11,10 @@ function wire() {
     title.dataset.spiderWired = "1";
     title.style.cursor = "pointer";
 
-    // always go to /SPIDER/ when hosted there, else "/" (mkdocs serve)
-    const href = location.href;
-    const docsHome = href.includes("/SPIDER/")
-      ? href.split("/SPIDER/")[0] + "/SPIDER/"
+    // derive the hosted docs base path dynamically, else "/" (mkdocs serve)
+    const pathMatch = location.pathname.match(/^\/([A-Z0-9_-]+)(?:\/|$)/);
+    const docsHome = pathMatch
+      ? location.origin + "/" + pathMatch[1] + "/"
       : location.origin + "/";
 
     title.addEventListener("click", (e) => {
