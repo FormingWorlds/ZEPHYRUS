@@ -44,11 +44,11 @@ Here is the quickest path to getting started:
 
 -   :material-bug: **Raise an issue**
 
-    [Go to issues](https://github.com/FormingWorlds/MORS/issues)
+    [Go to issues](https://github.com/FormingWorlds/ZEPHYRUS/issues)
 
 -   :material-github: **Contribute / browse code**
 
-    [Go to source code](https://github.com/FormingWorlds/MORS)
+    [Go to source code](https://github.com/FormingWorlds/ZEPHYRUS)
 
 -   :material-email: **Get in touch**
 
