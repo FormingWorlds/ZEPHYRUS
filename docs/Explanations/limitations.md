@@ -33,7 +33,7 @@ These processes operate on a different physical basis (kinetic rather than fluid
 - Sputtering
 - Polar wind / unmagnetised ion outflow
 
-For present-day Earth and Venus these mechanisms dominate over hydrodynamic escape, with total non-thermal rates around $\sim 10^3$ g s$^{-1}$ — many orders of magnitude below the EL rates ZEPHYRUS produces during the early evolution phase.
+For present-day Earth and Venus these mechanisms dominate over hydrodynamic escape, with total non-thermal rates around $\sim 10^3$ g s$^{-1}$; many orders of magnitude below the EL rates ZEPHYRUS produces during the early evolution phase.
 
 ---
 
@@ -48,7 +48,7 @@ For present-day Earth and Venus these mechanisms dominate over hydrodynamic esca
 The XUV flux $F_\mathrm{XUV}$ that enters Eq. (1) of the [model overview](model.md) carries large intrinsic uncertainties from the underlying stellar evolution model:
 
 - Saturation timescales for the stellar XUV phase can vary from ~10 to ~300 Myr for G stars and up to ~1 Gyr for fully convective M dwarfs, depending on initial rotation.
-- The integrated XUV flux — and therefore the integrated mass loss — can vary by factors of $\sim 2$–10 between standard stellar evolution prescriptions.
+- The integrated XUV flux, and therefore the integrated mass loss, can vary by factors of $\sim 2–10$ between standard stellar evolution prescriptions.
 - The ISM absorbs stellar XUV emission, so observational anchors on young-star XUV luminosities are themselves uncertain.
 
 Because of these uncertainties, the mass-loss rates computed by ZEPHYRUS should generally be treated as an upper bound.
@@ -67,4 +67,4 @@ Because of these uncertainties, the mass-loss rates computed by ZEPHYRUS should 
 For users:
 
 - Avoid $\epsilon > 0.3$ for rocky planets unless you have a specific reason. $\epsilon \approx 0.15$ is the conservative baseline.
-- For close-in M-dwarf planets where elemental fractionation is expected to matter, ZEPHYRUS bulk rates are a lower bound on the change in atmospheric mean molecular weight — the actual atmosphere should become heavier faster than the model predicts.
+- For close-in M-dwarf planets where elemental fractionation is expected to matter, ZEPHYRUS bulk rates are a lower bound on the change in atmospheric mean molecular weight. The actual atmosphere should become heavier faster than the model predicts.
