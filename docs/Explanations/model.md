@@ -25,7 +25,7 @@ Both forms reduce to $R_p^3$ when $R_\mathrm{XUV} = R_p$, which is the conservat
 
 ### Tidal correction $K_\mathrm{tide}$
 
-When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field through the factor
+When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field following Lopez & Fortney (2013), eq. 3 [^lopez]:
 
 $$K_\mathrm{tide} = 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R_\mathrm{XUV}} \tag{2}$$
 
@@ -39,7 +39,9 @@ where $a$ is the planetary semi-major axis, $e$ is the orbital eccentricity, and
 
 ## Coupling to PROTEUS
 
-ZEPHYRUS treats atmospheric escape as a bulk process: at each PROTEUS time step the total mass-loss rate from Eq. (1) is partitioned across atmospheric species in proportion to their elemental mass mixing ratios as computed by CALLIOPE. No elemental fractionation between light and heavy species is imposed in the outflow itself; however, because only outgassed volatiles are subject to escape while dissolved species remain in the magma ocean reservoir, escape fractionates the planet's *total* (interior + atmosphere) volatile budget over time, preferentially retaining species that are highly soluble in silicate melts (e.g. H$_2$O, S$_2$).
+ZEPHYRUS treats atmospheric escape as a bulk process: at each PROTEUS time step the total mass-loss rate from Eq. (1) is partitioned across atmospheric species in proportion to their elemental mass mixing ratios as computed by CALLIOPE. No elemental fractionation between light and heavy species is imposed in the outflow itself; however, because only outgassed volatiles are subject to escape while dissolved species remain in the magma ocean reservoir, escape fractionates the planet's *total* (interior + atmosphere) volatile budget over time, preferentially retaining species that are highly soluble in silicate melts (e.g. H$_2$O, S$_2$). 
+
+More about this in its dedicated [page](proteus.md).
 
 
 ## Regime of validity
