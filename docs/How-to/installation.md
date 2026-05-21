@@ -4,7 +4,7 @@
     The standard way of installing ZEPHYRUS is within the PROTEUS Framework, as described in the [PROTEUS installation guide](https://proteus-framework.org/PROTEUS/installation.html#9-install-submodules-as-editable). When installed as part of PROTEUS, ZEPHYRUS is set up automatically alongside all other modules. The standalone instructions below are only needed if you want to use ZEPHYRUS independently of PROTEUS.
 
 !!! info "Prerequisites"
-    - **Python** ≥ 3.11
+    - **Python** ≥ 3.10
     - **pip** (`python -m pip --version`)
     - **Git**: only needed for the developer install (`git --version`)
     - **Internet access**: required once to download the stellar evolution tracks used by MORS
