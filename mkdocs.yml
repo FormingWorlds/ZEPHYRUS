@@ -12,6 +12,7 @@ nav:
 
   - How-to guides:
       - Installation: How-to/installation.md
+      - Run tests: How-to/run_tests.md
       - Build documentation: How-to/documentation.md
 
   - Tutorials:
