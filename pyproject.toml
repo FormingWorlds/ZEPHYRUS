@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-zephyrus"
-version = "25.10.28"
+version = "26.05.22"
 description = "Atmospheric escape models of exoplanets."
 readme = "README.md"
 authors = [
