@@ -39,7 +39,7 @@ Use this route if you want to modify the source code or contribute to ZEPHYRUS.
 === "Conda"
 
     ```sh
-    conda create -n zephyrus python=3.11 -y
+    conda create -n zephyrus python=3.12 -y
     conda activate zephyrus
     ```
 
