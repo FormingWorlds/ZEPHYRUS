@@ -14,7 +14,7 @@ Click any module in the diagram to open its documentation, or navigate to it fro
 <br>
 <br>
 
-<object type="image/svg+xml" data="https://github.com/FormingWorlds/PROTEUS/tree/main/docs/assets/proteus_modules_schematic.svg" class="arch-diagram arch-diagram--light"></object>
-<object type="image/svg+xml" data="https://github.com/FormingWorlds/PROTEUS/tree/main/docs/assets/proteus_modules_schematic_darkmode.svg" class="arch-diagram arch-diagram--dark"></object>
+<object type="image/svg+xml" data="https://raw.githubusercontent.com/FormingWorlds/PROTEUS/main/docs/assets/proteus_modules_schematic.svg" class="arch-diagram arch-diagram--light"></object>
+<object type="image/svg+xml" data="https://raw.githubusercontent.com/FormingWorlds/PROTEUS/main/docs/assets/proteus_modules_schematic_darkmode.svg" class="arch-diagram arch-diagram--dark"></object>
 
 <p style="text-align: center;"><strong>Schematic of PROTEUS components and corresponding modules.</strong></p>
