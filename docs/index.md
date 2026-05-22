@@ -1,3 +1,5 @@
+# ZEPHYRUS
+
 [![ZEPHYRUS CI Test Suite](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/tests.yaml/badge.svg)](https://github.com/FormingWorlds/ZEPHYRUS/actions)
 ![Coverage](https://gist.githubusercontent.com/lsoucasse/152250f71914339d24537977e64aba55/raw/covbadge_zephyrus.svg)
 [![Documentation](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/ZEPHYRUS/)
