@@ -1,0 +1,29 @@
+/* ---- Footnote/citation markers: render as inline [1] instead of superscript ---- */
+.md-typeset sup[id^="fnref"] {
+  vertical-align: baseline !important;
+  font-size: 1em !important;
+  line-height: inherit !important;
+}
+
+.md-typeset sup[id^="fnref"] > a.footnote-ref {
+  text-decoration: none;
+}
+
+.md-typeset sup[id^="fnref"] > a.footnote-ref::before { content: "["; }
+.md-typeset sup[id^="fnref"] > a.footnote-ref::after  { content: "]"; }
+
+/* fallback (some versions/themes) */
+.md-typeset a.footnote-ref {
+  vertical-align: baseline !important;
+  font-size: 1em !important;
+}
+
+/* reduce space under the page title */
+.md-typeset h1 {
+  margin-bottom: 0.2rem;  /* try 0, 0.2rem, 0.5rem */
+}
+
+/* optionally reduce any top margin on the first image */
+.md-typeset h1 + p img {
+  margin-top: 0;
+}

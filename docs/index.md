@@ -1,48 +1,26 @@
-[![Documentation](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/ZEPHYRUS/)
+# ZEPHYRUS
+
+[![ZEPHYRUS CI Test Suite](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/tests.yaml/badge.svg)](https://github.com/FormingWorlds/ZEPHYRUS/actions)
 ![Coverage](https://gist.githubusercontent.com/lsoucasse/152250f71914339d24537977e64aba55/raw/covbadge_zephyrus.svg)
+[![Documentation](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/ZEPHYRUS/)
+[![License](https://img.shields.io/github/license/FormingWorlds/ZEPHYRUS?label=License)](https://github.com/FormingWorlds/ZEPHYRUS/blob/main/LICENSE.md)
+[![PyPI](https://img.shields.io/pypi/v/fwl-zephyrus?label=PyPI)](https://pypi.org/project/fwl-zephyrus/)
 
 ![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_white.png#only-light)
 ![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_black.png#only-dark)
 
 
-# ZEPHYRUS for atmospheric escape
+**Zephyrus**, named after the Greek God of the West wind and messenger of spring, models the energy-limited atmospheric escape of exoplanets. 
 
-**Zephyrus** is a module used to compute atmospheric escape of exoplanets. In Greek mythology, Zephyrus is the God of the West wind. He is often associated with a small breeze. Zephyrus is also the messenger of spring.
+!!! info "PROTEUS framework"
+    ZEPHYRUS is the atmospheric escape model integrated into the PROTEUS framework,  a modular Python framework that simulates the coupled evolution of the atmospheres and interiors of rocky planets and exoplanets. The documentation for PROTEUS can be found [here](https://proteus-framework.org/PROTEUS). 
 
-### Documentation
-[https://proteus-framework.org/ZEPHYRUS/](https://proteus-framework.org/ZEPHYRUS/)
+If you plan to contribute to ZEPHYRUS, please read our [Code of Conduct](Community/CODE_OF_CONDUCT.md). If you are running into problems, please do not hesitate to raise an [Issue](https://github.com/FormingWorlds/ZEPHYRUS/issues).
 
-### Contributors
-* Emma Postolec (e.n.postolec@rug.nl)
-* Tim Lichtenberg (tim.lichtenberg@rug.nl)
-* Laurent Soucasse (l.soucasse@esciencecenter.nl)
-* Harrison Nicholls (harrison.nicholls@physics.ox.ac.uk)
 
-### Repository structure
-* `README.md`       - This file
-* `docs/`           - Documentation sources
-* `src/zephyrus/`   - Zephyrus sources
-* `examples/`       - Typical use scripts
-* `tests/`          - Zephyrus tests
+!!! tip "New to ZEPHYRUS?"
+    Go to [getting started](getting_started.md) for a quick path and basic usage. 
 
-### Installation instructions
-1. Basic install
-```console
-pip install fwl-zephyrus
-```
-2. Developer install with code sources
-```console
-git clone git@github.com:FormingWorlds/ZEPHYRUS.git
-cd ZEPHYRUS
-pip install -e .
-```
-3. Download input data
-The `fwl-mors` python package is used to compute the XUV stellar incoming flux on the planet, which most escape models rely on. This package requires a set of stellar evolution data, stored in the [OSF repository](https://osf.io/9u3fb/). To download the data follow the following steps.
-    * Set the environment variable FWL_DATA to define where the data files will be stored
-        * `export FWL_DATA=...`
-        * This can be done permanently by entering this line into your `~/.bashrc` file.
-    * Run the following command to download all evolution track data
-        * `mors download all`
+## License
 
-### Run instructions
-In the example folder, you can find python scripts showing typical usecases/workflows of escape computation with Zephyrus.
+Please see the included [license](https://github.com/FormingWorlds/ZEPHYRUS/blob/main/LICENSE.md).

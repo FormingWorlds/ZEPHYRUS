@@ -1,7 +1,7 @@
-''''
-Emma Postolec
-constants.py
-This file contains some often used physical constants and unit conversions.
+'''
+!!! info "`constants.py`"
+    Often used physical constants and unit conversions.<br>
+    Author: Emma Postolec
 '''
 
 ######################################### Physical constants #########################################

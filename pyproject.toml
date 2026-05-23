@@ -4,14 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-zephyrus"
-version = "25.10.28"
+version = "26.05.22"
 description = "Atmospheric escape models of exoplanets."
 readme = "README.md"
 authors = [
     {name = "Emma Postolec", email = "e.n.postolec@rug.nl"},
     {name = "Tim Lichtenberg", email = "tim.lichtenberg@rug.nl"},
     {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
-    {name = "Harrison Nicholls", email = "harrison.nicholls@physics.ox.ac.uk"}
+    {name=  "Harrison Nicholls", email= "contact@h-nicholls.space"},
+    {name = "Karen Stuitje", email = "stuitje@proton.me"}
 ]
 license = {text = "Apache 2.0 License"}
 classifiers = [
@@ -39,6 +40,7 @@ develop = [
   "pytest"
 ]
 docs = [
+    "zensical==0.0.39",
     "markdown-include",
     "mkdocs",
     "mkdocs-material",

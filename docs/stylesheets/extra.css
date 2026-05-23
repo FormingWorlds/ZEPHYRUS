@@ -1,0 +1,19 @@
+.arch-diagram {
+  width: 100%;
+  display: none;
+}
+
+/* Light mode: show light diagram */
+[data-md-color-scheme="default"] .arch-diagram--light {
+  display: block;
+}
+
+/* Dark mode: show dark diagram (Material's default dark scheme is "slate") */
+[data-md-color-scheme="slate"] .arch-diagram--dark {
+  display: block;
+}
+
+/* Remove underline from links that contain only an image */
+.md-typeset p a:has(> img) {
+  text-decoration: none;
+}

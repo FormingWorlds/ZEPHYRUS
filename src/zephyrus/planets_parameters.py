@@ -1,7 +1,7 @@
-''''
-Emma Postolec
-constants.py
-This file contains star-planet system parameters for running escape simulations.
+'''
+!!! info "`planets_parameters.py`"
+    Star-planet system parameters for running escape simulations.<br>
+    Author: Emma Postolec
 '''
 
 ######################################### Sun-Earth system #########################################
@@ -10,7 +10,6 @@ This file contains star-planet system parameters for running escape simulations.
 Rs      = 6.957e8                      # Solar radius                          [m]
 Ms      = 1.98847e30                   # Solar mass                            [kg]
 Ls      = 3.828e26                     # Solar luminosity                      [W]
-Ls_ergs = 3.839e33                     # Solar luminosity                      [erg s-1]
 age_sun = 4.603e9                      # Age of the Sun                        [yr]
 
 # Earth parameters 

@@ -4,13 +4,13 @@
 
 ### Building the documentation
 
-The documentation is written in [markdown](https://www.markdownguide.org/basic-syntax/), and uses [mkdocs](https://www.mkdocs.org/) to generate the pages.
+The documentation is written in [markdown](https://www.markdownguide.org/basic-syntax/), and uses [Zensical](https://www.zensical.org/) to generate the pages.
 
 To build the documentation for yourself:
 
 ```console
 pip install -e .[docs]
-mkdocs serve
+zensical serve
 ```
 
 You can find the documentation source in the [docs](https://github.com/FormingWorlds/ZEPHYRUS/tree/main/docs) directory.
