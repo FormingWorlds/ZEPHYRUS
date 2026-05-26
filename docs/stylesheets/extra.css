@@ -1,15 +1,16 @@
-.arch-diagram {
+.mod-diagram {
   width: 100%;
+  height: auto;
+  aspect-ratio: 12.1 / 9;  /* specific aspect ratio for the module diagram */
   display: none;
 }
-
 /* Light mode: show light diagram */
-[data-md-color-scheme="default"] .arch-diagram--light {
+[data-md-color-scheme="default"] .mod-diagram--light {
   display: block;
 }
 
 /* Dark mode: show dark diagram (Material's default dark scheme is "slate") */
-[data-md-color-scheme="slate"] .arch-diagram--dark {
+[data-md-color-scheme="slate"] .mod-diagram--dark {
   display: block;
 }
 

@@ -12,9 +12,8 @@ ZEPHYRUS is the atmospheric escape module of <b>PROTEUS</b> (/ˈproʊtiəs, PROH
 <br>
 Click any module in the diagram to open its documentation, or navigate to it from the sidebar.
 <br>
-<br>
 
-<object type="image/svg+xml" data="https://raw.githubusercontent.com/FormingWorlds/PROTEUS/main/docs/assets/proteus_modules_schematic.svg" class="arch-diagram arch-diagram--light"></object>
-<object type="image/svg+xml" data="https://raw.githubusercontent.com/FormingWorlds/PROTEUS/main/docs/assets/proteus_modules_schematic_darkmode.svg" class="arch-diagram arch-diagram--dark"></object>
+<object type="image/svg+xml" data="https://cdn.jsdelivr.net/gh/FormingWorlds/PROTEUS@main/docs/assets/proteus_modules_schematic.svg" class="mod-diagram mod-diagram--light"></object>
+<object type="image/svg+xml" data="https://cdn.jsdelivr.net/gh/FormingWorlds/PROTEUS@main/docs/assets/proteus_modules_schematic_darkmode.svg" class="mod-diagram mod-diagram--dark"></object>
 
 <p style="text-align: center;"><strong>Schematic of PROTEUS components and corresponding modules.</strong></p>
