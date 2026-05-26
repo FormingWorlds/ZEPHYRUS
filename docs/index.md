@@ -6,8 +6,8 @@
 [![License](https://img.shields.io/github/license/FormingWorlds/ZEPHYRUS?label=License)](https://github.com/FormingWorlds/ZEPHYRUS/blob/main/LICENSE.md)
 [![PyPI](https://img.shields.io/pypi/v/fwl-zephyrus?label=PyPI)](https://pypi.org/project/fwl-zephyrus/)
 
-![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_white.png#only-light)
-![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/logo/ZEPHYRUS_logo_black.png#only-dark)
+![ZEPHYRUS banner](assets/ZEPHYRUS_logo_white.png#only-light)
+![ZEPHYRUS banner](assets/ZEPHYRUS_logo_black.png#only-dark)
 
 
 **Zephyrus**, named after the Greek God of the West wind and messenger of spring, models the energy-limited atmospheric escape of exoplanets. 
