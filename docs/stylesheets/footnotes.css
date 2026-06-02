@@ -17,13 +17,3 @@
   vertical-align: baseline !important;
   font-size: 1em !important;
 }
-
-/* reduce space under the page title */
-.md-typeset h1 {
-  margin-bottom: 0.2rem;  /* try 0, 0.2rem, 0.5rem */
-}
-
-/* optionally reduce any top margin on the first image */
-.md-typeset h1 + p img {
-  margin-top: 0;
-}

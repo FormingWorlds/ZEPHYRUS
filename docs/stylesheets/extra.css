@@ -18,3 +18,8 @@
 .md-typeset p a:has(> img) {
   text-decoration: none;
 }
+
+.mod-diagram:focus,
+.mod-diagram:focus-visible {
+    outline: none !important;
+}
