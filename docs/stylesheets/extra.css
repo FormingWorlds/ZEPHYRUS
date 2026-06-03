@@ -18,3 +18,9 @@
 .md-typeset p a:has(> img) {
   text-decoration: none;
 }
+
+/* Remove focus outline from module diagrams for Firefox */
+.mod-diagram:focus,
+.mod-diagram:focus-visible {
+    outline: none !important;
+}
