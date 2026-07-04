@@ -62,7 +62,7 @@ def count_tests(marker_expr: str) -> int:
         trailing summary line cannot be parsed from stdout.
     """
     proc = subprocess.run(
-        ['pytest', '--collect-only', '-q', '-m', marker_expr],
+        [sys.executable, '-m', 'pytest', '--collect-only', '-q', '-m', marker_expr],
         check=False,
         capture_output=True,
         text=True,

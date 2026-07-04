@@ -46,7 +46,7 @@ jobs:
       - name: Install ZEPHYRUS and pytest
         run: |
           python -m pip install --upgrade pip
-          pip install ".[develop]"
+          python -m pip install ".[develop]"
 
       - name: Regenerate badge JSON files
         run: |
@@ -75,7 +75,7 @@ jobs:
           # otherwise leave a badge silently stale or broken behind a green
           # check. Validate names and shields schema before touching the
           # remote.
-          python3 - "${payload}" <<'PY'
+          python - "${payload}" <<'PY'
           import json
           import sys
           from pathlib import Path
