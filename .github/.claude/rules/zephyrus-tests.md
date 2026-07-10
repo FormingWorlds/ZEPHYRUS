@@ -19,8 +19,8 @@ Every new test function MUST include:
 
 1. **At least one edge case**: a boundary value (`Fxuv = 0`, `e = 0`, `epsilon = 0`, `tidal_contribution` toggled, a close-in orbit where `K_tide` departs strongly from 1), an empty input, or an extreme physical parameter.
 2. **At least one path that exercises the error contract**:
-   - If the function under test has documented validation (`EL_escape` raises `ValueError` on an unsupported `scaling`), test that the error fires AND that no result is returned.
-   - If the function has no validation (closed-form mathematics: the mass-loss formula, the tidal correction), exercise the **limit-input behavior** (`Fxuv = 0` gives zero escape; `tidal_contribution=False` gives `K_tide = 1`) and assert the corresponding mathematical invariant.
+   - If the function under test has documented validation (`EL_escape` raises `ValueError` on an unsupported `scaling`, and on `ksi = Rhill/Rxuv <= 1` in the tidal branch), test that the error fires AND that no result is returned.
+   - If the function has no validation (closed-form mathematics: the mass-loss formula), exercise the **limit-input behavior** (`Fxuv = 0` gives zero escape; `tidal_contribution=False` gives `K_tide = 1`) and assert the corresponding mathematical invariant.
    - "No validation in source therefore no error test" is not an exemption; the limit-input substitute is.
 3. **Assertion values NOT trivially derivable from the implementation**: discriminating numeric pins (see Section 2 below) or property-based assertions (monotonicity, linearity, boundedness).
 
@@ -117,7 +117,7 @@ src/zephyrus/planets_parameters.py     (tabulated star-planet parameters)
    - Escape-mass budget: in a coupled step the removed mass never exceeds the available atmospheric mass.
 2. **Positivity / boundedness**
    - Escape rate non-negative for physically valid inputs.
-   - `K_tide` in `(0, 1]` for a bound orbit; `ksi = Rhill/Rxuv > 1`.
+   - `K_tide` in `(0, 1)` for `ksi = Rhill/Rxuv > 1`, rising toward 1 as the orbit widens; the tidal branch raises `ValueError` for `ksi <= 1`.
    - Radii, masses, semi-major axis strictly positive; XUV flux and `epsilon` non-negative.
 3. **Monotonicity or symmetry**
    - Escape rate linear in `Fxuv` at fixed geometry (doubling the flux doubles the rate).

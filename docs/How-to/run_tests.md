@@ -57,7 +57,7 @@ The timeout is a defensive ceiling, not a target. A unit test that takes 25 s of
 A unit test on the physics source (`escape.py`) must assert at least one of four invariant families:
 
 - **Conservation**: the mass-loss rate equals the deposited XUV power divided by the gravitational binding energy per unit mass, up to the geometric and efficiency factors of the formula; in a coupled step the removed mass never exceeds the available atmospheric mass.
-- **Positivity or boundedness**: the escape rate is non-negative for valid inputs; the tidal factor `K_tide` lies in `(0, 1]` when the Hill radius exceeds the XUV radius (`ksi = Rhill / Rxuv > 1`); radii, masses, and semi-major axis are strictly positive; the XUV flux and efficiency are non-negative.
+- **Positivity or boundedness**: the escape rate is non-negative for valid inputs; the tidal factor `K_tide` lies in `(0, 1)` when the Hill radius exceeds the XUV radius (`ksi = Rhill / Rxuv > 1`), rising toward 1 as the orbit widens, and the tidal branch raises `ValueError` for `ksi <= 1`; radii, masses, and semi-major axis are strictly positive; the XUV flux and efficiency are non-negative.
 - **Monotonicity or symmetry**: the rate is linear in the XUV flux at fixed geometry; it scales as `1 / Mp`; it is larger with the tidal correction than without (`K_tide < 1`) for a close-in orbit; it is zero when the flux is zero.
 - **Pinned numeric value with a discrimination guard**: a closed-form value pinned via `pytest.approx`, plus explicit assertions that a wrong exponent, a wrong scaling branch, a sign flip, or a unit slip would each differ from the correct value by more than the tolerance.
 
@@ -78,18 +78,20 @@ The marker is not the same thing as physical correctness: a reference-pinned tes
 
 ## Source-to-test mirroring
 
-The physics source has a same-named companion in `tests/`:
+Each source module with executable content has a same-named companion in `tests/`:
 
 | Source | Test |
 |---|---|
 | `src/zephyrus/escape.py` | `tests/test_escape.py` |
+| `src/zephyrus/constants.py` | `tests/test_constants.py` |
+| `src/zephyrus/planets_parameters.py` | `tests/test_planets_parameters.py` |
 
 Cross-cutting tests are the documented exception, not the rule:
 
 - `tests/test_mors_coupling.py`: the MORS-to-escape flux hand-off with the stellar lookup mocked, so the coupling recipe runs in the fast unit tier without a download.
 - `tests/test_earth.py`: an Earth-analogue regression that spans the real MORS lookup and the escape formula end to end. It carries the `integration` tier because it downloads the stellar-evolution tracks.
 
-The utility sources (`constants.py`, `planets_parameters.py`, `__init__.py`) are imported across the test suite and covered through the physics tests.
+`__init__.py` holds only the package version string and has no dedicated test file.
 
 ## AST test-quality linter
 

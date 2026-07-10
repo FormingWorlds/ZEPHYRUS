@@ -25,7 +25,7 @@ Both forms reduce to $R_p^3$ when $R_\mathrm{XUV} = R_p$, which is the conservat
 
 ### Tidal correction $K_\mathrm{tide}$
 
-When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field following Lopez & Fortney (2013), eq. 3 [^lopez]:
+When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field following the tidal reduction factor of Erkaev et al. (2007), eq. 21 [^erkaev] (also given by Lopez & Fortney 2013, eq. 3 [^lopez]):
 
 $$K_\mathrm{tide} = 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R_\mathrm{XUV}} \tag{2}$$
 
@@ -33,7 +33,7 @@ with the Hill radius
 
 $$R_\mathrm{Hill} = a\,(1-e)\,\left(\frac{M_p}{3\,M_\star}\right)^{1/3} \tag{3}$$
 
-where $a$ is the planetary semi-major axis, $e$ is the orbital eccentricity, and $M_\star$ is the stellar mass. $K_\mathrm{tide} \to 1$ for $\xi \gg 1$ (i.e., when the XUV radius lies well inside the Hill sphere) and decreases as the atmosphere expands toward the Roche lobe, enhancing escape. When `tidal_contribution` is `False`, $K_\mathrm{tide} = 1$ is enforced.
+where $a$ is the planetary semi-major axis, $e$ is the orbital eccentricity, and $M_\star$ is the stellar mass. Factoring the numerator gives $K_\mathrm{tide} = (\xi - 1)^2\,(2\xi + 1) / (2\xi^3)$, which is non-negative for every $\xi > 0$ with a double root at $\xi = 1$. In the physical regime $\xi > 1$ it lies in $(0, 1)$, rising toward 1 for $\xi \gg 1$ (the XUV radius well inside the Hill sphere) and falling toward 0 as the atmosphere expands toward the Roche lobe at $\xi = 1$; because the escape rate divides by $K_\mathrm{tide}$, the rate is enhanced by the tidal correction and diverges as $\xi \to 1$. The tidally corrected rate is therefore defined only for $\xi > 1$: ZEPHYRUS raises a `ValueError` for $\xi \le 1$, where the atmosphere reaches the Roche lobe and the energy-limited approximation no longer applies. When `tidal_contribution` is `False`, $K_\mathrm{tide} = 1$ is enforced.
 
 ---
 
@@ -56,6 +56,8 @@ Similarly, the bulk-removal assumption breaks down when the hydrodynamic particl
 
 
 [^lopez]: Lopez, E. D., & Fortney, J. J. (2013). The role of core mass in controlling evaporation: the Kepler radius distribution and the Kepler-36 density dichotomy. *The Astrophysical Journal, 776*(1), 2. https://doi.org/10.1088/0004-637X/776/1/2
+
+[^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
 
 [^luger]: Luger, R., & Barnes, R. (2015). Extreme water loss and abiotic O$_2$ buildup on planets throughout the habitable zones of M dwarfs. *Astrobiology, 15*(2), 119–143. https://doi.org/10.1089/ast.2014.1231
 

@@ -205,7 +205,7 @@ with timeouts: 30 s for unit, 60 s for smoke, 300 s for integration, 3600 s for 
 Every unit test on a **physics source** (`escape.py`) must assert at least one of:
 
 - **Conservation**: escape rate consistent with the energy-limited budget (mass-loss rate equals the deposited XUV power divided by the gravitational binding energy per unit mass); escape mass never exceeds available atmospheric mass in a coupled step.
-- **Positivity / boundedness**: escape rate non-negative, tidal factor `K_tide` in `(0, 1]` for a bound orbit, radius and mass strictly positive, XUV flux non-negative.
+- **Positivity / boundedness**: escape rate non-negative, tidal factor `K_tide` in `(0, 1)` for `ksi = Rhill/Rxuv > 1` (the tidal branch raises `ValueError` at `ksi <= 1`), radius and mass strictly positive, XUV flux non-negative.
 - **Monotonicity or symmetry**: escape rate linear in XUV flux at fixed geometry, decreasing with planet mass, increasing when the tidal correction is included (`K_tide < 1`), zero when XUV flux is zero.
 - **Pinned numeric value with a discrimination guard**: a closed-form value pinned via `pytest.approx`, accompanied by explicit assertions that wrong-formula / wrong-exponent / wrong-scale results would differ from the correct one by more than the tolerance.
 

@@ -11,8 +11,8 @@ When reviewing ZEPHYRUS code (either your own or via code-reviewer agents), appl
 ## Physics plausibility
 
 - The energy-limited mass-loss rate must be non-negative. Flag any code path where `escape_EL` could go negative for physically valid inputs (positive `epsilon`, `Fxuv`, radii, mass).
-- The tidal correction factor `K_tide` must lie in `(0, 1]` for a bound orbit. `K_tide = 1 - 3/(2*ksi) + 1/(2*ksi**3)` with `ksi = Rhill/Rxuv`; it falls below zero when `ksi` is small (a close-in planet whose Hill radius approaches the XUV radius). A non-positive `K_tide` makes the escape rate diverge or flip sign. Flag any tidal path that does not guard against `ksi` approaching the `K_tide -> 0` root (`ksi ~ 1.6`).
-- The Hill radius `Rhill = a*(1-e)*(Mp/(3*Ms))**(1/3)` must exceed `Rxuv` for the tidal correction to be physical (`ksi > 1`). Flag any caller that can pass a semi-major axis small enough to violate this.
+- The tidal correction factor `K_tide = 1 - 3/(2*ksi) + 1/(2*ksi**3)` with `ksi = Rhill/Rxuv` factors exactly to `(ksi-1)**2 * (2*ksi + 1) / (2*ksi**3)`, so it is non-negative for every `ksi > 0` with a double (tangential) root at `ksi = 1`; it never goes negative. It lies in `(0, 1)` for `ksi > 1` (the physical regime, rising toward 1 as the orbit widens) and exceeds 1 for `ksi < 1/sqrt(3)`. Because the escape rate divides by `K_tide`, the rate diverges as `ksi -> 1`, so the energy-limited approximation is valid only for `ksi > 1`. The source raises `ValueError` for `ksi <= 1`. Flag any tidal path that computes `K_tide` without the `ksi > 1` domain guard, or that reintroduces a `K_tide -> 0` singularity into the escape-rate denominator.
+- The Hill radius `Rhill = a*(1-e)*(Mp/(3*Ms))**(1/3)` must exceed `Rxuv` for the tidal correction to be physical (`ksi > 1`); the source enforces this with a `ValueError` at `ksi <= 1`. Flag any change that lets a semi-major axis small enough to violate `ksi > 1` reach the `K_tide` division without raising.
 - Planetary and stellar masses, radii, and semi-major axis must be strictly positive. XUV flux and escape efficiency must be non-negative. Flag any path that lets a zero or negative geometric quantity reach the division.
 - Escape efficiency `epsilon` is a dimensionless factor in the literature range `0.1 < epsilon < 0.6`. Flag a hard-coded `epsilon` outside `[0, 1]`.
 
@@ -53,11 +53,11 @@ A PR that changes the default `scaling` but does not touch the test reference va
 
 The tidal branch (`tidal_contribution=True`) introduces three coupled quantities: `Rhill`, `ksi`, `K_tide`. Flag any new tidal code path that:
 
-- Computes `K_tide` without asserting `ksi > 1` (the Hill radius must exceed the XUV radius).
-- Lets `K_tide` reach the escape-rate denominator without a positivity guard, so a small `ksi` produces a negative or singular escape rate.
+- Computes `K_tide` without a `ksi > 1` domain guard (the Hill radius must exceed the XUV radius).
+- Lets `K_tide` reach the escape-rate denominator without that guard, so a `ksi` near 1 produces a singular (divergent) escape rate. `K_tide` is non-negative for all `ksi > 0`, so the failure mode is divergence at `ksi -> 1`, not a sign flip.
 - Reorders the `Rhill` factors in a way that changes the `(1-e)` periapsis dependence (the correction uses the periapsis distance, not the semi-major axis alone).
 
-The unit tests of `escape.py` verify the tidal branch increases the escape rate relative to the no-tidal branch (`K_tide < 1`) and pin `K_tide` at a discriminating close-in geometry; the review's job is to make sure the positivity defense is present before the test asks it to fire.
+The unit tests of `escape.py` verify the tidal branch increases the escape rate relative to the no-tidal branch (`K_tide < 1`), pin `K_tide` at a discriminating close-in geometry, and assert the `ksi <= 1` domain guard raises `ValueError`; the review's job is to make sure the domain guard is present before the test asks it to fire.
 
 ## PROTEUS coupling patterns
 
