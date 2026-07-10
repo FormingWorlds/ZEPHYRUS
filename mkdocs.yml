@@ -22,6 +22,7 @@ nav:
       - Model overview: Explanations/model.md
       - Coupling to PROTEUS: Explanations/proteus.md
       - Limitations: Explanations/limitations.md
+      - Testing suite: Explanations/testing.md
 
   - Reference:
       - Model parameters: Reference/parameters.md

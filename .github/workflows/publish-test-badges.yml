@@ -1,0 +1,166 @@
+name: Refresh test count badges
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tests/**'
+      - 'src/zephyrus/**'
+      - 'pyproject.toml'
+      - 'tools/generate_test_badges.py'
+      - '.github/workflows/publish-test-badges.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: badges-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  refresh-badges:
+    name: Regenerate tests-total.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Guard against publishing from a non-main ref
+        # The push trigger is already main-only, but workflow_dispatch can
+        # be launched from any branch. Publishing another ref's test count
+        # to the public badge would be misleading, so refuse it loudly.
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Badges may only be published from main; this run is on ${{ github.ref }}." >&2
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ZEPHYRUS and pytest
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[develop]"
+
+      - name: Regenerate badge JSON files
+        run: |
+          python tools/generate_test_badges.py --out badge_payload/
+
+      - name: Publish badges to the badges branch
+        # The ``main`` ruleset blocks direct pushes, so the badge JSON is
+        # published to a dedicated ``badges`` branch that lives outside that
+        # ruleset rather than committed back onto ``main``. shields.io reads
+        # the JSON from the raw URL of this branch. The branch carries only
+        # the JSON file plus a README; consumers that need the source tree
+        # use ``main``. The test workflow triggers only on ``main``, and the
+        # commit is marked ``[skip ci]``, so a badge refresh never starts a
+        # test run against the source-less tree.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          payload="${GITHUB_WORKSPACE}/badge_payload"
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          branch="badges"
+
+          # Refuse to publish a partial or malformed set: a generator
+          # regression that drops the file or emits invalid JSON would
+          # otherwise leave a badge silently stale or broken behind a green
+          # check. Validate names and shields schema before touching the
+          # remote.
+          python - "${payload}" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          payload = Path(sys.argv[1])
+          expected = ('tests-total.json',)
+          for name in expected:
+              path = payload / name
+              if not path.is_file():
+                  sys.exit(f'Missing badge file: {path}')
+              data = json.loads(path.read_text())
+              if data.get('schemaVersion') != 1 or not str(data.get('message', '')).strip():
+                  sys.exit(f'Malformed badge file: {path}')
+          print(f'Validated {len(expected)} badge file(s).')
+          PY
+
+          # Each fallible step returns explicitly: the function is invoked
+          # from a conditional, which disables ``set -e`` inside it, so a
+          # failure must be propagated by hand rather than relied on to
+          # abort. Returns 0 on a successful push or a no-op, 1 on a
+          # retryable failure.
+          attempt_publish() {
+            local work exists rc
+
+            # Tell "branch absent" (ls-remote exit 2) apart from an
+            # unreachable remote (network/auth, other non-zero), so a
+            # transient failure is retried instead of being mistaken for an
+            # empty branch and overwritten with a root commit.
+            if git ls-remote --exit-code --heads "${remote}" "${branch}" >/dev/null 2>&1; then
+              exists=1
+            else
+              rc=$?
+              if [ "${rc}" -eq 2 ]; then
+                exists=0
+              else
+                echo "Could not reach the remote to check ${branch} (rc=${rc})." >&2
+                return 1
+              fi
+            fi
+
+            work="$(mktemp -d)" || return 1
+            cd "${work}" || return 1
+            git init -q || return 1
+
+            if [ "${exists}" -eq 1 ]; then
+              git fetch -q "${remote}" "${branch}" || return 1
+              git checkout -q FETCH_HEAD || return 1
+              # Drop everything the branch carried so the new commit holds
+              # only the freshly generated files; a stale leftover would
+              # otherwise survive the checkout-and-overwrite.
+              git rm -rfq --ignore-unmatch . >/dev/null 2>&1 || return 1
+            fi
+
+            cp "${payload}"/tests-*.json . || return 1
+            printf '%s\n' \
+              '# Test count badges' \
+              '' \
+              'Machine-generated by the `Refresh test count badges` workflow that runs on `main`.' \
+              'shields.io endpoint badges read these JSON files by raw URL.' \
+              'Do not edit or delete this branch by hand; the source lives on `main`.' \
+              > README.md || return 1
+            git add tests-*.json README.md || return 1
+
+            if [ "${exists}" -eq 1 ] && git diff --cached --quiet; then
+              echo "Badge counts unchanged; nothing to publish."
+              return 0
+            fi
+
+            git -c user.name="actions" -c user.email="actions@github.com" \
+              commit -qm "Update test count badges [skip ci]" || return 1
+            git push -q "${remote}" "HEAD:refs/heads/${branch}" || return 1
+            echo "Published refreshed badges to the ${branch} branch."
+            return 0
+          }
+
+          # The concurrency group serialises runs on ``main``, so a competing
+          # run cannot move the branch tip mid-push; the retry only covers a
+          # transient network or fetch hiccup. Each attempt re-checks the
+          # branch state from a clean working tree.
+          for attempt in 1 2 3; do
+            if attempt_publish; then
+              exit 0
+            fi
+            echo "Publish attempt ${attempt} failed; retrying."
+            sleep 2
+          done
+          echo "Failed to publish badges after 3 attempts." >&2
+          exit 1
