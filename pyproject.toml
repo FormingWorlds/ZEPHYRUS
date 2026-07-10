@@ -32,12 +32,21 @@ dependencies = [
 
 [project.urls]
 homepage = "https://github.com/FormingWorlds/ZEPHYRUS"
+issues = "https://github.com/FormingWorlds/ZEPHYRUS/issues"
+documentation = "https://proteus-framework.org/ZEPHYRUS/"
+changelog = "https://github.com/FormingWorlds/ZEPHYRUS/releases"
 
 [project.optional-dependencies]
 develop = [
   "bump-my-version",
   "coverage[toml]",
-  "pytest"
+  "hypothesis >= 6.0",
+  "pre-commit",
+  "pytest",
+  "pytest-cov",
+  "pytest-timeout",
+  "ruff",
+  "tomlkit",
 ]
 docs = [
     "zensical==0.0.43",
@@ -60,8 +69,66 @@ include-package-data = true
 branch = true
 source = ["zephyrus"]
 
+[tool.coverage.report]
+# Full coverage gate: unit + smoke + integration + slow tests, enforced by
+# the nightly workflow. 90% is the PROTEUS-ecosystem ceiling: the gate does
+# not rise above this value even if real coverage exceeds it. Above 90%
+# the gate tracks pragma usage and style rather than bug-finding signal.
+# The tools/update_coverage_threshold.py helper raises this value one-way
+# toward the ceiling when run manually; never manually decrease it. The PR
+# workflow's pre-flight step rejects any commit that lowers it below the
+# base-branch value.
+fail_under = 90.0
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[tool.zephyrus.coverage_fast]
+# Fast PR gate: unit + smoke coverage only, enforced on every PR via
+# .github/workflows/tests.yaml. The tools/update_coverage_threshold.py
+# helper caps this value at the 90% PROTEUS-ecosystem ceiling when run
+# manually. ZEPHYRUS has no compiled dependencies, so the unit + smoke tier
+# already covers the whole package; the gate sits at the ceiling. Never
+# manually decrease.
+fail_under = 90.0
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "unit: fast in-process unit tests (mocked dependencies, < 100 ms each)",
+    "smoke: real code-path tests on minimal input (< 30 s each)",
+    "integration: real MORS-coupled escape with full lookup",
+    "slow: anything > 1 minute, run in nightly only",
+    "physics_invariant: marks tests that assert a physical invariant (conservation, positivity, boundedness, monotonicity, symmetry).",
+    "reference_pinned: marks tests that pin behavior against a published benchmark, analytical limit, or cross-implementation cross-check. Cite the source in the test docstring. The escape physics source must contain at least one.",
+]
+
+[tool.ruff]
+line-length = 96
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "F",  # Pyflakes
+    "E",  # pycodestyle (error)
+    "W",  # pycodestyle (warning)
+    "I",  # isort
+]
+ignore = [
+    "E501",  # Line too long
+    "F403",  # star import (escape.py uses `from zephyrus.constants import *`)
+    "F405",  # name may be undefined from star import (same convention)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["zephyrus"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
 
 [tool.bumpversion]
 # https://callowayproject.github.io/bump-my-version/howtos/calver/

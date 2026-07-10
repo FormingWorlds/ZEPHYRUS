@@ -20,8 +20,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -e '.[docs]'
+      - run: pip install -e '.[docs,develop]'
       - run: zensical build --clean
+      - name: Generate test-count badges
+        run: python tools/generate_test_badges.py --out site/badges/
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site

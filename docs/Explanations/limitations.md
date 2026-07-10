@@ -6,7 +6,7 @@ ZEPHYRUS implements the **energy-limited (EL) approximation** to hydrodynamic at
 
 ## What ZEPHYRUS *does* model
 
-A single regime: bulk hydrodynamic escape driven by stellar XUV irradiation, in the energy-limited approximation, with an optional tidal correction (Eq. 2 of the [model overview](model.md)). The mass-loss rate is partitioned across atmospheric species in proportion to their elemental mass mixing ratios.
+A single regime: bulk hydrodynamic escape driven by stellar XUV irradiation, in the energy-limited approximation, with an optional tidal correction (Eq. 2 of the [model overview](model.md)). The tidal correction is defined only outside the Roche lobe, where the Hill-to-XUV radius ratio $\xi > 1$; ZEPHYRUS raises an error for $\xi \le 1$, at which point the atmosphere reaches the Roche lobe and the energy-limited approximation no longer holds. The mass-loss rate is partitioned across atmospheric species in proportion to their elemental mass mixing ratios.
 
 Everything below is **not modelled.**
 

@@ -31,6 +31,8 @@ nav:
         - Escape: Reference/api/escape.md
         - Constants: Reference/api/constants.md
         - Planet parameters: Reference/api/planet_parameters.md
+      - Validation:
+        - Escape: Validation/escape.md
     
   - Community:
       - Contact: Community/contact.md
