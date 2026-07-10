@@ -25,7 +25,7 @@ Both forms reduce to $R_p^3$ when $R_\mathrm{XUV} = R_p$, which is the conservat
 
 ### Tidal correction $K_\mathrm{tide}$
 
-When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field following the tidal reduction factor of Erkaev et al. (2007), eq. 21 [^erkaev] (also given by Lopez & Fortney 2013, eq. 3 [^lopez]):
+When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field following the tidal reduction factor of Erkaev et al. (2007), eq. 17 [^erkaev]:
 
 $$K_\mathrm{tide} = 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R_\mathrm{XUV}} \tag{2}$$
 

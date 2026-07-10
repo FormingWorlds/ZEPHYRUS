@@ -95,20 +95,30 @@ def EL_escape(
 
     References
     ----------
-    Based on the formulation of Lopez, Fortney & Miller (2012),
-    Equations 2-4. The alternative radius scaling (``scaling=3``)
-    follows Lehmer & Catling (2017), Equation 1. The tidal correction
-    factor is from Erkaev et al. (2007), Equation 21.
+    The default radius scaling (``scaling=2``, ``Rp * Rxuv**2``) is the
+    energy-limited XUV cross-section form of Watson et al. (1981) and
+    Lammer et al. (2003), Equation 6, written as a mass-loss rate by
+    Erkaev et al. (2007), Equation 21. The alternative radius scaling
+    (``scaling=3``, ``Rxuv**3``) is the single-radius simplification of
+    Lopez, Fortney & Miller (2012), Equation 2, and Lehmer & Catling
+    (2017), Equation 1. The tidal reduction factor ``K_tide`` is
+    Erkaev et al. (2007), Equation 17.
 
-    1. Lopez, E. D., Fortney, J. J., & Miller, N. (2012).
-       How thermal evolution and mass-loss sculpt populations of
-       super-Earths and sub-Neptunes. *ApJ*, 761(1), 59.
-    2. Lehmer, O. R., & Catling, D. C. (2017). Rocky worlds
-       limited to ~1.8 Earth radii by atmospheric escape during a
-       star's extreme UV saturation. *ApJ*, 845(2), 130.
+    1. Watson, A. J., Donahue, T. M., & Walker, J. C. G. (1981).
+       The dynamics of a rapidly escaping atmosphere: applications to
+       the evolution of Earth and Venus. *Icarus*, 48(2), 150-166.
+    2. Lammer, H., Selsis, F., Ribas, I., et al. (2003). Atmospheric
+       loss of exoplanets resulting from stellar X-ray and
+       extreme-ultraviolet heating. *ApJ*, 598(2), L121-L124.
     3. Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007).
        Roche lobe effects on the atmospheric loss from "Hot Jupiters".
        *A&A*, 472(1), 329-334.
+    4. Lopez, E. D., Fortney, J. J., & Miller, N. (2012).
+       How thermal evolution and mass-loss sculpt populations of
+       super-Earths and sub-Neptunes. *ApJ*, 761(1), 59.
+    5. Lehmer, O. R., & Catling, D. C. (2017). Rocky worlds
+       limited to ~1.8 Earth radii by atmospheric escape during a
+       star's extreme UV saturation. *ApJ*, 845(2), 130.
     """
     # Tidal contribution
     if tidal_contribution:

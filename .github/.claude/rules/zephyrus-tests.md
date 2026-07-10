@@ -71,7 +71,7 @@ Canonical pattern:
 
 ```python
 def test_el_escape_scaling2_matches_closed_form():
-    """Pin the EL mass-loss rate for the scaling=2 (Lopez+2012) branch."""
+    """Pin the EL mass-loss rate for the scaling=2 (Erkaev 2007) branch."""
     val = EL_escape(False, a, e, Mp, Ms, epsilon, Rp, Rxuv, Fxuv, scaling=2)
     expected = 4.4025157e7  # kg s-1, hand-evaluated from epsilon*pi*Rp*Rxuv**2*Fxuv/(G*Mp)
     assert val == pytest.approx(expected, rel=1e-6)
@@ -290,6 +290,7 @@ Write the OUTCOME (what the test verifies; what the PR achieves) never the PROCE
 - Group related tests in classes (`class TestTidalCorrection:`) when they share setup; use the class to thread a single fixture through several scenarios.
 - Test file names mirror source 1:1: `src/zephyrus/<file>.py` -> `tests/test_<file>.py`. Documented exceptions to the 1:1 rule:
   - **Cross-cutting coupling tests** (`test_mors_coupling.py`, `test_earth.py`): regressions that span the MORS flux hand-off and the escape formula rather than a single source file. `test_mors_coupling.py` mocks the stellar-luminosity lookup so the coupling recipe runs in the fast `unit` tier without a download; `test_earth.py` performs a real MORS lookup end to end and carries the `integration` tier.
+  - **Property-based companion** (`test_escape_properties.py`): the Hypothesis-driven sweeps for `escape.py`. They sit in their own module so the `pytest.importorskip('hypothesis')` gate covers only the property tests, leaving the closed-form pins and error-contract guards in `test_escape.py` running when the develop-extra dependency is absent.
 
 ---
 

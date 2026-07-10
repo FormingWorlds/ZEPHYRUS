@@ -5,7 +5,7 @@ tidal correction. The physical invariants under test:
 
 - Conservation / closed form: the EL rate equals
   ``epsilon * pi * R^3 * Fxuv / (G * Mp * K_tide)`` for the selected radius
-  scaling, pinned against the Lopez, Fortney & Miller (2012) formulation
+  scaling, pinned against the Erkaev et al. (2007) formulation
   (``scaling=2``) and the Lehmer & Catling (2017) variant (``scaling=3``).
 - Positivity / boundedness: the rate is non-negative for valid inputs and
   the tidal factor ``K_tide`` lies in ``(0, 1)`` when the Hill radius exceeds
@@ -28,13 +28,6 @@ from zephyrus.constants import G, au2m
 from zephyrus.escape import EL_escape
 from zephyrus.planets_parameters import Me, Ms, Re
 
-# hypothesis is a develop-extra dependency; skip the property-based tests if
-# it is unavailable rather than failing collection.
-hyp = pytest.importorskip('hypothesis')
-given = hyp.given
-settings = hyp.settings
-st = hyp.strategies
-
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
 # Reference geometry shared across the closed-form pins. Rxuv is chosen
@@ -49,8 +42,8 @@ FXUV = 14.67  # W m-2, Earth at 10 Myr (Wordsworth et al. 2018, Fig 9)
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_el_escape_scaling2_matches_lopez2012_closed_form():
-    """Pin the EL rate for the scaling=2 (Lopez, Fortney & Miller 2012) branch.
+def test_el_escape_scaling2_matches_erkaev2007_closed_form():
+    """Pin the EL rate for the scaling=2 (Erkaev et al. 2007) branch.
 
     The default radius scaling uses ``R^3 = Rp * Rxuv**2``. The pinned value
     is hand-evaluated from ``epsilon * pi * Rp * Rxuv**2 * Fxuv / (G * Mp)``
@@ -250,50 +243,3 @@ def test_el_escape_tidal_factor_approaches_unity_for_wide_orbit():
     assert k_close < 0.9
     # Monotone in orbital distance: the wide orbit sits closer to unity.
     assert k_wide > k_close
-
-
-@pytest.mark.physics_invariant
-@given(
-    epsilon=st.floats(min_value=0.1, max_value=0.6),
-    fxuv=st.floats(min_value=1e-4, max_value=1e4),
-    rp=st.floats(min_value=1e6, max_value=1e8),
-    rxuv_factor=st.floats(min_value=1.0, max_value=2.0),
-    mp=st.floats(min_value=1e23, max_value=1e27),
-)
-@settings(max_examples=100, deadline=None, derandomize=True)
-def test_el_escape_nonnegative_over_valid_inputs(epsilon, fxuv, rp, rxuv_factor, mp):
-    """Escape is strictly positive and finite across physically valid inputs.
-
-    Sweeps the efficiency (literature range 0.1-0.6), diluted XUV flux, radii
-    and mass across their physical ranges. Every driver is strictly positive,
-    so the rate is strictly positive and finite. The zero-flux limit, where
-    the rate must vanish exactly, is checked separately with a fixed input.
-    """
-    rxuv = rxuv_factor * rp
-    val = EL_escape(False, 1.0, 0.0, mp, Ms, epsilon, rp, rxuv, fxuv, scaling=2)
-    # Physical drivers are all strictly positive, so the rate is too.
-    assert val > 0.0
-    # Bounded: the rate stays finite across the swept range (no blow-up).
-    assert np.isfinite(val)
-    # Limit input: zeroing the XUV flux zeroes the escape rate exactly.
-    zero_flux = EL_escape(False, 1.0, 0.0, mp, Ms, epsilon, rp, rxuv, 0.0, scaling=2)
-    assert zero_flux == pytest.approx(0.0, abs=1e-30)
-
-
-@pytest.mark.physics_invariant
-@given(
-    fxuv=st.floats(min_value=1e-3, max_value=1e4),
-    k=st.floats(min_value=0.1, max_value=10.0),
-)
-@settings(max_examples=100, deadline=None, derandomize=True)
-def test_el_escape_linear_in_flux_property(fxuv, k):
-    """Scaling the XUV flux by ``k`` scales the escape rate by exactly ``k``.
-
-    Property-based check of linearity across the flux range: the ratio pins
-    proportionality independent of the absolute scale, so a spurious offset
-    term would fail for some sampled ``fxuv``.
-    """
-    base = EL_escape(False, 1.0, 0.0, Me, Ms, EPSILON, RP, RXUV, fxuv, scaling=2)
-    scaled = EL_escape(False, 1.0, 0.0, Me, Ms, EPSILON, RP, RXUV, k * fxuv, scaling=2)
-    assert scaled == pytest.approx(k * base, rel=1e-12)
-    assert base > 0.0
