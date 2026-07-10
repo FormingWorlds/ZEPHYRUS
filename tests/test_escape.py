@@ -8,13 +8,15 @@ tidal correction. The physical invariants under test:
   scaling, pinned against the Lopez, Fortney & Miller (2012) formulation
   (``scaling=2``) and the Lehmer & Catling (2017) variant (``scaling=3``).
 - Positivity / boundedness: the rate is non-negative for valid inputs and
-  the tidal factor ``K_tide`` lies in ``(0, 1]`` when the Hill radius
-  exceeds the XUV radius (``ksi = Rhill / Rxuv > 1``), as it does for the
-  close-in geometries under test.
+  the tidal factor ``K_tide`` lies in ``(0, 1)`` when the Hill radius exceeds
+  the XUV radius (``ksi = Rhill / Rxuv > 1``), rising toward 1 as the orbit
+  widens; the close-in geometries under test keep it well below 1.
 - Monotonicity / symmetry: the rate is linear in ``Fxuv``, scales as
   ``1 / Mp``, is larger with the tidal correction than without, and is zero
   when ``Fxuv = 0``.
-- Error contract: an unsupported ``scaling`` raises ``ValueError``.
+- Error contract: an unsupported ``scaling`` raises ``ValueError``, and the
+  tidal branch raises ``ValueError`` for ``ksi <= 1``, where the atmosphere
+  reaches the Roche lobe and the energy-limited approximation no longer holds.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
@@ -110,6 +112,39 @@ def test_el_escape_invalid_scaling_raises(scaling):
     assert ok > 0
 
 
+def test_el_escape_tidal_raises_below_roche_lobe():
+    """The tidal branch rejects sub-Roche-lobe geometries (``ksi <= 1``).
+
+    The Erkaev et al. (2007) factor ``K_tide = (ksi - 1)**2 (2 ksi + 1) /
+    (2 ksi**3)`` has a double root at ``ksi = 1``, so the energy-limited rate
+    divides by ``K_tide`` and is defined only for ``ksi > 1``. A close-in,
+    highly eccentric orbit (``a = 0.02 au``, ``e = 0.90``) shrinks the
+    periapsis Hill radius until ``ksi`` is about 0.39, inside the Roche lobe,
+    and the call must raise rather than return a suppressed or divergent rate.
+    """
+    a = 0.02 * au2m
+    e = 0.90  # high eccentricity pulls the periapsis Hill radius inside Rxuv
+    rhill = a * (1 - e) * (Me / (3 * Ms)) ** (1 / 3)
+    ksi = rhill / RXUV
+    # Confirm the constructed geometry is genuinely sub-Roche-lobe.
+    assert ksi == pytest.approx(0.3910754106364523, rel=1e-9)
+    assert ksi < 1.0
+    with pytest.raises(ValueError, match='Roche lobe'):
+        EL_escape(True, a, e, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
+    # Boundary case: setting Rxuv equal to the periapsis Hill radius puts
+    # ``ksi`` exactly at the singular point 1, which must raise rather than
+    # divide by zero.
+    rxuv_at_hill = a * (Me / (3 * Ms)) ** (1 / 3)
+    with pytest.raises(ValueError, match='Roche lobe'):
+        EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, rxuv_at_hill, FXUV, scaling=2)
+    # Contrast: the same close-in orbit with ``ksi > 1`` (circular, Rxuv well
+    # inside the Hill radius) returns a finite positive rate, so the raise is
+    # specific to ``ksi <= 1``, not to the tidal branch as a whole.
+    ok = EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
+    assert np.isfinite(ok)
+    assert ok > 0.0
+
+
 @pytest.mark.physics_invariant
 def test_el_escape_linear_in_xuv_flux():
     """Doubling the XUV flux doubles the escape rate; zero flux gives zero.
@@ -164,9 +199,10 @@ def test_el_escape_tidal_correction_increases_escape():
     # Dropped-K_tide discrimination: the ratio is well above 1, not ~1.
     assert tidal / no_tidal - 1.0 > 0.1
     # Boundedness: for this close-in geometry the Hill radius stays above Rxuv
-    # (ksi > 1), so the backed-out K_tide lies in (0, 1].
+    # (ksi > 1), so the backed-out K_tide lies strictly in (0, 1); it reaches 1
+    # only in the ksi -> infinity limit of an infinitely wide orbit.
     k_tide = no_tidal / tidal
-    assert 0.0 < k_tide <= 1.0
+    assert 0.0 < k_tide < 1.0
 
 
 @pytest.mark.physics_invariant
