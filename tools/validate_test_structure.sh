@@ -114,6 +114,12 @@ for path in sorted(ROOT.rglob('*.py')):
                 f'{sorted(set(tier_marks))}; exactly one of '
                 'unit / smoke / integration / slow is required.'
             )
+        elif has_skip and len(tier_marks) >= 1:
+            failures.append(
+                f'{rel}:{fn.lineno}: {fn.name} carries both a tier marker '
+                f'{sorted(set(tier_marks))} and skip; use exactly one of '
+                'unit / smoke / integration / slow / skip.'
+            )
         elif len(tier_marks) == 0 and not has_skip:
             failures.append(
                 f'{rel}:{fn.lineno}: {fn.name} carries no marker '

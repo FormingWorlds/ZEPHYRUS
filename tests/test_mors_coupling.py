@@ -21,7 +21,7 @@ import mors
 import numpy as np
 import pytest
 
-from zephyrus.constants import au2cm, ergcm2stoWm2
+from zephyrus.constants import au2cm, au2m, ergcm2stoWm2
 from zephyrus.escape import EL_escape
 from zephyrus.planets_parameters import Me, Re, a_earth
 
@@ -31,6 +31,13 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 # matching the age = 150 Myr row of the real-lookup integration fixture.
 LX_ERG_S = 7.284408e28
 LEUV_ERG_S = 1.101644e29
+
+# EL_escape documents its semi-major axis argument in metres, so the coupling
+# calls pass the axis in metres. a_earth is in au and is kept in the flux
+# computation, which expects au. The axis only enters the tidal branch, which
+# these calls disable, so it does not change the pinned rates; passing the
+# documented unit keeps the call site honest.
+A_EARTH_M = a_earth * au2m
 
 
 def _mock_star_with(lx, leuv):
@@ -72,7 +79,7 @@ def test_mors_flux_handoff_lands_in_plausible_si_range():
     # dropped erg-to-W conversion lands near 1e1 and an au-to-m slip near 1e2,
     # so this band catches either.
     assert 1e-3 < flux < 1e0
-    escape = EL_escape(False, a_earth, 0.0, Me, 1.0, 0.15, Re, 1.2 * Re, flux, scaling=2)
+    escape = EL_escape(False, A_EARTH_M, 0.0, Me, 1.0, 0.15, Re, 1.2 * Re, flux, scaling=2)
     assert escape == pytest.approx(28741.886140143717, rel=1e-9)
     assert escape > 0
 
@@ -89,8 +96,8 @@ def test_mors_coupling_escape_linear_in_stellar_luminosity():
     bright = _mock_star_with(2 * LX_ERG_S, 2 * LEUV_ERG_S)
     flux_dim = _flux_from_star(dim, 150.0, a_earth)
     flux_bright = _flux_from_star(bright, 150.0, a_earth)
-    esc_dim = EL_escape(False, a_earth, 0.0, Me, 1.0, 0.15, Re, 1.2 * Re, flux_dim)
-    esc_bright = EL_escape(False, a_earth, 0.0, Me, 1.0, 0.15, Re, 1.2 * Re, flux_bright)
+    esc_dim = EL_escape(False, A_EARTH_M, 0.0, Me, 1.0, 0.15, Re, 1.2 * Re, flux_dim)
+    esc_bright = EL_escape(False, A_EARTH_M, 0.0, Me, 1.0, 0.15, Re, 1.2 * Re, flux_bright)
     # Exact proportionality across the whole chain.
     assert esc_bright == pytest.approx(2.0 * esc_dim, rel=1e-12)
     assert esc_dim > 0
