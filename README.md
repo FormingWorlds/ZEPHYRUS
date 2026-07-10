@@ -1,5 +1,8 @@
-[![Documentation](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/ZEPHYRUS/)
-![Coverage](https://gist.githubusercontent.com/lsoucasse/152250f71914339d24537977e64aba55/raw/covbadge_zephyrus.svg)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Docs](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/docs.yaml?branch=main&label=Docs)](https://proteus-framework.org/ZEPHYRUS/)
+[![codecov](https://img.shields.io/codecov/c/github/FormingWorlds/ZEPHYRUS?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/ZEPHYRUS)
+[![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/tests.yaml?branch=main&label=Unit%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/tests.yaml)
+[![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/nightly.yml)
 
 ![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/assets/ZEPHYRUS_logo_white.png#gh-light-mode-only)
 ![ZEPHYRUS banner](https://raw.githubusercontent.com/FormingWorlds/ZEPHYRUS/main/docs/assets/ZEPHYRUS_logo_black.png#gh-dark-mode-only)
