@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-zephyrus"
-version = "26.05.22"
+dynamic = ["version"]
 description = "Atmospheric escape models of exoplanets."
 readme = "README.md"
 authors = [
@@ -38,7 +38,6 @@ changelog = "https://github.com/FormingWorlds/ZEPHYRUS/releases"
 
 [project.optional-dependencies]
 develop = [
-  "bump-my-version",
   "coverage[toml]",
   "hypothesis >= 6.0",
   "pre-commit",
@@ -64,6 +63,18 @@ publishing = [
 [tool.setuptools]
 package-dir = {"zephyrus" = "src/zephyrus"}
 include-package-data = true
+
+[tool.setuptools_scm]
+# CalVer: tags are bare YY.MM.DD dates (no leading 'v', e.g. 26.07.10).
+# setuptools-scm derives the version from the latest git tag, so a release is
+# cut by tagging alone and no version string is hand-edited in the tree.
+# version_scheme = "no-guess-dev" is required for CalVer: the default
+# "guess-next-dev" would invent a future calendar date for post-tag commits
+# that collides with the next daily release tag. "no-guess-dev" emits
+# 26.07.10.post1.devN+gHASH instead, which is honest about a build being a
+# post-tag development commit rather than a pre-release of the next version.
+version_scheme = "no-guess-dev"
+version_file = "src/zephyrus/_version.py"
 
 [tool.coverage.run]
 branch = true
@@ -129,24 +140,3 @@ known-first-party = ["zephyrus"]
 [tool.ruff.format]
 quote-style = "single"
 indent-style = "space"
-
-[tool.bumpversion]
-# https://callowayproject.github.io/bump-my-version/howtos/calver/
-current_version = "25.10.28"
-parse = """(?x)                     # Verbose mode
-    (?P<release>                    # The release part
-        (?:[1-9][0-9])\\.           # YY.
-        (?:[0-1][0-9])\\.           # MM.
-        (?:[0-3][1-9])              # DD
-    )
-    (?:\\.(?P<patch>\\d+))?         # .patch, optional
-"""
-serialize = ["{release}.{patch}", "{release}"]
-
-[tool.bumpversion.parts.release]
-calver_format = "{YY}.{0M}.{0D}"
-
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = "version = \"{current_version}\""
-replace = "version = \"{new_version}\""

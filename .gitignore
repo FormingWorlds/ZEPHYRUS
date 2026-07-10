@@ -169,3 +169,6 @@ output_files/
 # Local editor and session state (personal, not shared)
 /.claude/
 .mcp.json
+
+# setuptools-scm generated version file
+src/zephyrus/_version.py
