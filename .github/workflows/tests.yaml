@@ -7,19 +7,39 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
   workflow_dispatch:
+
+# Push and PR CI: unit + smoke tiers only, on ubuntu + macos x Python
+# 3.10-3.12. Targets a fast wall-time. The integration and slow tiers,
+# which run the real MORS-coupled escape, live in the scheduled nightly
+# workflow `nightly.yml` together with the Codecov upload.
+
+permissions:
+  contents: read
 
 jobs:
   test:
+    name: ZEPHYRUS-check
+    strategy:
+      fail-fast: false
+      # Draft PRs run only ubuntu-latest / Python 3.12 for fast signal on
+      # the gate steps (validator, linter, ratchet, one test pass).
+      # Non-draft events (ready_for_review, push to main,
+      # workflow_dispatch) get the full matrix.
+      matrix:
+        os: ${{ github.event.pull_request.draft == true && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest"]') }}
+        python-version: ${{ github.event.pull_request.draft == true && fromJSON('["3.12"]') || fromJSON('["3.10", "3.11", "3.12"]') }}
 
     runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ['3.10', '3.11', '3.12']
-
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -32,43 +52,101 @@ jobs:
           path: ${{ env.pythonLocation }}
           key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
-      - name: Build ZEPHYRUS
+      - name: Install dependencies
         run: |
-          python -m pip install -e .[develop]
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[develop]"
 
-      - uses: actions/cache@v5
-        id: cache-fwl-data
-        with:
-          path: $HOME/work/fwl_data
-          key: fwl-data-1
+      - name: Validate test structure
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        run: bash tools/validate_test_structure.sh
 
-      - name: Test with pytest
+      - name: Run test-quality lint
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        run: python tools/check_test_quality.py --check
+
+      - name: Pre-flight fail_under ratchet check
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
         run: |
-          export FWL_DATA="$HOME/work/fwl_data"
-          coverage run -m pytest
+          git fetch --no-tags --depth=1 origin "$BASE_REF" || true
+          python - <<'PY'
+          import os
+          import pathlib
+          import subprocess
+          import sys
+          import tomllib
 
-      - name: Report coverage
+          base_ref = os.environ.get('BASE_REF', 'main')
+          out = subprocess.run(
+              ['git', 'show', f'origin/{base_ref}:pyproject.toml'],
+              capture_output=True,
+              text=True,
+              check=False,
+          )
+          if out.returncode != 0:
+              print(f'Could not read pyproject.toml from origin/{base_ref}; skipping check.')
+              sys.exit(0)
+
+          base = tomllib.loads(out.stdout)
+          head = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
+
+          def fail_under(d):
+              try:
+                  return float(d['tool']['coverage']['report']['fail_under'])
+              except KeyError:
+                  return None
+
+          base_v = fail_under(base)
+          head_v = fail_under(head)
+          print(f'fail_under: base={base_v} head={head_v}')
+
+          # Base has no gate yet: the first PR that introduces it is allowed.
+          if base_v is None:
+              print(f'origin/{base_ref} has no [tool.coverage.report].fail_under; PASS.')
+              sys.exit(0)
+
+          # Head removed a gate the base had: that is a decrease.
+          if head_v is None:
+              print(
+                  f'ERROR: head removed [tool.coverage.report].fail_under '
+                  f'(base had {base_v}). The gate is one-way only.'
+              )
+              sys.exit(1)
+
+          ECOSYSTEM_CEILING = 90.0
+          floor = min(base_v, ECOSYSTEM_CEILING)
+          if head_v < floor:
+              print(
+                  f'ERROR: fail_under {head_v} < floor {floor} '
+                  f'(base={base_v}, ceiling={ECOSYSTEM_CEILING}). '
+                  'The gate may ratchet down to the 90% ecosystem ceiling '
+                  'but not below.'
+              )
+              sys.exit(1)
+          if head_v > ECOSYSTEM_CEILING:
+              print(
+                  f'ERROR: fail_under {head_v} exceeds the '
+                  f'{ECOSYSTEM_CEILING}% ecosystem ceiling.'
+              )
+              sys.exit(1)
+          print(f'OK: fail_under {head_v} within [{floor}, {ECOSYSTEM_CEILING}].')
+          PY
+
+      - name: Run unit + smoke tests
         run: |
-          coverage json
-          export TOTAL=$(python -c "import json;print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
-          echo "### Total coverage: ${TOTAL}%"
-          echo "total=$TOTAL" >> $GITHUB_ENV
-          echo "### Total coverage: ${TOTAL}%" >> $GITHUB_STEP_SUMMARY
-          echo $'\n```' >> $GITHUB_STEP_SUMMARY
-          coverage report >> $GITHUB_STEP_SUMMARY
-          echo $'\n```' >> $GITHUB_STEP_SUMMARY
-          coverage report
-
-      - name: Make coverage badge
-        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == '3.10' }}
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: 152250f71914339d24537977e64aba55
-          filename: covbadge_zephyrus.svg
-          label: Coverage
-          message: ${{ env.total }}%
-          minColorRange: 50
-          maxColorRange: 90
-          valColorRange: ${{ env.total }}
-
+          FAST_FAIL_UNDER=$(python - <<'PY'
+          try:
+              import tomllib
+          except ModuleNotFoundError:  # Python 3.10 ships no stdlib tomllib
+              import tomlkit as tomllib
+          with open('pyproject.toml') as f:
+              data = tomllib.loads(f.read())
+          print(data['tool']['zephyrus']['coverage_fast']['fail_under'])
+          PY
+          )
+          echo "Fast gate fail_under: ${FAST_FAIL_UNDER}%"
+          pytest -m "(unit or smoke) and not skip" \
+            --cov=zephyrus \
+            --cov-fail-under=${FAST_FAIL_UNDER}
