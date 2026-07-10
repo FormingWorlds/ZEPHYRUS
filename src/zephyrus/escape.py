@@ -100,9 +100,9 @@ def EL_escape(
     Lammer et al. (2003), Equation 6, written as a mass-loss rate by
     Erkaev et al. (2007), Equation 21. The alternative radius scaling
     (``scaling=3``, ``Rxuv**3``) is the single-radius simplification of
-    Lopez, Fortney & Miller (2012), Equation 2, and Lehmer & Catling
-    (2017), Equation 1. The tidal reduction factor ``K_tide`` is
-    Erkaev et al. (2007), Equation 17.
+    Lopez, Fortney & Miller (2012), Equation 2, Lopez & Fortney (2013),
+    Equation 1, and Lehmer & Catling (2017), Equation 1. The tidal
+    reduction factor ``K_tide`` is Erkaev et al. (2007), Equation 17.
 
     1. Watson, A. J., Donahue, T. M., & Walker, J. C. G. (1981).
        The dynamics of a rapidly escaping atmosphere: applications to
@@ -116,7 +116,10 @@ def EL_escape(
     4. Lopez, E. D., Fortney, J. J., & Miller, N. (2012).
        How thermal evolution and mass-loss sculpt populations of
        super-Earths and sub-Neptunes. *ApJ*, 761(1), 59.
-    5. Lehmer, O. R., & Catling, D. C. (2017). Rocky worlds
+    5. Lopez, E. D., & Fortney, J. J. (2013). The role of core mass
+       in controlling evaporation: the Kepler radius distribution and
+       the Kepler-36 density dichotomy. *ApJ*, 776(1), 2.
+    6. Lehmer, O. R., & Catling, D. C. (2017). Rocky worlds
        limited to ~1.8 Earth radii by atmospheric escape during a
        star's extreme UV saturation. *ApJ*, 845(2), 130.
     """

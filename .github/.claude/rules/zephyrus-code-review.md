@@ -32,7 +32,7 @@ When reviewing code that crosses these boundaries (a new flux calculation, a new
 `EL_escape` dispatches the radius term by the `scaling` argument:
 
 - `scaling=2` (default): `R_cubed = Rp * Rxuv**2` (Watson 1981; Lammer 2003; Erkaev 2007, Eq. 21).
-- `scaling=3`: `R_cubed = Rxuv**3` (Lopez, Fortney & Miller 2012; Lehmer & Catling 2017).
+- `scaling=3`: `R_cubed = Rxuv**3` (Lopez, Fortney & Miller 2012; Lopez & Fortney 2013; Lehmer & Catling 2017).
 - any other value: `ValueError`.
 
 When the default `scaling` is changed, or a new scaling branch is added, the change has fan-out across:
