@@ -1,0 +1,1 @@
+#mass loss function during impacts
