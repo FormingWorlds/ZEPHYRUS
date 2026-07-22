@@ -44,6 +44,29 @@ ZEPHYRUS treats atmospheric escape as a bulk process: at each PROTEUS time step 
 More about this in its dedicated [page](proteus.md).
 
 
+## Boil-off regime diagnostics
+
+Equation (1) assumes the outflow is powered by absorbed XUV photons. An envelope that extends towards its Bondi radius is instead driven by its own thermal energy and the planet's low gravity, and in that regime the energy-limited rate is no longer an upper bound on the mass loss: direct hydrodynamic calculations exceed it by up to a factor of a few tens, because the continuum heating that drives the wind is absent from Eq. (1) [^fossati]. `boiloff.py` supplies the two published tests for that regime so a caller can check before applying the energy-limited branch.
+
+The Bondi radius, the isothermal sonic radius of Owen & Wu (2016) [^owenwu], is
+
+$$R_\mathrm{B} = \frac{G\,M_p\,\mu\,m_\mathrm{H}}{2\,k_\mathrm{B}\,T_\mathrm{eq}} \tag{4}$$
+
+with $\mu$ the mean molecular weight of the envelope, and the restricted Jeans escape parameter of Fossati et al. (2017) [^fossati] is
+
+$$\Lambda = \frac{G\,M_p\,m_\mathrm{H}}{k_\mathrm{B}\,T_\mathrm{eq}\,R_p} \tag{5}$$
+
+evaluated for atomic hydrogen so it depends only on bulk properties. Boil-off is expected for $R_p \gtrsim 0.1\,R_\mathrm{B}$, or equivalently for $\Lambda$ below roughly 15 to 35.
+
+The fraction of the envelope that survives follows Owen & Wu (2016) [^owenwu], eq. 16, with their order-unity constants set to one:
+
+$$f = \frac{2}{\kappa\,\alpha + 1}, \qquad \alpha = \frac{R_p}{R_\mathrm{B}} \tag{6}$$
+
+where $\kappa = 10$ places the end of boil-off at $R_p = 0.1\,R_\mathrm{B}$, so $f = 1$ exactly there and falls towards zero for envelopes far outside their Bondi radius.
+
+!!! warning "The two thresholds share a threshold value, not a convention"
+    Eq. (5) uses the atomic hydrogen mass while Eq. (4) uses the mean molecular weight of the envelope, and combining them gives $R_p/R_\mathrm{B} = 2/(\mu\Lambda)$. The equality of $\Lambda = 20$ with $R_p = 0.1\,R_\mathrm{B}$ quoted by Fossati et al. (2017) and Affolter et al. (2023) [^affolter] therefore holds only for $\mu = 1$; for a hydrogen-helium envelope the same radius condition corresponds to $\Lambda \approx 8.5$. Eq. (6) is expressed in $\alpha$ rather than $\Lambda$ for this reason: it is the variable the result is derived in, so it carries no conversion.
+
 ## Regime of validity
 
 The EL formalism is appropriate in the high-irradiation, hydrodynamic regime that dominates atmospheric loss during the first $\sim 10^6$–$10^8$ yr of evolution for close-in rocky planets [^watson][^lammer2003]. Outside this regime—at lower XUV fluxes or for less extended atmospheres—non-thermal escape (Jeans escape, ion pickup, charge exchange) becomes comparable to or exceeds the hydrodynamic rate, and the bulk EL prescription no longer applies. ZEPHYRUS does not currently include these processes; users should verify that the integrated XUV-driven loss exceeds non-thermal estimates (e.g. $\sim 10^7$–$10^8$ g s$^{-1}$ for an Earth-mass planet; Kislyakova et al. 2014 [^kislyakova]) before interpreting model outputs.
@@ -66,6 +89,12 @@ Similarly, the bulk-removal assumption breaks down when the hydrodynamic particl
 [^lammer2003]: Lammer, H., Selsis, F., Ribas, I., et al. (2003). Atmospheric loss of exoplanets resulting from stellar X-ray and extreme-ultraviolet heating. *The Astrophysical Journal, 598*(2), L121–L124. https://doi.org/10.1086/380815
 
 [^kislyakova]: Kislyakova, K. G., Johnstone, C. P., Odert, P., et al. (2014). Stellar wind interaction and pick-up ion escape of the Kepler-11 "super-Earths". *Astronomy & Astrophysics, 562*, A116. https://doi.org/10.1051/0004-6361/201322933
+
+[^fossati]: Fossati, L., Erkaev, N. V., Lammer, H., et al. (2017). Aeronomical constraints to the minimum mass and maximum radius of hot low-mass planets. *Astronomy & Astrophysics, 598*, A90. https://doi.org/10.1051/0004-6361/201629716
+
+[^owenwu]: Owen, J. E., & Wu, Y. (2016). Atmospheres of low-mass planets: the "boil-off". *The Astrophysical Journal, 817*(2), 107. https://doi.org/10.3847/0004-637X/817/2/107
+
+[^affolter]: Affolter, L., Mordasini, C., Oza, A. V., Kubyshkina, D., & Fossati, L. (2023). Planetary evolution with atmospheric photoevaporation II. Fitting the slope of the radius valley by combining boil-off and XUV-driven escape. *Astronomy & Astrophysics, 676*, A119. https://doi.org/10.1051/0004-6361/202142205
 
 [^wordsworth2018]: Wordsworth, R. D., Schaefer, L. K., & Fischer, R. A. (2018). Redox evolution via gravitational differentiation on low-mass planets: implications for abiotic oxygen, water loss, and habitability. *The Astronomical Journal, 155*(5), 195. https://doi.org/10.3847/1538-3881/aab608
 

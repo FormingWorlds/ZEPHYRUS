@@ -12,6 +12,7 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `G` | $G$ | $6.6743 \times 10^{-11}$ | m³ kg⁻¹ s⁻² |
 | `G_cgs` | $G_\mathrm{cgs}$ | $6.6743 \times 10^{-8}$ | cm³ g⁻¹ s⁻² |
 | `c` | $c$ | $2.99792458 \times 10^{8}$ | m s⁻¹ |
+| `m_H` | $m_\mathrm{H}$ | $1.6726219 \times 10^{-27}$ | kg |
 
 ## Unit conversions (`constants.py`)
 
@@ -74,3 +75,23 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `R_TOI561b` | $1.37\,R_\oplus$ | $0.04\,R_\oplus$ | m |
 | `M_TOI561b` | $2.24\,M_\oplus$ | $0.20\,M_\oplus$ | kg |
 | `a_TOI561b` | $0.0106$ | $0.0004$ | au |
+
+---
+
+## Boil-off regime parameters (`boiloff.py`)
+
+| Name | Symbol | Default | Description |
+|---|---|---|---|
+| `MU_ENVELOPE` | $\mu$ | $2.35$ | Mean molecular weight of a hydrogen-helium envelope, used for the Bondi radius |
+| `BOILOFF_RADIUS_FRACTION` | $1/\kappa$ | $0.1$ | Planet radius, in Bondi radii, at which boil-off ceases |
+| `LAMBDA_CRITICAL` | $\Lambda_\mathrm{crit}$ | $20$ | Restricted Jeans parameter below which escape is thermally driven |
+
+The published range for $\Lambda_\mathrm{crit}$ is 15 to 35 and depends on stellar type and orbital separation. See the [model overview](../Explanations/model.md#boil-off-regime-diagnostics) for how the two thresholds relate, and note that they coincide only when both are evaluated for atomic hydrogen.
+
+### Energy-limited guard
+
+| Name | Default | Description |
+|---|---|---|
+| `K_tide_floor` | $0.01$ | Lower clamp on the tidal reduction factor in `EL_escape` |
+
+The tidal factor has a double root where the atmosphere reaches its Roche lobe, and the energy-limited rate divides by it, so the rate diverges as that point is approached. The floor keeps the result finite; a rate computed against it should be read as a bound rather than a prediction.
