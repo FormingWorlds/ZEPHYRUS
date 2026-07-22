@@ -23,6 +23,7 @@ def EL_escape(
     Rxuv: float,
     Fxuv: float,
     scaling: int = 2,
+    K_tide_floor: float = 0.01,
 ):
     r"""
     Compute the mass-loss rate for Energy-Limited (EL) atmospheric escape.
@@ -79,6 +80,14 @@ def EL_escape(
         Planet radius scaling exponent. ``2`` (default) uses
         $R_p R_\mathrm{XUV}^2$; ``3`` uses $R_\mathrm{XUV}^3$. Any other
         value raises ``ValueError``.
+    K_tide_floor : float, optional
+        Lower clamp on $K_\mathrm{tide}$. The factor has a double root at
+        $\xi = 1$, so the rate, which divides by it, grows without bound as
+        the atmosphere approaches its Roche lobe: $\xi = 1.1$ inflates the
+        rate 83-fold and values near $10^{-6}$ are reached for
+        $R_\mathrm{Roche} \le 2 R_p$ (Kubyshkina & Fossati 2021). The clamp
+        marks the edge of validity rather than a physical result; a rate
+        computed against it should be treated as a bound, not a prediction.
 
     Returns
     -------
@@ -141,6 +150,12 @@ def EL_escape(
                 'approximation no longer applies.'
             )
         K_tide = 1 - (3 / (2 * ksi)) + (1 / (2 * (ksi**3)))
+        # Just above the double root K_tide is small enough that the rate is
+        # set by the divergence rather than by the physics, so clamp it. An
+        # atmosphere this close to its Roche lobe is losing mass through a
+        # thermally driven wind, which the energy-limited formula does not
+        # describe; see `boiloff.restricted_jeans` for the regime test.
+        K_tide = max(K_tide, K_tide_floor)
     else:
         K_tide = 1
 
