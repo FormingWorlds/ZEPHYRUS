@@ -29,10 +29,12 @@ nav:
       - API reference:
         - Overview: Reference/api/index.md
         - Escape: Reference/api/escape.md
+        - Boil-off: Reference/api/boiloff.md
         - Constants: Reference/api/constants.md
         - Planet parameters: Reference/api/planet_parameters.md
       - Validation:
         - Escape: Validation/escape.md
+        - Boil-off: Validation/boiloff.md
     
   - Community:
       - Contact: Community/contact.md
