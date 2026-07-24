@@ -54,25 +54,29 @@ The timeout is a defensive ceiling, not a target. A unit test that takes 25 s of
 
 ## Physics-invariant tiering
 
-A unit test on the physics source (`escape.py`) must assert at least one of four invariant families:
+A unit test on a physics source (`escape.py`, `collision.py`) must assert at least one of four invariant families:
 
 - **Conservation**: the mass-loss rate equals the deposited XUV power divided by the gravitational binding energy per unit mass, up to the geometric and efficiency factors of the formula; in a coupled step the removed mass never exceeds the available atmospheric mass.
 - **Positivity or boundedness**: the escape rate is non-negative for valid inputs; the tidal factor `K_tide` lies in `(0, 1)` when the Hill radius exceeds the XUV radius (`ksi = Rhill / Rxuv > 1`), rising toward 1 as the orbit widens, and the tidal branch raises `ValueError` for `ksi <= 1`; radii, masses, and semi-major axis are strictly positive; the XUV flux and efficiency are non-negative.
 - **Monotonicity or symmetry**: the rate is linear in the XUV flux at fixed geometry; it scales as `1 / Mp`; it is larger with the tidal correction than without (`K_tide < 1`) for a close-in orbit; it is zero when the flux is zero.
 - **Pinned numeric value with a discrimination guard**: a closed-form value pinned via `pytest.approx`, plus explicit assertions that a wrong exponent, a wrong scaling branch, a sign flip, or a unit slip would each differ from the correct value by more than the tolerance.
 
+For the collision law the same families read: the loss fraction is bounded in `[0, 1]` and capped at 1 for total erosion; it vanishes at grazing incidence and at zero contact speed; it never decreases with contact speed; and its closed-form pins carry guards against the wrong mass-ratio denominator, wrong exponents, and a wrong gravitational constant.
+
 Tests that meet one or more of these are tagged `@pytest.mark.physics_invariant`. The marker is per-function, not module-level: an error-contract test (an unsupported `scaling` raising `ValueError`) does not carry it.
 
-The physics source in ZEPHYRUS is `escape.py`. The utility sources (`__init__.py`, `constants.py`, `planets_parameters.py`) are exempt from the invariant requirement but remain subject to the anti-happy-path rules.
+The physics sources in ZEPHYRUS are `escape.py` and `collision.py`. The utility sources (`__init__.py`, `constants.py`, `planets_parameters.py`) are exempt from the invariant requirement but remain subject to the anti-happy-path rules.
 
 ## Reference-pinned validation
 
-Tests that pin behaviour against an external anchor are tagged `@pytest.mark.reference_pinned`. The anchor is one of a published benchmark, an analytical limit, or a cross-implementation check. `escape.py` carries at least one such test, recorded on the [`escape` validation page](../Validation/escape.md). The current anchors:
+Tests that pin behaviour against an external anchor are tagged `@pytest.mark.reference_pinned`. The anchor is one of a published benchmark, an analytical limit, or a cross-implementation check. Each physics source carries at least one such test, recorded on the [`escape`](../Validation/escape.md) and [`collision`](../Validation/collision.md) validation pages. The current anchors:
 
 | Source | Anchor | Test |
 |---|---|---|
 | `escape.py` | Erkaev et al. (2007), A&A 472:329, Eq. 21: closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
 | `escape.py` | Lehmer & Catling (2017), ApJ 845:130, Eq. 1: closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
+| `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Eq. 1: closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
+| `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Tables 1 and 2: simulated loss fractions of the SPH suite | `tests/test_collision.py::test_scaling_law_reproduces_kegerreis_table2_simulations` |
 
 The marker is not the same thing as physical correctness: a reference-pinned test certifies that this implementation reproduces that anchor; it does not certify that the anchor is the right physics for every planetary regime.
 
@@ -83,6 +87,7 @@ Each source module with executable content has a same-named companion in `tests/
 | Source | Test |
 |---|---|
 | `src/zephyrus/escape.py` | `tests/test_escape.py` |
+| `src/zephyrus/collision.py` | `tests/test_collision.py` |
 | `src/zephyrus/constants.py` | `tests/test_constants.py` |
 | `src/zephyrus/planets_parameters.py` | `tests/test_planets_parameters.py` |
 
@@ -91,6 +96,7 @@ Cross-cutting and companion tests are the documented exception, not the rule:
 - `tests/test_mors_coupling.py`: the MORS-to-escape flux hand-off with the stellar lookup mocked, so the coupling recipe runs in the fast unit tier without a download.
 - `tests/test_earth.py`: an Earth-analogue regression that spans the real MORS lookup and the escape formula end to end. It carries the `integration` tier because it downloads the stellar-evolution tracks.
 - `tests/test_escape_properties.py`: the Hypothesis-driven property sweeps for `escape.py`, kept in their own module so the `pytest.importorskip('hypothesis')` skip applies only to these tests and the closed-form pins in `tests/test_escape.py` still run when the develop-extra dependency is absent.
+- `tests/test_collision_properties.py`: the same pattern for `collision.py`: boundedness, speed monotonicity, angle monotonicity at equal densities, and the exact reduction of the interacting mass to the interacting volume.
 
 `__init__.py` holds only the package version string and has no dedicated test file.
 

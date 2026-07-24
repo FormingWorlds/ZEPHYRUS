@@ -7,9 +7,9 @@
 [![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/tests.yaml?branch=main&label=Unit%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/tests.yaml)
 [![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/nightly.yml)
 
-**ZEPHYRUS** is the atmospheric escape module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. It computes the rate at which an exoplanet loses its atmosphere to space under high-energy stellar irradiation.
+**ZEPHYRUS** is the atmospheric escape module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. It computes the rate at which an exoplanet loses its atmosphere to space under high-energy stellar irradiation, and the fraction of its atmosphere removed by a giant impact.
 
-Given a planet's mass and radius, the radius at which XUV radiation is absorbed, the stellar XUV flux at the planet, and an escape efficiency, ZEPHYRUS returns the energy-limited mass-loss rate. An optional tidal correction after Erkaev et al. (2007) enhances the rate for close-in or eccentric orbits, and two forms of the XUV-heated cross section are available. The stellar XUV flux is typically supplied by [MORS](https://proteus-framework.org/MORS/) evolution tracks.
+Given a planet's mass and radius, the radius at which XUV radiation is absorbed, the stellar XUV flux at the planet, and an escape efficiency, ZEPHYRUS returns the energy-limited mass-loss rate. An optional tidal correction after Erkaev et al. (2007) enhances the rate for close-in or eccentric orbits, and two forms of the XUV-heated cross section are available. The stellar XUV flux is typically supplied by [MORS](https://proteus-framework.org/MORS/) evolution tracks. For giant impacts during accretion, ZEPHYRUS returns the eroded fraction of the target's atmosphere from the collision speed, masses, densities, and impact angle, following the scaling law of Kegerreis et al. (2020).
 
 Named after Zephyrus, the Greek god of the west wind and a messenger of spring. Pronounced *ZEF-ir-us*.
 

@@ -1,14 +1,27 @@
 # Limitations
 
-ZEPHYRUS implements the **energy-limited (EL) approximation** to hydrodynamic atmospheric escape, given by Eq. (1) of the [model overview](model.md). This is a deliberate simplification of a much richer physical problem. The most important regimes and processes the model does not cover are summarised below.
+ZEPHYRUS implements the **energy-limited (EL) approximation** to hydrodynamic atmospheric escape, given by Eq. (1) of the [model overview](model.md), and the **giant-impact erosion scaling law** of Eq. (4). Both are deliberate simplifications of much richer physical problems. The most important regimes and processes the model does not cover are summarised below.
 
 ---
 
 ## What ZEPHYRUS *does* model
 
-A single regime: bulk hydrodynamic escape driven by stellar XUV irradiation, in the energy-limited approximation, with an optional tidal correction (Eq. 2 of the [model overview](model.md)). The tidal correction is defined only outside the Roche lobe, where the Hill-to-XUV radius ratio $\xi > 1$; ZEPHYRUS raises an error for $\xi \le 1$, at which point the atmosphere reaches the Roche lobe and the energy-limited approximation no longer holds. The mass-loss rate is partitioned across atmospheric species in proportion to their elemental mass mixing ratios.
+Two channels. The first is bulk hydrodynamic escape driven by stellar XUV irradiation, in the energy-limited approximation, with an optional tidal correction (Eq. 2 of the [model overview](model.md)). The tidal correction is defined only outside the Roche lobe, where the Hill-to-XUV radius ratio $\xi > 1$; ZEPHYRUS raises an error for $\xi \le 1$, at which point the atmosphere reaches the Roche lobe and the energy-limited approximation no longer holds. The mass-loss rate is partitioned across atmospheric species in proportion to their elemental mass mixing ratios. The second channel is the fraction of the target's atmosphere eroded by a single giant impact, from a fitted power law in the collision speed, mass ratio, density ratio, and impact angle (Eq. 4 of the [model overview](model.md)).
 
 Everything below is **not modelled.**
+
+---
+
+## Giant-impact erosion
+
+The collision channel is a single fitted power law, not an impact simulation, and inherits the scope of the simulation suite behind it:
+
+- **Thin atmospheres only.** The fit covers atmospheres of order 1 percent of the planet mass. A substantially thicker envelope cushions the impactor and alters its trajectory, and the eroded fraction is no longer described by the law.
+- **Target-side loss only.** The law returns what the target's atmosphere loses. Any atmosphere the impactor itself carries, and any volatile delivery from the impactor into the merged body, is outside the function; the underlying paper shows that in slow, grazing collisions with an atmosphere-hosting impactor the target can retain about 85 percent of the two bodies' combined initial atmospheres, so treating the impactor as ballastless is a caller-side assumption, not a property of the collision.
+- **No mantle or core erosion.** Violent impacts also strip silicate and metal mass; the law tracks only the atmospheric fraction.
+- **Chaotic regime scatter.** Slow, head-on collisions produce chaotic fall-back and sloshing; the fit carries about 20 percent scatter there, against 9 percent overall.
+- **Linearised interacting-mass geometry.** The common-height cap construction behind $f_M(b)$ misbehaves for a much denser, much smaller impactor near head-on, outside the fitted density ratios; ZEPHYRUS clamps $f_M$ to $[0, 1]$ in that corner rather than extrapolating the artifact.
+- **Fit-domain extrapolation is unflagged.** The function evaluates the power law for any physically valid inputs; it does not warn when masses, densities, or speeds leave the fitted ranges listed in the [model overview](model.md). Staying inside them is the caller's responsibility.
 
 ---
 

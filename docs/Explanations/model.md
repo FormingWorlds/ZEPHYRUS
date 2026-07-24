@@ -1,6 +1,6 @@
 # ZEPHYRUS model overview
 
-ZEPHYRUS computes the bulk hydrodynamic atmospheric escape rate driven by stellar XUV irradiation for rocky exoplanets coupled to the [PROTEUS](https://proteus-framework.org) interior–atmosphere framework. It implements an energy-limited (EL) formalism following Watson et al. (1981) [^watson] and Lopez & Fortney (2013) [^lopez]. ZEPHYRUS is called at each PROTEUS time step with the current planetary radius and mass, the stellar XUV flux supplied by [MORS](https://proteus-framework.org/MORS) , and the escape radius computed from the atmospheric structure produced by AGNI or JANUS. The mass-loss rate it returns is distributed across atmospheric species according to their elemental mass mixing ratios, so the atmosphere is depleted in bulk without elemental fractionation.
+ZEPHYRUS models two channels of atmospheric mass loss for rocky exoplanets coupled to the [PROTEUS](https://proteus-framework.org) interior–atmosphere framework: the continuous, bulk hydrodynamic escape driven by stellar XUV irradiation, and the impulsive erosion caused by giant impacts during accretion. The continuous channel implements an energy-limited (EL) formalism following Watson et al. (1981) [^watson] and Lopez & Fortney (2013) [^lopez]; it is called at each PROTEUS time step with the current planetary radius and mass, the stellar XUV flux supplied by [MORS](https://proteus-framework.org/MORS), and the escape radius computed from the atmospheric structure produced by AGNI or JANUS. The mass-loss rate it returns is distributed across atmospheric species according to their elemental mass mixing ratios, so the atmosphere is depleted in bulk without elemental fractionation. The impulsive channel implements the giant-impact erosion scaling law of Kegerreis et al. (2020) [^kegerreis], which returns the fraction of the target's atmosphere removed by a single collision.
 
 A model parameter reference can be found [here](../Reference/parameters.md).
 
@@ -37,6 +37,28 @@ where $a$ is the planetary semi-major axis, $e$ is the orbital eccentricity, and
 
 ---
 
+## Giant-impact atmospheric erosion
+
+A giant impact removes part of the target planet's atmosphere in a single event. ZEPHYRUS computes the eroded fraction with `collision.mass_loss`, which implements the scaling law of Kegerreis et al. (2020), their Eq. 1 [^kegerreis]:
+
+$$X \approx 0.64 \left[ \left(\frac{v_c}{v_\mathrm{esc}}\right)^2 \left(\frac{M_i}{M_\mathrm{tot}}\right)^{1/2} \left(\frac{\rho_i}{\rho_t}\right)^{1/2} f_M(b) \right]^{0.65} \tag{4}$$
+
+capped at 1 for total erosion, where subscript $i$ denotes the impactor, $t$ the target, $M_\mathrm{tot} = M_i + M_t$, and $b \equiv \sin\beta$ is the dimensionless impact parameter for impact angle $\beta$ (0 head-on, 1 fully grazing). The prefactor and exponent are least-squares fits to the paper's suite of 259 SPH simulations, each with an uncertainty of 0.01. The mutual escape speed of the pair at contact is
+
+$$v_\mathrm{esc} = \sqrt{\frac{2\,G\,(M_t + M_i)}{R_t + R_i}} \tag{5}$$
+
+and $f_M(b)$ is the fractional interacting mass of the pair (their Eq. B1), built from density-weighted spherical caps of common height $d = (R_t + R_i)(1 - b)$:
+
+$$f_M = \frac{\rho_t V^\mathrm{cap}_t + \rho_i V^\mathrm{cap}_i}{\rho_t V_t + \rho_i V_i}, \qquad V^\mathrm{cap}_{t,i} = \frac{\pi}{3} d^2 \left(3 R_{t,i} - d\right) \tag{6}$$
+
+where $V_{t,i}$ are the full body volumes. At equal bulk densities $f_M$ reduces exactly to the fractional interacting volume of their Eq. B2. The common-height caps are a linearised bookkeeping: outside the fitted geometry, for a much denser and much smaller impactor near head-on, the raw $f_M$ can leave $[0, 1]$ and vary non-monotonically with $b$, so ZEPHYRUS clamps $f_M$ to $[0, 1]$. Within the fitted domain the clamp never engages.
+
+Three input conventions follow the paper and must be honoured by the caller: $v_c$ is the speed at first contact, not the relative speed at infinity; the masses and radii exclude any atmosphere, with radii taken at the base of the atmosphere; and the densities are bulk values of the atmosphere-free bodies.
+
+The returned fraction applies to the target's atmosphere as a whole. Consistent with the bulk-removal treatment of the continuous channel, the caller partitions the lost mass across atmospheric species without elemental fractionation.
+
+---
+
 ## Coupling to PROTEUS
 
 ZEPHYRUS treats atmospheric escape as a bulk process: at each PROTEUS time step the total mass-loss rate from Eq. (1) is partitioned across atmospheric species in proportion to their elemental mass mixing ratios as computed by CALLIOPE. No elemental fractionation between light and heavy species is imposed in the outflow itself; however, because only outgassed volatiles are subject to escape while dissolved species remain in the magma ocean reservoir, escape fractionates the planet's *total* (interior + atmosphere) volatile budget over time, preferentially retaining species that are highly soluble in silicate melts (e.g. H$_2$O, S$_2$). 
@@ -49,6 +71,8 @@ More about this in its dedicated [page](proteus.md).
 The EL formalism is appropriate in the high-irradiation, hydrodynamic regime that dominates atmospheric loss during the first $\sim 10^6$–$10^8$ yr of evolution for close-in rocky planets [^watson][^lammer2003]. Outside this regime—at lower XUV fluxes or for less extended atmospheres—non-thermal escape (Jeans escape, ion pickup, charge exchange) becomes comparable to or exceeds the hydrodynamic rate, and the bulk EL prescription no longer applies. ZEPHYRUS does not currently include these processes; users should verify that the integrated XUV-driven loss exceeds non-thermal estimates (e.g. $\sim 10^7$–$10^8$ g s$^{-1}$ for an Earth-mass planet; Kislyakova et al. 2014 [^kislyakova]) before interpreting model outputs.
 
 Similarly, the bulk-removal assumption breaks down when the hydrodynamic particle flux drops below the critical flux required to drag heavy species against gravity, at which point compositional fractionation in the outflow becomes significant [^wordsworth2018][^cherubim2024]. Following Yoshida et al. (2022) [^yoshida], the critical flux for H$_2$O in an H$_2$ background is $\approx 1.9 \times 10^{8}$ g s$^{-1}$.
+
+The giant-impact erosion law (Eq. 4) is constrained by simulations spanning target masses of roughly 0.3 to 3 $M_\oplus$, impactor masses down to about 0.05 $M_\oplus$, bulk densities from about half to double Earth's, contact speeds of 1 to 3 $v_\mathrm{esc}$, all impact angles, and thin atmospheres of order 1 percent of the planet mass. The median deviation of the simulations from the law is 9 percent, rising to about 20 percent for slow, head-on impacts, whose outcomes are chaotic. The loss depends only mildly on the atmosphere mass in this thin-atmosphere regime, with a factor of 10 less atmosphere increasing the eroded fraction by roughly 10 percent; substantially thicker atmospheres, which can cushion the impactor, fall outside the law's regime.
 
 ---
 
@@ -72,3 +96,5 @@ Similarly, the bulk-removal assumption breaks down when the hydrodynamic particl
 [^cherubim2024]: Cherubim, C., Wordsworth, R., Hu, R., & Shkolnik, E. (2024). Strong Fractionation of Deuterium and Helium in Sub-Neptune Atmospheres along the Radius Valley. *The Astrophysical Journal, 967*(2), 139. https://doi.org/10.3847/1538-4357/ad3e77
 
 [^yoshida]: Yoshida, T., Terada, N., Ikoma, M., & Kuramoto, K. (2022). Less Effective Hydrodynamic Escape of H$_2$–H$_2$O Atmospheres on Terrestrial Planets Orbiting Pre-main-sequence M Dwarfs. *The Astrophysical Journal, 934*(2), 137. https://doi.org/10.3847/1538-4357/ac7be7
+
+[^kegerreis]: Kegerreis, J. A., Eke, V. R., Catling, D. C., Massey, R. J., Teodoro, L. F. A., & Zahnle, K. J. (2020). Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density. *The Astrophysical Journal Letters, 901*(2), L31. https://doi.org/10.3847/2041-8213/abb5fb

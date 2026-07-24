@@ -78,6 +78,7 @@ OPTIONAL_DEPS = {
 # and at least one @pytest.mark.reference_pinned test in its companion
 # test file.
 PHYSICS_SOURCES = {
+    'collision.py',
     'escape.py',
 }
 
