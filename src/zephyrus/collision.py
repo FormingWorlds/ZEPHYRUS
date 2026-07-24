@@ -7,7 +7,7 @@
 from zephyrus.constants import G 
 import numpy as np 
 
-def mass_loss(v_c:float, M_i:float, M_T:float, rho_i:float, rho_t:float, R_i:float , R_t:float, b:float):
+def mass_loss(v_c:float, M_i:float, M_t:float, rho_i:float, rho_t:float, R_i:float , R_t:float, b:float):
     '''
     Fractional atmospheric mass loss due to giant impacts given by:
 
@@ -21,7 +21,7 @@ def mass_loss(v_c:float, M_i:float, M_T:float, rho_i:float, rho_t:float, R_i:flo
     v_c : float 
         Collision velocity between impactor and target [m/s]
     M_ : float 
-        Mass of impactor (i) or total (T) [kg]
+        Mass of impactor (i) or target (t) [kg]
     rho_ : float 
         Density of impactor (i) or target (t) [kg/m^3]
     R_ : float 
