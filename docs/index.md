@@ -10,7 +10,7 @@
 ![ZEPHYRUS banner](assets/ZEPHYRUS_logo_black.png#only-dark)
 
 
-**Zephyrus**, named after the Greek God of the West wind and messenger of spring, models the energy-limited atmospheric escape of exoplanets. 
+**Zephyrus**, named after the Greek God of the West wind and messenger of spring, models the atmospheric mass loss of exoplanets: continuous energy-limited escape driven by stellar XUV irradiation, and impulsive erosion by giant impacts during accretion. 
 
 !!! info "PROTEUS framework"
     ZEPHYRUS is the atmospheric escape model integrated into the PROTEUS framework,  a modular Python framework that simulates the coupled evolution of the atmospheres and interiors of rocky planets and exoplanets. The documentation for PROTEUS can be found [here](https://proteus-framework.org/PROTEUS). 
