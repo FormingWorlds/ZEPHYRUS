@@ -29,10 +29,12 @@ nav:
       - API reference:
         - Overview: Reference/api/index.md
         - Escape: Reference/api/escape.md
+        - Collision: Reference/api/collision.md
         - Constants: Reference/api/constants.md
         - Planet parameters: Reference/api/planet_parameters.md
       - Validation:
         - Escape: Validation/escape.md
+        - Collision: Validation/collision.md
     
   - Community:
       - Contact: Community/contact.md
