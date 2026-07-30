@@ -2,10 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Docs](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/docs.yaml?branch=main&label=Docs)](https://proteus-framework.org/ZEPHYRUS/)
-[![codecov](https://img.shields.io/codecov/c/github/FormingWorlds/ZEPHYRUS?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/ZEPHYRUS)
+[![Coverage](https://img.shields.io/codecov/c/github/FormingWorlds/ZEPHYRUS?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/ZEPHYRUS)
 [![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/tests.yaml?branch=main&label=Unit%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/tests.yaml)
 [![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/nightly.yml)
-[![PyPI](https://img.shields.io/pypi/v/fwl-zephyrus?label=PyPI)](https://pypi.org/project/fwl-zephyrus/)
 
 **ZEPHYRUS** is the atmospheric escape module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. Named after the Greek god of the west wind and messenger of spring, it models the atmospheric mass loss of exoplanets: continuous energy-limited escape driven by stellar XUV irradiation, and impulsive erosion by giant impacts during accretion. 
 
