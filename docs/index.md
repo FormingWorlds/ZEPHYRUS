@@ -7,11 +7,10 @@
 [![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/nightly.yml)
 [![PyPI](https://img.shields.io/pypi/v/fwl-zephyrus?label=PyPI)](https://pypi.org/project/fwl-zephyrus/)
 
+**ZEPHYRUS** is the atmospheric escape module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. Named after the Greek god of the west wind and messenger of spring, it models the atmospheric mass loss of exoplanets: continuous energy-limited escape driven by stellar XUV irradiation, and impulsive erosion by giant impacts during accretion. 
+
 ![ZEPHYRUS banner](assets/ZEPHYRUS_logo_white.png#only-light)
 ![ZEPHYRUS banner](assets/ZEPHYRUS_logo_black.png#only-dark)
-
-
-**Zephyrus**, named after the Greek God of the West wind and messenger of spring, models the atmospheric mass loss of exoplanets: continuous energy-limited escape driven by stellar XUV irradiation, and impulsive erosion by giant impacts during accretion. 
 
 !!! info "PROTEUS framework"
     ZEPHYRUS is the atmospheric escape model integrated into the PROTEUS framework,  a modular Python framework that simulates the coupled evolution of the atmospheres and interiors of rocky planets and exoplanets. The documentation for PROTEUS can be found [here](https://proteus-framework.org/PROTEUS). 
