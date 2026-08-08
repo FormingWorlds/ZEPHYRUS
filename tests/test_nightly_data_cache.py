@@ -89,8 +89,8 @@ def test_cache_key_moves_with_the_spada_pins_and_not_otherwise(monkeypatch):
     # leaves the key at baseline and would pass.
     assert mod._pins() == {'zenodo': '15729101', 'subdir': f'{mod.SUBDIR}/{mod.DATASET}'}
 
-    # An empty digest would equal the workflow's restore-key prefix, exact-hit
-    # its own entry, and freeze the tree with nothing reporting it.
+    # An empty digest would leave the key as the constant prefix alone, which
+    # exact-hits its own entry on every run and freezes the tree silently.
     assert baseline.startswith(mod.KEY_PREFIX)
     assert re.fullmatch(rf'{re.escape(mod.KEY_PREFIX)}[0-9a-f]{{64}}', baseline)
 
@@ -119,8 +119,9 @@ def test_cache_key_refuses_to_resolve_without_the_pins(monkeypatch, capsys):
 def test_key_command_writes_the_output_line_the_workflow_reads(monkeypatch, tmp_path):
     """The key subcommand emits exactly the GITHUB_OUTPUT line the cache step reads.
 
-    A malformed line leaves the cache key empty, the restore prefix always
-    wins, and the tree freezes with nothing failing.
+    A malformed line leaves the workflow's key expression empty, and the
+    cache step rejects an empty key, so the nightly dies at that step
+    instead of caching under the resolved key.
     """
     mod = _cache_module()
     _pin(monkeypatch, record='15729101')
@@ -142,6 +143,11 @@ def test_restore_check_requires_an_unpacked_grid(monkeypatch, tmp_path):
     """
     mod = _cache_module()
     base = tmp_path / mod.SUBDIR / mod.DATASET
+
+    # A smaller floor keeps the test inside the unit wall-time budget; every
+    # assertion below is expressed against the patched constant, so the
+    # count-to-floor relationship under test is unchanged.
+    monkeypatch.setattr(mod, 'MIN_FILES', 24)
 
     # Nothing at all.
     count, problems = mod.check_restored(tmp_path)

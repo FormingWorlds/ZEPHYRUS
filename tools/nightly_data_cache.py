@@ -40,8 +40,9 @@ per-file: the grid directory exists, holds a plausible number of files, and
 no archive is left behind by an interrupted unpack.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
-partial digest would collide with the workflow's restore-key prefix and
-freeze the cached tree with nothing reporting it.
+partial digest would leave the key as the constant prefix alone, and a
+constant key exact-hits its own entry on every run, freezing the cached
+tree with nothing reporting it.
 """
 
 from __future__ import annotations
@@ -123,14 +124,15 @@ def resolve_key() -> str:
     ------
     ResolutionError
         When the pins cannot be resolved, or the digest comes out empty and
-        would collapse the key onto the restore-key prefix.
+        would collapse the key to the constant ``KEY_PREFIX`` alone.
     """
     pins = _pins()
     material = [f'{k}\t{pins[k]}' for k in sorted(pins)]
     if not material:
         raise ResolutionError(
-            'no pin was resolved, so the key would be the bare restore-key prefix '
-            'and the cached tree could never be rewritten.'
+            f'no pin was resolved, so the key would be the constant {KEY_PREFIX!r} '
+            'alone, which exact-hits its own cache entry on every run, and the '
+            'cached tree could never be rewritten.'
         )
     digest = hashlib.sha256('\n'.join(material).encode('utf-8')).hexdigest()
     return f'{KEY_PREFIX}{digest}'
