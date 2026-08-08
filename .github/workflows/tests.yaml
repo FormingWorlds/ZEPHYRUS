@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 # Push and PR CI: unit + smoke tiers only, on ubuntu + macos x Python
-# 3.10-3.12. Targets a fast wall-time. The integration and slow tiers,
+# 3.11-3.12. Targets a fast wall-time. The integration and slow tiers,
 # which run the real MORS-coupled escape, live in the scheduled nightly
 # workflow `nightly.yml` together with the Codecov upload.
 
@@ -33,7 +33,7 @@ jobs:
       # workflow_dispatch) get the full matrix.
       matrix:
         os: ${{ github.event.pull_request.draft == true && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest"]') }}
-        python-version: ${{ github.event.pull_request.draft == true && fromJSON('["3.12"]') || fromJSON('["3.10", "3.11", "3.12"]') }}
+        python-version: ${{ github.event.pull_request.draft == true && fromJSON('["3.12"]') || fromJSON('["3.11", "3.12"]') }}
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -137,10 +137,7 @@ jobs:
       - name: Run unit + smoke tests
         run: |
           FAST_FAIL_UNDER=$(python - <<'PY'
-          try:
-              import tomllib
-          except ModuleNotFoundError:  # Python 3.10 ships no stdlib tomllib
-              import tomlkit as tomllib
+          import tomllib
           with open('pyproject.toml') as f:
               data = tomllib.loads(f.read())
           print(data['tool']['zephyrus']['coverage_fast']['fail_under'])

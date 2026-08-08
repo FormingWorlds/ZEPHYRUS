@@ -181,7 +181,7 @@ Both gates sit at the 90 % ceiling. The `tools/update_coverage_threshold.py` hel
 
 ## PR validation pipeline
 
-`.github/workflows/tests.yaml` runs on every push and pull request to `main`, and on manual `workflow_dispatch`. Draft PRs run only `ubuntu-latest` with Python 3.12; non-draft events run the full matrix (`ubuntu-latest`, `macos-latest` x Python 3.10, 3.11, 3.12). The step sequence:
+`.github/workflows/tests.yaml` runs on every push and pull request to `main`, and on manual `workflow_dispatch`. Draft PRs run only `ubuntu-latest` with Python 3.12; non-draft events run the full matrix (`ubuntu-latest`, `macos-latest` x Python 3.11, 3.12). The step sequence:
 
 1. **Validate test structure** (`bash tools/validate_test_structure.sh`): rejects any test file without a module-level `pytestmark`.
 2. **Run test-quality lint** (`python tools/check_test_quality.py --check`): blocking; rejects regression against `tools/test_quality_baseline.json`.
