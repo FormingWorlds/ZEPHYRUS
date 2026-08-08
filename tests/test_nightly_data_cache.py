@@ -22,6 +22,10 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
 REPO = Path(__file__).parents[1]
 
+# Stand-in the OSF project id is patched to, long enough that it cannot collide
+# with a pin value by accident.
+MIRROR_SENTINEL = 'osf-mirror-must-not-be-hashed'
+
 
 def _cache_module():
     """Load the helper, skipping when its one dependency is absent."""
@@ -41,11 +45,12 @@ def _pin(monkeypatch, *, record):
 
 
 def test_cache_key_moves_with_the_spada_pins_and_not_otherwise(monkeypatch):
-    """The key tracks the Zenodo record and the OSF mirror, and nothing else.
+    """The key tracks the Zenodo record and the unpack directory, and nothing else.
 
     The grid unpacks to an unversioned directory and mors skips the download
     whenever it exists, so a re-pin is invisible on disk. The key is the only
-    thing that can notice, which is why both pins have to move it.
+    thing that can notice, which is why the record has to move it. The OSF
+    mirror is deliberately outside the digest, so mirror drift is untracked.
     """
     mod = _cache_module()
 
@@ -64,13 +69,23 @@ def test_cache_key_moves_with_the_spada_pins_and_not_otherwise(monkeypatch):
     # when the files behind it do, so hashing it would imply coverage.
     import mors.data
 
-    monkeypatch.setattr(mors.data, 'project_id', 'something-else', raising=False)
+    monkeypatch.setattr(mors.data, 'project_id', MIRROR_SENTINEL, raising=False)
     assert mod.resolve_key() == baseline
+
+    # Pin the material itself. The comparison above only notices a digest that
+    # reads the patched attribute; one carrying the mirror id as a literal
+    # leaves the key at baseline and would pass.
+    assert mod._pins() == {'zenodo': '15729101', 'subdir': f'{mod.SUBDIR}/{mod.DATASET}'}
 
     # An empty digest would equal the workflow's restore-key prefix, exact-hit
     # its own entry, and freeze the tree with nothing reporting it.
     assert baseline.startswith(mod.KEY_PREFIX)
     assert re.fullmatch(rf'{re.escape(mod.KEY_PREFIX)}[0-9a-f]{{64}}', baseline)
+
+    # The unpack directory is hashed alongside the record, so a rename of it
+    # has to move the key too. Left last: monkeypatch holds the rename in force.
+    monkeypatch.setattr(mod, 'SUBDIR', 'stellar_evolution_tracks_v2')
+    assert mod.resolve_key() != baseline
 
 
 def test_cache_key_refuses_to_resolve_without_the_pins(monkeypatch, capsys):

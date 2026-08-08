@@ -33,13 +33,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[develop]"
 
-      # The key carries the Zenodo record and OSF mirror that pin the Spada
-      # grid in the installed fwl-mors, plus the directory it unpacks into, so
-      # it moves exactly when that grid moves. actions/cache writes only on an
-      # exact-key miss, so a key that never changes is never rewritten and the
-      # tree it holds cannot follow the data. That matters here because the
-      # grid lands in an unversioned directory and mors skips the download
-      # whenever it is present, so nothing else would notice a re-pin.
+      # The key carries the Zenodo record that pins the Spada grid in the
+      # installed fwl-mors, plus the directory it unpacks into, so it moves
+      # when that grid is re-pinned. The OSF mirror is deliberately outside
+      # the digest, so mirror drift is untracked. Full rationale in the
+      # helper's module docstring.
       - name: Resolve the data cache key
         id: cachekey
         run: python tools/nightly_data_cache.py key

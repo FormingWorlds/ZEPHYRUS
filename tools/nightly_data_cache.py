@@ -12,11 +12,16 @@ That grid is pinned by a Zenodo record id with an OSF project as its mirror,
 both of which live in the installed ``mors.data``, and it unpacks to the
 unversioned directory ``stellar_evolution_tracks/Spada``.
 
-``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``, carrying a digest of
-the Zenodo record, so the key moves when the grid is re-pinned and stays put
-otherwise. The directory names below are a fixed namespace segment rather
-than a resolved property: nothing queries them from ``mors``, so a mors-side
-rename of the Spada unpack path has to be mirrored here by hand.
+``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``, carrying a digest of the
+Zenodo record and the directory the grid unpacks into, so the key moves when
+the grid is re-pinned and stays put otherwise. The directory names below are a
+fixed namespace segment rather than a resolved property: nothing queries them
+from ``mors``, so a mors-side rename of the Spada unpack path has to be
+mirrored here by hand.
+
+A moving key is the whole point. ``actions/cache`` writes an entry only on an
+exact-key miss and never rewrites one it hits, so a key that never changes is
+never rewritten and the tree it holds cannot follow the data.
 
 The OSF project that mirrors the deposit is deliberately not part of the
 digest. Its id does not change when the files inside it change, so hashing
