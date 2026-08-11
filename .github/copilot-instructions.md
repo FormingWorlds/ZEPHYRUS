@@ -28,11 +28,11 @@ Sister modules in the ecosystem: AGNI (atmospheric radiative transfer), SOCRATES
 
 **Project Type**: Scientific simulation module (Python).
 
-**Languages**: Python 3.11+.
+**Languages**: Python 3.12+.
 
 **Size**: 3 source files in `src/zephyrus/`.
 
-**Target Runtime**: Python 3.11+ on Linux / macOS.
+**Target Runtime**: Python 3.12+ on Linux / macOS.
 
 ## Build & Validation
 
@@ -40,7 +40,7 @@ Sister modules in the ecosystem: AGNI (atmospheric radiative transfer), SOCRATES
 
 **Prerequisites**:
 
-1. Python 3.11 or 3.12 (via conda / miniforge or system).
+1. Python 3.12 (via conda / miniforge or system).
 2. Git.
 
 **Developer Install**:

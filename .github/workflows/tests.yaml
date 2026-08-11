@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 # Push and PR CI: unit + smoke tiers only, on ubuntu + macos x Python
-# 3.11-3.12. Targets a fast wall-time. The integration and slow tiers,
+# 3.12. Targets a fast wall-time. The integration and slow tiers,
 # which run the real MORS-coupled escape, live in the scheduled nightly
 # workflow `nightly.yml` together with the Codecov upload.
 
@@ -33,7 +33,7 @@ jobs:
       # workflow_dispatch) get the full matrix.
       matrix:
         os: ${{ github.event.pull_request.draft == true && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest"]') }}
-        python-version: ${{ github.event.pull_request.draft == true && fromJSON('["3.12"]') || fromJSON('["3.11", "3.12"]') }}
+        python-version: ${{ github.event.pull_request.draft == true && fromJSON('["3.12"]') || fromJSON('["3.12"]') }}
 
     runs-on: ${{ matrix.os }}
     steps:
