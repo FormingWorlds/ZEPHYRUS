@@ -62,6 +62,11 @@ def test_johnson_criterion_scalings():
     assert q_net2 == pytest.approx(2.0 * q_net1, rel=1e-12)
     assert q_c2 == pytest.approx(q_c1, rel=1e-12)
     assert r2 == pytest.approx(2.0 * r1, rel=1e-12)
+    # Quadratic in the intercepting radius: doubling R_xuv quadruples Q_net.
+    args_wide = dict(args, R_xuv=2.4 * Re)
+    _, q_net_wide, q_c_wide = q_net_over_qc(F_xuv=10.0, **args_wide)
+    assert q_net_wide == pytest.approx(4.0 * q_net1, rel=1e-12)
+    assert q_c_wide == pytest.approx(q_c1, rel=1e-12)
     args2 = dict(args, sigma_c=2e-19)
     r3, _, q_c3 = q_net_over_qc(F_xuv=10.0, **args2)
     assert q_c3 == pytest.approx(q_c1 / 2.0, rel=1e-12)
@@ -97,11 +102,18 @@ def test_erkaev_critical_temperature_normalization():
     exobase at the planetary radius and the Hill radius far away the
     correction factor approaches 1, so the critical temperature approaches
     the normalization itself. At the Roche lobe it must vanish (no barrier
-    left), and a farther exobase always lowers it.
+    left), and a farther exobase always lowers it. The exobase-at-radius
+    point alone is degenerate (the 1/x factor is invisible at x = 1), so
+    the second pin sits at x = 2, where a dropped 1/x doubles the value.
     """
     t_far = erkaev_tc(Mjup, Rjup, 1.0 * Rjup, 1e3 * Rjup)
     assert t_far == pytest.approx(1.45e5, rel=1e-2)
-    assert erkaev_tc(Mjup, Rjup, 2.0 * Rjup, 1e3 * Rjup) < t_far
+    # Non-degenerate pin: hand-evaluated 1.45e5 K * K(500) / 2 at x = 2.
+    t_x2 = erkaev_tc(Mjup, Rjup, 2.0 * Rjup, 1e3 * Rjup)
+    assert t_x2 == pytest.approx(7.22825e4, rel=1e-3)
+    # Dropped-1/x discrimination: that wrong formula returns 1.4457e5 here.
+    assert abs(t_x2 - 1.4457e5) > 0.5 * t_x2
+    assert t_x2 < t_far
     assert erkaev_tc(Mjup, Rjup, 3.0 * Rjup, 2.5 * Rjup) == pytest.approx(0.0, abs=0.0)
     # Mass scaling is linear: twice the mass doubles the barrier.
     assert erkaev_tc(2 * Mjup, Rjup, 1.0 * Rjup, 1e3 * Rjup) == pytest.approx(

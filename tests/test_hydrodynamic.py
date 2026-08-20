@@ -50,6 +50,9 @@ ERKAEV_TABLE1 = [
 
 # Spot evaluations of the Caldiroli et al. (2022) Appendix A.1 fit across
 # its validity box at K = 1: (log10 phi [cgs], F_XUV/rho_p [cgs], eta).
+# The eta values were evaluated from the published fitting formulas at
+# transcription time, independently of this implementation, so a later
+# transcription error in either place breaks the agreement.
 CALDIROLI_SPOTS = [
     (12.20, 1e3, 8.8e-1),
     (12.20, 1e6, 1.5e-1),

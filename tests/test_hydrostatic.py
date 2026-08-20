@@ -76,31 +76,26 @@ VOLKOV_C_TABLE = {
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_volkov_eq9_unity_limit_and_printed_coefficient():
-    """Eq. (9) reduces to unity at rest with the printed linear coefficient.
+def test_volkov_flat_factor_against_published_correction():
+    """The source's flat factor is distinct from the published Eq. (9).
 
-    At zero bulk velocity the drifting-Maxwellian flux is the Jeans flux
-    exactly; the leading correction is linear in the speed ratio with the
-    printed c(lambda). Tolerance 6e-4: the published table itself carries
-    float wobble of that size at large lambda when evaluated naively, and
-    the stable erfcx form sits within it.
+    Two anchors in one test, both against Volkov et al. (2011). First, the
+    test-local Eq. (9) oracle is certified against the paper: it reduces to
+    unity at zero bulk velocity, and its leading correction is linear in
+    the speed ratio with the printed c(lambda) table (tolerance 6e-4, the
+    float wobble the published table itself carries at large lambda).
+    Second, the source's ``volkov_flat_factor`` carries the measured shape
+    (1.7 at lambda = 6 to 1.4 at lambda = 15, held at the endpoints as the
+    flagged extrapolation) and falls with lambda while the certified
+    Eq. (9) correction rises with it: opposite slopes, so the two
+    corrections are different quantities and applying both to the branch
+    would double-count.
     """
     for lam, c_ref in VOLKOV_C_TABLE.items():
         assert c_lambda(lam) == pytest.approx(c_ref, rel=6e-4), lam
         r = volkov_eq9_ratio(1e-4, lam)
         assert (r - 1.0) / 1e-4 == pytest.approx(c_lambda(lam), rel=2e-3)
         assert volkov_eq9_ratio(1e-6, lam) == pytest.approx(1.0, abs=1e-4)
-
-
-def test_volkov_flat_factor_shape_and_distinctness():
-    """The flat kinetic factor has its measured shape, distinct from Eq. (9).
-
-    C(lambda) runs from 1.7 at lambda = 6 to 1.4 at lambda = 15, is held at
-    the endpoints outside (the flagged extrapolation), and falls with
-    lambda, whereas the Eq. (9) bulk-velocity correction at fixed speed
-    ratio rises with lambda: opposite slopes, so the two corrections are
-    different quantities and applying both would double-count.
-    """
     assert volkov_flat_factor(6.0) == pytest.approx(1.7, rel=1e-12)
     assert volkov_flat_factor(15.0) == pytest.approx(1.4, rel=1e-12)
     assert volkov_flat_factor(50.0) == pytest.approx(1.4, rel=1e-12)  # held
@@ -144,12 +139,17 @@ def test_yelle_figure1_mars_hydrogen_flux():
 
     On their fully specified Mars model the hydrogen escape flux is
     diffusion limited above about 200 K exobase temperature, with a plateau
-    at 2.4e8 cm^-2 s^-1 (40 percent tolerance: the binary H-CO2 coefficient
-    source their calculation used is not pinned in the paper, and the
-    tabulated value here differs at that level). The transition to
-    Jeans-limited escape below about 150 K shows as a collapse; the 100 K
-    point sits on the exponential edge, so it is checked as a regime (an
-    order below the plateau), not as a value.
+    at 2.4e8 cm^-2 s^-1. The 40 percent tolerance is deliberate and its
+    direction understood: the binary H-CO2 coefficient source their
+    calculation used is not pinned in the paper, the tabulated coefficient
+    here is smaller, and this implementation sits systematically below the
+    anchor (measured plateau 1.70e8, a ratio of 0.71 against the 0.60
+    floor), so a future coefficient revision in either direction moves
+    this pin and should be re-tuned consciously rather than by widening
+    the tolerance. The transition to Jeans-limited escape below about
+    150 K shows as a collapse; the 100 K point sits on the exponential
+    edge, so it is checked as a regime (an order below the plateau), not
+    as a value.
     """
     f100, _ = _mars_h_flux(100.0)
     f200, _ = _mars_h_flux(200.0)

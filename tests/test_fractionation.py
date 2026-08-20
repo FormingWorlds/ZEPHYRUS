@@ -115,9 +115,13 @@ def test_ternary_deuterium_reductions():
 
     # (c) Both activation thresholds are sharp at the printed critical rates.
     eps = 1e-6
-    assert solve_closure(phi_crit_he * (1 - eps), X, m, T, g0, b)[1] == 0.0
+    assert solve_closure(phi_crit_he * (1 - eps), X, m, T, g0, b)[1] == pytest.approx(
+        0.0, abs=0.0
+    )
     assert solve_closure(phi_crit_he * (1 + eps), X, m, T, g0, b)[1] > 0.0
-    assert solve_closure(phi_crit_d * (1 - eps), X, m, T, g0, b)[2] == 0.0
+    assert solve_closure(phi_crit_d * (1 - eps), X, m, T, g0, b)[2] == pytest.approx(
+        0.0, abs=0.0
+    )
     assert solve_closure(phi_crit_d * (1 + eps), X, m, T, g0, b)[2] > 0.0
 
     # (d) The He admixture lowers the D threshold by (1 + a2 X_He/X_H)^-1.
@@ -125,7 +129,9 @@ def test_ternary_deuterium_reductions():
     x_b = np.array([1 - x3 - tiny, tiny, x3])
     phi_crit_d_no_he = m[0] * phi_dl_d / (1 + a2 * tiny / x_b[0])
     assert solve_closure(phi_crit_d_no_he * (1 + eps), x_b, m, T, g0, b)[2] > 0.0
-    assert solve_closure(phi_crit_d_no_he * (1 - eps), x_b, m, T, g0, b)[2] == 0.0
+    assert solve_closure(phi_crit_d_no_he * (1 - eps), x_b, m, T, g0, b)[2] == pytest.approx(
+        0.0, abs=0.0
+    )
     assert phi_crit_d < phi_crit_d_no_he
 
 
@@ -401,7 +407,9 @@ def test_hunten_anchors_earth_mars_venus():
         b = np.array([[np.inf, b12], [b12, np.inf]])
         phi_star = m[0] * X[0] * b12 * (m[1] - m[0]) * g0 / kt400 * 400.0 / 400.0
         eps = 1e-6
-        assert solve_closure(phi_star * (1 - eps), X, m, 400.0, g0, b)[1] == 0.0
+        assert solve_closure(phi_star * (1 - eps), X, m, 400.0, g0, b)[1] == pytest.approx(
+            0.0, abs=0.0
+        )
         assert solve_closure(phi_star * (1 + eps), X, m, 400.0, g0, b)[1] > 0.0
         assert phi_star / m[0] == pytest.approx(f1_ref, rel=0.01)
 
@@ -434,7 +442,7 @@ def test_low_flux_collapse_and_zero_limit():
             assert flux[light] == pytest.approx(phi / m[light], rel=1e-12)
             assert np.sum(m * flux) == pytest.approx(phi, rel=1e-12)
         flux0, _c0, act0 = solve_closure(0.0, X, m, T, g0, b, return_diag=True)
-        assert np.all(flux0 == 0.0)
+        np.testing.assert_array_equal(flux0, 0.0)
         assert act0 == frozenset()
 
 

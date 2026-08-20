@@ -62,6 +62,11 @@ def test_vdw_diameter_rule_reproduces_printed_entries():
     for sp, ref in D_STANDARD_EXTRA.items():
         est = D_ZK23['O'] * _bondi(sp) / _bondi('O')
         assert abs(est / ref - 1.0) < 0.02, sp
+    # The assembled table itself carries the rule's output: the scaled
+    # carbon and silicon diameters are pinned (hand-evaluated 275 * r/r_O),
+    # so a wrong anchor in diameters() fails here, not only downstream.
+    assert d['C'] == pytest.approx(307.57, rel=1e-3)
+    assert d['Si'] == pytest.approx(379.93, rel=1e-3)
     # The scaled diameters preserve the C > N > O size ordering.
     assert d['C'] > d['N'] > d['O']
 

@@ -31,7 +31,12 @@ from zephyrus.profiles import SIGMA_NU0
 #   genuine recombination saturation (the sqrt(F) regime at modest
 #   lambda_b) and barometric suppression at large lambda_b, where the label
 #   "recombination limited" would be a category error; the selection
-#   mechanism is reported so the two are never conflated.
+#   mechanism is reported so the two are never conflated. Where the two
+#   candidates cross in flux is sensitive to the wind temperature: the RR
+#   chain carries it through the sound speed, the barometric exponent, and
+#   the recombination coefficient, so a thermostat-driven wind temperature
+#   can move the EL/RR crossover by an order of magnitude against the
+#   canonical fixed 1e4 K evaluation.
 # - Efficiency: fixed, or the Caldiroli et al. (2022, A&A 663, A122,
 #   Appendix A.1) fit, defined against their R_p^3 geometry and therefore
 #   converted by (R_p/R_XUV)^2 before use in the Erkaev form.

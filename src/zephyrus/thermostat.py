@@ -238,7 +238,12 @@ def solve_wind_temperature(
     temperature clamps to the nearer edge with the ``clamped`` field set
     ('low' when cooling already wins at T_eq, 'high' when heating still
     wins at 5e4 K, where the missing physics is the ionization and line
-    inventory beyond the modeled channels). Returns ``(T_wind, detail)``.
+    inventory beyond the modeled channels). A high clamp is the expected
+    outcome at dense wind bases, not only an exotic corner: electron
+    densities well above the forbidden-line critical densities quench the
+    three-level coolants collisionally, the balance loses its root, and
+    the wind runs hot; the ``clamped`` field is the contract by which
+    callers can see that happened. Returns ``(T_wind, detail)``.
 
     Raises
     ------

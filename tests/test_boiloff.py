@@ -175,16 +175,25 @@ def test_tang_timescale_diagnostic_contract():
     """The termination diagnostic evaluates only with reservoirs supplied.
 
     Without reservoir masses (or with a zero rate) it reports
-    ``evaluated: False``; with them it returns both timescales positive and
-    a boolean verdict, and a heavier envelope at a fixed rate cannot
-    terminate earlier (both timescales scale with the envelope mass, so the
-    verdict is envelope-mass invariant).
+    ``evaluated: False``; with them, both timescales are pinned against
+    hand-evaluated values (``t_mdot = M_env / Mdot = 1e13 s`` and
+    ``t_cool = G M_p M_env / (R_p L) = 1.2226e11 s`` for the Earth-like
+    inputs), so a swapped pair or a reversed comparison fails: the slow
+    rate is terminated (``t_mdot >= t_cool``) and a fast rate on the other
+    side of the inequality is not. A heavier envelope at a fixed rate
+    cannot flip the verdict (both timescales scale with the envelope mass).
     """
     assert tang_timescale_check(Me, Re, 1.0, 1e5, None) == {'evaluated': False}
     assert tang_timescale_check(Me, Re, 1.0, 0.0, {'H': 1e18}) == {'evaluated': False}
     out = tang_timescale_check(Me, Re, 1.0, 1e5, {'H': 1e18})
     assert out['evaluated'] is True
-    assert out['t_mdot_s'] > 0.0
-    assert out['t_cool_s'] > 0.0
+    assert out['t_mdot_s'] == pytest.approx(1e13, rel=1e-9)
+    assert out['t_cool_s'] == pytest.approx(1.2226e11, rel=1e-3)
+    # Swap discrimination: the two timescales differ by two decades here.
+    assert out['t_mdot_s'] > 50.0 * out['t_cool_s']
+    assert out['terminated'] is True
+    fast = tang_timescale_check(Me, Re, 1.0, 1e9, {'H': 1e18})
+    assert fast['t_mdot_s'] < fast['t_cool_s']
+    assert fast['terminated'] is False
     out2 = tang_timescale_check(Me, Re, 1.0, 1e5, {'H': 2e18})
     assert out2['terminated'] == out['terminated']

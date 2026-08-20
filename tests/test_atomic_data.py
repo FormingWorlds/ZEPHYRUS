@@ -55,6 +55,7 @@ def test_three_level_transcription_spot_values():
     assert [lv[0] for lv in op['levels']] == ['4S', '2D', '2P']
     # Structural zeros: the H 2s-2p and C+ 4P-2D couplings carry no A value.
     assert THREE_LEVEL['H']['transitions'][(2, 3)][0] == pytest.approx(0.0, abs=0.0)
+    assert THREE_LEVEL['C+']['transitions'][(2, 3)][0] == pytest.approx(0.0, abs=0.0)
 
 
 @pytest.mark.reference_pinned
@@ -62,15 +63,22 @@ def test_three_level_transcription_spot_values():
 def test_badnell_fit_magnitude_slope_and_misprint_guard():
     """The Badnell recombination fit has the right magnitude and slope.
 
-    At 1e4 K the nitrogen coefficient lands in the low 1e-13 cm^3 s^-1
-    decade, beside the hydrogen case B 2.7e-13 (the order anchor), and the
-    coefficient falls monotonically with temperature. The discrimination
-    guard is the garbled rendering of the fit printed by Chatterjee &
-    Pierrehumbert (2026, their Eq. 35: product turned into a sum, one
-    exponent repeated, exponential argument inverted), which disagrees with
-    the implemented original by more than a factor 2 at 1e4 K.
+    The nitrogen coefficient at 1e4 K is pinned at 3.761e-13 cm^3 s^-1,
+    hand-evaluated from the printed fit form with the shipped coefficients
+    (beside the hydrogen case B 2.7e-13, the order anchor), and the
+    coefficient falls monotonically with temperature. Two discrimination
+    guards: swapping the T0 and T1 coefficients (adjacent tuple entries)
+    gives 4.82e-13, outside the pin; and the garbled rendering of the fit
+    printed by Chatterjee & Pierrehumbert (2026, their Eq. 35: product
+    turned into a sum, one exponent repeated, exponential argument
+    inverted) disagrees with the implemented original by more than a
+    factor 2 at 1e4 K.
     """
     a4 = badnell_alpha_rr(1.0e4)
+    assert a4 == pytest.approx(3.761e-13, rel=0.02)
+    # Swapped-coefficient discrimination: T0 and T1 interchanged gives
+    # 4.82e-13, a 28 percent shift, far outside the 2 percent pin.
+    assert abs(a4 - 4.82e-13) > 0.2 * a4
     assert 1e-13 < a4 < 1e-12
     assert badnell_alpha_rr(3.0e4) < a4 < badnell_alpha_rr(3.0e3)
     t0, t1, t2, a_fit, b_fit, c_fit = BADNELL_N
@@ -137,7 +145,9 @@ def test_co2_band_escape_probability_branches():
     q_large = co2_band_cooling(n_co2, colliders, T, col_co2=1e16)  # sigma N ~ 64
     assert q0 > 0.0
     assert q_large < q_small
-    # Trapping can only reduce the loss relative to the free-escape ceiling.
+    # Trapping can only reduce the loss relative to the free-escape
+    # ceiling, on both branches.
+    assert q_small < q0
     assert q_large < q0
 
 

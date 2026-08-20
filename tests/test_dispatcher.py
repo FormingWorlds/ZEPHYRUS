@@ -12,8 +12,9 @@ mocks). The properties under test:
   XUV to a hydrodynamic sub-label; a Roche-filling geometry to overflow.
 - Cross-implementation pin: the dispatcher's energy-limited candidate
   equals the released ``EL_escape`` at the same inputs.
-- Boxedness: clearing the diagnostics container and re-dispatching returns
-  the same verdict, so nothing reads it back.
+- Boxedness: sabotaging every diagnostics producer with garbage stubs
+  leaves the verdict, the rate, and the split unchanged, so no diagnostic
+  feeds control flow.
 - Error contract: malformed settings and physical states raise.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
@@ -34,7 +35,7 @@ from zephyrus.escape import EL_escape
 from zephyrus.planets_parameters import Me, Ms, Re
 from zephyrus.profiles import isothermal_profile
 
-pytestmark = [pytest.mark.smoke, pytest.mark.timeout(120)]
+pytestmark = [pytest.mark.smoke, pytest.mark.timeout(60)]
 
 AU = 1.496e11  # m
 
@@ -168,6 +169,8 @@ def test_routing_hydrostatic_for_bound_heavy_atmosphere():
     assert res.diagnostics['knudsen']['kn_sc'] > res.diagnostics['knudsen']['threshold_applied']
     assert res.flags.get('hydrostatic_lower_limit') is True
     assert res.diagnostics['hydrostatic']['gate_unstable'] is False
+    # Cool against both conventions: the point is not contested either.
+    assert 'contested_ion' not in res.flags
 
 
 @pytest.mark.reference_pinned
@@ -219,19 +222,32 @@ def test_routing_roche_overflow_inside_the_hill_sphere():
     assert res.mdot >= 0.0
 
 
-def test_diagnostics_are_boxed():
-    """Clearing the diagnostics and re-dispatching changes nothing.
+def test_diagnostics_are_boxed(monkeypatch):
+    """Sabotaging every diagnostics producer changes no dispatch outcome.
 
-    The container is reporting only: no control flow reads it back, so
-    mutating (here: emptying) the first result's diagnostics must leave a
-    fresh dispatch of the same inputs with the same label and rate.
+    The container is reporting only: no control flow reads it back. The
+    test proves it by replacing every diagnostics-side producer with a
+    stub returning garbage of the right shape and asserting the regime,
+    the bulk rate, and the per-species split are unchanged; a regression
+    in which any diagnostic feeds a routing decision fails loudly here.
     """
     inp = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0)
-    r1 = dispatch(inp)
-    r1.diagnostics.clear()
-    r2 = dispatch(inp)
-    assert r2.regime == r1.regime
-    assert r2.mdot == pytest.approx(r1.mdot, rel=1e-12)
+    reference = dispatch(inp)
+    nan = float('nan')
+    monkeypatch.setattr('zephyrus.diagnostics.q_net_over_qc', lambda *a, **k: (nan, nan, nan))
+    monkeypatch.setattr('zephyrus.diagnostics.guo_triple', lambda *a, **k: {})
+    monkeypatch.setattr('zephyrus.diagnostics.erkaev_tc', lambda *a, **k: nan)
+    monkeypatch.setattr('zephyrus.diagnostics.potential_screens', lambda *a, **k: {})
+    monkeypatch.setattr('zephyrus.diagnostics.along_profile_fluid_check', lambda *a, **k: {})
+    monkeypatch.setattr('zephyrus.diagnostics.self_consistency_screen', lambda *a, **k: {})
+    monkeypatch.setattr('zephyrus.boiloff.tang_timescale_check', lambda *a, **k: {})
+    sabotaged = dispatch(inp)
+    assert sabotaged.regime == reference.regime
+    assert sabotaged.mdot == pytest.approx(reference.mdot, rel=1e-12)
+    for el, v in reference.per_species.items():
+        assert sabotaged.per_species[el] == pytest.approx(v, rel=1e-12)
+    # The sabotage genuinely reached the container.
+    assert sabotaged.diagnostics['guo_triple'] == {}
 
 
 def test_hysteresis_memory_moves_the_threshold():
