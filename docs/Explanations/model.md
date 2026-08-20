@@ -27,13 +27,13 @@ Both forms reduce to $R_p^3$ when $R_\mathrm{XUV} = R_p$, which is the conservat
 
 When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field following the tidal reduction factor of Erkaev et al. (2007), eq. 17 [^erkaev]:
 
-$$K_\mathrm{tide} = 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R_\mathrm{XUV}} \tag{2}$$
+$$K_\mathrm{tide} = 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R} \tag{2}$$
 
 with the Hill radius
 
 $$R_\mathrm{Hill} = a\,(1-e)\,\left(\frac{M_p}{3\,M_\star}\right)^{1/3} \tag{3}$$
 
-where $a$ is the planetary semi-major axis, $e$ is the orbital eccentricity, and $M_\star$ is the stellar mass. Factoring the numerator gives $K_\mathrm{tide} = (\xi - 1)^2\,(2\xi + 1) / (2\xi^3)$, which is non-negative for every $\xi > 0$ with a double root at $\xi = 1$. In the physical regime $\xi > 1$ it lies in $(0, 1)$, rising toward 1 for $\xi \gg 1$ (the XUV radius well inside the Hill sphere) and falling toward 0 as the atmosphere expands toward the Roche lobe at $\xi = 1$; because the escape rate divides by $K_\mathrm{tide}$, the rate is enhanced by the tidal correction and diverges as $\xi \to 1$. The tidally corrected rate is therefore defined only for $\xi > 1$: ZEPHYRUS raises a `ValueError` for $\xi \le 1$, where the atmosphere reaches the Roche lobe and the energy-limited approximation no longer applies. When `tidal_contribution` is `False`, $K_\mathrm{tide} = 1$ is enforced.
+where $a$ is the planetary semi-major axis, $e$ is the orbital eccentricity, and $M_\star$ is the stellar mass. The radius $R$ in $\xi$ is the one that appears linearly in the $R^3$ term of Eq. (1): $R_p$ for `scaling=2` (the convention of Erkaev et al. 2007, whose own $\xi$ is the Roche-lobe distance over the planetary radius) and $R_\mathrm{XUV}$ for `scaling=3`, where the XUV radius is the only radius in the problem. Factoring the numerator gives $K_\mathrm{tide} = (\xi - 1)^2\,(2\xi + 1) / (2\xi^3)$, which is non-negative for every $\xi > 0$ with a double root at $\xi = 1$. In the physical regime $\xi > 1$ it lies in $(0, 1)$, rising toward 1 for $\xi \gg 1$ (the escape level well inside the Hill sphere) and falling toward 0 as the atmosphere expands toward the Roche lobe at $\xi = 1$; because the escape rate divides by $K_\mathrm{tide}$, the rate is enhanced by the tidal correction and diverges as $\xi \to 1$. The tidally corrected rate is therefore defined only for $\xi > 1$: ZEPHYRUS raises a `ValueError` for $\xi \le 1$, where the atmosphere reaches the Roche lobe and the energy-limited approximation no longer applies. When `tidal_contribution` is `False`, $K_\mathrm{tide} = 1$ is enforced.
 
 ---
 

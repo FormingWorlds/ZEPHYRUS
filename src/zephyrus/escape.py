@@ -43,14 +43,19 @@ def EL_escape(
     ----------
     tidal_contribution : bool
         If True, include the tidal correction factor $K_\mathrm{tide}$
-        (Erkaev et al. 2007). It is valid for
-        $\xi \equiv R_\mathrm{Hill}/R_\mathrm{XUV} > 1$, where
-        $0 < K_\mathrm{tide} < 1$ and the correction enhances escape; the
-        factor rises monotonically toward 1 as $\xi \to \infty$. A
-        ``ValueError`` is raised for $\xi \le 1$, where the atmosphere
-        reaches the Roche lobe and the energy-limited approximation no
-        longer applies. If False, $K_\mathrm{tide} = 1$ (no tidal
-        effects).
+        (Erkaev et al. 2007). Its argument is
+        $\xi \equiv R_\mathrm{Hill}/R$, where $R$ is the radius that
+        appears linearly in the $R^3$ term selected by ``scaling``: $R_p$
+        for ``scaling=2`` (the convention of Erkaev et al. 2007, whose
+        own $\xi$ is the Roche-lobe distance over the planetary radius)
+        and $R_\mathrm{XUV}$ for ``scaling=3`` (the single-radius form,
+        where $R_\mathrm{XUV}$ is the only radius in the problem). The
+        factor is valid for $\xi > 1$, where $0 < K_\mathrm{tide} < 1$
+        and the correction enhances escape; it rises monotonically
+        toward 1 as $\xi \to \infty$. A ``ValueError`` is raised for
+        $\xi \le 1$, where the atmosphere reaches the Roche lobe and the
+        energy-limited approximation no longer applies. If False,
+        $K_\mathrm{tide} = 1$ (no tidal effects).
     a : float
         Planetary semi-major axis [m]. Only used when
         ``tidal_contribution`` is True.
@@ -64,14 +69,23 @@ def EL_escape(
         ``tidal_contribution`` is True.
     epsilon : float
         Escape efficiency factor (dimensionless). Typical literature
-        range is $0.1 < \epsilon < 0.6$.
+        range is $0.1 < \epsilon < 0.6$, but hydrodynamic simulations
+        find the effective efficiency falls far below that band for
+        strongly bound planets: above a threshold gravitational
+        potential, $\log_{10}(G M_p K_\mathrm{tide}/R_p) \approx 12.9$
+        to $13.2$ in cgs units (erg g$^{-1}$), it drops to of order
+        $10^{-2}$ for compact hot Jupiters (Caldiroli et al. 2022).
     Rp : float
         Planetary radius [m]. Used as a linear factor when
         ``scaling=2``.
     Rxuv : float
         Planetary radius at which the atmosphere becomes optically
-        thick to XUV radiation [m]. Defined at 20 mbar in
-        Baumeister et al. (2023).
+        thick to XUV radiation [m]. In PROTEUS this level is placed at
+        a fixed pressure, by default 20 mbar following Baumeister et
+        al. (2023); that is an optical-photosphere-type level, distinct
+        from the roughly nanobar level where the XUV heating is
+        actually deposited and the wind is launched (Lopez 2017,
+        $P_\mathrm{base} = \mu m_\mathrm{H} g / \sigma_{\nu_0}$).
     Fxuv : float
         XUV flux received by the planet from the host star, in
         W m$^{-2}$.
@@ -89,9 +103,9 @@ def EL_escape(
     ------
     ValueError
         If ``scaling`` is not ``2`` or ``3``, or if
-        ``tidal_contribution`` is True and
-        $\xi \equiv R_\mathrm{Hill}/R_\mathrm{XUV} \le 1$ (the atmosphere
-        reaches the Roche lobe, outside the energy-limited regime).
+        ``tidal_contribution`` is True and $\xi \le 1$ (the atmosphere
+        reaches the Roche lobe, outside the energy-limited regime),
+        with $\xi$ built on the radius selected by ``scaling``.
 
     References
     ----------
@@ -122,36 +136,52 @@ def EL_escape(
     6. Lehmer, O. R., & Catling, D. C. (2017). Rocky worlds
        limited to ~1.8 Earth radii by atmospheric escape during a
        star's extreme UV saturation. *ApJ*, 845(2), 130.
+    7. Lopez, E. D. (2017). Born dry in the photoevaporation desert:
+       Kepler's ultra-short-period planets formed water-poor.
+       *MNRAS*, 472(1), 245-253.
+    8. Baumeister, P., Tosi, N., Brachmann, C., Grenfell, J. L., &
+       Noack, L. (2023). Redox state and interior structure control on
+       the long-term habitability of stagnant-lid planets.
+       *A&A*, 675, A122.
+    9. Caldiroli, A., Haardt, F., Gallo, E., Spinelli, R., Malsky, I.,
+       & Rauscher, E. (2022). Irradiation-driven escape of primordial
+       planetary atmospheres II. Evaporation efficiency of sub-Neptunes
+       through hot Jupiters. *A&A*, 663, A122.
     """
+    # Radius term, and the radius the tidal factor is measured from: the
+    # one that appears linearly in R^3, since that is the radius the
+    # potential barrier in the denominator refers to.
+    match scaling:
+        case 2:
+            R_cubed = Rp * Rxuv**2
+            R_tide = Rp
+        case 3:
+            R_cubed = Rxuv**3
+            R_tide = Rxuv
+        case _:
+            raise ValueError(f'Invalid radius exponent: {scaling}')
+
     # Tidal contribution
     if tidal_contribution:
-        # ksi = Rhill/Rxuv is the ratio of the periapsis Hill radius to the
-        # XUV radius. K_tide = (ksi-1)^2 (2 ksi + 1) / (2 ksi^3) is non-negative
-        # for all ksi > 0 with a double root at ksi = 1, so the energy-limited
-        # rate (which divides by K_tide) diverges as ksi -> 1 and is only valid
-        # for ksi > 1, where the atmosphere sits inside the Roche lobe.
+        # ksi is the ratio of the periapsis Hill radius to the radius the
+        # scaling selects. K_tide = (ksi-1)^2 (2 ksi + 1) / (2 ksi^3) is
+        # non-negative for all ksi > 0 with a double root at ksi = 1, so the
+        # energy-limited rate (which divides by K_tide) diverges as ksi -> 1
+        # and is only valid for ksi > 1, where the atmosphere sits inside the
+        # Roche lobe.
         Rhill = a * (1 - e) * (Mp / (3 * Ms)) ** (1 / 3)
-        ksi = Rhill / Rxuv
+        ksi = Rhill / R_tide
         if ksi <= 1:
             raise ValueError(
                 'Tidal energy-limited escape requires the periapsis Hill '
-                'radius to exceed the XUV radius '
-                f'(ksi = Rhill/Rxuv > 1); got ksi = {ksi:.4g}. At ksi <= 1 the '
+                'radius to exceed the escape-level radius '
+                f'(ksi = Rhill/R > 1); got ksi = {ksi:.4g}. At ksi <= 1 the '
                 'atmosphere reaches the Roche lobe and the energy-limited '
                 'approximation no longer applies.'
             )
         K_tide = 1 - (3 / (2 * ksi)) + (1 / (2 * (ksi**3)))
     else:
         K_tide = 1
-
-    # Radius
-    match scaling:
-        case 2:
-            R_cubed = Rp * Rxuv**2
-        case 3:
-            R_cubed = Rxuv**3
-        case _:
-            raise ValueError(f'Invalid radius exponent: {scaling}')
 
     # Mass-loss rate for EL escape
     escape_EL = (epsilon * np.pi * R_cubed * Fxuv) / (G * Mp * K_tide)
