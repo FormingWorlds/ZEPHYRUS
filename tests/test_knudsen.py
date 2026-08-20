@@ -10,9 +10,9 @@ Knudsen switch. The physical invariants under test:
   path over the analytic sonic-point scale height; the mixture cross section
   is exactly density weighted.
 - Monotonicity / boundedness: cross sections shrink with temperature; the
-  geometric hard-sphere rung sits below the collision-integral rung at high
-  temperature (its documented bias); the hysteresis window widens or
-  tightens the switch threshold on the correct side.
+  temperature-independent geometric rung overshoots the collision-integral
+  rung at high temperature (its documented bias); the hysteresis window
+  widens or tightens the switch threshold on the correct side.
 - Error contract: the hydrogen route rejects non-hydrogen species.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
