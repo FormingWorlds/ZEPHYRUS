@@ -41,6 +41,33 @@ ELEMENT_AMU = {
     'Xe': 131.293,
 }
 
+# Van der Waals radii in Angstrom, from Bondi (1964, J. Phys. Chem. 68, 441),
+# Tables I and XIV as printed, except Fe: Bondi prints no transition metals,
+# so the iron radius is Alvarez (2013, Dalton Trans. 42, 8617), with published
+# values spanning roughly 2.0 to 2.44 Angstrom across compilations. The Mg
+# value is a flagged outlier of Bondi's own table (derived from the critical
+# volume and marked tentative there); Batsanov (2001) gives 2.10 to 2.27 and
+# Alvarez (2013) 2.51, so quantities scaled from the Mg radius carry a 36 to
+# 55 percent softness beyond their provenance class. Used as the last-resort
+# geometric rung of the collision cross-section ladder and by the
+# kinetic-diameter scaling rule of the binary-diffusion library.
+BONDI_VDW_RADIUS_A = {
+    'H': 1.20,
+    'He': 1.40,
+    'C': 1.70,
+    'N': 1.55,
+    'O': 1.52,
+    'Ne': 1.54,
+    'Na': 2.27,
+    'Mg': 1.73,
+    'Si': 2.10,
+    'S': 1.80,
+    'Ar': 1.88,
+    'Fe': 2.44,
+    'Kr': 2.02,
+    'Xe': 2.16,
+}
+
 _FORMULA_TOKEN = re.compile(r'([A-Z][a-z]?)(\d*)')
 
 
