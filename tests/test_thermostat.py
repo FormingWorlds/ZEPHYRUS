@@ -102,11 +102,16 @@ def test_hydrogen_system_brackets_the_black_lyalpha_rate():
     exponential activation, and nothing finer.
     """
     pref, tscale = LYA_BLACK
+    n_h, n_e = 1e8, 1e6
+    ratios = []
     for T in (1.0e4, 2.0e4):
-        n_h, n_e = 1e8, 1e6
         q_mine = three_level_cooling('H', n_h, n_e, T)
         q_black = pref * n_e * n_h * math.exp(-tscale / T)
+        ratios.append(q_mine / q_black)
         assert 0.15 < q_mine / q_black < 1.5, T
+    # The frozen collision strengths fall behind the Black fit as the
+    # temperature rises, so the ratio declines with T.
+    assert ratios[1] < ratios[0]
 
 
 @pytest.mark.physics_invariant

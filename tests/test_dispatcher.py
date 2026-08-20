@@ -334,3 +334,133 @@ def test_settings_and_inputs_error_contract():
         dispatch(bad_m)
     res = dispatch(good)
     assert res.regime in REGIME_LABELS
+
+
+def test_caldiroli_efficiency_mode_applies_and_falls_back():
+    """The fitted-efficiency mode applies inside its box and falls back below.
+
+    Above the fit's flux-to-density validity bound the dispatched
+    energy-limited candidate carries the converted fitted efficiency, which
+    must differ resolvably from the fixed default; below the bound the fit
+    is rejected and the dispatcher falls back to the fixed efficiency with
+    both flags recorded.
+    """
+    settings = DispatchSettings(efficiency_mode='caldiroli')
+    strong = dispatch(
+        _inputs(
+            5 * Me,
+            1.8 * Re,
+            1100.0,
+            {'H2': 0.9, 'He': 0.1},
+            F_xuv=200.0,
+            a=0.05 * AU,
+            settings=settings,
+        )
+    )
+    eff = strong.diagnostics['hydrodynamic']['efficiency']
+    assert 'efficiency_fallback_fixed' not in strong.flags
+    assert eff != pytest.approx(0.1, rel=0.05)
+    assert 0.0 < eff < 1.0
+    weak = dispatch(
+        _inputs(
+            5 * Me,
+            1.8 * Re,
+            1100.0,
+            {'H2': 0.9, 'He': 0.1},
+            F_xuv=0.1,
+            a=0.05 * AU,
+            settings=DispatchSettings(efficiency_mode='caldiroli'),
+        )
+    )
+    assert weak.flags.get('caldiroli_below_flux_bound') is True
+    assert weak.flags.get('efficiency_fallback_fixed') is True
+    assert weak.diagnostics['hydrodynamic']['efficiency'] == pytest.approx(0.1, rel=1e-12)
+
+
+def test_t_exo_thermostat_mode_estimates_and_flags():
+    """The thermostat exobase mode estimates a temperature and flags itself.
+
+    On the bound CO2 case the estimator returns a temperature inside the
+    thermostat bracket (above the equilibrium temperature, below the upper
+    bracket edge), the flag records the mode, and the dispatch completes
+    with a consistent per-species sum.
+    """
+    settings = DispatchSettings(T_exo_mode='thermostat')
+    res = dispatch(
+        _inputs(
+            10 * Me, 1.8 * Re, 800.0, {'CO2': 1.0}, F_xuv=1.0, a=0.5 * AU, settings=settings
+        )
+    )
+    assert res.flags.get('T_exo_thermostat') is True
+    assert 800.0 <= res.diagnostics['hydrostatic']['T_exo'] <= 5.0e4
+    if res.mdot > 0.0:
+        assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-6)
+
+
+def test_extend_mode_truncated_extension_keeps_the_clamp():
+    """When the extension itself unbinds, the clamp stands, flagged.
+
+    A loosely bound hot H2 envelope truncates its own upper structure
+    before reaching the physical base pressure: the extend policy cannot
+    place the base there, so the clamped level stands and the truncation
+    is recorded alongside the clamp flags. The dispatch still returns a
+    consistent result (totality).
+    """
+    settings = DispatchSettings(base_out_of_range='extend')
+    inp = _inputs(
+        1 * Me,
+        1.0 * Re,
+        2000.0,
+        {'H2': 1.0},
+        F_xuv=10.0,
+        p_top=1e-6,  # requested; the bound structure truncates far deeper
+        settings=settings,
+    )
+    res = dispatch(inp)
+    assert res.flags.get('base_extension_truncated') is True
+    assert res.flags.get('base_clamped') is True
+    assert res.regime in REGIME_LABELS
+    assert math.isfinite(res.mdot)
+
+
+def test_stale_input_and_boreas_fallback_flags(monkeypatch):
+    """Data-quality and base-method fallbacks surface as flags, not errors.
+
+    An unconverged upstream atmosphere marks the result ``stale_input``
+    without changing the contract; requesting the BOREAS base method with
+    the dependency absent falls back to the Lopez base, flagged, and the
+    negative-flux error contract still raises.
+    """
+    import sys
+
+    monkeypatch.setitem(sys.modules, 'boreas', None)  # forces ImportError
+    settings = DispatchSettings(base_method='boreas')
+    inp = _inputs(
+        5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, settings=settings, atm_converged=False
+    )
+    res = dispatch(inp)
+    assert res.flags.get('stale_input') is True
+    assert res.flags.get('base_method_fallback') == 'lopez'
+    assert res.regime in REGIME_LABELS
+    bad = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0)
+    bad.F_xuv = -1.0
+    with pytest.raises(ValueError, match='F_xuv'):
+        dispatch(bad)
+
+
+def test_settings_option_raises_cover_every_knob():
+    """Every enumerated settings knob rejects an unknown value.
+
+    The four option strings each raise with a message naming the knob, so
+    a typo in a configuration surfaces at validation rather than as a
+    silent default. The default settings validate silently.
+    """
+    with pytest.raises(ValueError, match='base_out_of_range'):
+        DispatchSettings(base_out_of_range='nonsense').validate()
+    with pytest.raises(ValueError, match='gate'):
+        DispatchSettings(gate='nonsense').validate()
+    with pytest.raises(ValueError, match='efficiency_mode'):
+        DispatchSettings(efficiency_mode='nonsense').validate()
+    with pytest.raises(ValueError, match='T_exo_mode'):
+        DispatchSettings(T_exo_mode='nonsense').validate()
+    DispatchSettings().validate()  # the defaults are a valid configuration

@@ -111,11 +111,16 @@ def test_zk23_zk86_cross_compilation_agreement():
         (('O', 'Ne'), ('Ne', 'O')),
         (('O', 'Ar'), ('Ar', 'O')),
     ]
+    dev = {'M': 0.0, 'E': 0.0}
     for zk23_key, zk86_key in shared:
         b23, cls, _src = ZK23_TABLE2[zk23_key]
         b86 = b_zk86(*zk86_key, 1000.0)
         tol = 0.04 if cls == 'M' else 0.35
         assert abs(b86 / b23 - 1.0) < tol, (zk23_key, cls)
+        dev[cls] = max(dev[cls], abs(b86 / b23 - 1.0))
+    # The class structure is real: the measured rows agree more tightly
+    # than the estimated rows across the shared set.
+    assert dev['M'] < dev['E']
 
 
 @pytest.mark.physics_invariant

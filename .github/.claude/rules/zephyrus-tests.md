@@ -94,18 +94,31 @@ The guard lines are mandatory whenever the test's primary assertion is a `pytest
 
 ### When required
 
-Every unit test on a **physics source** must assert at least one of the four invariants below. The physics source is:
+Every unit test on a **physics source** must assert at least one of the four invariants below. The physics sources are:
 
 ```
+src/zephyrus/atomic_data.py
+src/zephyrus/boiloff.py
+src/zephyrus/collision.py
+src/zephyrus/diagnostics.py
+src/zephyrus/diffusion.py
+src/zephyrus/dispatcher.py
 src/zephyrus/escape.py
+src/zephyrus/fractionation.py
+src/zephyrus/hydrodynamic.py
+src/zephyrus/hydrostatic.py
+src/zephyrus/knudsen.py
+src/zephyrus/profiles.py
+src/zephyrus/thermostat.py
 ```
 
-Per-source-file granularity: `escape.py` needs at least one `@pytest.mark.physics_invariant` test and at least one `@pytest.mark.reference_pinned` test in `tests/test_escape.py`. Granularity is per source file, not per directory.
+Per-source-file granularity: every physics source needs at least one `@pytest.mark.physics_invariant` test and at least one `@pytest.mark.reference_pinned` test in its companion `tests/test_<source>.py`. Granularity is per source file, not per directory.
 
 Utility sources are exempt from the physics-invariant requirement but still subject to all anti-happy-path rules:
 
 ```
-src/zephyrus/__init__.py               (version string)
+src/zephyrus/__init__.py               (version string, package exports)
+src/zephyrus/composition.py            (element masses, formula parsing)
 src/zephyrus/constants.py              (pure physical constants, no derivation)
 src/zephyrus/planets_parameters.py     (tabulated star-planet parameters)
 ```
