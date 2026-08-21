@@ -12,7 +12,7 @@ nav:
 
   - How-to guides:
       - Installation: How-to/installation.md
-      - Triage a verdict: How-to/triage_verdict.md
+      - Troubleshooting: How-to/troubleshooting.md
       - Run tests: How-to/run_tests.md
       - Build documentation: How-to/documentation.md
 
@@ -170,7 +170,9 @@ markdown_extensions:
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js
   - javascripts/header-links.js
+  - javascripts/mermaid.js
 
 plugins:
 - search
