@@ -103,7 +103,6 @@ src/zephyrus/collision.py
 src/zephyrus/diagnostics.py
 src/zephyrus/diffusion.py
 src/zephyrus/dispatcher.py
-src/zephyrus/escape.py
 src/zephyrus/fractionation.py
 src/zephyrus/hydrodynamic.py
 src/zephyrus/hydrostatic.py
@@ -119,6 +118,10 @@ Utility sources are exempt from the physics-invariant requirement but still subj
 ```
 src/zephyrus/__init__.py               (version string, package exports)
 src/zephyrus/composition.py            (element masses, formula parsing)
+src/zephyrus/escape.py                 (compatibility re-export of EL_escape,
+                                        which lives in hydrodynamic.py; its
+                                        companion test file guards the released
+                                        import path and the EL physics through it)
 src/zephyrus/constants.py              (pure physical constants, no derivation)
 src/zephyrus/planets_parameters.py     (tabulated star-planet parameters)
 ```

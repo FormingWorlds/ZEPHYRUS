@@ -3,6 +3,7 @@
 ::: zephyrus.hydrodynamic
     options:
       members:
+        - EL_escape
         - hill_radius_periapsis
         - k_tide
         - el_rate

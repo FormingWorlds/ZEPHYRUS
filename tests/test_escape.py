@@ -1,7 +1,10 @@
-"""Tests for ``src/zephyrus/escape.py``.
+"""Tests for ``src/zephyrus/escape.py``, the released energy-limited entry point.
 
-Exercises the energy-limited (EL) atmospheric-escape mass-loss rate and its
-tidal correction. The physical invariants under test:
+``escape.py`` re-exports ``EL_escape``, whose implementation lives in
+``src/zephyrus/hydrodynamic.py``; every test here imports through the
+released path ``zephyrus.escape.EL_escape``, so the file guards the
+compatibility contract and the EL physics at once. The physical invariants
+under test:
 
 - Conservation / closed form: the EL rate equals
   ``epsilon * pi * R^3 * Fxuv / (G * Mp * K_tide)`` for the selected radius

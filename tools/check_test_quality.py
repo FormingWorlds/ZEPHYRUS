@@ -84,7 +84,6 @@ PHYSICS_SOURCES = {
     'diagnostics.py',
     'diffusion.py',
     'dispatcher.py',
-    'escape.py',
     'fractionation.py',
     'hydrodynamic.py',
     'hydrostatic.py',
@@ -98,6 +97,7 @@ PHYSICS_SOURCES = {
 UTILITY_SOURCES = {
     '__init__.py',
     'composition.py',
+    'escape.py',
     'constants.py',
     'planets_parameters.py',
 }
