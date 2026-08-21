@@ -58,11 +58,13 @@ A giant collision removes part of the target's atmosphere in a single event, on 
 
 - [Energy-limited escape](energy_limited.md): the default prescription, its radius scaling, and its tidal correction.
 - [Escape regimes](regimes.md): the classification logic and the rate physics of every branch, with thresholds and bands.
+- [Dispatching a regime](../Tutorials/dispatch.md): the framework driven end to end on synthetic atmospheres, boundary crossings included.
 - [Fractionation](fractionation.md): how a wind partitions over species, and when heavy species drop out.
 - [Giant impacts](impacts.md): the erosion scaling law and its fitted domain.
 - [Coupling to PROTEUS](proteus.md): configuration keys, the per-time-step sequence, and reservoir bookkeeping.
 - [Limitations](limitations.md): what each entry point does not model, and what that implies for results.
-- [Parameter reference](../Reference/parameters.md) and [API reference](../Reference/api/index.md).
+- [Triage a verdict](../How-to/triage_verdict.md): what to look at when a flag fires or a label surprises you.
+- [Parameter reference](../Reference/parameters.md), [dispatch results](../Reference/results.md), and [API reference](../Reference/api/index.md).
 
 ---
 

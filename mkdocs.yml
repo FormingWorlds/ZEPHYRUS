@@ -12,11 +12,13 @@ nav:
 
   - How-to guides:
       - Installation: How-to/installation.md
+      - Triage a verdict: How-to/triage_verdict.md
       - Run tests: How-to/run_tests.md
       - Build documentation: How-to/documentation.md
 
   - Tutorials:
       - First run: Tutorials/first_run.md
+      - Dispatching a regime: Tutorials/dispatch.md
 
   - Explanations:
       - The ZEPHYRUS model: Explanations/model.md
@@ -30,6 +32,7 @@ nav:
 
   - Reference:
       - Model parameters: Reference/parameters.md
+      - Dispatch results: Reference/results.md
       - API reference:
         - Overview: Reference/api/index.md
         - Escape: Reference/api/escape.md

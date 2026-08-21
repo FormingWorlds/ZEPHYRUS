@@ -165,6 +165,7 @@ Re-running produces a curve that is roughly $(1/0.05)^2 = 400$ times higher than
 
 Things to try from here:
 
+- **Classify the regime**: everything above applies one prescription unconditionally. The [dispatcher tutorial](dispatch.md) runs the full framework instead, which decides which escape physics a state is in before it picks a rate.
 - **Sweep $\epsilon$**: loop `epsilon` over `[0.1, 0.3, 0.5, 1.0]` and plot all four curves on the same axes. 
 - **Sweep semi-major axis**: keep $\epsilon = 0.15$ fixed and try `[0.05, 0.1, 0.5, 1.0]` au. The integral of each curve over the stellar lifetime gives the total atmospheric mass lost; compare it to one Earth atmosphere ($M_\mathrm{atm,\oplus} \approx 5.15 \times 10^{18}$ kg, available as `Me_atm`).
 - **Vary $R_\mathrm{XUV}$**: try `Rxuv = 1.5 * Re` to see how an extended XUV-absorbing region amplifies the mass-loss rate. 
