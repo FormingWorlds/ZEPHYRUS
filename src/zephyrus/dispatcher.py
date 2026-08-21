@@ -430,6 +430,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     diag['self_consistency'] = dg.self_consistency_screen(inputs.reservoirs, rate, inputs.age)
     diag['base_level'] = dict(
         p_Pa=base['p'],
+        p_physical_Pa=base.get('p_physical'),
         r_m=base['r'],
         T_K=base['T'],
         clamp_decades=flags.get('base_clamp_decades'),
@@ -469,7 +470,7 @@ def _resolve_wind_base(inputs: EscapeInputs) -> tuple[dict, dict]:
         boreas_scalars=boreas_scalars,
     )
     if flags.get('base_clamped') and st.base_out_of_range == 'extend':
-        p_target = flags.get('base_pressure_pa')
+        p_target = base.get('p_physical')
         if p_target is not None:
             t_exo = st.T_exo_value if st.T_exo_mode == 'prescribed' else inputs.T_eq
             ext = hs.bates_extension(inputs.profile, inputs.M_p, t_exo, gamma=st.gamma_bates)
@@ -482,6 +483,7 @@ def _resolve_wind_base(inputs: EscapeInputs) -> tuple[dict, dict]:
                 n = p_target / (kb * T)
                 base = dict(
                     p=float(p_target),
+                    p_physical=float(p_target),
                     r=r,
                     T=T,
                     mmw=float(ext['mu']),

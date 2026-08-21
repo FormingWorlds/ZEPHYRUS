@@ -217,21 +217,28 @@ def test_wind_base_level_lopez_converges_and_clamps():
 
     On a profile reaching 1e-6 Pa the nanobar-scale base lies inside the
     covered range, so the returned level pressure equals the physical base
-    pressure and no clamp flag is raised. On a profile truncated at 1e-2 Pa
-    the physical base lies above the top, so the level clamps to the top
-    with the clamp distance recorded in pressure decades.
+    pressure the level reports and no clamp flag is raised. On a profile
+    truncated at 1e-2 Pa the physical base lies above the top, so the level
+    clamps to the top with the clamp distance recorded in pressure decades,
+    and the unclamped target stays readable on the level itself.
     """
     prof = _n2_profile(p_top=1e-6)
     lev, flags = wind_base_level(prof, 5 * Me, method='lopez')
     assert 'base_clamped' not in flags
-    assert lev['p'] == pytest.approx(flags['base_pressure_pa'], rel=1e-3)
+    assert lev['p'] == pytest.approx(lev['p_physical'], rel=1e-3)
     # The N2 base sits at the nanobar scale (between 0.01 and 100 nanobar).
     assert 1e-6 < lev['p'] < 1e-2
+    # The physical base pressure is a level quantity, not a flag: an
+    # unclamped call reports no flags at all.
+    assert flags == {}
     deep = _n2_profile(p_top=1e-2)
     lev_d, flags_d = wind_base_level(deep, 5 * Me, method='lopez')
     assert flags_d.get('base_clamped') is True
     assert lev_d['p'] == pytest.approx(float(deep.p[-1]), rel=1e-12)
-    expected_decades = np.log10(deep.p[-1] / flags_d['base_pressure_pa'])
+    # The clamped level sits above its own physical target, by the recorded
+    # distance; a clamp that lost the target would fail both assertions.
+    assert lev_d['p'] > lev_d['p_physical']
+    expected_decades = np.log10(deep.p[-1] / lev_d['p_physical'])
     assert flags_d['base_clamp_decades'] == pytest.approx(expected_decades, rel=1e-9)
     assert flags_d['base_clamp_decades'] > 0.0
 

@@ -230,9 +230,10 @@ def wind_base_level(
     Returns
     -------
     (level, flags)
-        The interpolated level dict and a flags dict. On the Lopez path the
-        flags carry ``base_pressure_pa``, the physical (unclamped) base
-        pressure.
+        The interpolated level dict and a flags dict. The level carries
+        ``p_physical``, the base pressure the method asked for before any
+        clamp, which equals ``p`` whenever the profile covers it. The flags
+        report clamps and fallbacks only.
     """
     flags: dict = {}
     if method == 'fixed_pressure':
@@ -240,7 +241,9 @@ def wind_base_level(
         if p_target != fixed_pressure:
             flags['base_clamped'] = True
             flags['base_clamp_decades'] = abs(float(np.log10(fixed_pressure / p_target)))
-        return interp_at_pressure(profile, p_target), flags
+        level = interp_at_pressure(profile, p_target)
+        level['p_physical'] = float(fixed_pressure)
+        return level, flags
 
     if method == 'boreas':
         p_boreas = _boreas_base_pressure(profile, M_p, boreas_scalars)
@@ -249,8 +252,9 @@ def wind_base_level(
             if p_target != p_boreas:
                 flags['base_clamped'] = True
                 flags['base_clamp_decades'] = abs(float(np.log10(p_boreas / p_target)))
-            flags['base_pressure_pa'] = p_boreas
-            return interp_at_pressure(profile, p_target), flags
+            level = interp_at_pressure(profile, p_target)
+            level['p_physical'] = float(p_boreas)
+            return level, flags
         flags['base_method_fallback'] = 'lopez'
 
     # Lopez (2017) fixed point: P depends on mu and g, which depend on the
@@ -268,13 +272,14 @@ def wind_base_level(
         lev = interp_at_pressure(profile, p_target)
     g = G * M_p / lev['r'] ** 2
     p_phys = lopez_base_pressure(lev['mmw'], g)
-    flags['base_pressure_pa'] = p_phys
     if p_phys < profile.p[-1] * (1.0 - 1e-9):
         # The profile top is deeper than the physical base level.
         flags['base_clamped'] = True
         flags['base_clamp_decades'] = float(np.log10(profile.p[-1] / p_phys))
         p_target = float(profile.p[-1])
-    return interp_at_pressure(profile, p_target), flags
+    level = interp_at_pressure(profile, p_target)
+    level['p_physical'] = float(p_phys)
+    return level, flags
 
 
 def _boreas_base_pressure(profile: Profile, M_p: float, scalars: dict | None) -> float | None:
