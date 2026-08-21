@@ -24,11 +24,12 @@ from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g
 # active species j (w_j = Phi_j / X_j the species velocity scale):
 #
 #   sum_{i active} X_i (w_i - w_j) / b_ij
-#       - w_j sum_{k retained} X_k / b_jk = m_j g0 / kT - C,
+#       - w_j sum_{k retained} X_k / b_jk = m_j g0 / kT - 1/Hbar,
 #
 # plus the mass constraint sum_j m_j X_j Phi_j... i.e.
-# sum_{j active} m_j X_j w_j = phi, with C the common inverse scale height
-# of the escaping gas (the Lagrange multiplier of the constraint). The
+# sum_{j active} m_j X_j w_j = phi, where Hbar is the one density scale
+# height every escaping gas shares, so 1/Hbar is the Lagrange multiplier
+# of the mass constraint and is solved for alongside the drifts. The
 # Karush-Kuhn-Tucker conditions select the active set: active species have
 # strictly positive w, and retained species satisfy the retention
 # inequality (the drift the escaping gas would impose on them does not
@@ -71,9 +72,9 @@ def _validate_inputs(phi, X, m, T, g0, b):
 def solve_fixed_active(phi, X, m, T, g0, b, active):
     """Solve the linear closure on a fixed active set.
 
-    Unknowns: ``w_j`` for j in ``active`` and the common inverse scale
-    height ``C``. Returns ``(w_full, C)`` with ``w = 0`` for retained
-    species. The single-active case is solved analytically; the general
+    Unknowns: ``w_j`` for j in ``active`` and the inverse ``1/Hbar`` of the
+    shared density scale height. Returns ``(w_full, inv_h_bar)`` with
+    ``w = 0`` for retained species. The single-active case is solved analytically; the general
     case with two-sided diagonal equilibration, which controls the spread
     of roughly 25 decades the matrix entries can span between light-species
     drag terms and heavy-species mass terms.
@@ -86,8 +87,8 @@ def solve_fixed_active(phi, X, m, T, g0, b, active):
         j = act[0]
         w = np.zeros(len(X))
         w[j] = phi / (m[j] * X[j])
-        C = m[j] * g0 / kT + w[j] * sum(X[k] / b[j, k] for k in ret)
-        return w, C
+        inv_h_bar = m[j] * g0 / kT + w[j] * sum(X[k] / b[j, k] for k in ret)
+        return w, inv_h_bar
     mat = np.zeros((na + 1, na + 1))
     rhs = np.zeros(na + 1)
     for row, j in enumerate(act):
@@ -100,7 +101,7 @@ def solve_fixed_active(phi, X, m, T, g0, b, active):
         for k in ret:
             diag += X[k] / b[j, k]
         mat[row, row] -= diag
-        mat[row, na] = 1.0  # the +C column
+        mat[row, na] = 1.0  # the +1/Hbar column
         rhs[row] = m[j] * g0 / kT
     for col, j in enumerate(act):
         mat[na, col] = m[j] * X[j]
@@ -136,14 +137,14 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
         Symmetric matrix of binary diffusion parameters [cm^-1 s^-1],
         diagonal ignored (conventionally np.inf).
     return_diag : bool
-        When True, also return the multiplier ``C`` and the active set.
+        When True, also return the multiplier ``1/Hbar`` and the active set.
 
     Returns
     -------
     Phi : array
         Number fluxes [cm^-2 s^-1], guaranteed non-negative and satisfying
         ``sum m_i Phi_i = phi``. For ``phi = 0`` the fluxes are zero, the
-        active set empty, and ``C`` the continuous limit
+        active set empty, and ``1/Hbar`` the continuous limit
         ``min_j m_j g0 / kT``.
     """
     X, m, b = _validate_inputs(phi, X, m, T, g0, b)
@@ -157,7 +158,7 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
     active = set(range(n))
     wscale = phi / np.min(m)  # crude magnitude scale for the tolerances
     for _ in range(4 * n + 8):
-        w, C = solve_fixed_active(phi, X, m, T, g0, b, active)
+        w, inv_h_bar = solve_fixed_active(phi, X, m, T, g0, b, active)
         neg = {j for j in active if w[j] < -1e-12 * wscale}
         if neg:
             active -= neg
@@ -169,7 +170,7 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
         for k in range(n):
             if k in active:
                 continue
-            r_k = sum(X[i] * w[i] / b[i, k] for i in active) - (m[k] * g0 / kT - C)
+            r_k = sum(X[i] * w[i] / b[i, k] for i in active) - (m[k] * g0 / kT - inv_h_bar)
             if r_k > 1e-12 * abs(m[k] * g0 / kT) and r_k > worst:
                 viol, worst = k, r_k
         if viol is None:
@@ -179,7 +180,7 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
             flux = X * w
             flux[list(set(range(n)) - active)] = 0.0
             if return_diag:
-                return flux, C, frozenset(active)
+                return flux, inv_h_bar, frozenset(active)
             return flux
         active.add(viol)
     raise RuntimeError('active-set iteration did not converge')
@@ -239,7 +240,9 @@ def closure_per_species(
     g0_cgs = (G * M_p / r_base**2) * 1e2  # m/s^2 -> cm/s^2
     phi_cgs = (mdot / (4.0 * math.pi * r_base**2)) * 0.1  # kg/m^2/s -> g/cm^2/s
 
-    flux, C, active = solve_closure(phi_cgs, X, m_g, T_wind, g0_cgs, b, return_diag=True)
+    flux, inv_h_bar, active = solve_closure(
+        phi_cgs, X, m_g, T_wind, g0_cgs, b, return_diag=True
+    )
     area_cm2 = 4.0 * math.pi * (r_base * 1e2) ** 2
     per_element = {
         el: float(flux[k]) * area_cm2 * float(m_g[k]) * 1e-3 for k, el in enumerate(species)
@@ -250,7 +253,7 @@ def closure_per_species(
     diag = dict(
         active_set=sorted(species[k] for k in active),
         retained=[el for el in species if el not in {species[k] for k in active}],
-        C_inv_scale_height_cgs=float(C),
+        inv_H_bar_cgs=float(inv_h_bar),
         mass_conservation_rel=float(conservation),
         b_provenance=prov,
     )

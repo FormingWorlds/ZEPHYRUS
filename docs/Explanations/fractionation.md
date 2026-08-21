@@ -8,9 +8,9 @@ The classic treatment is the two-species problem of Hunten, Pepin & Walker (1987
 
 The solved system couples the species drift velocities. For each escaping species $j$, the drag exerted by every other species balances its weight surplus,
 
-$$\sum_{i\,\mathrm{escaping}} \frac{X_i\,(w_i - w_j)}{b_{ij}} \;-\; w_j \sum_{k\,\mathrm{retained}} \frac{X_k}{b_{jk}} \;=\; \frac{m_j\, g}{k_\mathrm{B} T} - C \tag{1}$$
+$$\sum_{i\,\mathrm{escaping}} \frac{X_i\,(w_i - w_j)}{b_{ij}} \;-\; w_j \sum_{k\,\mathrm{retained}} \frac{X_k}{b_{jk}} \;=\; \frac{m_j\, g}{k_\mathrm{B} T} - \frac{1}{\bar{H}} \tag{1}$$
 
-where $X_i$ is the mole fraction of species $i$, $w_i$ its escape velocity scale (the number flux is $\Phi_i = X_i w_i$), $b_{ij}$ the binary diffusion parameter of the pair, $m_j$ the particle mass, $g$ the gravity at the wind base, $T$ the wind temperature, and $C$ a common inverse scale height of the escaping gas that all species share. The system closes with the mass constraint that the per-species fluxes carry the bulk rate the regime framework dispatched, $\sum_j m_j X_j \Phi_j = \phi$.
+where $X_i$ is the mole fraction of species $i$, $w_i$ its escape velocity scale (the number flux is $\Phi_i = X_i w_i$), $b_{ij}$ the binary diffusion parameter of the pair, $m_j$ the particle mass, $g$ the gravity at the wind base, $T$ the wind temperature, and $\bar{H}$ the one density scale height that every escaping gas shares, itself an unknown of the solve rather than an input. The system closes with the mass constraint that the per-species fluxes carry the bulk rate the regime framework dispatched, $\sum_j m_j X_j \Phi_j = \phi$.
 
 Which species escape is part of the solution, not an input. A heavy species whose settling under gravity beats the drag the outflow can exert on it drops out of the escaping set and moves to the retained set, where it still appears in the drag sums of Eq. (1). The solver finds the unique partition into escaping and retained species for which every escaping species has a positive flux and every retained species genuinely cannot be lifted; each heavy species therefore has a threshold bulk flux at which it starts to escape, and below the lowest threshold only the lightest species leaves. The returned per-species rates are non-negative and sum to the bulk rate at machine precision.
 

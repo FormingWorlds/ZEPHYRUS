@@ -1,6 +1,6 @@
 # Dispatch results
 
-The [parameter reference](parameters.md) documents what goes into `zephyrus.dispatch`. This page documents what comes out: the result fields, every flag the framework can raise, and every group in the diagnostics container. The physics behind each quantity is on the [escape regimes](../Explanations/regimes.md) page, and the [tutorial](../Tutorials/dispatch.md) shows the reading order in practice. For a flag that fired on a result you did not expect, the [triage guide](../How-to/triage_verdict.md) is faster than this page.
+The [parameter reference](parameters.md) documents what goes into `zephyrus.dispatch`. This page documents what comes out: the result fields, every flag the framework can raise, and every group in the diagnostics container. The physics behind each quantity is on the [escape regimes](../Explanations/regimes.md) page, and the [tutorial](../Tutorials/dispatch.md) shows the reading order in practice. For a flag that fired on a result you did not expect, the [troubleshooting guide](../How-to/troubleshooting.md) is faster than this page.
 
 ---
 
@@ -8,7 +8,7 @@ The [parameter reference](parameters.md) documents what goes into `zephyrus.disp
 
 `dispatch` returns an `EscapeResult` with five fields.
 
-| Field | Type | Contract |
+| Field | Type | What it guarantees |
 |---|---|---|
 | `regime` | str | One of the five labels below. Always set. |
 | `mdot` | float | Bulk mass-loss rate in kg s⁻¹, finite and non-negative. |
@@ -55,7 +55,7 @@ The `effect` column says whether the returned rate already reflects the flag or 
 |---|---|---|---|
 | `bondi_inflated` | `True` | The launch level sits above the Bondi radius, so the Mach number was capped at one. | The rate reflects it |
 | `thermostat_clamped` | `'high'` or `'low'` | The heating against cooling balance had no root inside the bracket, so the wind temperature clamped to the nearer edge. A high clamp at a dense base is collisional quenching of the line coolants, not a failure. | The rate reflects it |
-| `subcritical_sonic` | `True` | The computed sonic radius fell below the wind base, so it was floored there and the barometric factor dropped. A recombination-limited win under this flag is barometric suppression, not recombination saturation. | The rate reflects it |
+| `subcritical_sonic` | `True` | The isothermal sonic radius came out below the wind base (base Jeans parameter under 2), so it was floored at the base and the barometric factor dropped. A recombination-limited win under this flag is a floored placeholder rather than a rate. | The rate reflects it |
 | `caldiroli_out_of_box` | `True` | The fitted efficiency was evaluated outside the range of gravitational potential and flux it was fitted on. The value is returned as an extrapolation. | The rate reflects it |
 | `caldiroli_below_flux_bound` | `True` | Below the validity bound of the efficiency fit, where its formulas turn complex. | Rejected |
 | `efficiency_fallback_fixed` | `True` | The fitted efficiency was unavailable, so the fixed setting was used. | The rate reflects it |
@@ -99,7 +99,7 @@ Seventeen groups on a typical call. Nothing in the dispatch control flow reads a
 | `bolometric` | `T_wind`, `c_s`, `R_sonic`, `x`, `mach`, `mdot_parker`, `mdot_bondi`, `mdot_luminosity`, `active`, `rate_kg_s` | The bolometric candidate in full: each cap separately, and whether the branch was active. |
 | `lambda_gate` | float | The restricted Jeans parameter that decides boil-off activation. |
 | `thermostat` | heating and cooling terms, `clamped` | How the wind temperature was reached, channel by channel. |
-| `closure` | active set, retained species, multiplier, mass residual, coefficient provenance | How the fractionation closure partitioned a wind, present only on a fractionating hydrodynamic verdict. |
+| `closure` | `active_set`, `retained`, `inv_H_bar_cgs`, `mass_conservation_rel`, `b_provenance` | How the fractionation closure partitioned a wind, present only on a fractionating hydrodynamic verdict. `inv_H_bar_cgs` is the inverse of the density scale height every escaping gas shares, in cm⁻¹, which the closure solves for alongside the drifts. |
 | `roche` | `R_hill_periapsis`, `flow_radius`, `xi_flow`, `xi_ktide` | The overflow screen in full: which radius was tested and against what. |
 | `johnson_q` | `q_net_over_qc`, `q_net_W`, `q_c_W` | Whether the absorbed power can drive a transonic outflow at all, independently of any rate formula. |
 | `guo_triple` | `lambda_exo`, `lambda_rp`, `lambda_star`, `thresholds` | The verdict translated into the Jeans-parameter taxonomy. |
