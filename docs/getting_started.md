@@ -38,9 +38,9 @@ Here is the quickest path to getting started:
 
     [Go to the dispatcher tutorial](Tutorials/dispatch.md)
 
--   :material-stethoscope: **Diagnose a verdict**
+-   :material-stethoscope: **Troubleshoot a verdict**
 
-    [Go to the triage guide](How-to/triage_verdict.md)
+    [Go to the troubleshooting guide](How-to/troubleshooting.md)
 
 -   :material-library: **Understand the model**
 

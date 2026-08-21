@@ -63,7 +63,7 @@ A giant collision removes part of the target's atmosphere in a single event, on 
 - [Giant impacts](impacts.md): the erosion scaling law and its fitted domain.
 - [Coupling to PROTEUS](proteus.md): configuration keys, the per-time-step sequence, and reservoir bookkeeping.
 - [Limitations](limitations.md): what each entry point does not model, and what that implies for results.
-- [Triage a verdict](../How-to/triage_verdict.md): what to look at when a flag fires or a label surprises you.
+- [Troubleshooting the dispatcher](../How-to/troubleshooting.md): what to look at when a flag fires or a label surprises you.
 - [Parameter reference](../Reference/parameters.md), [dispatch results](../Reference/results.md), and [API reference](../Reference/api/index.md).
 
 ---

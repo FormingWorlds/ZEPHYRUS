@@ -83,7 +83,7 @@ Every threshold above carries a stated physical width, and the framework reports
 
 All knobs, their defaults, and their meanings are tabulated in the [parameter reference](../Reference/parameters.md); the defaults are the documented reference choices used throughout this page. Every field of the result, every flag, and every diagnostics group is tabulated in the [dispatch results reference](../Reference/results.md). The assumptions that remain on every result, whatever the knobs, are collected on the [limitations page](limitations.md).
 
-For the framework in use rather than in principle, the [dispatcher tutorial](../Tutorials/dispatch.md) crosses two of the boundaries above on one planet, measures how far one of them moves across the width of its own criterion, and dispatches an atmosphere along a stellar history; the [triage guide](../How-to/triage_verdict.md) starts from a flag or an unexpected verdict instead.
+For the framework in use rather than in principle, the [dispatcher tutorial](../Tutorials/dispatch.md) crosses two of the boundaries above on one planet, measures how far one of them moves across the width of its own criterion, and dispatches an atmosphere along a stellar history; the [troubleshooting guide](../How-to/troubleshooting.md) starts from a flag or an unexpected verdict instead.
 
 ---
 
