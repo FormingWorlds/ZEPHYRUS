@@ -4,7 +4,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the escap
 
 | Test id | Reference | Scope |
 |---|---|---|
-| `tests/test_profiles.py::test_lopez_base_pressure_is_the_nanobar_level` | Lopez (2017), MNRAS 472, 245, Section 2 (wind-base prescription); Murray-Clay et al. (2009), ApJ 693, 23, Section 2.1 (the nanobar tau = 1 level) | Pins the Lopez base pressure `P_base = mu g / sigma_nu0` to the published nanobar scale (within a factor of a few of 1e-4 Pa) for the Murray-Clay fiducial hot Jupiter, with exact linearity in gravity and insensitivity to the proton-mass versus atomic-weight convention below 1 percent. |
+| `tests/test_profiles.py::test_lopez_base_pressure_is_the_nanobar_level` | Lopez (2017), MNRAS 472, 245, Section 2 (wind-base prescription); Murray-Clay et al. (2009), ApJ 693, 23, Section 2.1 (the nanobar tau = 1 level) | Pins the Lopez base pressure `P_base = mu g / sigma_nu0` to the published nanobar scale (within a factor of a few of 1e-4 Pa) for the Murray-Clay fiducial hot Jupiter, with exact linearity in gravity and insensitivity to the proton-mass versus atomic-weight convention below 1%. |
 
 ## Notes
 

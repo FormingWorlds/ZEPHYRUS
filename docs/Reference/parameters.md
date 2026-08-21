@@ -31,7 +31,7 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 
 ---
 
-## Sun–Earth reference values (`planets_parameters.py`)
+## Sun and Earth reference values (`planets_parameters.py`)
 
 ### Sun
 
@@ -97,7 +97,7 @@ The knobs of the [escape-regime framework](../Explanations/regimes.md). Every de
 | Name | Default | Options / units | Meaning |
 |---|---|---|---|
 | `base_method` | `'lopez'` | `'lopez'`, `'fixed_pressure'`, `'boreas'` | How the XUV wind base is located on the profile. The Lopez (2017) level is $P_\mathrm{base} = \mu g / \sigma_{\nu_0}$, about a nanobar; `'boreas'` uses the optional BOREAS solver and falls back to `'lopez'` with a flag when it is absent or does not converge. |
-| `base_out_of_range` | `'clamp'` | `'clamp'`, `'extend'` | Policy when the profile top is deeper than the physical base level: clamp to the top level (flagged, distance recorded) or evaluate the base on the extended upper structure. Profiles reaching below 1 nanobar never engage it. |
+| `base_out_of_range` | `'clamp'` | `'clamp'`, `'extend'` | What happens when the profile top is deeper than the physical base level: clamp to the top level (flagged, distance recorded) or evaluate the base on the extended upper structure. Profiles reaching below 1 nanobar never engage it. |
 | `P_photo` | 2000 | Pa | Photospheric-type level for the energy-limited geometric factor (20 mbar, after Baumeister et al. 2023). |
 | `P_base_fixed` | 5.0 | Pa | Base pressure for the `'fixed_pressure'` method only. |
 | `kn_crit` | 1.0 | – | Sonic-point Knudsen threshold of the fluid-to-kinetic switch; the physical band 0.1 to 3 is a diagnostic constant, not a knob. |

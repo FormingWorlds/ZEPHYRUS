@@ -4,7 +4,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the colli
 
 | Test id | Reference | Scope |
 |---|---|---|
-| `tests/test_knudsen.py::test_viscosities_reproduce_measurements_within_7_percent` | Laricchiuta et al. (2009), EPJD 54, 607 (phenomenological collision integrals, Eqs. 2 to 4 with their appendix Tables 3 to 5); measured 300 K dynamic viscosities of N2, O2, CO, and CO2 (CRC Handbook values) | The first Chapman-Enskog approximation built on the transcribed Omega(2,2)* integrals reproduces all four measured viscosities within 7 percent, anchoring the whole coefficient transcription on laboratory measurements. |
+| `tests/test_knudsen.py::test_viscosities_reproduce_measurements_within_7_percent` | Laricchiuta et al. (2009), EPJD 54, 607 (phenomenological collision integrals, Eqs. 2 to 4 with their appendix Tables 3 to 5); measured 300 K dynamic viscosities of N2, O2, CO, and CO2 (CRC Handbook values) | The first Chapman-Enskog approximation built on the transcribed Omega(2,2)* integrals reproduces all four measured viscosities within 7%, anchoring the whole coefficient transcription on laboratory measurements. |
 
 ## Notes
 

@@ -77,6 +77,7 @@ def brand_colors() -> dict:
         'hydrodynamic:RR': '#4FA3D9',
         'hydrostatic': '#7A8894',
         'roche_overflow': '#593E74',
+        'solar': '#C8860F',
         'rule': '#3E4A55',
     }
     try:
@@ -91,6 +92,7 @@ def brand_colors() -> dict:
         # The violet slot of the shared cycle, not the tidal module color:
         # these are regime categories, not any module's output.
         palette['roche_overflow'] = proteus_mpl.CYCLE[5]
+        palette['solar'] = proteus_mpl.COLORS['solar_deep']
         palette['rule'] = proteus_mpl.COLORS['ink']
     except ImportError:
         pass
@@ -671,13 +673,12 @@ def make_figure(sweeps: dict, boundaries: dict, bands: dict, outpath: str) -> No
         for _before, _after, flux in boundaries.get(composition, []):
             ax.axvline(flux, color=palette['rule'], linestyle='--', linewidth=1.0)
             ax.annotate(
-                f'{flux:.3g}',
+                f'{flux:.3g} W m$^{{-2}}$',
                 xy=(flux, 1.2e10),
                 xytext=(3, 0),
                 textcoords='offset points',
                 fontsize=11,
                 color=palette['rule'],
-                fontfamily='Spline Sans Mono',
             )
         ax.set_xscale('log')
         ax.set_yscale('log')
@@ -700,6 +701,102 @@ def make_figure(sweeps: dict, boundaries: dict, bands: dict, outpath: str) -> No
     fig.savefig(outpath.replace('.pdf', '.png'), bbox_inches=None)
     plt.close(fig)
     print(f'\nwrote {outpath} and its PNG companion')
+
+
+def make_track_figure(rows: list[dict], outpath: str) -> None:
+    """Two stacked panels summarizing one atmosphere along a stellar history.
+
+    The upper panel carries the bulk rate against age, marked by regime,
+    with the ages the consistency screen rejects shaded. The lower panel
+    carries the per-element rates, which is where the change of branch
+    shows its consequence: the wind takes the heavy elements with the
+    hydrogen, and the exosphere takes hydrogen alone.
+    """
+    palette = brand_colors()
+    fig, (ax_rate, ax_species) = plt.subplots(
+        2, 1, figsize=(8.5, 7.0), sharex=True, height_ratios=[1.0, 1.0]
+    )
+    ages = [row['age_Myr'] for row in rows]
+
+    # The span the snapshot screen rejects, drawn behind everything.
+    bad = [row['age_Myr'] for row in rows if row['inconsistent']]
+    if bad:
+        for ax in (ax_rate, ax_species):
+            ax.axvspan(min(bad), max(bad), color=palette['hydrostatic'], alpha=0.15, lw=0)
+    if bad:
+        ax_rate.annotate(
+            'the snapshot screen rejects these ages',
+            xy=(math.sqrt(min(bad) * max(bad)), 3.0e7),
+            ha='center',
+            fontsize=11,
+            color=palette['rule'],
+        )
+
+    ax_rate.plot(
+        ages, [row['mdot'] for row in rows], color=palette['escape'], lw=1.2, alpha=0.5
+    )
+    for label in ('hydrodynamic:EL', 'hydrostatic'):
+        group = [row for row in rows if row['regime'] == label]
+        if not group:
+            continue
+        ax_rate.plot(
+            [row['age_Myr'] for row in group],
+            [row['mdot'] for row in group],
+            linestyle='none',
+            marker=REGIME_MARKERS[label],
+            markersize=7,
+            markerfacecolor=palette[label],
+            markeredgecolor=palette[label],
+            label=label,
+        )
+    # The age at which the label changes, from the sequence itself.
+    for before, after in zip(rows[:-1], rows[1:]):
+        if before['regime'] != after['regime']:
+            crossing = math.sqrt(before['age_Myr'] * after['age_Myr'])
+            for ax in (ax_rate, ax_species):
+                ax.axvline(crossing, color=palette['rule'], linestyle='--', lw=1.0)
+            ax_rate.annotate(
+                f'wind ends near {crossing:.0f} Myr',
+                xy=(crossing, 1.0e2),
+                xytext=(-6, 0),
+                textcoords='offset points',
+                ha='right',
+                fontsize=11,
+                color=palette['rule'],
+            )
+
+    elements = sorted({el for row in rows for el in row['per_species']})
+    species_colors = {'H': palette['escape'], 'C': palette['boiloff'], 'O': palette['solar']}
+    for element in elements:
+        ax_species.plot(
+            ages,
+            [max(row['per_species'].get(element, 0.0), 1e-30) for row in rows],
+            color=species_colors.get(element, palette['rule']),
+            label=element,
+        )
+
+    ax_rate.set_yscale('log')
+    ax_rate.set_ylabel('Bulk rate [kg s$^{-1}$]')
+    ax_rate.set_ylim(1.0e-2, 3.0e8)
+    ax_rate.legend(loc='lower left', title='regime')
+    ax_species.set_xscale('log')
+    ax_species.set_yscale('log')
+    ax_species.set_ylim(1.0e-25, 3.0e7)
+    ax_species.set_xlabel('Stellar age [Myr]')
+    ax_species.set_ylabel('Element rate [kg s$^{-1}$]')
+    ax_species.legend(loc='lower left', title='element', ncol=3)
+    ax_species.annotate(
+        'heavy elements leave with the wind, and stop when it does',
+        xy=(0.03, 0.62),
+        xycoords='axes fraction',
+        fontsize=11,
+        color=palette['rule'],
+    )
+    fig.subplots_adjust(left=0.12, right=0.98, top=0.97, bottom=0.09, hspace=0.08)
+    fig.savefig(outpath, bbox_inches=None)
+    fig.savefig(outpath.replace('.pdf', '.png'), bbox_inches=None)
+    plt.close(fig)
+    print(f'wrote {outpath} and its PNG companion')
 
 
 def _panel_title(composition: str) -> str:
@@ -741,6 +838,7 @@ def main(outdir: str = 'output') -> dict:
     results['hysteresis'] = hysteresis_window()
     results['track'] = stellar_track()
     make_figure(sweeps, boundaries, bands, f'{outdir}/demo_dispatcher_regimes.pdf')
+    make_track_figure(results['track'], f'{outdir}/demo_dispatcher_track.pdf')
     return results
 
 

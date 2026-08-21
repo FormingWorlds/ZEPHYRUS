@@ -29,10 +29,10 @@ The framework removes the regime-awareness limitation and carries its own, each 
 
 The channel is a single fitted power law, not an impact simulation, and inherits the scope of the simulation suite behind it (see the [giant impacts page](impacts.md) for the fitted domain):
 
-- **Thin atmospheres only.** The fit covers atmospheres of order 1 percent of the planet mass; a substantially thicker envelope cushions the impactor and the eroded fraction is no longer described by the law.
-- **Target-side loss only.** Any atmosphere the impactor carries, and any volatile delivery into the merged body, is outside the function. The underlying simulations show a slow grazing collision with an atmosphere-hosting impactor can leave the target with about 85 percent of the two bodies' combined atmospheres, so treating the impactor as bare is a caller-side assumption.
+- **Thin atmospheres only.** The fit covers atmospheres of order 1% of the planet mass; a substantially thicker envelope cushions the impactor and the eroded fraction is no longer described by the law.
+- **Target-side loss only.** Any atmosphere the impactor carries, and any volatile delivery into the merged body, is outside the function. The underlying simulations show a slow grazing collision with an atmosphere-hosting impactor can leave the target with about 85% of the two bodies' combined atmospheres, so treating the impactor as bare is a caller-side assumption.
 - **No mantle or core erosion.** Violent impacts also strip silicate and metal mass; the law tracks the atmospheric fraction only.
-- **Chaotic-regime scatter.** Slow, head-on collisions produce chaotic fall-back; the fit carries about 20 percent scatter there against 9 percent overall.
+- **Chaotic-regime scatter.** Slow, head-on collisions produce chaotic fall-back; the fit carries about 20% scatter there against 9% overall.
 - **Fit-domain extrapolation is unflagged.** The function evaluates the law for any physically valid inputs and does not warn when they leave the fitted ranges; staying inside them is the caller's responsibility.
 
 ## Not modeled by any entry point

@@ -4,8 +4,8 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the boil-
 
 | Test id | Reference | Scope |
 |---|---|---|
-| `tests/test_boiloff.py::test_parker_mach_sonic_limit_and_shutoff` | Owen & Wu (2016), ApJ 817, 107 (isothermal transonic Parker wind, Lambert-W form) | The photospheric Mach number is exactly 1 with the launch level at the Bondi radius (the analytical sonic-point limit), falls monotonically as the level retreats inward, and has collapsed by more than six decades at their published shutoff R_p/R_B = 0.1. |
-| `tests/test_boiloff.py::test_lambda_equals_two_bondi_radii_over_rp` | Fossati et al. (2017), A&A 598, A90 (restricted Jeans parameter); Owen & Wu (2016), ApJ 817, 107 | The identity Lambda = 2 R_B / R_p holds exactly for every mean molecular mass, which is what makes the Owen & Wu shutoff equal to Lambda = 20 for every composition; the literature band 15 to 35 brackets the default threshold. |
+| `tests/test_boiloff.py::test_parker_mach_sonic_limit_and_shutoff` | Owen & Wu (2016), ApJ 817, 107 (isothermal transonic Parker wind, Lambert-W form) | The photospheric Mach number is 1 identically with the launch level at the Bondi radius (the analytical sonic-point limit), falls monotonically as the level retreats inward, and has collapsed by more than six decades at their published shutoff R_p/R_B = 0.1. |
+| `tests/test_boiloff.py::test_lambda_equals_two_bondi_radii_over_rp` | Fossati et al. (2017), A&A 598, A90 (restricted Jeans parameter); Owen & Wu (2016), ApJ 817, 107 | The identity Lambda = 2 R_B / R_p holds for every mean molecular mass, which is what makes the Owen & Wu shutoff equal to Lambda = 20 for every composition; the literature band 15 to 35 brackets the default threshold. |
 
 ## Notes
 
