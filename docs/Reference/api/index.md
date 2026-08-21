@@ -1,6 +1,6 @@
 # API overview
 
-This is an overview of ZEPHYRUS' API for the user's reference. If you want to understand the underlying model, please visit the [model overview](../../Explanations/model.md) and the [regime dispatcher](../../Explanations/dispatcher.md) pages. <br>
+This is an overview of ZEPHYRUS' API for the user's reference. If you want to understand the underlying model, please visit [the ZEPHYRUS model](../../Explanations/model.md) and its topic pages. <br>
 
 | Module | Description |
 |---|---|

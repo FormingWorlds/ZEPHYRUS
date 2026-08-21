@@ -92,7 +92,7 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 
 ## Dispatcher settings (`dispatcher.DispatchSettings`)
 
-The knobs of the [regime dispatcher](../Explanations/dispatcher.md). Every default is the documented reference choice; the criteria thresholds carry the physical bands stated in the dispatcher page, which the diagnostics report beside every verdict.
+The knobs of the [escape-regime framework](../Explanations/regimes.md). Every default is the documented reference choice; the criteria thresholds carry the physical bands stated in the dispatcher page, which the diagnostics report beside every verdict.
 
 | Name | Default | Options / units | Meaning |
 |---|---|---|---|

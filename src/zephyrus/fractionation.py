@@ -15,7 +15,7 @@ from zephyrus.constants import G, kb_cgs
 from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g
 
 # The closure generalizes the two-species fractionation of Hunten, Pepin &
-# Wallace (1987, Icarus 69, 532) to N species escaping simultaneously
+# Walker (1987, Icarus 69, 532) to N species escaping simultaneously
 # through mutual binary diffusion, the constant-composition closure of the
 # subsonic multispecies wind system of Zahnle et al. (1990, Icarus 84,
 # 502), with active-set dropout: at a given total mass flux the heavy

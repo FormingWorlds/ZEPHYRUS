@@ -19,8 +19,11 @@ nav:
       - First run: Tutorials/first_run.md
 
   - Explanations:
-      - Model overview: Explanations/model.md
-      - Escape-regime dispatcher: Explanations/dispatcher.md
+      - The ZEPHYRUS model: Explanations/model.md
+      - Energy-limited escape: Explanations/energy_limited.md
+      - Escape regimes: Explanations/regimes.md
+      - Fractionation: Explanations/fractionation.md
+      - Giant impacts: Explanations/impacts.md
       - Coupling to PROTEUS: Explanations/proteus.md
       - Limitations: Explanations/limitations.md
       - Testing suite: Explanations/testing.md

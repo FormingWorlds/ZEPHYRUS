@@ -10,7 +10,7 @@ The physical invariants under test:
   lobe.
 - Monotonicity / boundedness: the along-profile fluid check reports the
   worst local Knudsen number with its truncation declared; the potential
-  screens classify the three regimes in the right order.
+  screens order their three verdicts (wind, intermediate, no-wind) correctly.
 - Error contract: the self-consistency screen reports "not evaluated"
   without its optional inputs rather than guessing.
 
@@ -160,7 +160,7 @@ def test_self_consistency_screen_contract():
 
 
 def test_potential_screens_classify_in_order():
-    """The threshold-potential screens order the three verdicts correctly.
+    """The threshold-potential screens order their three verdicts correctly.
 
     An Earth-like potential sits far below both screens (wind side); a
     compact massive planet lands above the upper screen (no-wind side); an
