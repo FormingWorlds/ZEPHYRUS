@@ -276,12 +276,22 @@ def test_base_out_of_range_extend_mode():
     the top: the default policy clamps (flagged, with the distance in
     decades); the extend policy evaluates the base on the extended upper
     structure instead, replacing the clamp flag with ``base_extended`` and
-    placing the base at a lower pressure than the profile top.
+    placing the base at a lower pressure than the profile top. Either way
+    the diagnostics report the pressure the base method asked for before
+    any clamp, which is the only place that quantity is available.
     """
     inp_clamp = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, p_top=1e-2)
     res_clamp = dispatch(inp_clamp)
     assert res_clamp.flags.get('base_clamped') is True
     assert res_clamp.flags['base_clamp_decades'] > 0.0
+    # The clamped base sits at the profile top, above its own target, and
+    # the recorded distance is the gap between the two. A diagnostic that
+    # echoed the clamped level instead would give a zero distance here.
+    base_clamp = res_clamp.diagnostics['base_level']
+    assert base_clamp['p_Pa'] == pytest.approx(1e-2, rel=1e-9)
+    assert base_clamp['p_physical_Pa'] < base_clamp['p_Pa']
+    decades = np.log10(base_clamp['p_Pa'] / base_clamp['p_physical_Pa'])
+    assert decades == pytest.approx(res_clamp.flags['base_clamp_decades'], rel=1e-9)
     settings = DispatchSettings(base_out_of_range='extend')
     inp_ext = _inputs(
         5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, p_top=1e-2, settings=settings
@@ -290,6 +300,9 @@ def test_base_out_of_range_extend_mode():
     assert res_ext.flags.get('base_extended') is True
     assert 'base_clamped' not in res_ext.flags
     assert res_ext.diagnostics['base_level']['p_Pa'] < 1e-2
+    # On the extension the base reaches its target, so the two agree.
+    base_ext = res_ext.diagnostics['base_level']
+    assert base_ext['p_physical_Pa'] == pytest.approx(base_ext['p_Pa'], rel=1e-9)
 
 
 def test_fractionation_toggle_and_split_protocol():

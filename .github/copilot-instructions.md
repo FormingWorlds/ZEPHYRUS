@@ -153,7 +153,7 @@ pre-commit install -f
   - `diagnostics.py` - Regime diagnostics reported beside every verdict (physics)
   - `dispatcher.py` - The escape-regime dispatcher assembling the branches (physics)
 
-- `tests/` - Test suite. Each physics source has a 1:1 test file at `tests/test_<file>.py`. Cross-cutting or coupling regression tests (e.g. `test_earth.py`) are the exception.
+- `tests/` - Test suite. Each physics source has a 1:1 test file at `tests/test_<file>.py`. Cross-cutting or coupling regression tests (e.g. `test_earth.py`) and the shipped-example tests (`test_examples.py`) are the exception.
 
 - `tools/` - Build / utility scripts
   - `check_test_quality.py` - AST linter (blocking on PRs)
@@ -190,7 +190,7 @@ ZEPHYRUS is scientific simulation code, so the test suite is held to physics-gra
 
 ### Structure
 
-- Tests mirror source 1:1: `src/zephyrus/<file>.py` -> `tests/test_<file>.py`. Cross-cutting or coupling regression tests (e.g. `test_earth.py`) are the exception, not the rule.
+- Tests mirror source 1:1: `src/zephyrus/<file>.py` -> `tests/test_<file>.py`. Cross-cutting or coupling regression tests (e.g. `test_earth.py`) and the shipped-example tests (`test_examples.py`, which pin the numbers the docs quote) are the exception, not the rule.
 - Framework: `pytest` exclusively in the `tests/` directory.
 
 ### Markers and the module-level marker rule

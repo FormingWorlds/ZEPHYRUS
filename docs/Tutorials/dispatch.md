@@ -26,7 +26,7 @@ mkdir -p output
 python examples/demo_dispatcher/demo_dispatcher.py
 ```
 
-It prints a table per step and takes about a minute, most of which is the boundary bisections. Every step is a function that returns its results, so you can import one at a time:
+It prints a table per step and runs in a few seconds, most of which is the boundary bisections. Every step is a function that returns its results, so you can import one at a time:
 
 ```python
 from examples.demo_dispatcher.demo_dispatcher import flux_sweep, read_diagnostics
@@ -323,7 +323,7 @@ Four things in that table are worth more than the rest of this page.
 
 The label belongs to the state, not to the planet. Nothing about the planet changed; the star quieted down, the Knudsen number climbed smoothly through its threshold, and the physics of the loss changed character.
 
-The rate drops by seven orders of magnitude at the crossing. The switch is deliberately sharp, with no blend function between branches, so the size of that jump is a measurement you can quote rather than an artifact a smoothing function hides. It is also the honest scale of the disagreement between the two prescriptions at the same physical state.
+The rate drops by almost seven orders of magnitude at the crossing. The switch is deliberately sharp, with no blend function between branches, so the size of that jump is a measurement you can quote rather than an artifact a smoothing function hides. It is also the honest scale of the disagreement between the two prescriptions at the same physical state.
 
 What escapes changes with the branch. In the wind phase carbon and oxygen leave with the hydrogen; in the exosphere phase hydrogen leaves alone, and the heavy elements are pinned at 1e-140 kg s⁻¹. A planet crossing this boundary stops losing its atmosphere and starts losing only its hydrogen.
 

@@ -307,6 +307,7 @@ Write the OUTCOME (what the test verifies; what the PR achieves) never the PROCE
 - Test file names mirror source 1:1: `src/zephyrus/<file>.py` -> `tests/test_<file>.py`. Documented exceptions to the 1:1 rule:
   - **Cross-cutting coupling tests** (`test_mors_coupling.py`, `test_earth.py`): regressions that span the MORS flux hand-off and the escape formula rather than a single source file. `test_mors_coupling.py` mocks the stellar-luminosity lookup so the coupling recipe runs in the fast `unit` tier without a download; `test_earth.py` performs a real MORS lookup end to end and carries the `integration` tier.
   - **Property-based companion** (`test_escape_properties.py`): the Hypothesis-driven sweeps for `escape.py`. They sit in their own module so the `pytest.importorskip('hypothesis')` gate covers only the property tests, leaving the closed-form pins and error-contract guards in `test_escape.py` running when the develop-extra dependency is absent.
+  - **Shipped examples** (`test_examples.py`): the scripts under `examples/` and the documentation pages that quote their output. The tests import an example module by path and exercise its own entry points, so a physics change that moves a documented result fails CI instead of leaving a stale number on a docs page. They carry the `smoke` tier because they run the real dispatch path, and they mock the stellar lookup, because the PR job does not have the MORS tracks. When adding an example, extend this file rather than creating a per-example test module.
 
 ---
 
