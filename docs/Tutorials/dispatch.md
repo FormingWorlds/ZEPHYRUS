@@ -174,7 +174,7 @@ The flow radius of the winning branch now exceeds the Hill radius, so the atmosp
 
 ## Step 5: read the diagnostics
 
-Every call returns 17 diagnostic groups, and none of them gates anything: the dispatch control flow never reads them back, and there is no switch to turn them off. The regime boundaries carry real physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that instead of hiding it.
+A call returns sixteen or seventeen diagnostic groups, depending on which branch ran, and none of them gates anything: the dispatch control flow never reads them back, and there is no switch to turn them off. The regime boundaries carry real physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that instead of hiding it.
 
 The [dispatch results reference](../Reference/results.md) documents every key. What follows is the order to read them in, which is the order the questions occur to you.
 
