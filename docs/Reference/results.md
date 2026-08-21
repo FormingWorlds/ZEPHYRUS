@@ -34,7 +34,7 @@ A sixth label, `impact`, is reserved for the [giant-impact channel](../Explanati
 
 ## Flags
 
-The flags dictionary is a warning set: every entry means something happened that you should know about, and a result with nothing to report carries an empty dictionary. Most entries are `True`; six carry a value instead, because the warning is more useful with its magnitude attached (`base_clamp_decades`, `base_method_fallback`, `dl_bypass`, `roche_subflag`, `rock_former_bij`, `thermostat_clamped`). Quantities that merely describe a call, rather than warning about it, live in the diagnostics instead.
+The flags dictionary is a warning set: every entry means something happened that you should know about, and a result with nothing to report carries an empty dictionary. Most entries are `True`; five carry a value instead, because the warning is more useful with its magnitude attached (`base_clamp_decades`, `base_method_fallback`, `roche_subflag`, `rock_former_bij`, `thermostat_clamped`). Quantities that merely describe a call, rather than warning about it, live in the diagnostics instead.
 
 The `effect` column says whether the returned rate already reflects the flag or whether the flag reports only.
 
@@ -69,7 +69,6 @@ The `effect` column says whether the returned rate already reflects the flag or 
 | Flag | Value | Meaning | Effect |
 |---|---|---|---|
 | `hydrostatic_lower_limit` | `True` | Always set on this branch: the nonthermal channels that dominate heavy-species loss from real exospheres are not modeled, so heavy-element rates are lower limits. | Reporting only |
-| `dl_bypass` | species | The dominant species, which supplies itself and takes the Jeans flux with no diffusion cap. | Reporting only |
 | `volkov_extrapolated` | `True` | A species sits above the Jeans parameter of 15 where the kinetic enhancement factor was measured, so the factor was held constant. | The rate reflects it |
 | `exobase_not_reached` | `True` | The extended structure never reaches the level where the mean free path equals the scale height, so its top level was used as the exobase. | The rate reflects it |
 | `exobase_at_anchor` | `True` | The exobase landed on the profile top itself; one integration interval was kept so the supply integrals exist. | The rate reflects it |
@@ -96,7 +95,7 @@ Seventeen groups on a typical call. Nothing in the dispatch control flow reads a
 |---|---|---|
 | `knudsen` | `kn_sc`, `threshold_applied`, `sigma_c`, `provenance`, `counterfactual_labels` | Which side of the collisionality switch the state fell on, how close it sat, what the label would have been at both edges of the criterion band, and where the cross sections came from. |
 | `hydrodynamic` | `mdot_el`, `mdot_rr`, `efficiency`, `K_tide`, `T_wind`, `selection_mechanism`, `rr_chain` | Both wind candidates, which one won and by what mechanism, the temperature the thermostat returned, and the full recombination-limited chain (sound speed, sonic radius, base Jeans parameter, densities, barometric factor). |
-| `hydrostatic` | `rate_kg_s`, `T_exo`, `r_exo`, `f_plus_exo`, `T_esc_neutral`, `T_esc_plasma`, `gate`, `gate_unstable`, `detail` | The exobase state, both escape temperatures with the local ionization fraction, which convention gated the branch, and per-species Jeans and diffusion fluxes in `detail['species']`. |
+| `hydrostatic` | `rate_kg_s`, `T_exo`, `r_exo`, `f_plus_exo`, `T_esc_neutral`, `T_esc_plasma`, `gate`, `gate_unstable`, `detail` | The exobase state, both escape temperatures with the local ionization fraction, which convention gated the branch, the `detail['dominant']` species that supplies itself without a diffusion cap, and per-species Jeans and diffusion fluxes in `detail['species']`. |
 | `bolometric` | `T_wind`, `c_s`, `R_sonic`, `x`, `mach`, `mdot_parker`, `mdot_bondi`, `mdot_luminosity`, `active`, `rate_kg_s` | The bolometric candidate in full: each cap separately, and whether the branch was active. |
 | `lambda_gate` | float | The restricted Jeans parameter that decides boil-off activation. |
 | `thermostat` | heating and cooling terms, `clamped` | How the wind temperature was reached, channel by channel. |

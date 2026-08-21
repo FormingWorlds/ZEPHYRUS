@@ -193,16 +193,20 @@ def test_element_mapping_conserves_mass_and_dominant_bypass():
     Stoichiometric mapping conserves the total mass rate exactly. The
     dominant species (CO2 here) has no diffusion-limited supply cap: it
     supplies itself, so its diffusion flux is infinite and the bypass is
-    recorded.
+    recorded against that species and no other.
     """
     prof = _mars_profile()
     per_el, det = hydrostatic_rates(prof, M_MARS, 300.0)
     assert sum(per_el.values()) == pytest.approx(
         sum(det['per_species_rate'].values()), rel=1e-9
     )
-    assert det['flags']['dl_bypass'] == 'CO2'
+    # The dominant species is the most abundant one at the exobase, and it
+    # is the only one whose supply cap is bypassed.
+    assert det['dominant'] == 'CO2'
+    assert det['species']['CO2']['dl_bypass'] is True
     assert math.isinf(det['species']['CO2']['phi_diffusion'])
     assert det['species']['H']['dl_bypass'] is False
+    assert math.isfinite(det['species']['H']['phi_diffusion'])
     # The CO2 mass rate splits onto C and O in stoichiometric proportion.
     rate_co2 = det['per_species_rate']['CO2']
     assert per_el['C'] + per_el['O'] + per_el['H'] == pytest.approx(

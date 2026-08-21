@@ -200,7 +200,8 @@ def hydrostatic_rates(
     dominates the branch on many-species profiles.
 
     Returns ``(per_element, detail)``; the detail dict carries the exobase
-    state, both escape temperatures, the per-species terms, coefficient
+    state, both escape temperatures, the ``dominant`` species that supplies
+    itself without a diffusion cap, the per-species terms, coefficient
     provenance, and flags (including ``hydrostatic_lower_limit``, which is
     always on: non-thermal loss channels are absent).
     """
@@ -292,7 +293,6 @@ def hydrostatic_rates(
         for el, cnt in counts.items():
             per_element[el] = per_element.get(el, 0.0) + rate * (cnt * ELEMENT_AMU[el] / m_sp)
 
-    flags['dl_bypass'] = dominant
     flags['hydrostatic_lower_limit'] = True
 
     t_esc_neutral = G * M_p * m_bar / (2.0 * kb * r_x)

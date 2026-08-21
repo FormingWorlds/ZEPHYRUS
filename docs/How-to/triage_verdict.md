@@ -21,7 +21,7 @@ Start with the two questions that dispose of most surprises:
 
 **Symptom.** A hydrostatic verdict whose rate is insensitive to `T_exo_value`, against the documented exponential sensitivity.
 
-**Cause.** The species carrying the rate is supply limited, not Jeans limited. Compare `phi_jeans` against `phi_diffusion` in `diagnostics['hydrostatic']['detail']['species'][name]`: when the diffusion-limited supply is the smaller of the two, the harmonic mean of the two sits near the supply and the exobase temperature has little left to do.
+**Cause.** The species carrying the rate is supply limited, not Jeans limited. The species that carries no cap at all is `diagnostics['hydrostatic']['detail']['dominant']`, which supplies itself. Compare `phi_jeans` against `phi_diffusion` in `diagnostics['hydrostatic']['detail']['species'][name]`: when the diffusion-limited supply is the smaller of the two, the harmonic mean of the two sits near the supply and the exobase temperature has little left to do.
 
 **What to do.** Nothing, but do not report the insensitivity as a general property of the branch: the heavy species in the same result will be moving by orders of magnitude over the same temperature range.
 
