@@ -6,15 +6,19 @@
 
 ######################################### Sun-Earth system #########################################
 
-# Sun parameters 
+# Sun parameters
 Rs      = 6.957e8                      # Solar radius                          [m]
 Ms      = 1.98847e30                   # Solar mass                            [kg]
 Ls      = 3.828e26                     # Solar luminosity                      [W]
 age_sun = 4.603e9                      # Age of the Sun                        [yr]
 
-# Earth parameters 
+# Earth parameters
 Re                = 6.378e6            # Earth radius                          [m]
 Me                = 5.9722e24          # Earth mass                            [kg]
+
+# Jupiter parameters (IAU 2015 nominal values, Resolution B3)
+Rjup              = 7.1492e7           # Jupiter equatorial radius             [m]
+Mjup              = 1.8982e27          # Jupiter mass                          [kg]
 Me_atm            = 5.15e18            # Mass of the Earth atmopshere          [kg]
 Fxuv_earth_10Myr  = 14.67              # Fxuv received on Earth at t = 10 Myr -> see Fig 9. Wordsworth+18 [W m-2]
 Fxuv_earth_today  = 4.64e-3            # Stellar flux received on Earth today  [W m-2]

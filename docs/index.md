@@ -6,7 +6,7 @@
 [![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/tests.yaml?branch=main&label=Unit%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/tests.yaml)
 [![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/nightly.yml)
 
-**ZEPHYRUS** is the atmospheric escape module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. Named after the Greek god of the west wind and messenger of spring, it models the atmospheric mass loss of exoplanets: continuous energy-limited escape driven by stellar XUV irradiation, and impulsive erosion by giant impacts during accretion. 
+**ZEPHYRUS** is the atmospheric escape module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. Named after the Greek god of the west wind and messenger of spring, it models the atmospheric mass loss of rocky and sub-Neptune exoplanets through two channels: continuous thermal escape, classified into five regimes (boil-off, energy-limited and recombination-limited winds, hydrostatic Jeans escape, and Roche-lobe overflow) with per-species fractionation, and impulsive erosion by giant impacts during accretion. The energy-limited rate is the default prescription consumed by PROTEUS; the full regime framework is available standalone. Start with [the ZEPHYRUS model](Explanations/model.md) for the complete picture.
 
 ![ZEPHYRUS banner](assets/ZEPHYRUS_logo_white.png#only-light)
 ![ZEPHYRUS banner](assets/ZEPHYRUS_logo_black.png#only-dark)

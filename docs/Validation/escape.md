@@ -1,4 +1,4 @@
-# Validation: `src/zephyrus/escape.py`
+# Validation: `zephyrus.escape.EL_escape`
 
 This page tracks the `@pytest.mark.reference_pinned` tests that anchor the behaviour of `zephyrus.escape` against the published energy-limited mass-loss formulation and its closed-form analytical limit.
 

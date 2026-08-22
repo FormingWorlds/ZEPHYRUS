@@ -12,29 +12,59 @@ nav:
 
   - How-to guides:
       - Installation: How-to/installation.md
+      - Troubleshooting: How-to/troubleshooting.md
       - Run tests: How-to/run_tests.md
       - Build documentation: How-to/documentation.md
 
   - Tutorials:
       - First run: Tutorials/first_run.md
+      - Dispatching a regime: Tutorials/dispatch.md
 
   - Explanations:
-      - Model overview: Explanations/model.md
+      - The ZEPHYRUS model: Explanations/model.md
+      - Energy-limited escape: Explanations/energy_limited.md
+      - Escape regimes: Explanations/regimes.md
+      - Fractionation: Explanations/fractionation.md
+      - Giant impacts: Explanations/impacts.md
       - Coupling to PROTEUS: Explanations/proteus.md
       - Limitations: Explanations/limitations.md
       - Testing suite: Explanations/testing.md
 
   - Reference:
       - Model parameters: Reference/parameters.md
+      - Dispatch results: Reference/results.md
       - API reference:
         - Overview: Reference/api/index.md
         - Escape: Reference/api/escape.md
+        - Dispatcher: Reference/api/dispatcher.md
+        - Boil-off: Reference/api/boiloff.md
+        - Hydrodynamic: Reference/api/hydrodynamic.md
+        - Hydrostatic: Reference/api/hydrostatic.md
         - Collision: Reference/api/collision.md
+        - Profiles: Reference/api/profiles.md
+        - Thermostat: Reference/api/thermostat.md
+        - Knudsen: Reference/api/knudsen.md
+        - Fractionation: Reference/api/fractionation.md
+        - Diagnostics: Reference/api/diagnostics.md
+        - Diffusion: Reference/api/diffusion.md
+        - Atomic data: Reference/api/atomic_data.md
+        - Composition: Reference/api/composition.md
         - Constants: Reference/api/constants.md
         - Planet parameters: Reference/api/planet_parameters.md
       - Validation:
         - Escape: Validation/escape.md
+        - Dispatcher: Validation/dispatcher.md
+        - Boil-off: Validation/boiloff.md
+        - Hydrodynamic: Validation/hydrodynamic.md
+        - Hydrostatic: Validation/hydrostatic.md
         - Collision: Validation/collision.md
+        - Profiles: Validation/profiles.md
+        - Thermostat: Validation/thermostat.md
+        - Knudsen: Validation/knudsen.md
+        - Fractionation: Validation/fractionation.md
+        - Diagnostics: Validation/diagnostics.md
+        - Diffusion: Validation/diffusion.md
+        - Atomic data: Validation/atomic_data.md
     
   - Community:
       - Contact: Community/contact.md
@@ -140,7 +170,9 @@ markdown_extensions:
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js
   - javascripts/header-links.js
+  - javascripts/mermaid.js
 
 plugins:
 - search

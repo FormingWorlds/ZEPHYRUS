@@ -22,9 +22,11 @@ from zephyrus.planets_parameters import (
     Ls,
     M_TOI561b,
     Me,
+    Mjup,
     Ms,
     R_TOI561b,
     Re,
+    Rjup,
     Rs,
     a_earth,
     e_earth,
@@ -113,3 +115,20 @@ def test_toi561b_planet_scaled_from_earth_values():
     assert 3.0e3 < rho < 6.0e3
     # Circular orbit boundary case.
     assert e_TOI561b == pytest.approx(0.0, abs=1e-12)
+
+
+def test_jupiter_nominal_values_recover_gas_giant_density():
+    """Jupiter mass and radius are the IAU nominal values with a giant density.
+
+    ``Mjup`` and ``Rjup`` are the IAU 2015 Resolution B3 nominal values. The
+    mean density they imply, about ``1.24 g cm-3``, is the discrimination
+    guard: a cm-vs-m slip in the radius moves it by six decades, and swapping
+    in the Earth values moves it above ``5 g cm-3``. The mass ratio to Earth
+    (about 318) brackets both pins at once.
+    """
+    assert Mjup == pytest.approx(1.8982e27, rel=1e-9)
+    assert Rjup == pytest.approx(7.1492e7, rel=1e-9)
+    rho = Mjup / (4.0 / 3.0 * np.pi * Rjup**3)
+    # Gas-giant mean density in SI: about 1240 kg m-3.
+    assert rho == pytest.approx(1240.0, rel=0.02)
+    assert 300.0 < Mjup / Me < 330.0

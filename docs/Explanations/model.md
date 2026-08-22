@@ -1,100 +1,73 @@
-# ZEPHYRUS model overview
+# The ZEPHYRUS model
 
-ZEPHYRUS models two channels of atmospheric mass loss for rocky exoplanets coupled to the [PROTEUS](https://proteus-framework.org) interior–atmosphere framework: the continuous, bulk hydrodynamic escape driven by stellar XUV irradiation, and the impulsive erosion caused by giant impacts during accretion. The continuous channel implements an energy-limited (EL) formalism following Watson et al. (1981) [^watson] and Lopez & Fortney (2013) [^lopez]; it is called at each PROTEUS time step with the current planetary radius and mass, the stellar XUV flux supplied by [MORS](https://proteus-framework.org/MORS), and the escape radius computed from the atmospheric structure produced by AGNI or JANUS. The mass-loss rate it returns is distributed across atmospheric species according to their elemental mass mixing ratios, so the atmosphere is depleted in bulk without elemental fractionation. The impulsive channel implements the giant-impact erosion scaling law of Kegerreis et al. (2020) [^kegerreis], which returns the fraction of the target's atmosphere removed by a single collision.
+ZEPHYRUS computes the atmospheric mass loss of rocky and sub-Neptune exoplanets. It runs standalone or as the escape module of the [PROTEUS](https://proteus-framework.org) coupled atmosphere and interior framework, where it is called at every time step with the current planetary state and returns the mass-loss rate that depletes the volatile inventory.
 
-A model parameter reference can be found [here](../Reference/parameters.md).
+Mass loss happens through two physically distinct channels, and ZEPHYRUS models both:
 
-## Energy-limited escape
+1. Continuous thermal escape: the steady outflow or evaporation of the upper atmosphere, driven by stellar irradiation and by the planet's own heat. This is one framework with several regimes, described below.
+2. Impact-driven erosion: the impulsive removal of atmosphere by a single giant collision during accretion, a separate channel with its own prescription (see [giant impacts](impacts.md)).
 
-The mass-loss rate is computed by `escape.EL_escape` as
+## The continuous channel: one framework, five regimes
 
-$$\dot{M}_\mathrm{EL} = \frac{\epsilon\,\pi\,R^3_\mathrm{XUV}\,F_\mathrm{XUV}}{G\,M_p\,K_\mathrm{tide}} \tag{1}$$
+Which physics carries the continuous loss depends on how tightly the atmosphere is bound, how strongly it is irradiated, and how collisional its outer layers are. Applying a prescription outside its regime gives rates that are wrong by orders of magnitude, so ZEPHYRUS classifies each atmospheric state before choosing a rate. Every state receives one of five regime labels:
 
-where $\epsilon$ is the escape efficiency factor (`epsilon`), $R_\mathrm{XUV}$ is the planetary radius at which the atmosphere becomes optically thick to stellar XUV photons (`Rxuv`), $F_\mathrm{XUV}$ is the XUV flux received at the planet (`Fxuv`) supplied by MORS, $M_p$ is the planetary mass (`Mp`), $G$ is the gravitational constant, and $K_\mathrm{tide}$ is the tidal correction factor described below. The efficiency $\epsilon$ quantifies the fraction of incident XUV energy that is converted into work against gravity to drive the outflow; canonical values for rocky planets lie in the range $0.1 \leq \epsilon \leq 0.3$, although ZEPHYRUS accepts any $\epsilon \in (0, 1]$.
+- `boiloff`: the atmosphere is so weakly bound that it flows out on the planet's own thermal energy, before stellar XUV heating matters. Typical of young, hot, hydrogen-rich planets fresh out of the nebula.
+- `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (the energy-limited rate is the smaller of the two hydrodynamic limits here).
+- `hydrodynamic:RR`: the same fluid wind, but the rate is capped below the energy limit because radiative recombination re-emits part of the absorbed energy (the radiation-recombination-limited rate wins).
+- `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape), species by species, capped by how fast diffusion can resupply each species.
+- `roche_overflow`: the flow region reaches the planet's Hill sphere, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow. The label sits on top of whichever regime above produced the rate, which is then a lower limit, because the tidally driven flow an overflowing planet drives is not modeled.
 
-### Radius scaling
+The classification logic reduces to three questions, asked in a fixed order:
 
-The cubic radius factor in the numerator of Eq. (1) is selected at runtime by the `scaling` argument of `escape.EL_escape`:
+```mermaid
+flowchart TD
+    IN(["Planet state + atmosphere profile"]) --> Q1{"Is the atmosphere inflated<br/>beyond its sonic radius?<br/>(Jeans parameter below threshold)"}
+    Q1 -- yes --> BO["BOIL-OFF<br/>bolometric wind"]
+    Q1 -- no --> Q2{"Is an XUV wind collisional<br/>at its sonic point?<br/>(Knudsen number below threshold)"}
+    Q2 -- yes --> HD["HYDRODYNAMIC WIND<br/>label EL or RR,<br/>whichever rate is smaller"]
+    Q2 -- no --> HS["HYDROSTATIC<br/>per-species Jeans escape"]
+    BO --> Q3{"Does the flow reach<br/>the Hill sphere?"}
+    HD --> Q3
+    HS --> Q3
+    Q3 -- yes --> RO["ROCHE OVERFLOW"]
+    Q3 -- no --> OUT(["Regime label + bulk rate<br/>+ per-species rates"])
+    RO --> OUT
+    classDef regime fill:#1e6091,stroke:#0f3a5c,color:#ffffff
+    classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
+    class BO,HD,HS,RO regime
+    class Q1,Q2,Q3 decision
+```
 
-| `scaling` | Expression | Description |
-|---|---|---|
-| `2` | $R_p\,R^2_\mathrm{XUV}$ | Default; XUV-absorbing cross-section weighted by surface radius |
-| `3` | $R^3_\mathrm{XUV}$ | All three powers taken at the XUV radius |
+The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and two refinements are omitted for clarity (a thermally unstable exosphere re-routes from the hydrostatic branch back to the wind rate, and a residual bolometric rate remains in play past the boil-off gate). The [escape regimes](regimes.md) page walks every step with its equations and thresholds.
 
-Both forms reduce to $R_p^3$ when $R_\mathrm{XUV} = R_p$, which is the conservative lower bound on the mass-loss rate adopted by Luger & Barnes (2015) [^luger] and Moore et al. (2023) [^moore]. Allowing $R_\mathrm{XUV} > R_p$ increases the effective XUV-absorbing area and therefore the escape rate. In PROTEUS, $R_\mathrm{XUV}$ is recomputed at each time step from the atmospheric pressure–temperature profile at a user-specified reference pressure $P_\mathrm{XUV}$.
+The regime boundaries are not sharp lines in nature. Each threshold carries a physical band (the collisionality threshold spans a factor of 30 across heating geometries, the boil-off threshold a factor of about two across the literature), and ZEPHYRUS reports, beside every verdict, the diagnostics needed to see how close the state sat to each boundary and what the label would have been at the band edges.
 
-### Tidal correction $K_\mathrm{tide}$
+## The default prescription and the full framework
 
-When the `tidal_contribution` flag is `True`, the effective gravitational potential is reduced by the host star's tidal field following the tidal reduction factor of Erkaev et al. (2007), eq. 17 [^erkaev]:
+The energy-limited (EL) rate is the default prescription: it is what PROTEUS consumes at each time step today, through the released entry point `zephyrus.escape.EL_escape`, and the [energy-limited escape](energy_limited.md) page defines it in full. It is not an independent channel: within the framework it is one of the two hydrodynamic limits, valid when the atmosphere sustains a collisional XUV-driven wind, which is the regime that dominates the loss during the first 10 to 100 million years of a close-in planet's life.
 
-$$K_\mathrm{tide} = 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R_\mathrm{XUV}} \tag{2}$$
+The full classification framework is available as the standalone entry point `zephyrus.dispatch`, which takes one planetary state (scalars plus an atmosphere profile) and returns the regime label, the bulk rate, per-species rates that sum to it, flags, and the diagnostics container. Its coupling into PROTEUS is planned as a follow-up to the current energy-limited wiring; until then, coupled runs use the EL default and standalone studies can use either entry point.
 
-with the Hill radius
+Whichever regime sets the bulk rate, the loss is also partitioned over chemical species. Confirmed hydrodynamic winds fractionate: heavy species lag the outflow through diffusive drag and can drop out of it entirely, which the N-species closure of the [fractionation](fractionation.md) page resolves (Attia & Lichtenberg 2026, in prep. [^attia]). The other regimes split the rate by reservoir mass fractions, and the hydrostatic regime is natively per-species.
 
-$$R_\mathrm{Hill} = a\,(1-e)\,\left(\frac{M_p}{3\,M_\star}\right)^{1/3} \tag{3}$$
+## The impact channel
 
-where $a$ is the planetary semi-major axis, $e$ is the orbital eccentricity, and $M_\star$ is the stellar mass. Factoring the numerator gives $K_\mathrm{tide} = (\xi - 1)^2\,(2\xi + 1) / (2\xi^3)$, which is non-negative for every $\xi > 0$ with a double root at $\xi = 1$. In the physical regime $\xi > 1$ it lies in $(0, 1)$, rising toward 1 for $\xi \gg 1$ (the XUV radius well inside the Hill sphere) and falling toward 0 as the atmosphere expands toward the Roche lobe at $\xi = 1$; because the escape rate divides by $K_\mathrm{tide}$, the rate is enhanced by the tidal correction and diverges as $\xi \to 1$. The tidally corrected rate is therefore defined only for $\xi > 1$: ZEPHYRUS raises a `ValueError` for $\xi \le 1$, where the atmosphere reaches the Roche lobe and the energy-limited approximation no longer applies. When `tidal_contribution` is `False`, $K_\mathrm{tide} = 1$ is enforced.
+A giant collision removes part of the target's atmosphere in a single event, on a timescale unrelated to the continuous escape. ZEPHYRUS computes the eroded fraction with the scaling law of Kegerreis et al. (2020) [^kegerreis] through `zephyrus.collision.mass_loss`; the [giant impacts](impacts.md) page defines the law and its fitted domain. The impact channel is not part of the continuous-regime classification: a regime label is reserved for it, and the caller applies impact erosion as a discrete event.
 
----
+## Reading guide
 
-## Giant-impact atmospheric erosion
-
-A giant impact removes part of the target planet's atmosphere in a single event. ZEPHYRUS computes the eroded fraction with `collision.mass_loss`, which implements the scaling law of Kegerreis et al. (2020), their Eq. 1 [^kegerreis]:
-
-$$X \approx 0.64 \left[ \left(\frac{v_c}{v_\mathrm{esc}}\right)^2 \left(\frac{M_i}{M_\mathrm{tot}}\right)^{1/2} \left(\frac{\rho_i}{\rho_t}\right)^{1/2} f_M(b) \right]^{0.65} \tag{4}$$
-
-capped at 1 for total erosion, where subscript $i$ denotes the impactor, $t$ the target, $M_\mathrm{tot} = M_i + M_t$, and $b \equiv \sin\beta$ is the dimensionless impact parameter for impact angle $\beta$ (0 head-on, 1 fully grazing). The prefactor and exponent are least-squares fits to the paper's suite of 259 SPH simulations, each with an uncertainty of 0.01. The mutual escape speed of the pair at contact is
-
-$$v_\mathrm{esc} = \sqrt{\frac{2\,G\,(M_t + M_i)}{R_t + R_i}} \tag{5}$$
-
-and $f_M(b)$ is the fractional interacting mass of the pair (their Eq. B1), built from density-weighted spherical caps of common height $d = (R_t + R_i)(1 - b)$:
-
-$$f_M = \frac{\rho_t V^\mathrm{cap}_t + \rho_i V^\mathrm{cap}_i}{\rho_t V_t + \rho_i V_i}, \qquad V^\mathrm{cap}_{t,i} = \frac{\pi}{3} d^2 \left(3 R_{t,i} - d\right) \tag{6}$$
-
-where $V_{t,i}$ are the full body volumes. At equal bulk densities $f_M$ reduces exactly to the fractional interacting volume of their Eq. B2. The common-height caps are a linearised bookkeeping: outside the fitted geometry, for a much denser and much smaller impactor near head-on, the raw $f_M$ can leave $[0, 1]$ and vary non-monotonically with $b$, so ZEPHYRUS clamps $f_M$ to $[0, 1]$. Within the fitted domain the clamp never engages.
-
-Three input conventions follow the paper and must be honoured by the caller: $v_c$ is the speed at first contact, not the relative speed at infinity; the masses and radii exclude any atmosphere, with radii taken at the base of the atmosphere; and the densities are bulk values of the atmosphere-free bodies.
-
-The returned fraction applies to the target's atmosphere as a whole. Consistent with the bulk-removal treatment of the continuous channel, the caller partitions the lost mass across atmospheric species without elemental fractionation.
-
----
-
-## Coupling to PROTEUS
-
-ZEPHYRUS treats atmospheric escape as a bulk process: at each PROTEUS time step the total mass-loss rate from Eq. (1) is partitioned across atmospheric species in proportion to their elemental mass mixing ratios as computed by CALLIOPE. No elemental fractionation between light and heavy species is imposed in the outflow itself; however, because only outgassed volatiles are subject to escape while dissolved species remain in the magma ocean reservoir, escape fractionates the planet's *total* (interior + atmosphere) volatile budget over time, preferentially retaining species that are highly soluble in silicate melts (e.g. H$_2$O, S$_2$). 
-
-More about this in its dedicated [page](proteus.md).
-
-
-## Regime of validity
-
-The EL formalism is appropriate in the high-irradiation, hydrodynamic regime that dominates atmospheric loss during the first $\sim 10^6$–$10^8$ yr of evolution for close-in rocky planets [^watson][^lammer2003]. Outside this regime—at lower XUV fluxes or for less extended atmospheres—non-thermal escape (Jeans escape, ion pickup, charge exchange) becomes comparable to or exceeds the hydrodynamic rate, and the bulk EL prescription no longer applies. ZEPHYRUS does not currently include these processes; users should verify that the integrated XUV-driven loss exceeds non-thermal estimates (e.g. $\sim 10^7$–$10^8$ g s$^{-1}$ for an Earth-mass planet; Kislyakova et al. 2014 [^kislyakova]) before interpreting model outputs.
-
-Similarly, the bulk-removal assumption breaks down when the hydrodynamic particle flux drops below the critical flux required to drag heavy species against gravity, at which point compositional fractionation in the outflow becomes significant [^wordsworth2018][^cherubim2024]. Following Yoshida et al. (2022) [^yoshida], the critical flux for H$_2$O in an H$_2$ background is $\approx 1.9 \times 10^{8}$ g s$^{-1}$.
-
-The giant-impact erosion law (Eq. 4) is constrained by simulations spanning target masses of roughly 0.3 to 3 $M_\oplus$, impactor masses down to about 0.05 $M_\oplus$, bulk densities from about half to double Earth's, contact speeds of 1 to 3 $v_\mathrm{esc}$, all impact angles, and thin atmospheres of order 1 percent of the planet mass. The median deviation of the simulations from the law is 9 percent, rising to about 20 percent for slow, head-on impacts, whose outcomes are chaotic. The loss depends only mildly on the atmosphere mass in this thin-atmosphere regime, with a factor of 10 less atmosphere increasing the eroded fraction by roughly 10 percent; substantially thicker atmospheres, which can cushion the impactor, fall outside the law's regime.
+- [Energy-limited escape](energy_limited.md): the default prescription, its radius scaling, and its tidal correction.
+- [Escape regimes](regimes.md): the classification logic and the rate physics of every branch, with thresholds and bands.
+- [Dispatching a regime](../Tutorials/dispatch.md): the framework driven end to end on synthetic atmospheres, boundary crossings included.
+- [Fractionation](fractionation.md): how a wind partitions over species, and when heavy species drop out.
+- [Giant impacts](impacts.md): the erosion scaling law and its fitted domain.
+- [Coupling to PROTEUS](proteus.md): configuration keys, the per-time-step sequence, and reservoir bookkeeping.
+- [Limitations](limitations.md): what each entry point does not model, and what that implies for results.
+- [Troubleshooting the dispatcher](../How-to/troubleshooting.md): what to look at when a flag fires or a label surprises you.
+- [Parameter reference](../Reference/parameters.md), [dispatch results](../Reference/results.md), and [API reference](../Reference/api/index.md).
 
 ---
 
-[^watson]: Watson, A. J., Donahue, T. M., & Walker, J. C. G. (1981). The dynamics of a rapidly escaping atmosphere: applications to the evolution of Earth and Venus. *Icarus, 48*(2), 150–166. https://doi.org/10.1016/0019-1035(81)90101-9
-
-
-[^lopez]: Lopez, E. D., & Fortney, J. J. (2013). The role of core mass in controlling evaporation: the Kepler radius distribution and the Kepler-36 density dichotomy. *The Astrophysical Journal, 776*(1), 2. https://doi.org/10.1088/0004-637X/776/1/2
-
-[^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
-
-[^luger]: Luger, R., & Barnes, R. (2015). Extreme water loss and abiotic O$_2$ buildup on planets throughout the habitable zones of M dwarfs. *Astrobiology, 15*(2), 119–143. https://doi.org/10.1089/ast.2014.1231
-
-[^moore]: Moore, K., Cowan, N. B., & Boukaré, C.-É. (2023). The role of magma oceans in maintaining surface water on rocky planets orbiting M-dwarfs. *Monthly Notices of the Royal Astronomical Society, 526*(4), 6235–6249. https://doi.org/10.1093/mnras/stad3138
-
-[^lammer2003]: Lammer, H., Selsis, F., Ribas, I., et al. (2003). Atmospheric loss of exoplanets resulting from stellar X-ray and extreme-ultraviolet heating. *The Astrophysical Journal, 598*(2), L121–L124. https://doi.org/10.1086/380815
-
-[^kislyakova]: Kislyakova, K. G., Johnstone, C. P., Odert, P., et al. (2014). Stellar wind interaction and pick-up ion escape of the Kepler-11 "super-Earths". *Astronomy & Astrophysics, 562*, A116. https://doi.org/10.1051/0004-6361/201322933
-
-[^wordsworth2018]: Wordsworth, R. D., Schaefer, L. K., & Fischer, R. A. (2018). Redox evolution via gravitational differentiation on low-mass planets: implications for abiotic oxygen, water loss, and habitability. *The Astronomical Journal, 155*(5), 195. https://doi.org/10.3847/1538-3881/aab608
-
-[^cherubim2024]: Cherubim, C., Wordsworth, R., Hu, R., & Shkolnik, E. (2024). Strong Fractionation of Deuterium and Helium in Sub-Neptune Atmospheres along the Radius Valley. *The Astrophysical Journal, 967*(2), 139. https://doi.org/10.3847/1538-4357/ad3e77
-
-[^yoshida]: Yoshida, T., Terada, N., Ikoma, M., & Kuramoto, K. (2022). Less Effective Hydrodynamic Escape of H$_2$–H$_2$O Atmospheres on Terrestrial Planets Orbiting Pre-main-sequence M Dwarfs. *The Astrophysical Journal, 934*(2), 137. https://doi.org/10.3847/1538-4357/ac7be7
+[^attia]: Attia, M., & Lichtenberg, T. (2026). In preparation.
 
 [^kegerreis]: Kegerreis, J. A., Eke, V. R., Catling, D. C., Massey, R. J., Teodoro, L. F. A., & Zahnle, K. J. (2020). Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density. *The Astrophysical Journal Letters, 901*(2), L31. https://doi.org/10.3847/2041-8213/abb5fb

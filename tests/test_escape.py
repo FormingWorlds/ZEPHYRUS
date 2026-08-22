@@ -1,7 +1,10 @@
-"""Tests for ``src/zephyrus/escape.py``.
+"""Tests for ``src/zephyrus/escape.py``, the released energy-limited entry point.
 
-Exercises the energy-limited (EL) atmospheric-escape mass-loss rate and its
-tidal correction. The physical invariants under test:
+``escape.py`` re-exports ``EL_escape``, whose implementation lives in
+``src/zephyrus/hydrodynamic.py``; every test here imports through the
+released path ``zephyrus.escape.EL_escape``, so the file guards the
+compatibility contract and the EL physics at once. The physical invariants
+under test:
 
 - Conservation / closed form: the EL rate equals
   ``epsilon * pi * R^3 * Fxuv / (G * Mp * K_tide)`` for the selected radius
@@ -9,14 +12,17 @@ tidal correction. The physical invariants under test:
   (``scaling=2``) and the Lehmer & Catling (2017) variant (``scaling=3``).
 - Positivity / boundedness: the rate is non-negative for valid inputs and
   the tidal factor ``K_tide`` lies in ``(0, 1)`` when the Hill radius exceeds
-  the XUV radius (``ksi = Rhill / Rxuv > 1``), rising toward 1 as the orbit
-  widens; the close-in geometries under test keep it well below 1.
+  the radius the ``scaling`` argument selects (``ksi = Rhill / Rp`` for
+  ``scaling=2``, ``ksi = Rhill / Rxuv`` for ``scaling=3``), rising toward 1
+  as the orbit widens; the close-in geometries under test keep it well
+  below 1.
 - Monotonicity / symmetry: the rate is linear in ``Fxuv``, scales as
   ``1 / Mp``, is larger with the tidal correction than without, and is zero
   when ``Fxuv = 0``.
 - Error contract: an unsupported ``scaling`` raises ``ValueError``, and the
   tidal branch raises ``ValueError`` for ``ksi <= 1``, where the atmosphere
-  reaches the Roche lobe and the energy-limited approximation no longer holds.
+  reaches the Roche lobe and the energy-limited approximation no longer
+  holds; the two radius conventions are discriminated against each other.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
@@ -110,29 +116,37 @@ def test_el_escape_tidal_raises_below_roche_lobe():
 
     The Erkaev et al. (2007) factor ``K_tide = (ksi - 1)**2 (2 ksi + 1) /
     (2 ksi**3)`` has a double root at ``ksi = 1``, so the energy-limited rate
-    divides by ``K_tide`` and is defined only for ``ksi > 1``. A close-in,
-    highly eccentric orbit (``a = 0.02 au``, ``e = 0.90``) shrinks the
-    periapsis Hill radius until ``ksi`` is about 0.39, inside the Roche lobe,
-    and the call must raise rather than return a suppressed or divergent rate.
+    divides by ``K_tide`` and is defined only for ``ksi > 1``. The radius in
+    ``ksi = Rhill / R`` follows the ``scaling`` selection: ``Rp`` for
+    ``scaling=2``, ``Rxuv`` for ``scaling=3``. A close-in, highly eccentric
+    orbit (``a = 0.02 au``, ``e = 0.90``) shrinks the periapsis Hill radius
+    until ``ksi`` is about 0.47 against ``Rp``, inside the Roche lobe, and
+    the call must raise rather than return a suppressed or divergent rate.
     """
     a = 0.02 * au2m
-    e = 0.90  # high eccentricity pulls the periapsis Hill radius inside Rxuv
+    e = 0.90  # high eccentricity pulls the periapsis Hill radius inside Rp
     rhill = a * (1 - e) * (Me / (3 * Ms)) ** (1 / 3)
-    ksi = rhill / RXUV
+    ksi = rhill / RP
     # Confirm the constructed geometry is genuinely sub-Roche-lobe.
-    assert ksi == pytest.approx(0.3910754106364523, rel=1e-9)
+    assert ksi == pytest.approx(0.4692904927637428, rel=1e-9)
     assert ksi < 1.0
     with pytest.raises(ValueError, match='Roche lobe'):
         EL_escape(True, a, e, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
-    # Boundary case: setting Rxuv equal to the periapsis Hill radius puts
-    # ``ksi`` exactly at the singular point 1, which must raise rather than
-    # divide by zero.
+    # Boundary case, scaling=3: setting Rxuv equal to the periapsis Hill
+    # radius puts ``ksi = Rhill / Rxuv`` exactly at the singular point 1,
+    # which must raise rather than divide by zero.
     rxuv_at_hill = a * (Me / (3 * Ms)) ** (1 / 3)
     with pytest.raises(ValueError, match='Roche lobe'):
-        EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, rxuv_at_hill, FXUV, scaling=2)
-    # Contrast: the same close-in orbit with ``ksi > 1`` (circular, Rxuv well
-    # inside the Hill radius) returns a finite positive rate, so the raise is
-    # specific to ``ksi <= 1``, not to the tidal branch as a whole.
+        EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, rxuv_at_hill, FXUV, scaling=3)
+    # Convention discrimination: the same geometry under scaling=2 measures
+    # ``ksi`` from ``Rp`` (about 4.7 here), so it must NOT raise; a regression
+    # that reverts ``ksi`` to the XUV radius for scaling=2 fails this call.
+    ok2 = EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, rxuv_at_hill, FXUV, scaling=2)
+    assert np.isfinite(ok2)
+    assert ok2 > 0.0
+    # Contrast: the same close-in orbit with ``ksi > 1`` (circular) returns a
+    # finite positive rate, so the raise is specific to ``ksi <= 1``, not to
+    # the tidal branch as a whole.
     ok = EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
     assert np.isfinite(ok)
     assert ok > 0.0
@@ -177,21 +191,23 @@ def test_el_escape_decreases_with_planet_mass():
 def test_el_escape_tidal_correction_increases_escape():
     """The tidal correction raises the escape rate for a close-in orbit.
 
-    At ``a = 0.02 au`` the Hill radius is only a few XUV radii, so
+    At ``a = 0.02 au`` the Hill radius is only a few planetary radii, so
     ``K_tide`` departs from 1 by tens of percent. Because ``K_tide`` sits in
     the denominator, the tidal rate exceeds the no-tidal rate. The enhancement
     ``1 / K_tide`` is pinned, and the no-tidal value is the discrimination
-    guard: a dropped ``K_tide`` would collapse the ratio to 1.
+    guard: a dropped ``K_tide`` would collapse the ratio to 1, and the
+    superseded ``Rhill / Rxuv`` convention for ``scaling=2`` would give 1.60
+    instead of the pinned 1.46, so a convention regression also fails.
     """
     a = 0.02 * au2m  # close-in so K_tide is well below 1
     no_tidal = EL_escape(False, a, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
     tidal = EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
     assert tidal > no_tidal
-    # Pin the enhancement factor 1 / K_tide against the hand-evaluated K_tide.
-    assert tidal / no_tidal == pytest.approx(1.6005072480546971, rel=1e-9)
+    # Pin the enhancement factor 1 / K_tide with ksi = Rhill / Rp.
+    assert tidal / no_tidal == pytest.approx(1.4594144515815166, rel=1e-9)
     # Dropped-K_tide discrimination: the ratio is well above 1, not ~1.
     assert tidal / no_tidal - 1.0 > 0.1
-    # Boundedness: for this close-in geometry the Hill radius stays above Rxuv
+    # Boundedness: for this close-in geometry the Hill radius stays above Rp
     # (ksi > 1), so the backed-out K_tide lies strictly in (0, 1); it reaches 1
     # only in the ksi -> infinity limit of an infinitely wide orbit.
     k_tide = no_tidal / tidal
@@ -215,7 +231,7 @@ def test_el_escape_tidal_eccentricity_increases_escape():
     # Higher eccentricity gives a smaller periapsis Hill radius, so more escape.
     assert eccentric > circular
     # Pin the enhancement against the hand-evaluated K_tide(e=0) / K_tide(e=0.3).
-    assert eccentric / circular == pytest.approx(1.3114173571726595, rel=1e-9)
+    assert eccentric / circular == pytest.approx(1.2290962685206341, rel=1e-9)
     # Sign-convention discrimination: the (1 + e) periapsis slip would push the
     # ratio below 1, reversing the inequality asserted above.
     assert eccentric / circular > 1.0
@@ -226,7 +242,7 @@ def test_el_escape_tidal_factor_approaches_unity_for_wide_orbit():
     """The tidal correction vanishes as the orbit widens (``K_tide -> 1``).
 
     This is the analytical limit: at large ``a`` the Hill radius dwarfs the
-    XUV radius, so ``K_tide -> 1`` and the tidal rate converges to the
+    planetary radius, so ``K_tide -> 1`` and the tidal rate converges to the
     no-tidal rate. A close-in orbit keeps ``K_tide`` well below 1, so the
     backed-out ``K_tide`` is strictly larger (closer to 1) for the wide orbit.
     """

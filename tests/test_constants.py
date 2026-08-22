@@ -18,13 +18,18 @@ import pytest
 from zephyrus.constants import (
     G,
     G_cgs,
+    amu,
     au2cm,
     au2m,
     c,
     erg2joule,
     ergcm2stoWm2,
     ergpersecondtowatt,
+    ev2joule,
+    h_planck,
     kb,
+    kb_cgs,
+    m_p,
     s2yr,
 )
 
@@ -93,13 +98,49 @@ def test_seconds_to_year_uses_the_365_day_convention():
     assert s2yr > julian  # a shorter year makes each second a larger fraction
 
 
-def test_boltzmann_constant_magnitude_and_value():
-    """The Boltzmann constant is the shipped three-significant-figure value.
+def test_boltzmann_constant_is_the_exact_si_value():
+    """The Boltzmann constant is the exact SI-defined value in both unit systems.
 
-    ``kb`` is stored as ``1.38e-23 J K-1``. The guard brackets its order of
-    magnitude so a decimal-place slip (``1.38e-22`` or ``1.38e-24``) fails,
-    and pins the value so a mantissa typo is caught.
+    Since the 2019 SI redefinition ``kb = 1.380649e-23 J K-1`` exactly, so the
+    shipped constant carries the full mantissa rather than a ``1.38e-23``
+    rounding. The cgs companion must be exactly ``1e7`` times the SI value
+    (``J -> erg``); a cgs value leaking into an SI expression would shift every
+    thermal energy by seven decades, so the ratio is the discrimination guard.
     """
-    assert kb == pytest.approx(1.38e-23, rel=1e-12)
+    assert kb == pytest.approx(1.380649e-23, rel=1e-12)
+    # cgs/SI consistency: J -> erg is exactly 1e7.
+    assert kb_cgs / kb == pytest.approx(1e7, rel=1e-12)
     # Order-of-magnitude bracket: a single decimal-place slip lands outside.
     assert 1e-23 < kb < 2e-23
+
+
+def test_planck_constant_and_electronvolt_are_exact_si_values():
+    """The Planck constant and the eV-to-joule factor are the exact SI values.
+
+    Both are defining constants of the 2019 SI (``h = 6.62607015e-34 J s``,
+    ``e = 1.602176634e-19 C``, so ``1 eV = 1.602176634e-19 J`` exactly). The
+    cross-consistency guard is the photon-energy scale they set together: a
+    20 eV photon has ``h nu`` with frequency ``nu = 20 * ev2joule / h_planck``
+    of about ``4.8e15 Hz``, in the extreme ultraviolet, which brackets both
+    constants at once and fails on any single decimal-place slip.
+    """
+    assert h_planck == pytest.approx(6.62607015e-34, rel=1e-12)
+    assert ev2joule == pytest.approx(1.602176634e-19, rel=1e-12)
+    # Cross-consistency: a 20 eV photon sits in the extreme ultraviolet.
+    nu_20ev = 20.0 * ev2joule / h_planck
+    assert 4e15 < nu_20ev < 6e15
+
+
+def test_proton_and_atomic_mass_constants_are_consistent():
+    """The proton mass and atomic mass constant obey their known ratio.
+
+    ``m_p / amu = 1.0072765`` (the proton's mass in unified atomic mass
+    units), a dimensionless ratio that catches a swap or a decimal-place slip
+    in either constant. Both are pinned to their CODATA 2018 values.
+    """
+    assert m_p == pytest.approx(1.67262192369e-27, rel=1e-12)
+    assert amu == pytest.approx(1.66053906660e-27, rel=1e-12)
+    # The proton is 0.73% heavier than one atomic mass unit.
+    assert m_p / amu == pytest.approx(1.007276467, rel=1e-6)
+    # Discrimination: the two constants must not be interchangeable.
+    assert m_p > amu

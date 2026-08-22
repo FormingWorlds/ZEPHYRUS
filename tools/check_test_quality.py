@@ -78,14 +78,26 @@ OPTIONAL_DEPS = {
 # and at least one @pytest.mark.reference_pinned test in its companion
 # test file.
 PHYSICS_SOURCES = {
+    'atomic_data.py',
+    'boiloff.py',
     'collision.py',
-    'escape.py',
+    'diagnostics.py',
+    'diffusion.py',
+    'dispatcher.py',
+    'fractionation.py',
+    'hydrodynamic.py',
+    'hydrostatic.py',
+    'knudsen.py',
+    'profiles.py',
+    'thermostat.py',
 }
 
 # Utility sources are exempt from the physics-invariant / reference-pinned
 # requirement but still subject to the anti-happy-path rules.
 UTILITY_SOURCES = {
     '__init__.py',
+    'composition.py',
+    'escape.py',
     'constants.py',
     'planets_parameters.py',
 }
