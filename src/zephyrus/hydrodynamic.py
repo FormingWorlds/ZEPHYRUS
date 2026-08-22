@@ -376,30 +376,26 @@ def rr_chain(
 
 
 def selection_mechanism(rr: dict, el_won: bool) -> str:
-    """Which mechanism min(EL, RR) actually selected; diagnostic only.
+    """Which candidate min(EL, RR) selected; diagnostic only.
 
-    An RR win means one of two physically different things. Either the
-    recombination-limited base ionization sets the rate, the sonic-point
-    density being close to the base density, or the isothermal wind is
-    exponentially throttled between base and sonic point at large
-    ``lambda_b``, which has nothing to do with recombination. The quantity
-    that separates them is the barometric factor ``exp(3/2 - lambda_b)``
-    returned by :func:`rr_chain`, not the flux scaling: the base ion
-    density follows sqrt(F_XUV) at every ``lambda_b`` here, so a fitted
-    flux exponent sits near one half either way.
+    Three outcomes: the energy-limited rate won, the
+    recombination-limited rate won, or it won with the sonic radius
+    floored at the wind base (the subcritical configuration of
+    :func:`rr_chain`, where the returned value is a floored one rather
+    than a transonic wind).
 
-    The split at ``lambda_b = 4`` is a reporting convention with no source
-    behind the number, equivalent to a suppression of about one decade. It
-    is coarse: the canonical recombination-limited case of the literature
-    (Murray-Clay et al. 2009, their fiducial hot Jupiter at
-    ``lambda_b = 5.49``) falls on the suppression side of it. Read the
-    barometric factor when the distinction matters. This string never gates
-    anything.
+    Why an RR win came out small is a separate question, and this string
+    does not answer it. The quantity that does is the barometric factor
+    ``exp(3/2 - lambda_b)`` returned beside the rate: near 1 the
+    sonic-point density is the base density and the recombination-limited
+    base ionization sets the rate, while several decades below 1 the rate
+    is small mostly because the isothermal wind cannot carry material
+    from the base to the sonic point, which has nothing to do with
+    recombination. The flux scaling cannot separate the two, because the
+    base ion density follows sqrt(F_XUV) at every ``lambda_b`` here.
     """
     if el_won:
         return 'EL-selected'
     if rr['subcritical']:
         return 'RR-selected:subcritical-floor'
-    if rr['lambda_b'] >= 4.0:
-        return 'RR-selected:barometric-suppression'
-    return 'RR-selected:recombination-saturation'
+    return 'RR-selected'

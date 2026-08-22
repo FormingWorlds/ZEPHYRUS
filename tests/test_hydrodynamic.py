@@ -147,28 +147,41 @@ def test_rr_subcritical_floor_semantics():
 
 
 @pytest.mark.physics_invariant
-def test_rr_barometric_factor_and_mechanism_labels():
-    """Supercritical winds carry exp(3/2 - lambda_b), labeled by mechanism.
+def test_rr_barometric_factor_separates_the_two_rr_regimes():
+    """The barometric factor, not the label, says why an RR win is small.
 
-    A heavy C-O wind on a massive planet is strongly bound: the barometric
-    factor is exactly ``exp(3/2 - lambda_b)``, and with ``lambda_b`` above
-    the reporting split an RR win is labeled barometric suppression, never
-    recombination saturation (the category-error guard). The EL-win label
-    is independent of the chain state.
+    A heavy C-O wind on a massive planet is strongly bound: the factor is
+    ``exp(3/2 - lambda_b)`` and suppresses the sonic-point density by
+    decades, so its rate is small because the isothermal wind cannot carry
+    material that far. A loosely bound hydrogen wind keeps a factor of
+    order unity, so its rate is the recombination-limited base ionization.
+    The selection string reports which candidate won and nothing more:
+    both supercritical cases read ``RR-selected``, which is what retiring
+    the old base-Jeans-parameter split means.
     """
     rr = rr_chain(10.0 * Me, 10.0, 2.0 * Re, 1.0e4, {'C': 1.0 / 3.0, 'O': 2.0 / 3.0})
     assert rr['subcritical'] is False
     assert rr['barometric_factor'] == pytest.approx(math.exp(1.5 - rr['lambda_b']), rel=1e-12)
+    # Strongly bound: several decades of suppression, so the sonic-point
+    # density is far below the base density.
     assert rr['lambda_b'] > 4.0
-    assert selection_mechanism(rr, el_won=False) == 'RR-selected:barometric-suppression'
-    assert selection_mechanism(rr, el_won=True) == 'EL-selected'
-    # A loosely bound hydrogen wind (base Jeans parameter between the
-    # supercritical floor at 2 and the reporting split at 4) lands in
-    # genuine recombination saturation.
+    assert rr['barometric_factor'] < 1.0e-2
+    assert rr['rho_s'] == pytest.approx(rr['rho_base'] * rr['barometric_factor'], rel=1e-12)
+
     rr_h = rr_chain(0.7 * Mjup, 5.0, 2.0 * Rjup, 1.0e4, {'H': 1.0})
     assert not rr_h['subcritical']
+    # Loosely bound: the factor is of order unity, two decades above the
+    # heavy case, which is the separation the label used to assert.
     assert 2.0 < rr_h['lambda_b'] < 4.0
-    assert selection_mechanism(rr_h, el_won=False) == 'RR-selected:recombination-saturation'
+    assert rr_h['barometric_factor'] > 1.0e2 * rr['barometric_factor']
+    assert 0.1 < rr_h['barometric_factor'] <= 1.0
+
+    # The string keeps three outcomes and no threshold: both of these are
+    # supercritical RR wins, so a split on lambda_b would have separated
+    # them and this assertion is what forbids one coming back.
+    assert selection_mechanism(rr, el_won=False) == 'RR-selected'
+    assert selection_mechanism(rr_h, el_won=False) == 'RR-selected'
+    assert selection_mechanism(rr, el_won=True) == 'EL-selected'
 
 
 @pytest.mark.physics_invariant

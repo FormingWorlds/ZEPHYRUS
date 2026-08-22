@@ -24,7 +24,7 @@ Every physically posed state returns a result. A `ValueError` means the state or
 |---|---|---|
 | `boiloff` | Bolometrically driven outflow from an atmosphere inflated beyond its own sonic radius. | Closed-form transonic Parker wind, Bondi-capped, and luminosity-capped past the activation gate. |
 | `hydrodynamic:EL` | A collisional XUV-driven wind whose rate is set by the energy budget. | The smaller of the two hydrodynamic limits, the energy-limited one winning. |
-| `hydrodynamic:RR` | The same wind, with the recombination-limited rate winning the minimum. | See `selection_mechanism`: the minimum selects this rate two physically different ways. |
+| `hydrodynamic:RR` | The same wind, with the recombination-limited rate winning the minimum. | Read `rr_chain['barometric_factor']` to see whether the rate is set by the recombination-limited base ionization (factor near 1) or by the wind failing to reach the sonic point (factor decades below 1). |
 | `hydrostatic` | Too rarefied for a wind; per-species Jeans escape from the exobase, capped by diffusive resupply. | Natively per-species; heavy-element rates are lower limits. |
 | `roche_overflow` | The active flow radius reaches the periapsis Hill radius, so the flow is not bound to the planet. | The Bondi-capped bolometric machinery at the overflow geometry. |
 
@@ -94,7 +94,7 @@ Seventeen groups on a typical call. Nothing in the dispatch control flow reads a
 | Group | Key contents | What it answers |
 |---|---|---|
 | `knudsen` | `kn_sc`, `threshold_applied`, `sigma_c`, `provenance`, `counterfactual_labels` | Which side of the collisionality switch the state fell on, how close it sat, what the label would have been at both edges of the criterion band, and where the cross sections came from. |
-| `hydrodynamic` | `mdot_el`, `mdot_rr`, `efficiency`, `K_tide`, `T_wind`, `selection_mechanism`, `rr_chain` | Both wind candidates, which one won and by what mechanism, the temperature the thermostat returned, and the full recombination-limited chain (sound speed, sonic radius, base Jeans parameter, densities, barometric factor). |
+| `hydrodynamic` | `mdot_el`, `mdot_rr`, `efficiency`, `K_tide`, `T_wind`, `selection_mechanism`, `rr_chain` | Both wind candidates, which one won, the temperature the thermostat returned, and the full recombination-limited chain (sound speed, sonic radius, base Jeans parameter, densities, barometric factor). `selection_mechanism` is one of `EL-selected`, `RR-selected`, or `RR-selected:subcritical-floor`, and says which candidate won, not why it was small; the barometric factor is what answers that. |
 | `hydrostatic` | `rate_kg_s`, `T_exo`, `r_exo`, `f_plus_exo`, `T_esc_neutral`, `T_esc_plasma`, `gate`, `gate_unstable`, `detail` | The exobase state, both escape temperatures with the local ionization fraction, which convention gated the branch, the `detail['dominant']` species that supplies itself without a diffusion cap, and per-species Jeans and diffusion fluxes in `detail['species']`. |
 | `bolometric` | `T_wind`, `c_s`, `R_sonic`, `x`, `mach`, `mdot_parker`, `mdot_bondi`, `mdot_luminosity`, `active`, `rate_kg_s` | The bolometric candidate in full: each cap separately, and whether the branch was active. |
 | `lambda_gate` | float | The restricted Jeans parameter that decides boil-off activation. |
