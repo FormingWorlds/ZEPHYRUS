@@ -103,7 +103,7 @@ Seventeen groups on a typical call. Nothing in the dispatch control flow reads a
 | `roche` | `R_hill_periapsis`, `flow_radius`, `xi_flow`, `xi_ktide` | The overflow screen in full: which radius was tested and against what. |
 | `johnson_q` | `q_net_over_qc`, `q_net_W`, `q_c_W` | Whether the absorbed power can drive a transonic outflow at all, independently of any rate formula. |
 | `guo_triple` | `lambda_exo`, `lambda_rp`, `lambda_star`, `thresholds` | The verdict translated into the Jeans-parameter taxonomy. |
-| `potential_screens` | `log_minus_phi_cgs`, efficiency-collapse band, wind-versus-hydrostatic screen and its attribution caveat | The verdict translated into threshold-potential taxonomies. |
+| `potential_screens` | `log_minus_phi_cgs`, `caldiroli_threshold`, `above_caldiroli`, `salz_screen`, `salz_verdict`, `salz_attribution` | The verdict translated into threshold-potential taxonomies: the specific binding energy in erg g⁻¹ against the efficiency-collapse band of Caldiroli et al. (2022) and against the wind-versus-thermosphere thresholds of Salz et al. (2016), 13.11 and 13.6. The Salz simulations are hydrogen-dominated, which the reported attribution states, so treat the verdict as out of scope on a heavy secondary atmosphere. |
 | `erkaev_tc_K` | float | The tidally corrected critical exobase temperature above which the thermosphere blows off. |
 | `fluid_check` | `levels_checked`, `worst_kn`, `fluid`, `truncated_at_profile_top` | Whether the fluid condition holds everywhere below the sonic surface, not only at it, with the truncation declared. |
 | `tang_timescale` | boil-off termination timescales | A consistency check on the bolometric rate's own exponential shutoff. |
@@ -116,6 +116,6 @@ Seventeen groups on a typical call. Nothing in the dispatch control flow reads a
 
 ## Two conventions worth adopting
 
-**A rate floor.** The framework computes what the physics gives it, including rates like 1e-123 kg s⁻¹ from a strongly bound heavy atmosphere. One proton crossing the planet's surface per year, about 5.3e-35 kg s⁻¹, is the smallest rate with physical content; below that, report no escape. The convention belongs to the caller, and the module does not apply it.
+**A rate floor.** The framework computes what the physics gives it, including rates like $10^{-123}$ kg s⁻¹ from a strongly bound heavy atmosphere. One proton crossing the planet's surface per year, about $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate with physical content; below that, report no escape. The convention belongs to the caller, and the module does not apply it.
 
 **A relevance test, separately.** Clearing the floor does not make a rate matter: a hundred decades above it can still be grams per year. Use `diagnostics['self_consistency']`, which divides the supplied inventory by the dispatched rate and compares against the supplied age, as the yardstick for whether a rate is worth carrying.

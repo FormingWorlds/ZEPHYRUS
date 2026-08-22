@@ -37,12 +37,20 @@ MURRAY_CLAY_EXPONENTS = {
 # full-surface redistribution, for sensitivity analyses.
 DAYSIDE_FACTORS = {'energy_limited': 0.26, 'recombination_limited': 0.31}
 
-# Threshold gravitational potentials, log10(-phi) in cgs (erg/g). The
-# Caldiroli et al. (2022) band marks where the evaporation efficiency
-# collapses; the second screen separates wind-forming from hydrostatic
-# thermospheres and is commonly attributed to Salz et al. (2016). The
-# screen values are quoted here from secondary literature and should be
-# verified against that original before quantitative use.
+# Threshold gravitational potentials, log10(-phi) in cgs (erg/g), with
+# phi = -G M_p / R_p, the convention both sources use. The Caldiroli et al.
+# (2022) band marks where the evaporation efficiency collapses. The second
+# screen separates wind-forming from hydrostatic thermospheres and is
+# Salz et al. (2016, A&A 585, L2), whose photoionization hydrodynamics
+# simulations find the energy-limited concept valid below 13.11, because
+# the radiative input is efficiently spent driving the wind, and stable
+# thermospheres above about 13.6, because the whole input is re-emitted in
+# hydrogen Lyman alpha (above roughly 1.1 R_p) and free-free emission
+# (below it). Between the two the wind weakens as the heating efficiency
+# falls. Their grid is hydrogen-dominated thermospheres of hot gas planets,
+# from super-Earth-sized to massive hot Jupiters, so the screen is out of
+# its own scope on a heavy secondary atmosphere and is reported, never
+# applied.
 CALDIROLI_THRESHOLD_LOG_PHI = (12.9, 13.2)
 SALZ_SCREEN_LOG_PHI = (13.11, 13.6)
 
@@ -185,8 +193,10 @@ def potential_screens(M_p: float, R_p: float) -> dict:
     """Threshold-potential screens, log10(-phi) in cgs (erg/g).
 
     Reports where the configuration sits against the Caldiroli et al.
-    (2022) efficiency-collapse band and the wind-versus-hydrostatic screen
-    (see the module constants for the attribution caveat on the latter).
+    (2022) efficiency-collapse band and the Salz et al. (2016) screen
+    separating wind-forming from hydrostatically stable thermospheres (see
+    the module constants for what each threshold means and for the
+    hydrogen-dominated scope of the second).
     """
     log_phi = math.log10(G * M_p / R_p * 1e4)
     return dict(
@@ -202,7 +212,9 @@ def potential_screens(M_p: float, R_p: float) -> dict:
             else 'intermediate'
         ),
         salz_attribution=(
-            'commonly attributed to Salz et al. (2016); quoted from secondary '
-            'literature, verify against the original before quantitative use'
+            'Salz et al. (2016, A&A 585, L2): energy-limited escape valid below '
+            '13.11, hydrodynamically stable thermospheres above about 13.6, the '
+            'wind weakening in between; derived for hydrogen-dominated '
+            'thermospheres, so out of scope on a heavy secondary atmosphere'
         ),
     )
