@@ -686,6 +686,7 @@ def make_figure(sweeps: dict, boundaries: dict, bands: dict, outpath: str) -> No
                 textcoords='offset points',
                 fontsize=11,
                 color=palette['rule'],
+                fontfamily='Spline Sans Mono',
             )
         ax.set_xscale('log')
         ax.set_yscale('log')
@@ -737,6 +738,7 @@ def make_track_figure(rows: list[dict], outpath: str) -> None:
             ha='center',
             fontsize=11,
             color=palette['rule'],
+            fontfamily='Spline Sans Mono',
         )
 
     ax_rate.plot(
@@ -770,6 +772,7 @@ def make_track_figure(rows: list[dict], outpath: str) -> None:
                 ha='right',
                 fontsize=11,
                 color=palette['rule'],
+                fontfamily='Spline Sans Mono',
             )
 
     elements = sorted({el for row in rows for el in row['per_species']})
@@ -793,11 +796,12 @@ def make_track_figure(rows: list[dict], outpath: str) -> None:
     ax_species.set_ylabel('Element rate [kg s$^{-1}$]')
     ax_species.legend(loc='lower left', title='element', ncol=3)
     ax_species.annotate(
-        'heavy elements leave with the wind, and stop when it does',
+        'heavy elements leave with the wind, and stop with it',
         xy=(0.03, 0.62),
         xycoords='axes fraction',
         fontsize=11,
         color=palette['rule'],
+        fontfamily='Spline Sans Mono',
     )
     fig.subplots_adjust(left=0.12, right=0.98, top=0.97, bottom=0.09, hspace=0.08)
     fig.savefig(outpath, bbox_inches=None)
