@@ -4,7 +4,7 @@ This page tracks the `@pytest.mark.reference_pinned` test that anchors the assem
 
 | Test id | Reference | Scope |
 |---|---|---|
-| `tests/test_dispatcher.py::test_routing_hydrodynamic_and_el_candidate_matches_el_escape` | Cross-implementation check against `zephyrus.escape.EL_escape` (Erkaev et al. 2007 form, scaling = 2) | The dispatcher's energy-limited candidate equals the released public entry point evaluated with the same efficiency, radii, flux, and tidal factor to 1e-9 relative, and the dispatched rate is the min(EL, RR) winner named by the sub-label. |
+| `tests/test_dispatcher.py::test_routing_hydrodynamic_and_el_candidate_matches_el_escape` | Cross-implementation check against `zephyrus.escape.EL_escape` (Erkaev et al. 2007 form, scaling = 2) | The dispatcher's energy-limited candidate equals the released public entry point evaluated with the same efficiency, radii, flux, and tidal factor to $10^{-9}$ relative, and the dispatched rate is the min(EL, RR) winner named by the sub-label. |
 
 ## Notes
 

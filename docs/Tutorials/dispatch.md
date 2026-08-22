@@ -52,37 +52,78 @@ from examples.demo_dispatcher.demo_dispatcher import (
 
 The energy-limited entry point takes scalars. The framework needs the atmospheric structure as well, because the quantities that decide the regime are properties of the structure and not of the surface: the pressure level where XUV photons are absorbed and the wind is launched, the level where the gas stops colliding often enough to behave as a fluid, and the exobase where individual particles start escaping ballistically.
 
-So a state is scalars plus a `profiles.Profile`. This is what `build_state` assembles:
+So a state is scalars plus a `profiles.Profile`. Here it is in full, which is what `build_state` assembles for you in every later step:
 
 ```python
-from zephyrus.dispatcher import EscapeInputs
+import math
+
+from zephyrus.constants import au2m
+from zephyrus.dispatcher import DispatchSettings, EscapeInputs, dispatch
+from zephyrus.planets_parameters import Me, Me_atm, Ms, Re
 from zephyrus.profiles import isothermal_profile
 
-profile = isothermal_profile(M_p, R_p, T_eq, {'CO2': 1.0}, 1.0e7, 1.0e-5)
+SIGMA_SB = 5.670374419e-8      # Stefan-Boltzmann constant       [W m-2 K-4]
+L_SUN = 3.828e26               # solar luminosity                [W]
+
+M_p = 1.0 * Me                 # planet mass                     [kg]
+R_p = 1.0 * Re                 # planet radius                   [m]
+a = 0.0775 * au2m              # semi-major axis                 [m]
+composition = {'CO2': 1.0}     # mole fractions at every level
+
+# Equilibrium temperature and bolometric flux from the orbit, zero albedo
+# and full redistribution, so the three stay mutually consistent.
+T_eq = (L_SUN / (16.0 * math.pi * SIGMA_SB * a**2)) ** 0.25      # [K]
+F_bol = L_SUN / (4.0 * math.pi * a**2)                           # [W m-2]
+
+# One Earth atmosphere, split over elements by mass: the screens and the
+# unfractionated split are the only consumers.
+reservoirs = {'C': 0.2729 * Me_atm, 'O': 0.7271 * Me_atm}        # [kg]
+age = 1.0e8 * 3.15576e7        # snapshot age, 100 Myr           [s]
+
+profile = isothermal_profile(M_p, R_p, T_eq, composition, 1.0e7, 1.0e-5)
 
 state = EscapeInputs(
-    M_p=M_p,             # planet mass                              [kg]
-    R_p=R_p,             # planet radius                            [m]
-    M_star=Ms,           # stellar mass                             [kg]
-    a=a,                 # semi-major axis                          [m]
-    e=0.0,               # eccentricity
-    T_eq=T_eq,           # equilibrium temperature                  [K]
-    F_xuv=10.0,          # XUV flux at the planet                   [W m-2]
-    F_bol=f_bol,         # bolometric instellation                  [W m-2]
-    F_int=1.0,           # interior heat flux                       [W m-2]
-    kappa_photo=0.01,    # photospheric opacity                     [m2 kg-1]
+    M_p=M_p,
+    R_p=R_p,
+    M_star=1.0 * Ms,           # stellar mass                    [kg]
+    a=a,
+    e=0.0,                     # eccentricity
+    T_eq=T_eq,
+    F_xuv=10.0,                # XUV flux at the planet          [W m-2]
+    F_bol=F_bol,
+    F_int=1.0,                 # interior heat flux              [W m-2]
+    kappa_photo=0.01,          # photospheric opacity            [m2 kg-1]
     profile=profile,
     settings=DispatchSettings(),
-    age=age,             # optional, for the consistency screen     [s]
-    reservoirs=reservoirs,  # optional, element inventories          [kg]
+    age=age,                   # optional, for the consistency screen
+    reservoirs=reservoirs,     # optional, element inventories
 )
+
+print(f'T_eq   = {T_eq:.1f} K')
+print(f'F_bol  = {F_bol:.4g} W m-2')
+print(f'levels = {profile.p.size}, {profile.p[0]:.3g} to {profile.p[-1]:.3g} Pa')
+print(f'radius = {profile.r[0] / Re:.3f} to {profile.r[-1] / Re:.3f} Earth radii')
+print(dispatch(state).regime)
 ```
 
-In a coupled run the atmosphere module supplies the profile. Standalone, `isothermal_profile` integrates a hydrostatic isothermal structure of fixed composition, which is enough to exercise every branch. Three choices in the script are worth stating, because they are the ones that change results:
+Output:
 
-- `p_top = 1e-5` Pa, which is 0.1 nanobar. The XUV wind launches near a nanobar, so a profile that stops deeper than that cannot reach its own wind base and the base clamps to the profile top instead, flagged. Setting the top below a nanobar keeps the clamp out of the way.
-- `kappa_photo = 0.01` m² kg⁻¹, about 0.1 cm² g⁻¹. The boil-off rate scales as its inverse, so it matters whenever the bolometric branch is in play.
-- The orbit is 0.0775 au around a solar-luminosity star, which puts the zero-albedo, full-redistribution equilibrium temperature at 1000 K. Deriving $T_\mathrm{eq}$ from the orbit rather than setting both by hand keeps the state self-consistent.
+```text
+T_eq   = 999.8 K
+F_bol  = 2.266e+05 W m-2
+levels = 120, 1e+07 to 1e-05 Pa
+radius = 1.000 to 1.091 Earth radii
+hydrodynamic:EL
+```
+
+In a coupled run the atmosphere module supplies the profile. Standalone, `isothermal_profile` integrates a hydrostatic isothermal structure of fixed composition from the surface pressure to the top pressure, which is enough to exercise every branch: 120 levels here, spanning 100 bar to 0.1 nanobar and reaching 1.09 planetary radii. Four of those choices change results rather than just labels:
+
+- The top pressure, $10^{-5}$ Pa or 0.1 nanobar. The XUV wind launches near a nanobar, so a profile that stops deeper than that cannot reach its own wind base and the base clamps to the profile top instead, flagged. Setting the top below a nanobar keeps the clamp out of the way.
+- The photospheric opacity, 0.01 m² kg⁻¹ or about 0.1 cm² g⁻¹. The boil-off rate scales as its inverse, so it matters whenever the boil-off branch is in play.
+- The orbit, 0.0775 au around a solar-luminosity star, which puts the equilibrium temperature at 1000 K. Deriving $T_\mathrm{eq}$ and $F_\mathrm{bol}$ from the orbit rather than setting all three by hand keeps the state self-consistent.
+- The interior heat flux, 1 W m⁻². It sets the luminosity cap on the boil-off residual and nothing else, so it only matters near that branch.
+
+The optional fields are worth setting even when you do not need them: `age` and `reservoirs` are what let the diagnostics tell you whether a rate is consistent with the state having survived, which is step 5.
 
 !!! warning "SI at every boundary"
     Every input is SI: kilograms, meters, seconds, kelvin, W m⁻², m² kg⁻¹. MORS returns cgs luminosities, so the flux conversions in step 7 are explicit.

@@ -4,7 +4,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the stati
 
 | Test id | Reference | Scope |
 |---|---|---|
-| `tests/test_thermostat.py::test_hydrogen_system_brackets_the_black_lyalpha_rate` | Black (1981) Lyman-alpha cooling rate as printed by Murray-Clay et al. (2009), ApJ 693, 23, their Eq. 6 | The hydrogen three-level system agrees with the Black rate at order unity, with the ratio declining from about 0.5 at 1e4 K to about 0.3 at 2e4 K because the effective collision strengths are frozen at 1e4 K and the three-level system carries no cascades; the bracket catches transcription errors in the constant and in the exp(-118348 K / T) activation. |
+| `tests/test_thermostat.py::test_hydrogen_system_brackets_the_black_lyalpha_rate` | Black (1981) Lyman-alpha cooling rate as printed by Murray-Clay et al. (2009), ApJ 693, 23, their Eq. 6 | The hydrogen three-level system agrees with the Black rate at order unity, with the ratio declining from about 0.5 at $10^{4}$ K to about 0.3 at $2 \times 10^{4}$ K because the effective collision strengths are frozen at $10^{4}$ K and the three-level system carries no cascades; the bracket catches transcription errors in the constant and in the exp(-118348 K / T) activation. |
 
 ## Notes
 

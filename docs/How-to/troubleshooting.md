@@ -4,14 +4,14 @@ A regime verdict looks wrong, or a flag fired and you want to know whether it ma
 
 Start with the two questions that dispose of most surprises:
 
-1. **Is the rate physically meaningful at all?** One proton per year through the surface, about 5.3e-35 kg s⁻¹, is the smallest rate with content. Below it, the label is describing an outflow that does not exist.
+1. **Is the rate physically meaningful at all?** One proton per year through the surface, about $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate with content. Below it, the label is describing an outflow that does not exist.
 2. **Was the state near a boundary?** `diagnostics['knudsen']['counterfactual_labels']` gives the label at both edges of the collisionality criterion. When those disagree with each other, the verdict is a choice the criterion made, not a measurement, and the rest of this page is about which choice.
 
 ---
 
 ## The rate is zero, or absurdly small
 
-**Symptom.** A `hydrostatic` verdict returns 1e-70 kg s⁻¹ or smaller.
+**Symptom.** A `hydrostatic` verdict returns $10^{-70}$ kg s⁻¹ or smaller.
 
 **Cause.** Nothing is wrong. Jeans escape depends exponentially on the Jeans parameter at the exobase, and a heavy species on a strongly bound planet sits at a Jeans parameter of hundreds. Read `diagnostics['hydrostatic']['detail']['species'][name]['lambda_exo']`: above roughly 30, the exponential has already taken the rate out of physical relevance.
 
@@ -27,7 +27,7 @@ Start with the two questions that dispose of most surprises:
 
 ## `thermostat_clamped` fired
 
-**Symptom.** The wind temperature sits at a bracket edge, usually 5e4 K.
+**Symptom.** The wind temperature sits at a bracket edge, usually $5 \times 10^{4}$ K.
 
 **Cause.** The local heating against cooling balance had no root in the bracket. At a dense wind base this is physical: electron densities far above the critical densities of the forbidden lines quench the line coolants collisionally, so nothing balances the heating and the wind runs hot.
 

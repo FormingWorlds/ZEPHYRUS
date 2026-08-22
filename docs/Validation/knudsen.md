@@ -8,7 +8,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the colli
 
 ## Notes
 
-The companion transcription-pin test freezes the momentum-transfer cross sections evaluated from the fit at transcription time, so any later coefficient corruption fails even where no measurement exists. The hydrogen route is pinned to its construction values (sigma(H-H) = 6.4e-20 m^2 at 1e4 K from Zahnle et al. 1990, Eq. 30, on the Zahnle & Kasting 1986 Table I diffusion parameter).
+The companion transcription-pin test freezes the momentum-transfer cross sections evaluated from the fit at transcription time, so any later coefficient corruption fails even where no measurement exists. The hydrogen route is pinned to its construction values (sigma(H-H) = $6.4 \times 10^{-20}$ m^2 at $10^{4}$ K from Zahnle et al. 1990, Eq. 30, on the Zahnle & Kasting 1986 Table I diffusion parameter).
 
 ## Anchor type
 
