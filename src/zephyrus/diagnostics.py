@@ -10,7 +10,7 @@ import math
 
 import numpy as np
 
-from zephyrus.constants import G, kb
+from zephyrus.constants import G, kb, m_p
 from zephyrus.hydrodynamic import k_tide
 from zephyrus.knudsen import mean_free_path, sigma_mixture
 from zephyrus.planets_parameters import Mjup, Rjup
@@ -53,6 +53,12 @@ DAYSIDE_FACTORS = {'energy_limited': 0.26, 'recombination_limited': 0.31}
 # applied.
 CALDIROLI_THRESHOLD_LOG_PHI = (12.9, 13.2)
 SALZ_SCREEN_LOG_PHI = (13.11, 13.6)
+
+# One proton crossing the planet's surface per Julian year, the smallest
+# mass-loss rate with physical content. Reported beside every verdict so a
+# caller need not carry the number, and never applied: whether a rate is
+# negligible is the caller's decision.
+RATE_FLOOR_KG_S = m_p / 3.15576e7
 
 
 def q_net_over_qc(
@@ -187,6 +193,21 @@ def self_consistency_screen(reservoirs: dict | None, mdot: float, age: float | N
         return {'evaluated': False}
     t_dep = sum(reservoirs.values()) / mdot
     return {'evaluated': True, 't_deplete_s': t_dep, 'age_s': age, 'inconsistent': t_dep < age}
+
+
+def rate_floor_screen(mdot: float) -> dict:
+    """Numerical-content screen: the rate against one proton per year.
+
+    A strongly bound heavy atmosphere returns rates many decades below
+    anything with physical content, and a regime label attached to such a
+    rate is decided by the ordering of two meaningless numbers. One proton
+    crossing the surface per Julian year is the smallest rate worth
+    reading. Reporting only: the module never applies the floor, because
+    what counts as negligible belongs to the caller, and clearing the floor
+    does not make a rate matter (for that, use
+    :func:`self_consistency_screen`).
+    """
+    return {'floor_kg_s': RATE_FLOOR_KG_S, 'above_floor': mdot > RATE_FLOOR_KG_S}
 
 
 def potential_screens(M_p: float, R_p: float) -> dict:

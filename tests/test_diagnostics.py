@@ -13,23 +13,27 @@ The physical invariants under test:
   screens order their three verdicts (wind, intermediate, no-wind) correctly.
 - Error contract: the self-consistency screen reports "not evaluated"
   without its optional inputs rather than guessing.
+- The rate floor is one proton per Julian year and separates rates with
+  numerical content from rates without, reporting and never applying.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
 
 import pytest
 
-from zephyrus.constants import G, amu
+from zephyrus.constants import G, amu, m_p
 from zephyrus.diagnostics import (
     CALDIROLI_THRESHOLD_LOG_PHI,
     DAYSIDE_FACTORS,
     MURRAY_CLAY_EXPONENTS,
+    RATE_FLOOR_KG_S,
     SALZ_SCREEN_LOG_PHI,
     along_profile_fluid_check,
     erkaev_tc,
     guo_triple,
     potential_screens,
     q_net_over_qc,
+    rate_floor_screen,
     self_consistency_screen,
 )
 from zephyrus.planets_parameters import Me, Mjup, Ms, Re, Rjup
@@ -157,6 +161,29 @@ def test_self_consistency_screen_contract():
     assert fast['inconsistent'] is True  # 1e13 s depletion against 1e16 s age
     slow = self_consistency_screen({'H': 1e18}, 1e-5, 1e16)
     assert slow['inconsistent'] is False
+
+
+@pytest.mark.physics_invariant
+def test_rate_floor_screen_separates_numerical_content():
+    """The floor is one proton per Julian year, reported and not applied.
+
+    A regime label attached to a rate below one proton per year is decided
+    by the ordering of two numerically empty numbers, so the screen says
+    when that has happened. The constant is the proton mass over a Julian
+    year, about 5.3e-35 kg/s; a rate 90 decades below it fails the screen, a
+    laboratory-scale rate passes, and the screen returns the same number
+    whatever the rate, because it never modifies anything.
+    """
+    assert RATE_FLOOR_KG_S == pytest.approx(m_p / 3.15576e7, rel=1e-12)
+    assert RATE_FLOOR_KG_S == pytest.approx(5.3e-35, rel=1e-2)
+    empty = rate_floor_screen(1e-123)
+    assert empty['above_floor'] is False
+    assert empty['floor_kg_s'] == pytest.approx(RATE_FLOOR_KG_S, rel=1e-12)
+    real = rate_floor_screen(1e-9)
+    assert real['above_floor'] is True
+    # Zero is below any floor, and the boundary itself is not above it.
+    assert rate_floor_screen(0.0)['above_floor'] is False
+    assert rate_floor_screen(RATE_FLOOR_KG_S)['above_floor'] is False
 
 
 def test_potential_screens_classify_in_order():

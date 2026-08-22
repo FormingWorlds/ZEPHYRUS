@@ -24,6 +24,7 @@ import numpy as np
 
 from zephyrus.composition import atomize, species_mass_amu
 from zephyrus.constants import au2m
+from zephyrus.diagnostics import RATE_FLOOR_KG_S
 from zephyrus.dispatcher import DispatchSettings, EscapeInputs, dispatch
 from zephyrus.planets_parameters import Ls, Me, Me_atm, Ms, Re
 from zephyrus.profiles import isothermal_profile
@@ -47,9 +48,11 @@ AGE_REF = 1.0e8 * SEC_PER_YR  # snapshot age, 100 Myr              [s]
 
 # One proton crossing the surface per year: the smallest rate that can mean
 # anything physically. A returned rate below this is numerical noise, not
-# escape. It is a reporting convention for the caller; the module computes
-# whatever the physics gives it.
-RATE_FLOOR = 1.67262192369e-27 / SEC_PER_YR  # [kg s-1]
+# escape. It is a reporting convention for the caller, so the module computes
+# whatever the physics gives it and reports the comparison beside every
+# verdict, in diagnostics['rate_floor'], rather than applying it. The
+# constant is imported from there so this file keeps no second copy.
+RATE_FLOOR = RATE_FLOOR_KG_S  # [kg s-1]
 
 COMPOSITIONS = {
     'CO2': {'CO2': 1.0},
@@ -209,7 +212,7 @@ def flux_sweep(composition: str, m_earth: float = 1.0, r_earth: float = 1.0) -> 
                 F_xuv=float(f_xuv),
                 regime=result.regime,
                 mdot=result.mdot,
-                above_floor=result.mdot > RATE_FLOOR,
+                above_floor=result.diagnostics['rate_floor']['above_floor'],
                 kn_sc=knudsen['kn_sc'],
                 counterfactual=knudsen['counterfactual_labels'],
                 T_wind=result.diagnostics['hydrodynamic']['T_wind'],
@@ -286,6 +289,10 @@ def extreme_labels() -> list[dict]:
         print(
             f'    flow radius {roche["flow_radius"]:.3e} m against Hill radius '
             f'{roche["R_hill_periapsis"]:.3e} m, ratio {roche["xi_flow"]:.3f}'
+        )
+        print(
+            f'    atmosphere reaches {roche["r_atmosphere"] / roche["R_hill_periapsis"]:.3f} '
+            f"Hill radii; the rate is the {roche['rate_branch']} branch's"
         )
         print(f'    flags {sorted(result.flags)}')
         out.append(dict(case=note, regime=result.regime, mdot=result.mdot))
