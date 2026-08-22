@@ -55,7 +55,7 @@ the ratio of a particle's gravitational binding energy at the surface to its the
 
 While $\Lambda < 20$ the state is labeled `boiloff` and the rate is the closed-form transonic Parker wind of Owen & Wu (2016), evaluated at wind temperature $T_\mathrm{eq}/2^{1/4}$ (the recommendation of Misener et al. 2025 for the isothermal formulas [^misener]):
 
-$$\dot{M}_\mathrm{Parker} \;=\; \frac{4\pi\,G\,M_\mathrm{p}\,\mathcal{M}}{\kappa\,c_\mathrm{s}}, \qquad \mathcal{M} = \sqrt{-W_0\!\left(-x^{-4}\,e^{\,3 - 4/x}\right)}, \quad x = \frac{R_\mathrm{launch}}{R_\mathrm{B}} \tag{2}$$
+$$\dot{M}_\mathrm{P} \;=\; \frac{4\pi\,G\,M_\mathrm{p}\,\mathcal{M}}{\kappa\,c_\mathrm{s}}, \qquad \mathcal{M} = \sqrt{-W_0\!\left(-x^{-4}\,e^{\,3 - 4/x}\right)}, \quad x = \frac{R_\mathrm{launch}}{R_\mathrm{B}} \tag{2}$$
 
 where $\mathcal{M}$ is the Mach number at the launch level (the photospheric level, radius $R_\mathrm{launch}$), $W_0$ is the principal branch of the Lambert function, and $\kappa$ is the photospheric opacity, which the rate scales inversely with. At $x = 1$ the launch level is sonic and $\mathcal{M} = 1$; for small $x$ the rate shuts off exponentially, which is the physical end of boil-off. The rate is capped by the Bondi-limited supply of Gupta & Schlichting (2020) [^gs20],
 
@@ -65,7 +65,7 @@ with $\rho_\mathrm{launch}$ the mass density at the launch level. Past the $\Lam
 
 $$\dot{M}_\mathrm{E} \;=\; \frac{L_\mathrm{int}}{g\,R_\mathrm{p}}, \qquad L_\mathrm{int} = 4\pi R_\mathrm{p}^2 F_\mathrm{int} \tag{4}$$
 
-with $g$ the surface gravity [^gs19]. The rate that survives the gate is therefore $\min(\dot{M}_\mathrm{Parker}, \dot{M}_\mathrm{B}, \dot{M}_\mathrm{E})$, and it stays a candidate: step 6 of the evaluation order compares it against the XUV-driven rate and the larger one takes both the rate and the label.
+with $g$ the surface gravity [^gs19]. The rate that survives the gate is therefore $\min(\dot{M}_\mathrm{P}, \dot{M}_\mathrm{B}, \dot{M}_\mathrm{E})$, and it stays a candidate: step 6 of the evaluation order compares it against the XUV-driven rate and the larger one takes both the rate and the label.
 
 Whether that residual lasts is disputed, and the framework declines to adjudicate. Tang et al. (2024) find core-powered mass loss ends early, once the envelope has contracted [^tang]; Gupta & Schlichting find it continues for gigayears [^gs19]. The luminosity cap is what makes the disagreement affordable: it holds the residual to the interior heat budget, which is small once the planet has cooled, so a run that keeps the branch alive and a run that switches it off differ by little. Their termination timescale is computed and reported beside the rate, never used as a gate, so the reader can see how long the branch would survive under their criterion without the code having taken a side.
 

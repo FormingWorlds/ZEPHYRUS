@@ -378,13 +378,23 @@ def rr_chain(
 def selection_mechanism(rr: dict, el_won: bool) -> str:
     """Which mechanism min(EL, RR) actually selected; diagnostic only.
 
-    An RR win means one of two physically different things: genuine
-    recombination saturation (the sqrt(F) limitation at modest base Jeans
-    parameter) or barometric suppression (large ``lambda_b``: the
-    isothermal wind exponentially throttled between base and sonic point,
-    which has nothing to do with recombination). The split at
-    ``lambda_b = 4`` is a reporting convention, stated as such. This string
-    never gates anything.
+    An RR win means one of two physically different things. Either the
+    recombination-limited base ionization sets the rate, the sonic-point
+    density being close to the base density, or the isothermal wind is
+    exponentially throttled between base and sonic point at large
+    ``lambda_b``, which has nothing to do with recombination. The quantity
+    that separates them is the barometric factor ``exp(3/2 - lambda_b)``
+    returned by :func:`rr_chain`, not the flux scaling: the base ion
+    density follows sqrt(F_XUV) at every ``lambda_b`` here, so a fitted
+    flux exponent sits near one half either way.
+
+    The split at ``lambda_b = 4`` is a reporting convention with no source
+    behind the number, equivalent to a suppression of about one decade. It
+    is coarse: the canonical recombination-limited case of the literature
+    (Murray-Clay et al. 2009, their fiducial hot Jupiter at
+    ``lambda_b = 5.49``) falls on the suppression side of it. Read the
+    barometric factor when the distinction matters. This string never gates
+    anything.
     """
     if el_won:
         return 'EL-selected'
