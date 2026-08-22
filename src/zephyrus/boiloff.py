@@ -36,11 +36,16 @@ from zephyrus.constants import G, kb
 #   identified with the radiative-convective boundary, a documented
 #   approximation on a static profile.
 # - Luminosity cap, applied only past the activation gate:
-#   Mdot_E = L / (g R_p) with L = 4 pi R_p^2 F_int (Gupta & Schlichting
+#   Mdot_E = L / (g R_p K) with L = 4 pi R_p^2 F_int (Gupta & Schlichting
 #   2019, MNRAS 487, 24, their Eq. 9). Capping the residual bolometric
 #   channel by the interior luminosity sidesteps the open dispute over how
 #   long core-powered mass loss survives after boil-off (Tang et al. 2024,
 #   ApJ 976, 221, argue it is brief; Gupta & Schlichting argue it lasts).
+#   The barrier the luminosity has to lift the gas over carries the tidal
+#   reduction K(xi) of Erkaev et al. (2007, A&A 472, 329, their Eq. 17),
+#   xi = R_Hill/R_p, so the cap and the energy-limited rate it competes
+#   against measure the same barrier from the same reference radius; K = 1
+#   recovers the untidal form and is what a caller with tides off gets.
 # - Termination diagnostic: the Tang et al. (2024) Eq. (8) timescale
 #   comparison, run as a diagnostic beside the rate's own exponential
 #   shutoff, never as a gate.
@@ -92,6 +97,7 @@ def bolometric_candidate(
     F_int: float,
     lambda_gate: float,
     lambda_crit: float,
+    k_tide: float = 1.0,
 ) -> tuple[float, dict]:
     """The bolometrically driven candidate mass-loss rate, in kg/s.
 
@@ -120,14 +126,21 @@ def bolometric_candidate(
         The restricted Jeans parameter of the configuration.
     lambda_crit : float
         The activation threshold (20 by default upstream; band 15 to 35).
+    k_tide : float
+        Erkaev tidal reduction factor of the escape barrier, evaluated at
+        ``xi = R_Hill / R_p``. Divides the luminosity cap, which is the
+        only term that measures a barrier. The default of 1 is the untidal
+        form; a non-positive value means the barrier has vanished and the
+        cap is dropped.
 
     Returns
     -------
     (rate, detail)
         The candidate rate [kg/s] and a detail dict carrying the wind
         temperature, sound speed, Bondi radius, Mach number, each cap, the
-        activation state, and flags (``bondi_inflated`` when the launch
-        level sits above the Bondi radius).
+        tidal factor the cap used, the activation state, and flags
+        (``bondi_inflated`` when the launch level sits above the Bondi
+        radius).
     """
     T_w = T_eq / 2.0**0.25
     mu = launch['mmw']
@@ -153,7 +166,8 @@ def bolometric_candidate(
     if not active:
         L = 4.0 * math.pi * R_p**2 * F_int
         g = G * M_p / R_p**2
-        mdot_lum = L / (g * R_p)
+        barrier = g * R_p * k_tide  # J/kg to lift gas out, tides included
+        mdot_lum = L / barrier if barrier > 0.0 else math.inf
         caps.append(mdot_lum)
     rate = min(caps)
     return rate, dict(
@@ -165,6 +179,7 @@ def bolometric_candidate(
         mdot_parker=mdot_parker,
         mdot_bondi=mdot_bondi,
         mdot_luminosity=mdot_lum,
+        k_tide=k_tide,
         active=active,
         R_sonic=R_B,
         flags=flags,

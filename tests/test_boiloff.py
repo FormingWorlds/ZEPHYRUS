@@ -11,6 +11,9 @@ under test:
 - Monotonicity / boundedness: the Mach number falls monotonically as the
   launch level retreats inside the Bondi radius; the candidate rate never
   exceeds any of its caps.
+- The luminosity cap divides by the tidally reduced barrier, so it rises by
+  the Erkaev et al. (2007) enhancement factor of their printed Table 1 and
+  reduces to the untidal form at K = 1.
 - Error contract: ``parker_mach`` rejects arguments outside ``(0, 1]``; the
   timescale diagnostic reports "not evaluated" without reservoirs.
 
@@ -29,6 +32,7 @@ from zephyrus.boiloff import (
     tang_timescale_check,
 )
 from zephyrus.constants import G, amu, kb
+from zephyrus.hydrodynamic import k_tide
 from zephyrus.planets_parameters import Me, Re
 from zephyrus.profiles import interp_at_pressure, isothermal_profile
 
@@ -128,6 +132,41 @@ def test_luminosity_cap_applies_only_past_the_gate():
     assert rate_b <= det_b['mdot_luminosity'] * (1 + 1e-12)
     # The luminosity cap can only reduce the candidate, never raise it.
     assert rate_b <= rate_a * (1 + 1e-12)
+
+
+@pytest.mark.reference_pinned
+@pytest.mark.physics_invariant
+def test_luminosity_cap_carries_the_tidal_barrier_reduction():
+    """The cap divides by the tidally reduced barrier, K from Erkaev Eq. (17).
+
+    The cap is an interior luminosity divided by the work per unit mass
+    needed to lift gas out, ``g R_p K``, the same barrier and the same
+    reference radius the energy-limited rate divides by. So a tidally
+    reduced barrier raises the cap by the enhancement factor ``1 / K``,
+    whose value at ``xi = 3`` is the 1.92 printed in Erkaev et al. (2007),
+    A&A 472, 329, Table 1. Discrimination: multiplying by ``K`` instead of
+    dividing would lower the cap rather than raise it, and ``K = 1`` must
+    reproduce the untidal value identically.
+    """
+    M_p, R_p, T_eq = 3 * Me, 3 * Re, 1000.0
+    launch = _launch(M_p, R_p, T_eq, {'H2': 1.0})
+    args = (M_p, R_p, T_eq, 0.01, launch, 1.0)
+    _rate_flat, det_flat = bolometric_candidate(*args, lambda_gate=30.0, lambda_crit=20.0)
+    k = k_tide(3.0)
+    _rate_tidal, det_tidal = bolometric_candidate(
+        *args, lambda_gate=30.0, lambda_crit=20.0, k_tide=k
+    )
+    assert det_flat['k_tide'] == pytest.approx(1.0)
+    assert det_tidal['mdot_luminosity'] > det_flat['mdot_luminosity']
+    assert det_tidal['mdot_luminosity'] / det_flat['mdot_luminosity'] == pytest.approx(
+        1.92, rel=0.01
+    )
+    # K = 1 is the untidal form, and the cap still bounds the rate.
+    _rate_one, det_one = bolometric_candidate(
+        *args, lambda_gate=30.0, lambda_crit=20.0, k_tide=1.0
+    )
+    assert det_one['mdot_luminosity'] == pytest.approx(det_flat['mdot_luminosity'], rel=1e-12)
+    assert _rate_tidal <= det_tidal['mdot_luminosity'] * (1 + 1e-12)
 
 
 def test_wind_temperature_and_opacity_scaling():
