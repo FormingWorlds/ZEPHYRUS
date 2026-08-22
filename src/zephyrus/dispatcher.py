@@ -52,9 +52,10 @@ from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 #    conventions disagree are flagged contested with both rates recorded.
 # 5. The Roche screen, per branch, tests the active flow radius (sonic
 #    radius, max(R_XUV, R_s), or exobase radius) against the periapsis
-#    Hill radius before the label is finalized; an overflowing point is
-#    labeled ``roche_overflow`` with the Bondi-capped bolometric rate at
-#    the overflow geometry, and near misses raise ``near_roche``.
+#    Hill radius before the label is finalized. An overflowing point is
+#    renamed ``roche_overflow`` and keeps the rate its own branch
+#    computed: the screen renames a state and never changes its rate.
+#    Near misses raise ``near_roche``.
 # 6. The final rate is the larger of the surviving branch rate and the
 #    bolometric residual, labeled by the winner.
 #
@@ -195,6 +196,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     flags.update(f)
     r_xuv = photo['r']
 
+    # The tidal reduction of the escape barrier, needed by both rate
+    # branches that measure one: the energy-limited rate and the
+    # luminosity cap on the bolometric residual.
+    xi_ktide = r_hill / inputs.R_p
+    k_factor = hy.k_tide(xi_ktide) if (st.tidal and xi_ktide > 1.0) else 1.0
+
     # Step 1: bolometric candidate, computed at every point.
     lam_gate = bl.lambda_restricted(inputs.M_p, inputs.R_p, inputs.T_eq, photo['mmw'])
     bolo_rate, bolo = bl.bolometric_candidate(
@@ -206,6 +213,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         inputs.F_int,
         lam_gate,
         st.lambda_crit,
+        k_tide=k_factor,
     )
     flags.update(bolo['flags'])
     diag['lambda_gate'] = lam_gate
@@ -231,8 +239,6 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     if rr['subcritical']:
         flags['subcritical_sonic'] = True
 
-    xi_ktide = r_hill / inputs.R_p
-    k_factor = hy.k_tide(xi_ktide) if (st.tidal and xi_ktide > 1.0) else 1.0
     eps = st.efficiency
     if st.efficiency_mode == 'caldiroli':
         eta_eff, cf = hy.caldiroli_efficiency(inputs.F_xuv, inputs.M_p, inputs.R_p, k_factor)
@@ -336,57 +342,80 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             ),
         )
 
-    # Route.
+    # Route. ``branch`` names the physics that produced the rate and decides
+    # the split; ``label`` is what the caller reads back and the Roche screen
+    # can overwrite it. The two are the same on every state whose flow stays
+    # inside the Hill sphere.
     per_species = None
     if lam_gate < st.lambda_crit:
-        label = 'boiloff'
+        branch = 'boiloff'
         rate = bolo_rate
         flow_radius = bolo['R_sonic']
     else:
         if kn_sc <= threshold:
-            label = hydro_label
+            branch = hydro_label
             rate = mdot_hydro
             flow_radius = max(r_xuv, rr['R_s'])
         elif unstable:
-            label = hydro_label
+            branch = hydro_label
             rate = mdot_hydro
             flow_radius = max(r_xuv, rr['R_s'])
             flags['gate_rerouted'] = True
         else:
-            label = 'hydrostatic'
+            branch = 'hydrostatic'
             rate = mdot_hs
             per_species = dict(hs_per_element)
             flags.update(hs_flags)
             flow_radius = hsd['r_exo']
         # Step 6: the bolometric residual stays a candidate past the gate.
         if bolo_rate > rate:
-            label = 'boiloff'
+            branch = 'boiloff'
             rate = bolo_rate
             per_species = None
             flags['bolometric_residual'] = True
             flow_radius = bolo['R_sonic']
+    label = branch
 
-    # Step 5: the Roche screen on the active flow radius.
+    # Step 5: the Roche screen on the active flow radius. The screen renames
+    # the state and never touches the rate. Its boundary is a rate
+    # comparison, since the branch whose flow radius gets tested is the one
+    # that won step 6, so reporting the winning branch's own rate keeps the
+    # dispatched rate continuous across the boundary; substituting another
+    # branch's formula would not. What the label means is therefore that the
+    # flow reaches the Roche lobe and that the rate beside it is the
+    # bound-flow estimate, a lower limit on what tides would do. The rate a
+    # tidally driven nozzle flow through L1 would carry is not implemented
+    # (Jackson et al. 2017, ApJ 835, 145, their Eq. 3).
     xi_flow = r_hill / flow_radius if flow_radius > 0 else math.inf
+    # The outer extent of the atmosphere itself, modeled plus extended,
+    # which is what separates the two overflow geometries. It is reported
+    # and used for that separation, and deliberately not used to trigger
+    # the screen: what the screen asks is whether the escaping flow stays
+    # bound, and widening its trigger would move the label boundary itself.
+    r_atm = max(float(inputs.profile.r[-1]), hsd['r_exo'])
     diag['roche'] = dict(
-        R_hill_periapsis=r_hill, flow_radius=flow_radius, xi_flow=xi_flow, xi_ktide=xi_ktide
+        R_hill_periapsis=r_hill,
+        flow_radius=flow_radius,
+        xi_flow=xi_flow,
+        xi_ktide=xi_ktide,
+        r_atmosphere=r_atm,
+        rate_branch=branch,
     )
     if xi_flow <= 1.0 or xi_ktide <= 1.0:
         label = 'roche_overflow'
         flags['roche_overflow'] = True
+        # Dynamical overflow when the atmosphere itself reaches the lobe;
+        # no transonic solution when only the flow radius does, which is the
+        # narrow band Owen & Jackson (2012) describe.
         flags['roche_subflag'] = (
-            'dynamical' if (xi_ktide <= 1.0 or r_hill <= photo['r']) else 'no_transonic'
+            'dynamical' if (xi_ktide <= 1.0 or r_hill <= r_atm) else 'no_transonic'
         )
-        # The overflow rate is the Bondi-capped bolometric machinery at the
-        # overflow geometry.
-        rate = min(bolo['mdot_parker'], bolo['mdot_bondi'])
-        per_species = None
     elif xi_flow < 1.5:
         flags['near_roche'] = True
 
-    # Per-species split, by label.
+    # Per-species split, by the branch that produced the rate.
     if per_species is None:
-        if label.startswith('hydrodynamic') and st.fractionate and rate > 0.0:
+        if branch.startswith('hydrodynamic') and st.fractionate and rate > 0.0:
             per_species, cdiag, cflags = closure_per_species(
                 rate, elements, t_wind, inputs.M_p, base['r']
             )
@@ -428,6 +457,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         inputs.M_p, inputs.R_p, inputs.F_int, rate, inputs.reservoirs
     )
     diag['self_consistency'] = dg.self_consistency_screen(inputs.reservoirs, rate, inputs.age)
+    diag['rate_floor'] = dg.rate_floor_screen(rate)
     diag['base_level'] = dict(
         p_Pa=base['p'],
         p_physical_Pa=base.get('p_physical'),

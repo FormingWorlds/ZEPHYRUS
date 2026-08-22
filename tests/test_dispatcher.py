@@ -10,6 +10,10 @@ mocks). The properties under test:
 - Routing: an inflated light envelope dispatches to boil-off; a bound heavy
   atmosphere under weak XUV to hydrostatic; a light envelope under strong
   XUV to a hydrodynamic sub-label; a Roche-filling geometry to overflow.
+- The Roche screen renames a state without changing its rate, so the
+  dispatched rate is continuous across the overflow boundary, and its
+  subflag separates the two published overflow geometries by the extent of
+  the atmosphere rather than of the photosphere.
 - Cross-implementation pin: the dispatcher's energy-limited candidate
   equals the released ``EL_escape`` at the same inputs.
 - Boxedness: sabotaging every diagnostics producer with garbage stubs
@@ -222,6 +226,83 @@ def test_routing_roche_overflow_inside_the_hill_sphere():
     assert res.mdot >= 0.0
 
 
+def test_roche_screen_renames_without_changing_the_rate():
+    """Crossing the overflow boundary changes the label and not the rate.
+
+    The screen's boundary is a rate comparison: the branch whose flow
+    radius gets tested is the one that won the final comparison, so the two
+    sides of the boundary hold the same branch and the dispatched rate must
+    be continuous across it. Bisecting in orbital distance, which moves the
+    Hill radius and nothing else about the atmosphere, brackets the label
+    change; the rates on either side agree to machine precision and both
+    equal the hydrodynamic candidate. Discrimination: substituting the
+    Bondi-capped bolometric rate at the overflow geometry, which is what a
+    rate-changing screen returns, differs here by more than a decade.
+    """
+    comp = {'H2': 0.9, 'He': 0.1}
+
+    def at(a):
+        return dispatch(_inputs(3 * Me, 2.2 * Re, 980.0, comp, F_xuv=13.4, a=a))
+
+    lo, hi = 0.05 * AU, 0.3 * AU
+    inner = at(lo)
+    assert inner.regime == 'roche_overflow'
+    for _ in range(50):
+        mid = 0.5 * (lo + hi)
+        if at(mid).regime == inner.regime:
+            lo = mid
+        else:
+            hi = mid
+    below, above = at(lo), at(hi)
+    assert below.regime == 'roche_overflow'
+    assert above.regime.startswith('hydrodynamic')
+    assert below.mdot == pytest.approx(above.mdot, rel=1e-9)
+    hydro = below.diagnostics['hydrodynamic']
+    assert below.mdot == pytest.approx(min(hydro['mdot_el'], hydro['mdot_rr']), rel=1e-9)
+    assert below.diagnostics['roche']['rate_branch'] == above.regime
+    bolo = below.diagnostics['bolometric']
+    overflow_geometry_rate = min(bolo['mdot_parker'], bolo['mdot_bondi'])
+    assert overflow_geometry_rate > 10.0 * below.mdot
+
+
+def test_roche_subflag_separates_the_two_geometries():
+    """The subflag reads the atmosphere's extent, not the photosphere's.
+
+    Owen & Jackson (2012) separate dynamical overflow, where the atmosphere
+    itself reaches the lobe, from the narrow band where only the would-be
+    sonic surface does. A Mars-mass CO2 planet at 0.028 au with a 2000 K
+    exobase has its extended structure outside the Hill radius while its
+    photosphere sits far inside, so the subflag is dynamical even though
+    the Hill sphere still encloses the planet many times over; a bound
+    Earth-mass CO2 planet whose bolometric sonic radius alone passes the
+    Hill radius gets the other subflag, with its atmosphere well inside.
+    """
+    dyn = dispatch(
+        _inputs(
+            0.107 * Me,
+            0.53 * Re,
+            1600.0,
+            {'CO2': 1.0},
+            F_xuv=1e-4,
+            a=0.028 * AU,
+            settings=DispatchSettings(T_exo_value=2000.0),
+        )
+    )
+    roche = dyn.diagnostics['roche']
+    assert dyn.regime == 'roche_overflow'
+    assert dyn.flags.get('roche_subflag') == 'dynamical'
+    assert roche['xi_ktide'] > 1.0  # not the trivial planet-inside-its-lobe case
+    assert roche['r_atmosphere'] > roche['R_hill_periapsis']
+
+    bound = dispatch(_inputs(Me, Re, 1600.0, {'CO2': 1.0}, F_xuv=0.01, a=0.03 * AU))
+    roche_b = bound.diagnostics['roche']
+    assert bound.regime == 'roche_overflow'
+    assert bound.flags.get('roche_subflag') == 'no_transonic'
+    assert roche_b['r_atmosphere'] < roche_b['R_hill_periapsis']
+    # The rate under that label carries no numerical content, and says so.
+    assert bound.diagnostics['rate_floor']['above_floor'] is False
+
+
 def test_diagnostics_are_boxed(monkeypatch):
     """Sabotaging every diagnostics producer changes no dispatch outcome.
 
@@ -240,6 +321,7 @@ def test_diagnostics_are_boxed(monkeypatch):
     monkeypatch.setattr('zephyrus.diagnostics.potential_screens', lambda *a, **k: {})
     monkeypatch.setattr('zephyrus.diagnostics.along_profile_fluid_check', lambda *a, **k: {})
     monkeypatch.setattr('zephyrus.diagnostics.self_consistency_screen', lambda *a, **k: {})
+    monkeypatch.setattr('zephyrus.diagnostics.rate_floor_screen', lambda *a, **k: {})
     monkeypatch.setattr('zephyrus.boiloff.tang_timescale_check', lambda *a, **k: {})
     sabotaged = dispatch(inp)
     assert sabotaged.regime == reference.regime
