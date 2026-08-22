@@ -26,7 +26,7 @@ Every physically posed state returns a result. A `ValueError` means the state or
 | `hydrodynamic:EL` | A collisional XUV-driven wind whose rate is set by the energy budget. | The smaller of the two hydrodynamic limits, the energy-limited one winning. |
 | `hydrodynamic:RR` | The same wind, with the recombination-limited rate winning the minimum. | Read `rr_chain['barometric_factor']` to see whether the rate is set by the recombination-limited base ionization (factor near 1) or by the wind failing to reach the sonic point (factor decades below 1). |
 | `hydrostatic` | Too rarefied for a wind; per-species Jeans escape from the exobase, capped by diffusive resupply. | Natively per-species; heavy-element rates are lower limits. |
-| `roche_overflow` | The active flow radius reaches the periapsis Hill radius, so the flow is not bound to the planet. | The Bondi-capped bolometric machinery at the overflow geometry. |
+| `roche_overflow` | The active flow radius reaches the periapsis Hill radius, so the flow is not bound to the planet. | The rate of the branch that produced it, named in `diagnostics['roche']['rate_branch']`. The screen renames a state and never changes its rate, so the rate under this label is a bound-flow estimate and a lower limit on what tides would do. |
 
 A sixth label, `impact`, is reserved for the [giant-impact channel](../Explanations/impacts.md), which the caller invokes directly rather than through the dispatcher.
 
@@ -78,8 +78,8 @@ The `effect` column says whether the returned rate already reflects the flag or 
 
 | Flag | Value | Meaning | Effect |
 |---|---|---|---|
-| `roche_overflow` | `True` | The active flow radius reaches the periapsis Hill radius. The label changes and the rate is recomputed at the overflow geometry. | The rate reflects it |
-| `roche_subflag` | `'dynamical'` or `'no_transonic'` | Whether the Hill sphere sits inside the photosphere itself, or only the flow reaches it. | Reporting only |
+| `roche_overflow` | `True` | The active flow radius reaches the periapsis Hill radius. The label changes; the rate is the one the branch computed. | Reporting only |
+| `roche_subflag` | `'dynamical'` or `'no_transonic'` | Whether the atmosphere itself reaches the lobe (its outer extent is `r_atmosphere`), or only the flow radius does. | Reporting only |
 | `near_roche` | `True` | The flow radius is within 1.5 Hill radii. The tidal factor is steep there. | Reporting only |
 | `split_from_base_composition` | `True` | The per-species split used the atomized wind-base composition because no reservoirs were supplied. | The split reflects it |
 | `rock_former_bij` | list | Rock-forming species (Na, Mg, Si, Fe) are present in the closure, whose binary-diffusion coefficients for them sit in the widest provenance class. | Reporting only |
@@ -89,18 +89,18 @@ The `effect` column says whether the returned rate already reflects the flag or 
 
 ## Diagnostics
 
-Seventeen groups on a typical call. Nothing in the dispatch control flow reads any of them, and there is no option to switch them off: the regime boundaries carry genuine physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that.
+Eighteen groups on a typical call. Nothing in the dispatch control flow reads any of them, and there is no option to switch them off: the regime boundaries carry genuine physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that.
 
 | Group | Key contents | What it answers |
 |---|---|---|
 | `knudsen` | `kn_sc`, `threshold_applied`, `sigma_c`, `provenance`, `counterfactual_labels` | Which side of the collisionality switch the state fell on, how close it sat, what the label would have been at both edges of the criterion band, and where the cross sections came from. |
 | `hydrodynamic` | `mdot_el`, `mdot_rr`, `efficiency`, `K_tide`, `T_wind`, `selection_mechanism`, `rr_chain` | Both wind candidates, which one won, the temperature the thermostat returned, and the full recombination-limited chain (sound speed, sonic radius, base Jeans parameter, densities, barometric factor). `selection_mechanism` is one of `EL-selected`, `RR-selected`, or `RR-selected:subcritical-floor`, and says which candidate won, not why it was small; the barometric factor is what answers that. |
 | `hydrostatic` | `rate_kg_s`, `T_exo`, `r_exo`, `f_plus_exo`, `T_esc_neutral`, `T_esc_plasma`, `gate`, `gate_unstable`, `detail` | The exobase state, both escape temperatures with the local ionization fraction, which convention gated the branch, the `detail['dominant']` species that supplies itself without a diffusion cap, and per-species Jeans and diffusion fluxes in `detail['species']`. |
-| `bolometric` | `T_wind`, `c_s`, `R_sonic`, `x`, `mach`, `mdot_parker`, `mdot_bondi`, `mdot_luminosity`, `active`, `rate_kg_s` | The bolometric candidate in full: each cap separately, and whether the branch was active. |
+| `bolometric` | `T_wind`, `c_s`, `R_sonic`, `x`, `mach`, `mdot_parker`, `mdot_bondi`, `mdot_luminosity`, `k_tide`, `active`, `rate_kg_s` | The bolometric candidate in full: each cap separately, the tidal factor the luminosity cap divided by, and whether the branch was active. |
 | `lambda_gate` | float | The restricted Jeans parameter that decides boil-off activation. |
 | `thermostat` | heating and cooling terms, `clamped` | How the wind temperature was reached, channel by channel. |
-| `closure` | `active_set`, `retained`, `inv_H_bar_cgs`, `mass_conservation_rel`, `b_provenance` | How the fractionation closure partitioned a wind, present only on a fractionating hydrodynamic verdict. `inv_H_bar_cgs` is the inverse of the density scale height every escaping gas shares, in cm⁻¹, which the closure solves for alongside the drifts. |
-| `roche` | `R_hill_periapsis`, `flow_radius`, `xi_flow`, `xi_ktide` | The overflow screen in full: which radius was tested and against what. |
+| `closure` | `active_set`, `retained`, `inv_H_bar_cgs`, `mass_conservation_rel`, `b_provenance` | How the fractionation closure partitioned a wind, present only where a hydrodynamic branch produced the rate and fractionation is on, including under the `roche_overflow` label when that branch won. `inv_H_bar_cgs` is the inverse of the density scale height every escaping gas shares, in cm⁻¹, which the closure solves for alongside the drifts. |
+| `roche` | `R_hill_periapsis`, `flow_radius`, `xi_flow`, `xi_ktide`, `r_atmosphere`, `rate_branch` | The overflow screen in full: which radius was tested and against what, how far the atmosphere itself reaches, and which branch the rate came from. |
 | `johnson_q` | `q_net_over_qc`, `q_net_W`, `q_c_W` | Whether the absorbed power can drive a transonic outflow at all, independently of any rate formula. |
 | `guo_triple` | `lambda_exo`, `lambda_rp`, `lambda_star`, `thresholds` | The verdict translated into the Jeans-parameter taxonomy. |
 | `potential_screens` | `log_minus_phi_cgs`, `caldiroli_threshold`, `above_caldiroli`, `salz_screen`, `salz_verdict`, `salz_attribution` | The verdict translated into threshold-potential taxonomies: the specific binding energy in erg g⁻¹ against the efficiency-collapse band of Caldiroli et al. (2022) and against the wind-versus-thermosphere thresholds of Salz et al. (2016), 13.11 and 13.6. The Salz simulations are hydrogen-dominated, which the reported attribution states, so treat the verdict as out of scope on a heavy secondary atmosphere. |
@@ -108,6 +108,7 @@ Seventeen groups on a typical call. Nothing in the dispatch control flow reads a
 | `fluid_check` | `levels_checked`, `worst_kn`, `fluid`, `truncated_at_profile_top` | Whether the fluid condition holds everywhere below the sonic surface, not only at it, with the truncation declared. |
 | `tang_timescale` | boil-off termination timescales | A consistency check on the bolometric rate's own exponential shutoff. |
 | `self_consistency` | `evaluated`, `t_deplete_s`, `age_s`, `inconsistent` | Whether the dispatched rate would have destroyed the supplied inventory within the supplied age. Reports `evaluated: False` without an age or reservoirs. |
+| `rate_floor` | `floor_kg_s`, `above_floor` | Whether the dispatched rate has any numerical content, against one proton per Julian year. Reporting only: the module never applies the floor. |
 | `base_level` | `p_Pa`, `p_physical_Pa`, `r_m`, `T_K`, `clamp_decades` | Where the wind was launched, and the pressure the base method asked for before any clamp. |
 | `documentation` | criterion bands and published exponents | The bands themselves, so a stored result is self-describing: the collisionality band, the boil-off activation band, the numerical against analytic flux exponents of the wind limits, and the dayside-heating reduction factors. |
 | `contested_ion` | both branch rates and a note | Present only when the two escape-temperature conventions disagree, which turns on ion physics this version does not model. |
@@ -116,6 +117,6 @@ Seventeen groups on a typical call. Nothing in the dispatch control flow reads a
 
 ## Two conventions worth adopting
 
-**A rate floor.** The framework computes what the physics gives it, including rates like $10^{-123}$ kg s⁻¹ from a strongly bound heavy atmosphere. One proton crossing the planet's surface per year, about $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate with physical content; below that, report no escape. The convention belongs to the caller, and the module does not apply it.
+**A rate floor.** The framework computes what the physics gives it, including rates like $10^{-123}$ kg s⁻¹ from a strongly bound heavy atmosphere. One proton crossing the planet's surface per year, about $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate with physical content; below that, report no escape. The convention belongs to the caller, and the module does not apply it, but it does report it: `diagnostics['rate_floor']` carries the number and whether this call cleared it, so a caller need not keep its own copy. Read it before trusting a regime label on a slow state, because a label decided by the ordering of two rates far below the floor is decided by nothing.
 
 **A relevance test, separately.** Clearing the floor does not make a rate matter: a hundred decades above it can still be grams per year. Use `diagnostics['self_consistency']`, which divides the supplied inventory by the dispatched rate and compares against the supplied age, as the yardstick for whether a rate is worth carrying.

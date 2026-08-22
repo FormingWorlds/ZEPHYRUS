@@ -155,8 +155,8 @@ hydrodynamic:EL
 {}
 ['base_level', 'bolometric', 'closure', 'documentation', 'erkaev_tc_K',
  'fluid_check', 'guo_triple', 'hydrodynamic', 'hydrostatic', 'johnson_q',
- 'knudsen', 'lambda_gate', 'potential_screens', 'roche', 'self_consistency',
- 'tang_timescale', 'thermostat']
+ 'knudsen', 'lambda_gate', 'potential_screens', 'rate_floor', 'roche',
+ 'self_consistency', 'tang_timescale', 'thermostat']
 ```
 
 Five fields, and each one guarantees something. `regime` is one of five labels. `mdot` is a non-negative bulk rate in kg s⁻¹, here $2.35 \times 10^{6}$ kg s⁻¹, or $7.4 \times 10^{13}$ kg yr⁻¹. `per_species` gives element rates that sum to `mdot` at machine precision, which is what a coupled run relies on when it debits element inventories, and which is worth asserting in your own code. `flags` records every clamp, fallback, and screen that fired; an empty dictionary means nothing needed reporting. `diagnostics` is the container of step 5.
@@ -220,7 +220,7 @@ Two things in that figure deserve attention.
 
 **The open markers.** The hydrostatic rates on these two planets are $5.0 \times 10^{-123}$ and $1.5 \times 10^{-71}$ kg s⁻¹. Those are not small rates, they are zero with numerical noise attached: carbon dioxide at one Earth mass sits at an exobase Jeans parameter of 301, and $e^{-301}$ is not a number with physical content. Two yardsticks keep this straight:
 
-- One proton crossing the surface per year, $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate that can mean anything. Below it, report no escape. The module computes what the physics gives and leaves this convention to you.
+- One proton crossing the surface per year, $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate that can mean anything. Below it, report no escape. The module computes what the physics gives and leaves the convention to you, but it does hand you the comparison: `diagnostics['rate_floor']['above_floor']` is false on both of these points.
 - Above that floor, ask whether the rate matters, by comparing it against the inventory and the age. The diagnostics already do this: `diagnostics['self_consistency']` divides the reservoirs by the rate and compares against the age you supplied.
 
 A rate can clear the floor by a hundred decades and still be irrelevant. A Mars-mass planet losing $2 \times 10^{-9}$ kg s⁻¹ loses 66 grams a year.
@@ -269,18 +269,20 @@ print(puffy.flags['roche_subflag'])
 Output:
 
 ```text
-roche_overflow 1037700965.4610901
+roche_overflow 24622841.930601332
 189433055.79726917 167277833.86655325 0.8830445835470955
 no_transonic
 ```
 
-The flow radius of the winning branch now exceeds the Hill radius, so the atmosphere spills over the gravitational boundary rather than escaping through any of the other regimes, and the label says so. When you see this label, read `diagnostics['roche']` for the two radii and `diagnostics['bolometric']` for the rate that won: the label names the branch that won the rate comparison, and on a marginal case that branch can be the bolometric residual carrying a rate that is negligible in absolute terms.
+The flow radius of the winning branch now exceeds the Hill radius, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow, and the label says so. The rate is unchanged by the label: the screen renames a state and never recomputes its rate, so what you get is whatever the winning branch produced, here the luminosity-capped bolometric residual at $2.5 \times 10^{7}$ kg s⁻¹ named in `diagnostics['roche']['rate_branch']`. Read it as a lower limit, because the tidally driven flow a genuinely overflowing planet drives is not modeled.
+
+The subflag is the part worth reading. This atmosphere reaches 0.96 Hill radii, just inside the lobe, and only its sonic surface would sit outside, which is `no_transonic`; an atmosphere whose own extent passes the lobe gets `dynamical` instead. The two are far apart physically, and the same screen catches both, so compare `r_atmosphere` against `R_hill_periapsis` in the same group before you trust the label. On a tightly bound heavy atmosphere the label can fire on geometry alone with no rate behind it; the [troubleshooting guide](../How-to/troubleshooting.md) walks the three cases.
 
 ---
 
 ## Step 5: read the diagnostics
 
-A call returns sixteen or seventeen diagnostic groups, depending on which branch ran, and none of them gates anything: the dispatch logic never reads them back, and there is no switch to turn them off. The regime boundaries carry real physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that instead of hiding it.
+A call returns seventeen or eighteen diagnostic groups, depending on which branch ran, and none of them gates anything: the dispatch logic never reads them back, and there is no switch to turn them off. The regime boundaries carry real physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that instead of hiding it.
 
 The [dispatch results reference](../Reference/results.md) documents every key. What follows is the order to read them in, which is the order the questions occur to you. Every snippet in this step uses the same result:
 

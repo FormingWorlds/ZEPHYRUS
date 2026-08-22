@@ -10,7 +10,7 @@ One call takes one planetary state and returns one verdict. The inputs are the p
 2. Otherwise the hydrodynamic candidate is assembled: the wind base is located on the profile, a thermostat sets the wind temperature, and the candidate is the smaller of the energy-limited and radiation-recombination-limited rates, with the winner naming the sub-label.
 3. The sonic-point Knudsen number decides whether that wind is collisional enough to exist. If it is, the hydrodynamic label stands and the [fractionation closure](fractionation.md) partitions the rate over species; if not, the state re-routes to the hydrostatic branch.
 4. The hydrostatic branch evaluates per-species Jeans escape on an extended upper structure. Its stability gate can send a thermally unstable exosphere back to the hydrodynamic rate.
-5. Before the label is finalized, the Roche screen tests the active flow radius against the Hill sphere; an overflowing state is relabeled `roche_overflow`.
+5. Before the label is finalized, the Roche screen tests the active flow radius against the Hill sphere; an overflowing state is renamed `roche_overflow` and keeps the rate its own branch computed.
 6. The final rate is the larger of the surviving branch rate and the luminosity-capped bolometric residual, labeled by the winner.
 
 ```mermaid
@@ -32,7 +32,7 @@ flowchart TD
     Q4 -- no --> KEEP["Branch label stands"]
     BO2 --> Q5{"Active flow radius<br/>past the Hill radius?"}
     KEEP --> Q5
-    Q5 -- yes --> RO["ROCHE OVERFLOW<br/>Bondi-capped rate<br/>at the overflow geometry"]
+    Q5 -- yes --> RO["ROCHE OVERFLOW<br/>the branch rate stands,<br/>as a lower limit"]
     Q5 -- no --> OUT(["Regime label + bulk rate<br/>+ per-species rates<br/>+ flags + diagnostics"])
     RO --> OUT
     classDef regime fill:#1e6091,stroke:#0f3a5c,color:#ffffff
@@ -63,9 +63,9 @@ $$\dot{M}_\mathrm{B} \;=\; 4\pi R_\mathrm{B}^2\, c_\mathrm{s}\, \rho_\mathrm{lau
 
 with $\rho_\mathrm{launch}$ the mass density at the launch level. Past the $\Lambda$ gate the same capping machinery survives, with one cap added: the atmosphere has contracted, so the outflow can no longer draw on the envelope's own inflation and is limited by the heat the interior supplies,
 
-$$\dot{M}_\mathrm{E} \;=\; \frac{L_\mathrm{int}}{g\,R_\mathrm{p}}, \qquad L_\mathrm{int} = 4\pi R_\mathrm{p}^2 F_\mathrm{int} \tag{4}$$
+$$\dot{M}_\mathrm{E} \;=\; \frac{L_\mathrm{int}}{g\,R_\mathrm{p}\,K}, \qquad L_\mathrm{int} = 4\pi R_\mathrm{p}^2 F_\mathrm{int} \tag{4}$$
 
-with $g$ the surface gravity [^gs19]. The rate that survives the gate is therefore $\min(\dot{M}_\mathrm{P}, \dot{M}_\mathrm{B}, \dot{M}_\mathrm{E})$, and it stays a candidate: step 6 of the evaluation order compares it against the XUV-driven rate and the larger one takes both the rate and the label.
+with $g$ the surface gravity and $K$ the tidal reduction factor of Erkaev et al. (2007) [^erkaev] evaluated at $\xi = R_\mathrm{Hill}/R_\mathrm{p}$ [^gs19]. The denominator is the work per unit mass needed to lift gas out of the potential well, which is the same quantity the energy-limited rate on the [energy-limited page](energy_limited.md) divides by, measured from the same radius: a planet close to filling its Roche lobe has a shallower barrier, so the same interior heat lifts more gas, and the two rates that compete in step 6 measure one barrier between them. Setting `tidal = False` returns $K = 1$ and the untidal form. The rate that survives the gate is therefore $\min(\dot{M}_\mathrm{P}, \dot{M}_\mathrm{B}, \dot{M}_\mathrm{E})$, and it stays a candidate: step 6 of the evaluation order compares it against the XUV-driven rate and the larger one takes both the rate and the label.
 
 Whether that residual lasts is disputed, and the framework declines to adjudicate. Tang et al. (2024) find core-powered mass loss ends early, once the envelope has contracted [^tang]; Gupta & Schlichting find it continues for gigayears [^gs19]. The luminosity cap is what makes the disagreement affordable: it holds the residual to the interior heat budget, which is small once the planet has cooled, so a run that keeps the branch alive and a run that switches it off differ by little. Their termination timescale is computed and reported beside the rate, never used as a gate, so the reader can see how long the branch would survive under their criterion without the code having taken a side.
 
@@ -111,7 +111,13 @@ Two escape temperatures gate the branch's validity. The neutral escape temperatu
 
 ## The Roche screen and overflow
 
-Everything above assumes the flow is bound to the planet. Before the label is finalized, the active flow radius of the winning branch (the sonic radius on the boil-off branch, the larger of the XUV and sonic radii on the hydrodynamic branch, the exobase radius on the hydrostatic branch) is tested against the periapsis Hill radius of Eq. (3) on the [energy-limited page](energy_limited.md). A flow that reaches the Hill sphere is not described by any of the four regimes above: the state is labeled `roche_overflow` and carries the Bondi-capped bolometric rate at the overflow geometry, with a subflag separating geometries whose Hill sphere sits inside the photosphere itself from those where only the flow reaches it. Near misses (flow radius within 1.5 Hill radii) raise a `near_roche` flag, because the tidal factor inflates the energy-limited rate steeply there; the flag reports, and never modifies, the rate.
+Everything above assumes the flow is bound to the planet. Before the label is finalized, the active flow radius of the winning branch (the sonic radius on the boil-off branch, the larger of the XUV and sonic radii on the hydrodynamic branch, the exobase radius on the hydrostatic branch) is tested against the periapsis Hill radius of Eq. (3) on the [energy-limited page](energy_limited.md). A flow that reaches the Hill sphere is spilling over the gravitational boundary rather than escaping through a bound outflow, and the state is named `roche_overflow` for it.
+
+The screen renames a state and never changes its rate. The reason is that the branch whose flow radius gets tested is the one that won step 6, so the two sides of the screen's boundary hold the same branch; reporting that branch's own rate keeps the dispatched rate continuous across the boundary, while substituting a different branch's formula would make it jump by orders of magnitude at a line the physics puts nowhere in particular. What the label means is therefore that the flow reaches the lobe and that the rate beside it is the bound-flow estimate, a lower limit on what tides would do. Nothing in this version computes the tidally driven flow through the inner Lagrange point that a genuinely overflowing planet drives; the closed form for it is Eq. (3) of Jackson et al. (2017) [^jackson17], and their own reading is worth carrying: Roche-lobe overflow and evaporative escape are not two processes but one unbound hydrodynamic outflow, differing in whether the photosphere nearly coincides with the lobe.
+
+Owen & Jackson (2012) separate two geometries inside that corner [^oj12], and a subflag says which one fired. Dynamical overflow is the atmosphere itself reaching the lobe, tested against the outer extent of the modeled and extended structure, reported as `r_atmosphere` in `diagnostics['roche']`. The other case is an atmosphere inside its lobe whose sonic surface would have to sit outside it, so no transonic solution exists; they describe it as a narrow band and hypothesize a subsonic wind out to the lobe. The distinction is worth reading before a label is trusted, because the flow radius tested on the bolometric branch is a sonic radius that grows with the Jeans parameter: a tightly bound heavy atmosphere can push it several Hill radii out while the atmosphere itself sits deep inside, at a rate with no numerical content. `r_atmosphere` and `diagnostics['rate_floor']` are what separate that case from a real one.
+
+Near misses (flow radius within 1.5 Hill radii) raise a `near_roche` flag, because the tidal factor inflates the energy-limited rate steeply there; the flag reports, and never modifies, the rate.
 
 ## Boundaries are bands
 
@@ -144,6 +150,8 @@ For the framework in use rather than in principle, the [dispatcher tutorial](../
 [^lopez2017]: Lopez, E. D. (2017). Born dry in the photoevaporation desert: Kepler's ultra-short-period planets formed water-poor. *Monthly Notices of the Royal Astronomical Society, 472*(1), 245–253.
 
 [^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
+
+[^jackson17]: Jackson, B., Arras, P., Penev, K., Peacock, S., & Marchant, P. (2017). A new model of Roche lobe overflow for short-period gaseous planets and binary stars. *The Astrophysical Journal, 835*(2), 145. https://doi.org/10.3847/1538-4357/835/2/145
 
 [^caldiroli]: Caldiroli, A., Haardt, F., Gallo, E., Spinelli, R., Malsky, I., & Rauscher, E. (2022). Irradiation-driven escape of primordial planetary atmospheres II. Evaporation efficiency of sub-Neptunes through hot Jupiters. *Astronomy & Astrophysics, 663*, A122. https://doi.org/10.1051/0004-6361/202142763
 

@@ -15,7 +15,7 @@ Which physics carries the continuous loss depends on how tightly the atmosphere 
 - `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (the energy-limited rate is the smaller of the two hydrodynamic limits here).
 - `hydrodynamic:RR`: the same fluid wind, but the rate is capped below the energy limit because radiative recombination re-emits part of the absorbed energy (the radiation-recombination-limited rate wins).
 - `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape), species by species, capped by how fast diffusion can resupply each species.
-- `roche_overflow`: the flow region reaches the planet's Hill sphere, so the atmosphere spills over the gravitational boundary rather than escaping through any of the regimes above.
+- `roche_overflow`: the flow region reaches the planet's Hill sphere, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow. The label sits on top of whichever regime above produced the rate, which is then a lower limit, because the tidally driven flow an overflowing planet drives is not modeled.
 
 The classification logic reduces to three questions, asked in a fixed order:
 

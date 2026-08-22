@@ -22,13 +22,15 @@ Everything species-dependent enters through the binary diffusion parameters $b_{
 
 ## Where it applies
 
-The closure evaluates at the XUV wind base on the atomized composition (molecules are photodissociated well below the launching level, so the escaping gas is atomic). It applies only to confirmed hydrodynamic verdicts; the other regimes split their rates differently:
+The closure evaluates at the XUV wind base on the atomized composition (molecules are photodissociated well below the launching level, so the escaping gas is atomic). It applies only where a hydrodynamic branch produced the rate; the other branches split their rates differently:
 
-| Regime label | Per-species split |
+| Branch that produced the rate | Per-species split |
 |---|---|
 | `hydrodynamic:EL`, `hydrodynamic:RR` | The N-species closure at the wind base (this page); with fractionation disabled, reservoir mass fractions |
-| `boiloff`, `roche_overflow` | Reservoir mass fractions (no fractionation: the flow is fast and bulk) |
+| `boiloff` | Reservoir mass fractions (no fractionation: the flow is fast and bulk) |
 | `hydrostatic` | Natively per-species: each species carries its own Jeans flux and supply cap (see [escape regimes](regimes.md)) |
+
+The split follows the branch and not the label, which matters under `roche_overflow`: that label renames a state without changing its rate, so the split is whatever the branch named in `diagnostics['roche']['rate_branch']` would have produced.
 
 ---
 

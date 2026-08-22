@@ -70,9 +70,17 @@ The flux scaling will not separate them either: the base ion density follows $\s
 
 **Symptom.** The overflow label on a small or quiescent planet, sometimes at a rate that is negligible in absolute terms, and sometimes flipping to another label under a small change in an input or a setting.
 
-**Cause.** The label names the branch that won the rate comparison, and the screen tests that branch's own flow radius. When the bolometric residual wins, the radius tested is its sonic radius, which for a warm low-gravity atmosphere can be larger than the Hill radius even when the residual rate is tiny. So the label reports a geometry, and the rate it carries can be small.
+**Cause.** The label reports a geometry, not a rate. The screen tests the flow radius of the branch that won the rate comparison, and when the bolometric residual wins, that radius is its sonic radius $R_\mathrm{B} = \Lambda R_\mathrm{p} 2^{1/4} / 2$, which grows with the Jeans parameter. A tightly bound heavy atmosphere therefore puts it several Hill radii out while the atmosphere itself sits deep inside, which is the opposite of overflowing. The flipping under a small change is the other half: the label boundary is a comparison between two rate candidates, so wherever the two are within a few percent of each other, a small input change moves the label. The rate does not move with it, because the screen never changes the rate.
 
-**What to do.** Read three things: `flags['bolometric_residual']` (did the residual take the label), `diagnostics['roche']` (`flow_radius` against `R_hill_periapsis`), and `diagnostics['bolometric']` (which cap set the rate). If the residual won at a rate below the floor, treat the point as no escape and the geometry as a note rather than a result. Points inside 1.5 Hill radii raise `near_roche` instead of the label, and the tidal factor is steep there, so a rate from that region carries the tidal correction's sensitivity with it.
+**What to do.** Read four things: `diagnostics['roche']['rate_branch']` (which branch the rate came from), `r_atmosphere` against `R_hill_periapsis` in the same group (does the atmosphere itself reach the lobe, which is what `roche_subflag` reports as `dynamical`), `diagnostics['rate_floor']['above_floor']` (is the rate a number at all), and `flags['bolometric_residual']`.
+
+The three cases that produces:
+
+- Subflag `dynamical` and a rate above the floor: the atmosphere reaches its Roche lobe, the rate is the bound-flow estimate, and the real rate is higher by whatever a tidally driven flow through the inner Lagrange point would carry. Treat it as a lower limit.
+- Subflag `no_transonic` with `r_atmosphere` well inside the Hill radius: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly-bound case above, not an overflow; the [regimes page](../Explanations/regimes.md) explains why the two look alike to the screen.
+- `above_floor` false: the label is decided by the ordering of two rates with no numerical content. Report no escape and treat the geometry as a note.
+
+Points inside 1.5 Hill radii raise `near_roche` instead of the label, and the tidal factor is steep there, so a rate from that region carries the tidal correction's sensitivity with it.
 
 ## `contested_ion` fired
 
