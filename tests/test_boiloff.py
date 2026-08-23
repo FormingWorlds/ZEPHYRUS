@@ -201,7 +201,16 @@ def test_inflated_launch_level_clamps_with_flag():
     mu = 2.3 * amu
     c2 = kb * (T_eq / 2**0.25) / mu
     r_bondi = G * M_p / (2.0 * c2)
-    launch = {'r': 1.2 * r_bondi, 'mmw': mu, 'rho': 1e-6}  # plausible photosphere
+    rho_launch = 1e-6
+    launch = {
+        'r': 1.2 * r_bondi,
+        'mmw': mu,
+        'rho': rho_launch,
+        # The pressure of that density at the wind temperature, so the level
+        # is internally consistent: the branch reads it to report the level's
+        # own optical depth.
+        'p': rho_launch * kb * (T_eq / 2**0.25) / mu,
+    }
     assert launch['r'] > r_bondi  # genuinely beyond R_B
     rate, det = bolometric_candidate(M_p, R_p, T_eq, 0.01, launch, 1.0, 3.0, 20.0)
     assert det['flags'].get('bondi_inflated') is True
@@ -236,3 +245,40 @@ def test_tang_timescale_diagnostic_contract():
     assert fast['terminated'] is False
     out2 = tang_timescale_check(Me, Re, 1.0, 1e5, {'H': 2e18})
     assert out2['terminated'] == out['terminated']
+
+
+@pytest.mark.physics_invariant
+def test_launch_level_reports_its_own_optical_depth():
+    """The launch level reports whether its opacity puts it at a photosphere.
+
+    The Parker rate is derived from a photosphere, so evaluating it at a
+    prescribed pressure only reproduces its own derivation when that
+    pressure is where the supplied opacity gives unit optical depth. The
+    plane-parallel depth tau = kappa P / g is reported so a caller can see
+    the gap on the state in front of them: it is 67 on an inflated hydrogen
+    envelope at 0.01 m^2 kg^-1 and near unity on a bound CO2 planet, which
+    is the difference the number exists to expose. It is reporting only, and
+    the level stays prescribed because the activation threshold above it is
+    calibrated at a level of its own.
+    """
+    launch = _launch(Me, 1.5 * Re, 1000.0, {'H2': 0.9, 'He': 0.1})
+    g_launch = G * Me / launch['r'] ** 2
+    _rate, det = bolometric_candidate(
+        Me, 1.5 * Re, 1000.0, 0.01, launch, 1.0, 5.0, 20.0, k_tide=1.0
+    )
+    # The identity, not a re-derivation: pressure and gravity at the level.
+    assert det['tau_launch'] == pytest.approx(
+        0.01 * launch['p'] / g_launch, rel=1e-12, abs=0.0
+    )
+    assert det['p_launch'] == pytest.approx(float(launch['p']), rel=1e-12, abs=0.0)
+    # This level is nowhere near its own photosphere at this opacity, which
+    # is the finding the diagnostic makes visible rather than hiding.
+    assert det['tau_launch'] > 10.0
+    # Linear in the opacity, so a caller can read off the opacity that would
+    # put the prescribed level at unit depth.
+    _r2, det2 = bolometric_candidate(
+        Me, 1.5 * Re, 1000.0, 0.1, launch, 1.0, 5.0, 20.0, k_tide=1.0
+    )
+    assert det2['tau_launch'] == pytest.approx(10.0 * det['tau_launch'], rel=1e-12, abs=0.0)
+    # Reporting only: it raises no flag and gates nothing.
+    assert 'tau_launch' not in det['flags']

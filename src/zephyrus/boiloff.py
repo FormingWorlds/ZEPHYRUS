@@ -118,8 +118,8 @@ def bolometric_candidate(
         inverse.
     launch : dict
         The photospheric working level (from
-        :func:`zephyrus.profiles.photospheric_level`): uses ``r``, ``mmw``
-        (molecular, not atomized), and ``rho``.
+        :func:`zephyrus.profiles.photospheric_level`): uses ``p``, ``r``,
+        ``mmw`` (molecular, not atomized), and ``rho``.
     F_int : float
         Interior heat flux [W m^-2], for the luminosity cap.
     lambda_gate : float
@@ -160,6 +160,17 @@ def bolometric_candidate(
         4.0 * math.pi * R_B**2 * c_s * rho_launch * math.exp(-G * M_p / (c_s**2 * R_launch))
     )
 
+    # Optical depth of the launch level to its own opacity, in the
+    # plane-parallel form tau = kappa P / g. The Parker rate is derived from
+    # a photosphere, so this reports whether the prescribed level and the
+    # supplied opacity describe the same surface: tau far from 1 means they
+    # do not, and the rate is being evaluated off the definition it came
+    # from. Reporting only. The level is prescribed rather than solved for
+    # because the activation threshold above is calibrated at a level of its
+    # own, so solving here would put the gate and the rate on two surfaces.
+    g_launch = G * M_p / R_launch**2
+    tau_launch = kappa_photo * launch['p'] / g_launch
+
     active = lambda_gate < lambda_crit
     caps = [mdot_parker, mdot_bondi]
     mdot_lum = None
@@ -182,6 +193,8 @@ def bolometric_candidate(
         k_tide=k_tide,
         active=active,
         R_sonic=R_B,
+        tau_launch=tau_launch,
+        p_launch=float(launch['p']),
         flags=flags,
     )
 
