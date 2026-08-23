@@ -268,11 +268,15 @@ def unfractionated_split(
     The protocol of the energy-limited path: reservoir mass fractions when
     reservoir masses are supplied; otherwise the mass fractions of the
     atomized wind-base composition, with the ``split_from_base_composition``
-    flag recording the substitution. The split conserves the bulk rate
-    exactly.
+    flag recording the substitution. A reservoir that has run dry carries no
+    proportions to split by, so it falls back to the same composition, which
+    is the state the end of an evolutionary track reaches. Negative reservoir
+    masses are malformed input. The split conserves the bulk rate exactly.
     """
     flags: dict = {}
-    if reservoirs:
+    if reservoirs and any(m < 0.0 for m in reservoirs.values()):
+        raise ValueError('reservoir masses must be non-negative')
+    if reservoirs and sum(reservoirs.values()) > 0.0:
         tot = sum(reservoirs.values())
         fracs = {el: mass / tot for el, mass in reservoirs.items()}
     else:

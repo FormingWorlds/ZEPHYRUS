@@ -502,3 +502,13 @@ def test_unfractionated_split_protocol():
     assert sum(per2.values()) == pytest.approx(4.0, rel=1e-12)
     # Mass weighting: oxygen outweighs hydrogen at equal mole fractions.
     assert per2['O'] > per2['H']
+    # A reservoir that has run dry has no proportions to split by, which is
+    # the state the end of an evolutionary track reaches. It takes the same
+    # fallback as no reservoir at all, flagged, rather than dividing by zero.
+    per3, flags3 = unfractionated_split(4.0, {'H': 0.0, 'O': 0.0}, {'H': 0.5, 'O': 0.5})
+    assert flags3.get('split_from_base_composition') is True
+    assert per3 == pytest.approx(per2, rel=1e-12)
+    assert sum(per3.values()) == pytest.approx(4.0, rel=1e-12)
+    # Negative reservoir masses are malformed input, not a dry reservoir.
+    with pytest.raises(ValueError, match='non-negative'):
+        unfractionated_split(4.0, {'H': -1.0, 'O': 2.0}, {'H': 0.5, 'O': 0.5})
