@@ -267,15 +267,20 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     diag['bolometric']['rate_kg_s'] = bolo_rate
 
     # Step 2: hydrodynamic candidate (always computed; it is cheap).
-    base, f = _resolve_wind_base(inputs)
-    flags.update(f)
-    elements = atomize(base['vmr'])
     channels = dict(
         cool_atomic=st.cool_atomic,
         cool_co2_band=st.cool_co2_band,
         cool_o_finestructure=st.cool_o_finestructure,
         cool_recombination=st.cool_recombination,
     )
+    # The exobase temperature is resolved once and used by both the upper
+    # structure the hydrostatic branch stands on and, under the extend
+    # policy, the one the wind base is re-evaluated on. Resolving it twice
+    # built those two structures at two different temperatures.
+    t_exo = _resolve_t_exo(inputs, channels)
+    base, f = _resolve_wind_base(inputs, t_exo)
+    flags.update(f)
+    elements = atomize(base['vmr'])
     t_wind, thermo = th.solve_wind_temperature(
         inputs.T_eq, base, elements, inputs.F_xuv, **channels
     )
@@ -354,7 +359,6 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
 
     # Step 4: hydrostatic branch (always evaluated: its exobase quantities
     # feed the diagnostics at every dispatch).
-    t_exo = _resolve_t_exo(inputs, channels)
     hs_per_element, hsd = hs.hydrostatic_rates(
         inputs.profile, inputs.M_p, t_exo, gamma_bates=st.gamma_bates, kzz_default=st.kzz
     )
@@ -538,15 +542,16 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     )
 
 
-def _resolve_wind_base(inputs: EscapeInputs) -> tuple[dict, dict]:
+def _resolve_wind_base(inputs: EscapeInputs, t_exo: float) -> tuple[dict, dict]:
     """The wind-base level with the out-of-range policy applied.
 
     Locates the base by the configured method; when the physical base
     pressure lies above the profile top and the policy is ``'extend'``,
-    the level is re-evaluated on the Bates extension (the same upper
-    structure the hydrostatic branch uses), flagged ``base_extended``;
-    under ``'clamp'`` (default) the clamped top level and its recorded
-    clamp distance stand.
+    the level is re-evaluated on the Bates extension at ``t_exo``, which is
+    the exobase temperature the hydrostatic branch is given, so the two
+    structures are one structure. Flagged ``base_extended``; under
+    ``'clamp'`` (default) the clamped top level and its recorded clamp
+    distance stand.
     """
     st = inputs.settings
     boreas_scalars = None
@@ -562,7 +567,6 @@ def _resolve_wind_base(inputs: EscapeInputs) -> tuple[dict, dict]:
     if flags.get('base_clamped') and st.base_out_of_range == 'extend':
         p_target = base.get('p_physical')
         if p_target is not None:
-            t_exo = st.T_exo_value if st.T_exo_mode == 'prescribed' else inputs.T_eq
             ext = hs.bates_extension(inputs.profile, inputs.M_p, t_exo, gamma=st.gamma_bates)
             p_ext = np.asarray(ext['p'])
             if p_target >= p_ext[-1]:

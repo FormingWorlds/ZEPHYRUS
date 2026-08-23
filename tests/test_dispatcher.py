@@ -664,3 +664,44 @@ def test_flags_describe_the_branch_that_produced_the_rate():
     assert static.regime == 'hydrostatic'
     assert static.flags.get('hydrostatic_lower_limit') is True
     assert 'subcritical_sonic' not in static.flags
+
+
+def test_one_exobase_temperature_per_call():
+    """The base extension and the branch stand on one upper structure.
+
+    Under the extend policy the wind base is re-evaluated on a Bates
+    extension, and the hydrostatic branch stands on one too. Both must be
+    built at the same exobase temperature: resolving it twice, once from the
+    settings and once from the equilibrium temperature, gave one call two
+    thermospheres, and under the thermostat they differed by an order of
+    magnitude in temperature, which sets the base density the wind rate is
+    built from.
+    """
+    m_p, r_p, t_eq = 10 * Me, 1.8 * Re, 800.0
+    # A profile whose top lies above the Lopez base, so the policy engages.
+    settings = DispatchSettings(T_exo_mode='thermostat', base_out_of_range='extend')
+    res = dispatch(
+        _inputs(
+            m_p,
+            r_p,
+            t_eq,
+            {'CO2': 1.0},
+            F_xuv=10.0,
+            a=0.5 * AU,
+            p_top=1.0,
+            settings=settings,
+        )
+    )
+    prof = isothermal_profile(m_p, r_p, t_eq, {'CO2': 1.0}, 1e7, 1.0)
+    assert res.flags.get('base_extended') is True
+    t_branch = res.diagnostics['hydrostatic']['T_exo']
+    t_base = res.diagnostics['base_level']['T_K']
+    t_top = float(prof.T[-1])
+    # The thermostat must have moved off the equilibrium temperature, or the
+    # test cannot tell the two resolutions apart.
+    assert t_branch > 5.0 * t_eq
+    # The base sits on the same extension: between the anchor and the exobase,
+    # and nowhere near the equilibrium temperature the old path used.
+    assert t_top < t_base <= t_branch
+    assert t_base > 0.5 * t_branch
+    assert t_base != pytest.approx(t_eq, rel=0.1, abs=0.0)
