@@ -36,7 +36,7 @@ from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g
 # exceed their gravitational settling).
 #
 # Exact reductions verified in the companion test suite: the two-species
-# limit of Hunten et al. (1987) in the form of Cherubim & Wordsworth
+# limit of Hunten et al. (1987) in the form of Cherubim et al.
 # (2024, ApJ 967, 139, Eqs. 7-9); the three-species deuterium system of Gu
 # & Chen (2023, Eqs. 4, 8, 9, 12); the trace-minor relations of Odert et
 # al. (2018, Icarus 307, 327, Eq. 5) and Zahnle et al. (1990, Eqs. 35, 36,

@@ -33,7 +33,7 @@ from zephyrus.constants import kb_cgs
 #
 # - Atomic lines: three-level statistical equilibrium for H, C, C+, N, N+,
 #   O, and O+ under electron impact with cool-to-space losses, the
-#   machinery of Chatterjee & Pierrehumbert (2026, arXiv:2412.05188,
+#   machinery of Chatterjee & Pierrehumbert (2026, ApJ 998, 236,
 #   their Eqs. 26-30) on the Nakayama et al. (2022) level data; the H
 #   system carries Lyman-alpha.
 # - The CO2 15 micron band and the atomic O fine structure (Johnstone et

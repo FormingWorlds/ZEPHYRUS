@@ -6,7 +6,7 @@ so carry the smoke tier: they exercise the real solver across hundreds of
 configurations per test. The properties under test:
 
 - The two-species limit against the closed-form binary partition of
-  Cherubim & Wordsworth (2024, Eqs. 7-9), including flux continuity at the
+  Cherubim et al. (2024, Eqs. 7-9), including flux continuity at the
   crossover and exact mass conservation, over 200 random draws.
 - Global properties across activation thresholds on random systems: mass
   conservation, non-negativity (including exactly at bisected thresholds),
@@ -37,7 +37,7 @@ AMU_G = 1.66053907e-24  # g
 
 
 def isofate_binary(phi, x1, x2, m1, m2, T, g0, b12):
-    """Closed-form two-species partition (Cherubim & Wordsworth 2024, Eqs. 7-9)."""
+    """Closed-form two-species partition (Cherubim et al. 2024, Eqs. 7-9)."""
     kT = kb_cgs * T
     h1 = kT / (m1 * g0)
     h2 = kT / (m2 * g0)

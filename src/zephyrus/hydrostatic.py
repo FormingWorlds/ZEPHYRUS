@@ -56,7 +56,7 @@ from zephyrus.knudsen import sigma_mixture
 # - Escape temperatures: T_esc,neutral = G M m / (2 kB r), the
 #   lambda = 2 criterion, and the plasma escape temperature at half that
 #   value because the ambipolar field shares the ion's binding with the
-#   electron (Chatterjee & Pierrehumbert 2026, arXiv:2412.05188, their
+#   electron (Chatterjee & Pierrehumbert 2026, ApJ 998, 236, their
 #   Eq. 34); a hydrostatic exobase hotter than half the gating escape
 #   temperature is unstable (their Figure 10 criterion) and callers
 #   re-route such points to the hydrodynamic branch.

@@ -8,7 +8,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the repor
 
 ## Notes
 
-The Johnson et al. (2013, ApJL 768, L4, Eq. 10) transonic energy criterion and the Guo (2024, arXiv:2405.13283) regime triple are asserted through their published scalings and limits as physics invariants in the same file. The threshold-potential screen of Salz et al. (2016, A&A 585, L2) carries the two values of their abstract, 13.11 for the validity of energy-limited escape and about 13.6 for hydrodynamically stable thermospheres, read from the paper; the module reports the hydrogen-dominated scope of their grid beside the verdict.
+The Johnson et al. (2013, ApJL 768, L4, Eq. 10) transonic energy criterion and the Guo (2024, Nat. Astron. 8, 920) regime triple are asserted through their published scalings and limits as physics invariants in the same file. The threshold-potential screen of Salz et al. (2016, A&A 585, L2) carries the two values of their abstract, 13.11 for the validity of energy-limited escape and about 13.6 for hydrodynamically stable thermospheres, read from the paper; the module reports the hydrogen-dominated scope of their grid beside the verdict.
 
 ## Anchor type
 

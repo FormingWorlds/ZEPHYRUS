@@ -110,7 +110,7 @@ def guo_triple(
 ) -> dict:
     """The (lambda_exo, lambda, lambda*) regime triple of Guo (2024).
 
-    Guo (2024, arXiv:2405.13283) classifies escape regimes with the Jeans
+    Guo (2024, Nat. Astron. 8, 920) classifies escape regimes with the Jeans
     parameter at the planetary radius and its Roche-corrected companion
     ``lambda* = lambda K(xi)``; reporting the triple beside the exobase
     value lets a reader translate the dispatch verdict into that taxonomy.

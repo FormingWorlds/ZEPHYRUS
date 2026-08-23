@@ -196,7 +196,7 @@ def sigma_mixture(vmr: dict[str, float], T: float) -> tuple[float, dict]:
     """Density-weighted effective cross section of a mixture.
 
     ``sigma_C = sum_k n_k sigma_k / n``, the mixture weighting of
-    Chatterjee & Pierrehumbert (2026, arXiv:2412.05188, their Eq. 25).
+    Chatterjee & Pierrehumbert (2026, ApJ 998, 236, their Eq. 25).
     ``vmr`` maps species to mole fractions (renormalized internally).
     Returns ``(sigma_C [m^2], provenance dict per species)``.
     """
@@ -214,7 +214,7 @@ def sigma_mixture(vmr: dict[str, float], T: float) -> tuple[float, dict]:
 
 # ---------------------------------------------------------------------------
 # The sonic-point Knudsen switch. Chatterjee & Pierrehumbert (2026,
-# arXiv:2412.05188) build the sonic-point Knudsen number from the Maxwell
+# ApJ 998, 236) build the sonic-point Knudsen number from the Maxwell
 # mean free path 1/(sqrt(2) sigma n) against the analytic sonic-point
 # density scale height of their Eq. (17),
 #     H_sc = (1 + gamma) r_sc / (4 + sqrt(2) sqrt(5 - 3 gamma)),

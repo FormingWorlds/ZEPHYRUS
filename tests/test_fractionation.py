@@ -5,8 +5,8 @@ special case of the escape-fractionation lineage it generalizes:
 
 - The three-species deuterium system of Gu & Chen (2023): the escaping and
   retained-helium branches, both critical rates, and the helium admixture
-  factor on the deuterium threshold (also the ternary limit of Cherubim &
-  Wordsworth 2024, their Eq. 11).
+  factor on the deuterium threshold (also the ternary limit of Cherubim
+  et al. 2024, their Eq. 11).
 - The trace-minor relations of Odert et al. (2018, Eq. 5) and Zahnle et
   al. (1990, Eqs. 35, 36, 42), including the adjudication that the earlier
   Zahnle & Kasting (1986) Eq. (36) drag-deficit weighting is NOT
@@ -73,7 +73,7 @@ def test_ternary_deuterium_reductions():
     """The H-He-D system reproduces the Gu & Chen (2023) relations exactly.
 
     With helium escaping, the trace-deuterium flux matches their Eq. (4)
-    (equivalently Cherubim & Wordsworth 2024, Eq. 11); with helium
+    (equivalently Cherubim et al. 2024, Eq. 11); with helium
     retained, their Eq. (8); the activation thresholds match their two
     critical rates including the (1 + alpha_2 X_He/X_H)^-1 helium factor
     on the deuterium threshold, which must lower it relative to the

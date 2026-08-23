@@ -14,7 +14,7 @@ where $X_i$ is the mole fraction of species $i$, $w_i$ its escape velocity scale
 
 Which species escape is part of the solution, not an input. A heavy species whose settling under gravity beats the drag the outflow can exert on it drops out of the escaping set and moves to the retained set, where it still appears in the drag sums of Eq. (1). The solver finds the unique partition into escaping and retained species for which every escaping species has a positive flux and every retained species genuinely cannot be lifted; each heavy species therefore has a threshold bulk flux at which it starts to escape, and below the lowest threshold only the lightest species leaves. The returned per-species rates are non-negative and sum to the bulk rate at machine precision.
 
-The closure reproduces, as exact special cases, the published treatments it generalizes: the two-species crossover of Hunten et al. (1987) in the form of Cherubim & Wordsworth (2024) [^cherubim], the three-species deuterium system of Gu & Chen (2023) [^guchen], the trace-minor relations of Odert et al. (2018) [^odert] and Zahnle et al. (1990), the non-trace three-species relations of Zahnle & Kasting (2023) [^zk23], and the prescribed-flux partition of Chassefiere (1996) [^chassefiere], along with the worked Earth, Mars, and Venus numbers of Hunten et al. (1987). The test suite asserts every one of these reductions, and the general formulation is the subject of Attia & Lichtenberg (2026, in prep.) [^attia].
+The closure reproduces, as exact special cases, the published treatments it generalizes: the two-species crossover of Hunten et al. (1987) in the form of Cherubim et al. (2024) [^cherubim], the three-species deuterium system of Gu & Chen (2023) [^guchen], the trace-minor relations of Odert et al. (2018) [^odert] and Zahnle et al. (1990), the non-trace three-species relations of Zahnle & Kasting (2023) [^zk23], and the prescribed-flux partition of Chassefiere (1996) [^chassefiere], along with the worked Earth, Mars, and Venus numbers of Hunten et al. (1987). The test suite asserts every one of these reductions, and the general formulation is the subject of Attia & Lichtenberg (2026, in prep.) [^attia].
 
 ## Coefficients and their provenance
 
@@ -50,7 +50,7 @@ The split follows the branch and not the label, which matters under `roche_overf
 
 [^cherubim]: Cherubim, C., Wordsworth, R., Hu, R., & Shkolnik, E. (2024). Strong Fractionation of Deuterium and Helium in Sub-Neptune Atmospheres along the Radius Valley. *The Astrophysical Journal, 967*(2), 139. https://doi.org/10.3847/1538-4357/ad3e77
 
-[^guchen]: Gu, P.-G., & Chen, H. (2023). Deuterium Escape on Photoevaporating Sub-Neptunes. arXiv:2308.05057.
+[^guchen]: Gu, P.-G., & Chen, H. (2023). Deuterium Escape on Photoevaporating Sub-Neptunes. *The Astrophysical Journal Letters, 953*(2), L27. https://doi.org/10.3847/2041-8213/acee01
 
 [^odert]: Odert, P., et al. (2018). Escape and fractionation of volatiles and noble gases from Mars-sized planetary embryos and growing protoplanets. *Icarus, 307*, 327–346.
 
