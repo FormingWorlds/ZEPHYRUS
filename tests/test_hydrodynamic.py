@@ -22,6 +22,7 @@ import math
 
 import pytest
 
+from zephyrus.atomic_data import SIGMA_NU0_H, SIGMA_NU_N
 from zephyrus.constants import G, m_p
 from zephyrus.hydrodynamic import (
     caldiroli_efficiency,
@@ -266,3 +267,38 @@ def test_hill_radius_periapsis_geometry():
     assert r8m == pytest.approx(2.0 * r0, rel=1e-12, abs=0.0)
     # Earth's Hill radius is about 1.5e9 m (0.01 au).
     assert 1.3e9 < r0 < 1.6e9
+
+
+@pytest.mark.physics_invariant
+def test_front_constants_come_from_one_front():
+    """The photon energy and its cross section belong to the same front.
+
+    The chain picks a monochromatic ionizing front by composition, and both
+    constants of that front have to follow the choice. Taking the energy from
+    the composition while leaving the cross section at hydrogen's put a
+    nitrogen-like wind on a section 5.3 times too small, so its neutral base
+    density came out 5.3 times too high and the reported base ionization
+    fraction was understated by a third. The neutral density scales as the
+    inverse of the section, which is what pins the direction here; the rate
+    is built on the ion density and is untouched either way.
+    """
+    hydrogen = rr_chain(5 * Me, 100.0, 1.5 * Re, 1.0e4, {'H': 1.0})
+    nitrogen = rr_chain(5 * Me, 100.0, 1.5 * Re, 1.0e4, {'N': 1.0})
+    assert hydrogen['hnu0_eV'] == pytest.approx(20.0, rel=1e-12, abs=0.0)
+    assert nitrogen['hnu0_eV'] == pytest.approx(33.6, rel=1e-12, abs=0.0)
+    # Both densities scale as 1/(sigma c_s^2), so dividing out the sound
+    # speed leaves the ratio of the two tabulated sections.
+    section_ratio = SIGMA_NU_N / SIGMA_NU0_H
+    measured = (hydrogen['n_0_base'] * hydrogen['c_s'] ** 2) / (
+        nitrogen['n_0_base'] * nitrogen['c_s'] ** 2
+    )
+    assert measured == pytest.approx(section_ratio, rel=1e-9, abs=0.0)
+    assert section_ratio == pytest.approx(5.3006, rel=1e-3, abs=0.0)
+    # Discrimination: leaving the section at hydrogen's would make the ratio
+    # unity, which the assertion above excludes.
+    assert measured > 5.0
+    # The base ionization fraction is a fraction, and the heavy wind's is
+    # not the understated value the mismatched section produced.
+    for chain in (hydrogen, nitrogen):
+        assert 0.0 <= chain['f_plus_base'] <= 1.0
+    assert nitrogen['f_plus_base'] > 0.8

@@ -9,10 +9,15 @@ from __future__ import annotations
 
 import math
 
-from zephyrus.atomic_data import HNU0_H_EV, HNU_I_N_EV, alpha_case_b
+from zephyrus.atomic_data import (
+    HNU0_H_EV,
+    HNU_I_N_EV,
+    SIGMA_NU0_H,
+    SIGMA_NU_N,
+    alpha_case_b,
+)
 from zephyrus.composition import ELEMENT_AMU
 from zephyrus.constants import G, ev2joule, kb, m_p
-from zephyrus.profiles import SIGMA_NU0
 
 # The branch computes both hydrodynamic limits and takes their minimum:
 #
@@ -338,9 +343,10 @@ def rr_chain(
 
     The ionizing front follows the composition: the 20 eV hydrogen front
     for winds with an atomized hydrogen fraction of one half or more, the
-    33.6 eV nitrogen-like front otherwise. The composition recombination
-    coefficient is the mole-fraction-weighted case B set with its
-    documented temperature scaling.
+    33.6 eV nitrogen-like front otherwise, and the photoionization cross
+    section follows the same front rather than staying at hydrogen's. The
+    composition recombination coefficient is the mole-fraction-weighted case
+    B set with its documented temperature scaling.
 
     Returns a dict with ``c_s``, ``R_s``, ``R_s_calc``, ``lambda_b``,
     ``rho_base``, ``rho_s``, ``n_plus_base``, ``n_0_base``,
@@ -354,8 +360,15 @@ def rr_chain(
     r_s = max(r_s_calc, R_base)
     lambda_b = G * M_p / (R_base * c_s**2)
 
+    # The photon energy and the cross section belong to one front and must
+    # be taken from the same one. Taking the energy from the composition and
+    # the cross section from hydrogen put a nitrogen-like wind on a section
+    # 5.3 times too small, which raised its neutral base density by that
+    # factor and understated the reported base ionization fraction.
     x_h = element_fractions.get('H', 0.0)
-    hnu0 = (HNU0_H_EV if x_h >= 0.5 else HNU_I_N_EV) * ev2joule
+    hydrogen_front = x_h >= 0.5
+    hnu0 = (HNU0_H_EV if hydrogen_front else HNU_I_N_EV) * ev2joule
+    sigma_nu0 = (SIGMA_NU0_H if hydrogen_front else SIGMA_NU_N) * 1e-4  # cm^2 -> m^2
 
     # Composition-weighted case B coefficient, cm^3/s -> m^3/s.
     alpha_b = sum(x * alpha_case_b(el, T_wind) for el, x in element_fractions.items()) * 1e-6
@@ -370,7 +383,7 @@ def rr_chain(
     rho_base = n_plus_base * mu_plus * m_p
     # Neutral base density from unit optical depth over a scale height:
     # n_0 = G M / (sigma_nu0 c_s^2 R_base^2).
-    n_0_base = G * M_p / (SIGMA_NU0 * c_s**2 * R_base**2)
+    n_0_base = G * M_p / (sigma_nu0 * c_s**2 * R_base**2)
     f_plus = n_plus_base / (n_plus_base + n_0_base) if (n_plus_base + n_0_base) > 0 else 0.0
 
     if subcritical:
