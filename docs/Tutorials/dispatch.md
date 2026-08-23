@@ -248,12 +248,12 @@ Output:
 boiloff 134848975815225.14
 11.10021097177663
 (15.0, 35.0)
-['base_clamp_decades', 'base_clamped', 'subcritical_sonic']
+['base_clamp_decades', 'base_clamped']
 ```
 
 At one Earth mass and 1.5 Earth radii with a hydrogen and helium envelope, $\Lambda = 11.10$, well below the threshold of 20, and the rate is $1.3 \times 10^{14}$ kg s⁻¹ at every flux in the sweep. That planet is not long-lived, which is the point: boil-off is the regime of the first few million years.
 
-The clamp flags are expected here, and harmless: an isothermal hydrogen envelope becomes unbound before it reaches a nanobar, so the profile stops early and the wind base clamps to its top. The boil-off branch launches from the photospheric level, not the wind base, so the clamp does not touch the rate. Flags tell you what happened; deciding whether it matters is your job, and the [troubleshooting guide](../How-to/troubleshooting.md) is a shortcut for the common cases.
+The clamp flags are expected here, and harmless: an isothermal hydrogen envelope becomes unbound before it reaches a nanobar, so the profile stops early and the wind base clamps to its top. The boil-off branch launches from the photospheric level, not the wind base, so the clamp does not touch the rate. Note what is absent: the hydrodynamic candidates were computed on this state too, and one of them raised a subcritical-sonic caution, but the dispatched rate is the bolometric one and the flags describe the branch that produced it. Flags tell you what happened; deciding whether it matters is your job, and the [troubleshooting guide](../How-to/troubleshooting.md) is a shortcut for the common cases.
 
 Push the same envelope to three Earth masses and two Earth radii and the flow stops being bound to the planet at all:
 
