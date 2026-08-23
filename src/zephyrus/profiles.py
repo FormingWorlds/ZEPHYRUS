@@ -13,6 +13,11 @@ import numpy as np
 from zephyrus.composition import atomize, species_mass_amu
 from zephyrus.constants import G, amu, kb
 
+# Mixing ratios below zero by less than this are treated as solver noise; a
+# chemistry or transport solver can return a small negative mole fraction
+# where a species is absent, and a coupled run must not die on it.
+VMR_NOISE_FLOOR = 1.0e-12
+
 # Murray-Clay et al. (2009, ApJ 693, 23) photoionization cross section at
 # their representative 20 eV photon energy: sigma_nu0 = 6e-18 (h nu / 13.6
 # eV)^-3 cm^2. Converted to m^2. Used by the Lopez (2017) wind-base pressure.
@@ -51,20 +56,39 @@ class Profile:
 
         Pressure must decrease and radius increase strictly with index;
         temperature is unconstrained beyond positivity. Every mixing-ratio
-        array must share the level count.
+        array must share the level count, be finite, and be non-negative.
+
+        Finiteness is checked before the sign comparisons, because a
+        comparison against NaN is false and a NaN would otherwise pass every
+        positivity test and surface far downstream as an error naming some
+        unrelated quantity. Mixing ratios below zero by less than
+        ``VMR_NOISE_FLOOR`` are solver noise and pass; the consumers ignore
+        non-positive weights and renormalize over the rest.
         """
-        p, r, T = map(np.asarray, (self.p, self.r, self.T))
-        if not (len(p) == len(r) == len(T) == len(self.mmw)):
+        p, r, T, mmw = map(np.asarray, (self.p, self.r, self.T, self.mmw))
+        if not (len(p) == len(r) == len(T) == len(mmw)):
             raise ValueError('profile arrays must share one length')
         if len(p) < 3:
             raise ValueError('profile needs at least 3 levels')
+        for name, arr in (('p', p), ('r', r), ('T', T), ('mmw', mmw)):
+            if not np.all(np.isfinite(arr)):
+                raise ValueError(f'{name} carries a non-finite value')
         if not (np.all(np.diff(p) < 0) and np.all(np.diff(r) > 0)):
             raise ValueError('p must decrease and r increase strictly with index')
-        if np.any(p <= 0) or np.any(T <= 0) or np.any(np.asarray(self.mmw) <= 0):
+        if np.any(p <= 0) or np.any(T <= 0) or np.any(mmw <= 0):
             raise ValueError('p, T, mmw must be positive')
         for sp, x in self.vmr.items():
-            if len(np.asarray(x)) != len(p):
+            arr = np.asarray(x, dtype=float)
+            if len(arr) != len(p):
                 raise ValueError(f'vmr[{sp}] length mismatch')
+            if not np.all(np.isfinite(arr)):
+                raise ValueError(f'vmr[{sp}] carries a non-finite value')
+            if np.any(arr < -VMR_NOISE_FLOOR):
+                raise ValueError(f'vmr[{sp}] is negative beyond solver noise')
+        if self.vmr:
+            total = sum(np.clip(np.asarray(x, dtype=float), 0.0, None) for x in self.vmr.values())
+            if np.any(np.asarray(total) <= 0.0):
+                raise ValueError('every level needs at least one species present')
 
 
 def isothermal_profile(

@@ -210,3 +210,25 @@ def test_hysteresis_window_moves_the_threshold_the_right_way():
     assert effective_threshold(1.0, 1.5, 'boiloff') == pytest.approx(1.0)
     # The printed diagnostic band brackets the default threshold of 1.
     assert KN_BAND[0] < 1.0 <= KN_BAND[1]
+
+
+@pytest.mark.physics_invariant
+def test_sigma_mixture_normalizes_over_what_is_present():
+    """The weighting normalizes over the same weights it sums.
+
+    A negative mole fraction must not shrink the denominator while being
+    skipped in the numerator: that inflates the cross section without bound
+    and biases the Knudsen switch toward calling a point hydrodynamic. A
+    mixture whose only positive entry is one species must therefore give
+    exactly that species' value.
+    """
+    pure, _ = sigma_mixture({'CO2': 1.0}, 1.0e4)
+    with_noise, _ = sigma_mixture({'CO2': 1.5, 'H2': -0.5}, 1.0e4)
+    assert with_noise == pytest.approx(pure, rel=1e-15, abs=0.0)
+    # Unnormalized positive weights are scale free, as a mole fraction is.
+    scaled, _ = sigma_mixture({'CO2': 2.0, 'H2': 2.0}, 1.0e4)
+    unit, _ = sigma_mixture({'CO2': 0.5, 'H2': 0.5}, 1.0e4)
+    assert scaled == pytest.approx(unit, rel=1e-15, abs=0.0)
+    # A mixture with nothing in it has no cross section to report.
+    with pytest.raises(ValueError, match='positive mole fraction'):
+        sigma_mixture({'CO2': 0.0, 'H2': -1e-20}, 1.0e4)

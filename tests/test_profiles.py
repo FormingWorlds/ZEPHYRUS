@@ -331,3 +331,48 @@ def test_wind_base_level_boreas_uses_solver_radius(monkeypatch):
     fake.MassLoss = SkippedMassLoss
     lev_f, flags_f = wind_base_level(prof, 5 * Me, method='boreas', boreas_scalars=scalars)
     assert flags_f.get('base_method_fallback') == 'lopez'
+
+
+@pytest.mark.physics_invariant
+def test_validate_rejects_non_finite_and_negative_entries():
+    """A non-finite or negative entry is caught here, not far downstream.
+
+    A comparison against NaN is false, so a positivity test alone passes a
+    NaN through, and it then surfaces wherever the value is first combined
+    with something else, under a message naming an unrelated quantity. Every
+    array is therefore checked for finiteness before its sign. Mixing ratios
+    slightly below zero are solver noise and pass, because a chemistry solver
+    can return one where a species is absent and a coupled run must not die
+    on it; a genuinely negative mole fraction is rejected.
+    """
+    n = 5
+    base = dict(
+        p=np.geomspace(1e7, 1e-5, n),
+        r=np.linspace(6.378e6, 8.0e6, n),
+        T=np.full(n, 500.0),
+        vmr={'CO2': np.full(n, 1.0)},
+        mmw=np.full(n, 44.0095 * amu),
+        kzz=None,
+    )
+    Profile(**base).validate()  # the well-posed case still passes
+    for field, bad, match in (
+        ('T', np.array([500.0, 500.0, np.nan, 500.0, 500.0]), 'T carries a non-finite'),
+        ('T', np.array([500.0, 500.0, np.inf, 500.0, 500.0]), 'T carries a non-finite'),
+        ('mmw', np.array([7.3e-26] * 2 + [np.nan] + [7.3e-26] * 2), 'mmw carries a non-finite'),
+        ('p', np.array([1e7, 1e3, np.nan, 1e-1, 1e-5]), 'p carries a non-finite'),
+        ('r', np.array([6.4e6, 6.8e6, np.inf, 7.6e6, 8.0e6]), 'r carries a non-finite'),
+    ):
+        with pytest.raises(ValueError, match=match):
+            Profile(**{**base, field: bad}).validate()
+    with pytest.raises(ValueError, match='non-finite'):
+        Profile(**{**base, 'vmr': {'CO2': np.array([1.0, 1.0, np.nan, 1.0, 1.0])}}).validate()
+    with pytest.raises(ValueError, match='negative beyond solver noise'):
+        Profile(
+            **{**base, 'vmr': {'CO2': np.full(n, 1.5), 'H2': np.full(n, -0.5)}}
+        ).validate()
+    with pytest.raises(ValueError, match='at least one species'):
+        Profile(**{**base, 'vmr': {'CO2': np.zeros(n), 'H2': np.zeros(n)}}).validate()
+    # Solver noise passes, and the consumers ignore it.
+    Profile(
+        **{**base, 'vmr': {'CO2': np.full(n, 1.0), 'H2': np.full(n, -1e-16)}}
+    ).validate()

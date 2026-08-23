@@ -197,15 +197,19 @@ def sigma_mixture(vmr: dict[str, float], T: float) -> tuple[float, dict]:
 
     ``sigma_C = sum_k n_k sigma_k / n``, the mixture weighting of
     Chatterjee & Pierrehumbert (2026, ApJ 998, 236, their Eq. 25).
-    ``vmr`` maps species to mole fractions (renormalized internally).
+    ``vmr`` maps species to mole fractions, renormalized internally over the
+    species that are actually present: the normalization runs over the same
+    positive weights the sum runs over, so a negative entry cannot shrink the
+    denominator and inflate the result. A mixture with nothing present raises.
     Returns ``(sigma_C [m^2], provenance dict per species)``.
     """
-    tot = sum(vmr.values())
+    present = {sp: x for sp, x in vmr.items() if x > 0.0}
+    tot = sum(present.values())
+    if tot <= 0.0:
+        raise ValueError('no species has a positive mole fraction')
     sig = 0.0
     prov: dict[str, str] = {}
-    for sp, x in vmr.items():
-        if x <= 0.0:
-            continue
+    for sp, x in present.items():
         s, p = sigma_species(sp, T)
         sig += (x / tot) * s
         prov[sp] = p
