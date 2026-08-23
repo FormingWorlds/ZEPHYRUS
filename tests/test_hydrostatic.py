@@ -123,6 +123,23 @@ def _mars_profile():
     return Profile(p=p, r=r, T=T, vmr=vmr, mmw=np.full(3, mu), kzz=None)
 
 
+def _co2_hydrogen_profile(x_h2):
+    """The Mars anchor profile with the hydrogen abundance set explicitly."""
+    r0 = R_MARS + 8.0e4
+    p = np.array([10.0, 1.0, 0.1])
+    T = np.full(3, 100.0)
+    mu = 44.0095 * amu
+    r = np.empty(3)
+    r[2] = r0
+    for i in (1, 0):
+        H = kb * 100.0 * r[i + 1] ** 2 / (G * M_MARS * mu)
+        r[i] = r[i + 1] - H * math.log(p[i] / p[i + 1])
+    vmr = {'CO2': np.full(3, 1.0 - x_h2)}
+    if x_h2 > 0.0:
+        vmr['H'] = np.full(3, x_h2)
+    return Profile(p=p, r=r, T=T, vmr=vmr, mmw=np.full(3, mu), kzz=None)
+
+
 def _mars_h_flux(t_inf):
     """Hydrogen number flux per anchor area, cm^-2 s^-1, at exobase T."""
     prof = _mars_profile()
@@ -304,3 +321,34 @@ def test_jeans_effusion_velocity_shape():
     v_heavy = jeans_effusion_velocity(T, 16 * m, 5.0)
     assert v5 / v_heavy == pytest.approx(4.0, rel=0.01)  # sqrt(16) prefactor
     assert v_heavy > 0.0
+
+
+@pytest.mark.physics_invariant
+def test_trace_species_survive_into_the_exobase_anchor():
+    """A trace light species keeps its rate however thin it is.
+
+    The escaping flux of a minor species is linear in its mixing ratio, so
+    on a heavy background whose own rate is twenty decades lower the bulk
+    rate must follow the trace hydrogen down without a step. A lower cut on
+    the anchor mixing ratio would instead delete the species that carries
+    the whole rate, and the rate would fall to the background's the moment
+    the abundance crossed it.
+    """
+    rates, keys = [], []
+    fractions = (1e-6, 1e-8, 1e-9, 1e-12, 1e-15)
+    for x_h2 in fractions:
+        prof = _co2_hydrogen_profile(x_h2)
+        per_el, _det = hydrostatic_rates(prof, M_MARS, 1000.0)
+        rates.append(sum(per_el.values()))
+        keys.append(set(per_el))
+    # Linear in abundance across nine decades, so no threshold sits inside.
+    for x, rate in zip(fractions, rates):
+        assert rate / x == pytest.approx(rates[0] / fractions[0], rel=1e-3), (x, rate)
+    # Hydrogen is reported at every abundance, never dropped from the split.
+    assert all('H' in k for k in keys)
+    # Removing it entirely is the only way to lose it, and then the rate
+    # collapses to the heavy background, which is what the step looked like.
+    bare = _co2_hydrogen_profile(0.0)
+    per_el_bare, _ = hydrostatic_rates(bare, M_MARS, 1000.0)
+    assert 'H' not in per_el_bare
+    assert sum(per_el_bare.values()) < 1e-4 * rates[-1]

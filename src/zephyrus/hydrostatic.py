@@ -120,12 +120,18 @@ def bates_extension(
     r0 = float(profile.r[-1])
     t_top = float(profile.T[-1])
     mu = float(profile.mmw[-1])
+    # Every species present at the anchor is carried, however thin. A trace
+    # light species can dominate the exospheric loss while sitting many
+    # decades below the bulk, so a lower cut on the mixing ratio would
+    # delete the rate rather than a rounding error.
     vmr = {
         sp: float(np.asarray(v)[-1])
         for sp, v in profile.vmr.items()
-        if float(np.asarray(v)[-1]) > 1e-8
+        if float(np.asarray(v)[-1]) > 0.0
     }
     tot = sum(vmr.values())
+    if tot <= 0.0:
+        raise ValueError('no species present at the profile top')
     vmr = {sp: x / tot for sp, x in vmr.items()}
     zeta = np.linspace(0.0, zeta_max, n_levels)
     T = T_exo - (T_exo - t_top) * np.exp(-gamma * zeta)
