@@ -279,21 +279,28 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     t_wind, thermo = th.solve_wind_temperature(
         inputs.T_eq, base, elements, inputs.F_xuv, **channels
     )
+    # Warnings about the hydrodynamic candidates are held aside and merged
+    # only if one of them wins the route. A warning about the wind
+    # temperature or the sonic radius describes a rate that a bolometric or
+    # hydrostatic verdict did not dispatch, and the flags dictionary is read
+    # as a warning set about the result. What the losing candidate did is
+    # still in diag['hydrodynamic'].
+    hydro_flags: dict = {}
     if thermo.get('clamped'):
-        flags['thermostat_clamped'] = thermo['clamped']
+        hydro_flags['thermostat_clamped'] = thermo['clamped']
     rr = hy.rr_chain(inputs.M_p, inputs.F_xuv, base['r'], t_wind, elements)
     if rr['subcritical']:
-        flags['subcritical_sonic'] = True
+        hydro_flags['subcritical_sonic'] = True
 
     eps = st.efficiency
     if st.efficiency_mode == 'caldiroli':
         eta_eff, cf = hy.caldiroli_efficiency(inputs.F_xuv, inputs.M_p, inputs.R_p, k_factor)
-        flags.update(cf)
+        hydro_flags.update(cf)
         if eta_eff is not None:
             # Their efficiency is defined against an R_p^3 rate geometry.
             eps = eta_eff * (inputs.R_p / r_xuv) ** 2
         else:
-            flags['efficiency_fallback_fixed'] = True
+            hydro_flags['efficiency_fallback_fixed'] = True
     mdot_el = hy.el_rate(eps, inputs.F_xuv, inputs.R_p, r_xuv, inputs.M_p, k_factor)
     mdot_rr = rr['mdot_rr']
     el_won = mdot_el <= mdot_rr
@@ -348,8 +355,6 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # Step 4: hydrostatic branch (always evaluated: its exobase quantities
     # feed the diagnostics at every dispatch).
     t_exo = _resolve_t_exo(inputs, channels)
-    if st.T_exo_mode == 'thermostat':
-        flags['T_exo_thermostat'] = True
     hs_per_element, hsd = hs.hydrostatic_rates(
         inputs.profile, inputs.M_p, t_exo, gamma_bates=st.gamma_bates, kzz_default=st.kzz
     )
@@ -368,6 +373,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     diag['hydrostatic'] = dict(
         rate_kg_s=mdot_hs,
         T_exo=hsd['T_exo'],
+        T_exo_mode=st.T_exo_mode,
         r_exo=hsd['r_exo'],
         f_plus_exo=f_plus_exo,
         T_esc_neutral=hsd['T_esc_neutral'],
@@ -402,11 +408,13 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             branch = hydro_label
             rate = mdot_hydro
             flow_radius = max(r_xuv, rr['R_s'])
+            flags.update(hydro_flags)
         elif unstable:
             branch = hydro_label
             rate = mdot_hydro
             flow_radius = max(r_xuv, rr['R_s'])
             flags['gate_rerouted'] = True
+            flags.update(hydro_flags)
         else:
             branch = 'hydrostatic'
             rate = mdot_hs
@@ -420,6 +428,10 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             per_species = None
             flags['bolometric_residual'] = True
             flow_radius = bolo['R_sonic']
+            # The residual displaces whichever candidate had won, so the
+            # warnings about that candidate stop describing the result.
+            for key in tuple(hydro_flags) + ('hydrostatic_lower_limit',):
+                flags.pop(key, None)
     label = branch
 
     # Step 5: the Roche screen on the active flow radius. The screen renames

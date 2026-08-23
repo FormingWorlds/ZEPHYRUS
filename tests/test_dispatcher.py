@@ -534,13 +534,15 @@ def test_caldiroli_efficiency_mode_applies_and_falls_back():
     assert weak.diagnostics['hydrodynamic']['efficiency'] == pytest.approx(0.1, rel=1e-12, abs=0.0)
 
 
-def test_t_exo_thermostat_mode_estimates_and_flags():
-    """The thermostat exobase mode estimates a temperature and flags itself.
+def test_t_exo_thermostat_mode_estimates_and_reports_itself():
+    """The thermostat exobase mode estimates a temperature and records itself.
 
     On the bound CO2 case the estimator returns a temperature inside the
     thermostat bracket (above the equilibrium temperature, below the upper
-    bracket edge), the flag records the mode, and the dispatch completes
-    with a consistent per-species sum.
+    bracket edge), the diagnostics record which mode produced it, and the
+    dispatch completes with a consistent per-species sum. The mode is a
+    property of the call and not a warning about it, so it belongs in the
+    diagnostics and not in the flags dictionary.
     """
     settings = DispatchSettings(T_exo_mode='thermostat')
     res = dispatch(
@@ -548,7 +550,13 @@ def test_t_exo_thermostat_mode_estimates_and_flags():
             10 * Me, 1.8 * Re, 800.0, {'CO2': 1.0}, F_xuv=1.0, a=0.5 * AU, settings=settings
         )
     )
-    assert res.flags.get('T_exo_thermostat') is True
+    assert res.diagnostics['hydrostatic']['T_exo_mode'] == 'thermostat'
+    assert 'T_exo_thermostat' not in res.flags
+    prescribed = dispatch(
+        _inputs(10 * Me, 1.8 * Re, 800.0, {'CO2': 1.0}, F_xuv=1.0, a=0.5 * AU)
+    )
+    assert prescribed.diagnostics['hydrostatic']['T_exo_mode'] == 'prescribed'
+    assert prescribed.diagnostics['hydrostatic']['T_exo'] != res.diagnostics['hydrostatic']['T_exo']
     assert 800.0 <= res.diagnostics['hydrostatic']['T_exo'] <= 5.0e4
     if res.mdot > 0.0:
         assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-6, abs=0.0)
@@ -621,3 +629,38 @@ def test_settings_option_raises_cover_every_knob():
     with pytest.raises(ValueError, match='T_exo_mode'):
         DispatchSettings(T_exo_mode='nonsense').validate()
     DispatchSettings().validate()  # the defaults are a valid configuration
+
+
+def test_flags_describe_the_branch_that_produced_the_rate():
+    """A warning never survives onto a verdict its rate did not come from.
+
+    The flags dictionary is read as a warning set about the returned result,
+    so a caution about the wind temperature or the sonic radius must not ride
+    along on a bolometric or hydrostatic verdict, whose rate those quantities
+    did not set. The hydrodynamic candidates are always computed, because the
+    diagnostics report them at every dispatch, which is what makes the
+    scoping necessary rather than automatic.
+    """
+    hydro = dispatch(_inputs(Me, Re, 1000.0, {'N2': 0.8, 'O2': 0.2}, F_xuv=100.0, a=0.0775 * AU))
+    assert hydro.regime.startswith('hydrodynamic')
+    assert hydro.flags.get('subcritical_sonic') is True
+    boiloff = dispatch(
+        _inputs(Me, 1.5 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=10.0, a=0.0775 * AU)
+    )
+    assert boiloff.regime == 'boiloff'
+    # The same chain runs on this state and still reports subcritical in the
+    # diagnostics, but the dispatched rate is the bolometric one.
+    assert boiloff.diagnostics['hydrodynamic']['rr_chain']['R_s'] > 0.0
+    for leaked in (
+        'subcritical_sonic',
+        'thermostat_clamped',
+        'efficiency_fallback_fixed',
+        'hydrostatic_lower_limit',
+    ):
+        assert leaked not in boiloff.flags, leaked
+    # The hydrostatic lower-limit caution appears on, and only on, a
+    # hydrostatic verdict.
+    static = dispatch(_inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=0.1, a=0.0775 * AU))
+    assert static.regime == 'hydrostatic'
+    assert static.flags.get('hydrostatic_lower_limit') is True
+    assert 'subcritical_sonic' not in static.flags
