@@ -89,6 +89,14 @@ def test_badnell_fit_magnitude_slope_and_misprint_guard():
         + (1.0 + math.sqrt(T / t1)) ** expo
     )
     assert garbled / a4 > 2.0
+    # Transcription pin: the six coefficients are the Z = 7, N = 6 row of
+    # Badnell's table, not the copy in the secondary that garbles the form.
+    # T2 is the digit-transposition trap, printed 6.739e4 and once carried
+    # here as 6.379e4, so it is pinned exactly rather than through a rate.
+    assert (t0, t1, t2) == (9.467e-2, 2.954e6, 6.739e4)
+    assert (a_fit, b_fit, c_fit) == (6.387e-10, 0.7308, 0.2440)
+    transposed = (t0, t1, 6.379e4, a_fit, b_fit, c_fit)
+    assert badnell_alpha_rr(5.0e4, transposed) / badnell_alpha_rr(5.0e4) > 1.02
 
 
 def test_case_b_coefficients_and_temperature_scaling():

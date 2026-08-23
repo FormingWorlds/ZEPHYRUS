@@ -86,17 +86,18 @@ THREE_LEVEL = {
 # Radiative recombination: the Badnell (2006, ApJS 167, 334) fit,
 #   alpha_RR = A / [ sqrt(T/T0) (1 + sqrt(T/T0))^(1-B') (1 + sqrt(T/T1))^(1+B') ],
 #   B' = B + C exp(-T2/T),
-# implemented from the original Eqs. (1)-(2). The nitrogen coefficients
-# below are the ones quoted by Chatterjee & Pierrehumbert (2026,
-# arXiv:2412.05188, their Eq. 35); note that their printed equation garbles
-# the Badnell form (it renders the product as a sum, repeats one exponent on
-# both factors, and inverts the exponential to exp(-T/T2)), so the original
-# is implemented and the printed variant disagrees by more than a factor 2
-# at 1e4 K (asserted in the companion tests so the discrepancy stays
-# visible).
+# implemented from the original Eqs. (1)-(2). The nitrogen coefficients below
+# are read off Badnell's own table, the row Z = 7, N = 6. Chatterjee &
+# Pierrehumbert (2026, ApJ 998, 236) quote the same row in their Eq. 35, but
+# their printed equation garbles the Badnell form (it renders the product as
+# a sum, repeats one exponent on both factors, and inverts the exponential to
+# exp(-T/T2)) and their T2 reads 6.379e4 against the 6.739e4 of the table, so
+# the original is the source for both the form and the numbers. The printed
+# variant disagrees by more than a factor 2 at 1e4 K (asserted in the
+# companion tests so the discrepancy stays visible).
 # ---------------------------------------------------------------------------
 # (T0, T1, T2 [K], A [cm^3/s], B, C) for nitrogen.
-BADNELL_N = (9.467e-2, 2.954e6, 6.379e4, 6.387e-10, 0.7308, 0.2440)
+BADNELL_N = (9.467e-2, 2.954e6, 6.739e4, 6.387e-10, 0.7308, 0.2440)
 
 
 def badnell_alpha_rr(T: float, coeffs: tuple = BADNELL_N) -> float:
