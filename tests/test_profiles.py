@@ -17,6 +17,7 @@ The physical invariants under test:
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
 
+import math
 import sys
 import types
 
@@ -155,10 +156,21 @@ def test_pressure_at_radius_inverts_the_profile():
     prof = _n2_profile()
     k = len(prof.p) // 3
     lev = interp_at_pressure(prof, float(prof.p[k]))
-    assert pressure_at_radius(prof, lev['r']) == pytest.approx(float(prof.p[k]), rel=1e-9, abs=0.0)
+    p_node, covered = pressure_at_radius(prof, lev['r'])
+    assert covered
+    assert p_node == pytest.approx(float(prof.p[k]), rel=1e-9, abs=0.0)
     r_mid = 0.5 * (prof.r[k] + prof.r[k + 1])
-    p_mid = pressure_at_radius(prof, r_mid)
+    p_mid, covered_mid = pressure_at_radius(prof, r_mid)
+    assert covered_mid
     assert prof.p[k + 1] < p_mid < prof.p[k]
+    # Outside the column the value clamps and says so, which is what lets a
+    # caller tell an interpolated level from an endpoint it was handed.
+    above, covered_above = pressure_at_radius(prof, 10.0 * float(prof.r[-1]))
+    assert not covered_above
+    assert above == pytest.approx(float(prof.p[-1]), rel=1e-15, abs=0.0)
+    below, covered_below = pressure_at_radius(prof, 0.5 * float(prof.r[0]))
+    assert not covered_below
+    assert below == pytest.approx(float(prof.p[0]), rel=1e-15, abs=0.0)
 
 
 def test_photospheric_level_clamps_with_flags():
@@ -320,7 +332,7 @@ def test_wind_base_level_boreas_uses_solver_radius(monkeypatch):
     scalars = {'R_p': 1.5 * Re, 'T_eq': 800.0, 'F_xuv': 10.0}
     lev, flags = wind_base_level(prof, 5 * Me, method='boreas', boreas_scalars=scalars)
     assert 'base_method_fallback' not in flags
-    assert lev['p'] == pytest.approx(pressure_at_radius(prof, r_target), rel=1e-9, abs=0.0)
+    assert lev['p'] == pytest.approx(pressure_at_radius(prof, r_target)[0], rel=1e-9, abs=0.0)
     # Interior radius: the level pressure must be between the endpoints.
     assert prof.p[-1] < lev['p'] < prof.p[0]
 
@@ -331,6 +343,28 @@ def test_wind_base_level_boreas_uses_solver_radius(monkeypatch):
     fake.MassLoss = SkippedMassLoss
     lev_f, flags_f = wind_base_level(prof, 5 * Me, method='boreas', boreas_scalars=scalars)
     assert flags_f.get('base_method_fallback') == 'lopez'
+
+    # A solver radius above the modeled column must reach the clamp branch.
+    # Interpolation alone clamps silently, which would hand the caller the
+    # top pressure as though it had been solved for and leave the clamp test
+    # comparing a value against itself, so the flag could never fire.
+    class HighMassLoss(FakeMassLoss):
+        def compute_mass_loss_parameters(self, m, r, t):
+            return [{'regime': 'HD', 'RXUV': 3.0 * float(prof.r[-1]) * 1e2}]
+
+    fake.MassLoss = HighMassLoss
+    lev_h, flags_h = wind_base_level(prof, 5 * Me, method='boreas', boreas_scalars=scalars)
+    assert flags_h.get('base_clamped') is True
+    assert flags_h['base_clamp_decades'] > 1.0
+    assert lev_h['p'] == pytest.approx(float(prof.p[-1]), rel=1e-12, abs=0.0)
+    assert lev_h['p_physical'] < lev_h['p']
+    # The extrapolation is the isothermal solution, which saturates rather
+    # than falling without bound: the reported distance cannot exceed the
+    # top-level Jeans parameter in decades.
+    lam_top = (
+        G * 5 * Me * float(prof.mmw[-1]) / (kb * float(prof.T[-1]) * float(prof.r[-1]))
+    )
+    assert flags_h['base_clamp_decades'] <= lam_top / math.log(10.0) + 1e-9
 
 
 @pytest.mark.physics_invariant

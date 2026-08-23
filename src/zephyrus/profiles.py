@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -142,7 +143,11 @@ def isothermal_profile(
         H = kb * T * r[i] ** 2 / (G * M_p * mu)
         r[i + 1] = r[i] - H * (lnp[i + 1] - lnp[i])
         if G * M_p * mu / (kb * T * r[i + 1]) < 2.2:
-            last = i + 1
+            # Stop at the last level that is still bound. Keeping the level
+            # that failed the test would put the profile's top exactly where
+            # the guard exists to exclude, and the top level is what the
+            # exobase anchor reads.
+            last = i
             break
     if last < 2:
         raise ValueError('isothermal profile unbound at the surface; check inputs')
@@ -184,13 +189,18 @@ def interp_at_pressure(profile: Profile, p_target: float) -> dict:
     )
 
 
-def pressure_at_radius(profile: Profile, r_target: float) -> float:
+def pressure_at_radius(profile: Profile, r_target: float) -> tuple[float, bool]:
     """Pressure interpolated at a target radius, log-linear in pressure.
 
-    Clamps to the endpoint pressures outside the covered radius range.
+    Returns ``(p, covered)``. Outside the covered radius range the pressure
+    clamps to the nearest endpoint and ``covered`` is False, so a caller can
+    tell an interpolated level from a clamped one rather than receiving an
+    endpoint that looks like a solution.
     """
     lp = np.log(profile.p)
-    return float(np.exp(np.interp(r_target, profile.r, lp)))
+    r0, r1 = float(profile.r[0]), float(profile.r[-1])
+    covered = min(r0, r1) <= r_target <= max(r0, r1)
+    return float(np.exp(np.interp(r_target, profile.r, lp))), covered
 
 
 def photospheric_level(profile: Profile, p_photo: float = 2000.0) -> tuple[dict, dict]:
@@ -346,9 +356,31 @@ def _boreas_base_pressure(profile: Profile, M_p: float, scalars: dict | None) ->
         if result.get('regime') == 'SKIPPED' or 'RXUV' not in result:
             return None
         r_xuv = float(result['RXUV']) * 1e-2  # cm -> m
-        return pressure_at_radius(profile, r_xuv)
+        p_xuv, covered = pressure_at_radius(profile, r_xuv)
+        if not covered:
+            # The solver placed its XUV radius outside the modeled column.
+            # Reporting the clamped endpoint would make the caller's clamp
+            # test compare a value against itself, so the pressure carries
+            # the extrapolation and the caller flags the distance.
+            p_xuv = _isothermal_pressure_beyond_top(profile, M_p, r_xuv)
+        return p_xuv
     except Exception:
         return None
+
+
+def _isothermal_pressure_beyond_top(profile: Profile, M_p: float, r: float) -> float:
+    """Isothermal hydrostatic pressure above the topmost level, Pa.
+
+    Integrating ``d ln p = -(G M mu / k T) d(1/r)`` at the top temperature
+    and composition gives ``p(r) = p_top exp(-lambda_top (1 - r_top / r))``,
+    which tends to ``p_top exp(-lambda_top)`` far out rather than falling
+    without bound. A constant scale height would instead extrapolate
+    exponentially in radius and put a level a few planetary radii up tens of
+    decades below anything physical.
+    """
+    r_top = float(profile.r[-1])
+    lam_top = G * M_p * float(profile.mmw[-1]) / (kb * float(profile.T[-1]) * r_top)
+    return float(profile.p[-1]) * math.exp(-lam_top * (1.0 - r_top / r))
 
 
 def atomized_element_fractions(level: dict) -> dict[str, float]:
