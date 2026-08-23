@@ -51,6 +51,7 @@ import argparse
 import ast
 import json
 import os
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -59,6 +60,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 TESTS_DIR = REPO_ROOT / 'tests'
 SRC_DIR = REPO_ROOT / 'src' / 'zephyrus'
 BASELINE_PATH = REPO_ROOT / 'tools' / 'test_quality_baseline.json'
+VALIDATION_DIR = REPO_ROOT / 'docs' / 'Validation'
 
 TIER_MARKERS = {'unit', 'smoke', 'integration', 'slow'}
 
@@ -535,6 +537,35 @@ def physics_invariant_status() -> list[str]:
     return flagged
 
 
+def dangling_validation_ids() -> list[str]:
+    """Return test ids named under docs/Validation that the suite lacks.
+
+    Each Validation page inventories the tests that pin a physics source
+    against its primary, and that inventory is what lets a reader go from a
+    published equation to the assertion that checks it. A renamed test leaves
+    the row pointing at nothing, and nothing else in the gates notices.
+    """
+    if not VALIDATION_DIR.exists():
+        return []
+    pattern = re.compile(r'(tests/test_[A-Za-z_0-9]+\.py)::([A-Za-z_0-9]+)')
+    dangling = []
+    for page in sorted(VALIDATION_DIR.glob('*.md')):
+        text = page.read_text()
+        for rel, name in pattern.findall(text):
+            path = REPO_ROOT / rel
+            if not path.exists():
+                dangling.append(f'{page.name}: {rel} does not exist')
+                continue
+            try:
+                tree = ast.parse(path.read_text())
+            except SyntaxError:
+                continue
+            names = {n.name for n in _iter_test_functions(tree)}
+            if name not in names:
+                dangling.append(f'{page.name}: {rel}::{name} is not in the suite')
+    return dangling
+
+
 def load_baseline() -> dict[str, int]:
     if not BASELINE_PATH.exists():
         return {}
@@ -590,6 +621,13 @@ def cmd_check() -> int:
     print(f'{"TOTAL":42} {total_baseline:>8} {total_current:>9}   {total_status}')
     if total_current > total_baseline:
         failed = True
+    dangling = dangling_validation_ids()
+    if dangling:
+        failed = True
+        print()
+        print('Validation inventory rows naming a test the suite does not have:')
+        for item in dangling:
+            print(f'  {item}')
     if failed:
         print()
         print('New violations vs baseline:')
