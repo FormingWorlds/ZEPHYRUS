@@ -429,7 +429,7 @@ At 1 W m⁻² the same planet is hydrostatic under the strict edge of the criter
 The hydrostatic branch prescribes it, default 1000 K, and the Jeans flux depends on it exponentially, so it is the branch's dominant sensitivity. The lesson is sharper on a planet where hydrostatic escape does physical work: a Mars-mass planet whose carbon dioxide carries 1% hydrogen.
 
 ```python
-for t_exo in (500.0, 1000.0, 2000.0):
+for t_exo in (1000.0, 2000.0, 4000.0):
     settings = DispatchSettings(T_exo_value=t_exo)
     out = dispatch(build_state('CO2 + 1% H2', 0.107, 0.53, 0.01, settings=settings))
     print(t_exo, out.regime, out.mdot, out.per_species['H'], out.per_species['C'])
@@ -438,12 +438,12 @@ for t_exo in (500.0, 1000.0, 2000.0):
 Output:
 
 ```text
-500.0 hydrostatic 328.6111274527813 328.6111274527813 1.0911011454535496e-24
-1000.0 hydrostatic 359.4124832776042 359.41248327479303 7.672381654045139e-10
-2000.0 hydrostatic 369.11630434704324 368.9889813172862 0.03474918563048364
+1000.0 hydrostatic 345.3493715507801 345.3493715479417 7.746587977671953e-10
+2000.0 hydrostatic 351.51013842063026 351.3803695476915 0.03541670869293938
+4000.0 hydrostatic 1553.1885864133374 357.67085653574424 326.2824298111698
 ```
 
-Over a factor of four in temperature the bulk rate moves by 12% while the carbon rate moves by 22 orders of magnitude. The reason is in the per-species detail:
+The sweep starts at the profile's own top temperature, near 1000 K here, because a prescribed value below it would ask for a thermosphere that cools with height, whose exobase is more strongly bound than the level it extends from. That request is floored at the top and flagged rather than refused, since in a coupled run the profile top warms past a fixed prescription over secular time. Over the factor of four above it the bulk rate moves by a factor 4.5 while the carbon rate moves by eleven orders of magnitude. The reason is in the per-species detail:
 
 ```python
 species = out.diagnostics['hydrostatic']['detail']['species']
@@ -454,11 +454,11 @@ print(species['H2']['phi_jeans'], species['H2']['phi_diffusion'])
 Output:
 
 ```text
-0.7405112884785615
-8714304920630702.0 270144275279648.22
+0.28260377845019297
+1.450974373622763e+16 258509561614714.28
 ```
 
-At 2000 K hydrogen sits at an exobase Jeans parameter below 1, with a Jeans flux far above the supply diffusion can deliver through the heavy background, so its escape is set by the supply and the exobase temperature barely enters. Carbon and oxygen are Jeans limited and carry the whole exponential. One case, both halves of the harmonic mean that combines them[^yelle], and a warning against reading a bulk rate as though one mechanism produced it.
+At the 4000 K end of the sweep hydrogen sits at an exobase Jeans parameter of 0.28, with a Jeans flux nearly sixty times the supply diffusion can deliver through the heavy background, so its escape is set by that supply and the exobase temperature barely enters: the hydrogen column of the table above moves by 3.6% across the whole sweep. Carbon and oxygen are Jeans limited and carry the whole exponential, eleven orders of magnitude of it. One case, both halves of the harmonic mean that combines them[^yelle], and a warning against reading a bulk rate as though one mechanism produced it.
 
 ### Fractionation
 

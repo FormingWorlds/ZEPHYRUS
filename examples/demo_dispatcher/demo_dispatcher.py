@@ -418,7 +418,7 @@ def knob_exobase_temperature() -> list[dict]:
     print('\n=== Knob: the prescribed exobase temperature ===')
     print('  Mars-mass planet, CO2 with 1% H2, F_xuv = 0.01 W m-2')
     out, hydrogen = [], None
-    for t_exo in (500.0, 750.0, 1000.0, 1500.0, 2000.0):
+    for t_exo in (1000.0, 1500.0, 2000.0, 3000.0, 4000.0):
         settings = DispatchSettings(T_exo_value=t_exo)
         result = dispatch(build_state('CO2 + 1% H2', 0.107, 0.53, 0.01, settings=settings))
         if t_exo == 1000.0:
