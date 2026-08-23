@@ -80,7 +80,7 @@ The `effect` column says whether the returned rate already reflects the flag or 
 |---|---|---|---|
 | `roche_overflow` | `True` | The active flow radius reaches the periapsis Hill radius. The label changes; the rate is the one the branch computed. | Reporting only |
 | `roche_subflag` | `'dynamical'` or `'no_transonic'` | Whether the atmosphere itself reaches the lobe (its outer extent is `r_atmosphere`), or only the flow radius does. | Reporting only |
-| `near_roche` | `True` | The flow radius is within 1.5 Hill radii. The tidal factor is steep there. | Reporting only |
+| `near_roche` | `True` | The Hill radius is less than 1.5 flow radii, that is, the flow reaches beyond two thirds of the way to the lobe. The tidal factor is steep there. | Reporting only |
 | `split_from_base_composition` | `True` | The per-species split used the atomized wind-base composition because no reservoirs were supplied. | The split reflects it |
 | `rock_former_bij` | list | Rock-forming species (Na, Mg, Si, Fe) are present in the closure, whose binary-diffusion coefficients for them sit in the widest provenance class. | Reporting only |
 | `stale_input` | `True` | The caller passed `atm_converged=False`, so the profile is from a non-converged atmosphere solve. | Reporting only |

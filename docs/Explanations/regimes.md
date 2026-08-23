@@ -117,7 +117,7 @@ The screen renames a state and never changes its rate. The reason is that the br
 
 Owen & Jackson (2012) separate two geometries inside that corner [^oj12], and a subflag says which one fired. Dynamical overflow is the atmosphere itself reaching the lobe, tested against the outer extent of the modeled and extended structure, reported as `r_atmosphere` in `diagnostics['roche']`. The other case is an atmosphere inside its lobe whose sonic surface would have to sit outside it, so no transonic solution exists; they describe it as a narrow band and hypothesize a subsonic wind out to the lobe. The distinction is worth reading before a label is trusted, because the flow radius tested on the bolometric branch is a sonic radius that grows with the Jeans parameter: a tightly bound heavy atmosphere can push it several Hill radii out while the atmosphere itself sits deep inside, at a rate with no numerical content. `r_atmosphere` and `diagnostics['rate_floor']` are what separate that case from a real one.
 
-Near misses (flow radius within 1.5 Hill radii) raise a `near_roche` flag, because the tidal factor inflates the energy-limited rate steeply there; the flag reports, and never modifies, the rate.
+Near misses (a flow radius above two thirds of the Hill radius, so that the Hill radius is less than 1.5 flow radii) raise a `near_roche` flag, because the tidal factor inflates the energy-limited rate steeply there; the flag reports, and never modifies, the rate.
 
 ## Boundaries are bands
 
