@@ -76,6 +76,19 @@ def diameters() -> dict[str, float]:
     return d
 
 
+def substitutable() -> tuple[str, ...]:
+    """Species eligible to stand in for an uncovered one, lightest first.
+
+    Both scaling rules need a mass and a kinetic diameter, so a species can
+    only be substituted for by one that carries both. Bondi (1964) prints no
+    van der Waals radius for aluminium, potassium, calcium, or titanium and
+    the kinetic-diameter rule therefore reaches none of them, which is why
+    the substitution set is smaller than the mass table.
+    """
+    diam = diameters()
+    return tuple(sorted((s for s in ALL_MASS if s in diam), key=lambda s: ALL_MASS[s]))
+
+
 # Rock-forming species carry two standing warnings that no coefficient
 # improves away: every pair involving Na, Mg, Si, or Fe is a scaling on an
 # estimated diameter (no measured coefficient exists in any compilation for
@@ -290,6 +303,14 @@ def _anchors_for(target: tuple, mass: dict, diam: dict):
     over the retained anchors.
     """
     i, j = target
+    for sp in (i, j):
+        if sp not in mass or sp not in diam:
+            raise ValueError(
+                f'no binary diffusion scaling for {sp!r}: it carries '
+                f'{"no mass" if sp not in mass else "no kinetic diameter"}. '
+                'Reach it through b_pair, which substitutes the nearest '
+                'covered species.'
+            )
     eligible = [
         (pair, b1000)
         for pair, (b1000, cls, _src) in ZK23_TABLE2.items()
@@ -471,15 +492,22 @@ def b_pair(sp_i: str, sp_j: str, T: float) -> tuple[float, str]:
         _PAIR_CACHE[key] = (b1000, s_fit, prov)
         return b1000 * (T / 1000.0) ** s_fit * 100.0, prov
 
-    def _proxy(sp):
-        if sp in ALL_MASS:
+    covered = substitutable()
+
+    def _proxy(sp, exclude=()):
+        pool = [s for s in covered if s not in exclude]
+        if sp in pool:
             return sp
         m = species_mass_amu(sp)
-        return min(ALL_MASS, key=lambda s2: abs(ALL_MASS[s2] - m))
+        return min(pool, key=lambda s2: abs(ALL_MASS[s2] - m))
 
     pa, pb = _proxy(a), _proxy(b)
     if pa == pb:
-        pb = 'O' if pa != 'O' else 'N'
+        # Two distinct species must not collapse onto one substitute, or the
+        # reduced mass of the pair stops resembling the target's. Take the
+        # next-nearest substitute instead. A genuine self-pair keeps any
+        # distinct partner, since it has no second mass to represent.
+        pb = _proxy(b, exclude=(pa,)) if a != b else ('O' if pa != 'O' else 'N')
     r = build_rows([pa, pb])[0]
     prov = f'proxy {a}->{pa}, {b}->{pb} [{r.provenance}]'
     _PAIR_CACHE[key] = (r.b1000, r.exponent, prov)

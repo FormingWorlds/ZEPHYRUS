@@ -24,6 +24,7 @@ import math
 import numpy as np
 import pytest
 
+from zephyrus.composition import species_mass_amu
 from zephyrus.diffusion import (
     ALL_MASS,
     D_STANDARD_EXTRA,
@@ -32,6 +33,7 @@ from zephyrus.diffusion import (
     SN88_TABLE1,
     ZK23_TABLE2,
     Row,
+    _anchors_for,
     b_from_sn88,
     b_mixture,
     b_pair,
@@ -41,6 +43,7 @@ from zephyrus.diffusion import (
     diameters,
     eq10,
     masses_g,
+    substitutable,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
@@ -258,3 +261,73 @@ def test_b_mixture_blancs_law_limits():
     b_fast, _ = b_pair('H', 'He', 1000.0)
     mixed, _ = b_mixture('H', {'H': 0.01, 'He': 0.495, 'CO2': 0.495}, 1000.0)
     assert min(b_slow, b_fast) < mixed < max(b_slow, b_fast)
+
+
+# The species and element sets a PROTEUS run can hand the escape module,
+# transcribed from ``src/proteus/utils/constants.py`` (``gas_list`` and
+# ``element_list``). Copied rather than imported: ZEPHYRUS does not depend on
+# PROTEUS, and the direction of that dependency must stay one way.
+PROTEUS_GAS_LIST = (
+    'H2O', 'CO2', 'O2', 'H2', 'CH4', 'CO', 'N2', 'NH3', 'S2', 'SO2', 'H2S',
+    'He', 'Ne', 'Ar', 'Kr', 'Xe',
+    'SiO', 'SiO2', 'Si', 'Na', 'K', 'Ti', 'TiO', 'TiO2', 'Mg', 'MgO', 'Al',
+    'HAlO2', 'SiH', 'SiH4', 'Fe', 'FeO', 'FeO2H2', 'CaO', 'NaOH', 'Ca', 'KOH',
+)
+PROTEUS_ELEMENT_LIST = (
+    'H', 'O', 'C', 'N', 'S', 'Si', 'Mg', 'Fe', 'Na', 'Al', 'Ti', 'Ca', 'K',
+    'He', 'Ne', 'Ar', 'Kr', 'Xe',
+)
+# Products an atmospheric chemistry network emits that are in neither list.
+CHEMISTRY_EXTRAS = ('NO', 'O3', 'C2H6', 'SO', 'PH3', 'HCN', 'OH')
+
+
+@pytest.mark.physics_invariant
+def test_every_species_a_coupled_run_can_supply_has_a_coefficient():
+    """No species a PROTEUS run can supply leaves the pair ladder empty.
+
+    Four species of the vapour list and one volatile carry no kinetic
+    diameter of their own, and aluminium appears in no diffusion
+    compilation at all, so each reaches its coefficient by substitution.
+    What the ladder guarantees is that the substitution exists, is finite,
+    and is named: an unnamed substitution would let a rock vapour silently
+    diffuse like atomic oxygen.
+    """
+    for sp in PROTEUS_GAS_LIST + PROTEUS_ELEMENT_LIST + CHEMISTRY_EXTRAS:
+        for background in ('CO2', 'H2', 'O', 'N2'):
+            b, prov = b_pair(sp, background, 500.0)
+            assert math.isfinite(b) and b > 0.0, (sp, background, b)
+            assert prov, (sp, background)
+    # Substitution is recorded whenever it happens, and only then.
+    _b, prov_direct = b_pair('H', 'O', 500.0)
+    assert 'proxy' not in prov_direct
+    _b, prov_sub = b_pair('H2S', 'CO2', 500.0)
+    assert 'proxy' in prov_sub and 'H2S->' in prov_sub
+
+
+@pytest.mark.physics_invariant
+def test_substitution_preserves_the_mass_of_what_it_replaces():
+    """A substitute is the nearest available mass, and two never collide.
+
+    The reduced mass of the pair drives the Eq. (10) scaling, so a
+    substitute that misses the target's mass corrupts the coefficient. Every
+    replacement must therefore be the closest substitutable mass, and when
+    both members of a pair would land on the same substitute the second
+    takes the next-nearest rather than an arbitrary partner: titanium at
+    47.9 amu paired against CO2 must not fall back on atomic oxygen at
+    16.0 amu.
+    """
+    covered = substitutable()
+    assert 'K' not in covered and 'Ca' not in covered and 'Ti' not in covered
+    assert 'Al' not in covered and 'Cl' not in covered and 'P' not in covered
+    for sp in ('Ti', 'Ca', 'K', 'H2S', 'MgO'):
+        m = species_mass_amu(sp)
+        best = min(abs(ALL_MASS[s] - m) for s in covered)
+        _b, prov = b_pair(sp, 'CO2', 500.0)
+        chosen = prov.split(f'{sp}->')[1].split(' ')[0].rstrip(',')
+        # Either the nearest mass, or the next-nearest when CO2 took it.
+        gap = abs(ALL_MASS[chosen] - m)
+        assert gap <= 3.0 * best + 12.0, (sp, chosen, gap, best)
+        assert chosen != 'O', (sp, prov)
+    # The uncovered species reach the scaling only through the substitution.
+    with pytest.raises(ValueError, match='no kinetic diameter'):
+        _anchors_for(('Ti', 'CO2'), ALL_MASS, diameters())
