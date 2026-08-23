@@ -121,6 +121,17 @@ def bates_extension(
     r0 = float(profile.r[-1])
     t_top = float(profile.T[-1])
     mu = float(profile.mmw[-1])
+    # The extension is the inflated thermosphere the exobase quantities must
+    # be read from, so it cannot be colder at the top than the level it
+    # extends from: that builds a falling temperature profile whose exobase
+    # is more strongly bound than its anchor, which inverts the construction.
+    # A prescribed exobase temperature is a stand-in for physics the branch
+    # does not solve, and in a coupled run the profile top warms over secular
+    # time and can pass it, so the temperature floors at the anchor and the
+    # call is flagged rather than raising and stopping the run.
+    floored = T_exo < t_top
+    if floored:
+        T_exo = t_top
     # Every species present at the anchor is carried, however thin. A trace
     # light species can dominate the exospheric loss while sitting many
     # decades below the bulk, so a lower cut on the mixing ratio would
@@ -151,7 +162,19 @@ def bates_extension(
     zeta, T, r = zeta[: last + 1], T[: last + 1], r[: last + 1]
     p = p0 * np.exp(-zeta)
     n = p / (kb * T)
-    return dict(zeta=zeta, p=p, r=r, T=T, n=n, mu=mu, vmr=vmr, p0=p0, r0=r0, unbound=unbound)
+    return dict(
+        zeta=zeta,
+        p=p,
+        r=r,
+        T=T,
+        n=n,
+        mu=mu,
+        vmr=vmr,
+        p0=p0,
+        r0=r0,
+        unbound=unbound,
+        t_exo_floored=floored,
+    )
 
 
 def find_exobase(ext: dict, M_p: float) -> tuple[int, dict]:
@@ -188,6 +211,7 @@ def hydrostatic_rates(
     T_exo: float,
     gamma_bates: float = 0.75,
     kzz_default: float = 3.0e2,
+    n_levels: int = 400,
 ) -> tuple[dict, dict]:
     """Per-species hydrostatic escape mapped onto per-element rates [kg/s].
 
@@ -206,14 +230,21 @@ def hydrostatic_rates(
     the harmonic mean could only be smaller, and the cost of the integrals
     dominates the branch on many-species profiles.
 
+    ``n_levels`` sets the quadrature resolution of the supply integrals.
+    They are first-order accurate in the log-pressure step, so the error
+    halves as the count doubles; ``hydrostatic_rates_refined`` drives that
+    refinement to a target instead of trusting one grid.
+
     Returns ``(per_element, detail)``; the detail dict carries the exobase
     state, both escape temperatures, the ``dominant`` species that supplies
     itself without a diffusion cap, the per-species terms, coefficient
     provenance, and flags (including ``hydrostatic_lower_limit``, which is
     always on: non-thermal loss channels are absent).
     """
-    ext = bates_extension(profile, M_p, T_exo, gamma=gamma_bates)
+    ext = bates_extension(profile, M_p, T_exo, gamma=gamma_bates, n_levels=n_levels)
     i_x, flags = find_exobase(ext, M_p)
+    if ext['t_exo_floored']:
+        flags['t_exo_floored_to_profile_top'] = True
     if ext.get('unbound'):
         flags['extension_unbound'] = True
     r_x, t_x, n_x = float(ext['r'][i_x]), float(ext['T'][i_x]), float(ext['n'][i_x])
@@ -321,9 +352,89 @@ def hydrostatic_rates(
         T_esc_plasma=t_esc_plasma,
         lambda_exo_bulk=lam_exo_bulk,
         K_eddy=k_eddy,
+        n_levels=n_levels,
         flags=flags,
     )
     return per_element, detail
+
+
+def hydrostatic_rates_refined(
+    profile,
+    M_p: float,
+    T_exo: float,
+    gamma_bates: float = 0.75,
+    kzz_default: float = 3.0e2,
+    n_levels_min: int = 200,
+    n_levels_max: int = 3200,
+    rtol: float = 1.0e-2,
+) -> tuple[dict, dict]:
+    """Hydrostatic rates refined until the quadrature stops moving them.
+
+    The supply integrals are first-order accurate in the log-pressure step,
+    so the change between a grid and its refinement estimates what is left
+    to converge, and a single fixed count says nothing about its own error.
+    The resolution doubles from ``n_levels_min`` until the relative change
+    in the bulk rate falls below ``rtol`` or ``n_levels_max`` is reached.
+    The finest grid's rates are returned, never an extrapolation.
+
+    The detail dict gains a ``convergence`` entry recording the levels used,
+    the last relative change in the bulk rate and the worst one across the
+    species, and whether the target was met. A call that exhausts
+    ``n_levels_max`` without meeting it reports ``converged`` False rather
+    than raising: the rate is still the best available and the caller can
+    see how far from the target it is.
+    """
+    n = max(2, int(n_levels_min))
+    n_max = max(n, int(n_levels_max))
+    per_element, detail = hydrostatic_rates(
+        profile, M_p, T_exo, gamma_bates=gamma_bates, kzz_default=kzz_default, n_levels=n
+    )
+    history = [(n, sum(per_element.values()))]
+    rel_bulk = math.inf
+    rel_species = math.inf
+    converged = False
+    while n < n_max:
+        n_fine = min(2 * n, n_max)
+        per_fine, detail_fine = hydrostatic_rates(
+            profile,
+            M_p,
+            T_exo,
+            gamma_bates=gamma_bates,
+            kzz_default=kzz_default,
+            n_levels=n_fine,
+        )
+        rel_bulk = _relative_change(sum(per_element.values()), sum(per_fine.values()))
+        rel_species = max(
+            (
+                _relative_change(per_element.get(el, 0.0), per_fine.get(el, 0.0))
+                for el in set(per_element) | set(per_fine)
+            ),
+            default=0.0,
+        )
+        per_element, detail, n = per_fine, detail_fine, n_fine
+        history.append((n, sum(per_element.values())))
+        if rel_bulk <= rtol:
+            converged = True
+            break
+    detail['convergence'] = dict(
+        n_levels=n,
+        n_levels_min=int(n_levels_min),
+        n_levels_max=n_max,
+        rtol=float(rtol),
+        rel_change_bulk=float(rel_bulk),
+        rel_change_worst_species=float(rel_species),
+        converged=bool(converged),
+        history=history,
+    )
+    return per_element, detail
+
+
+def _relative_change(coarse: float, fine: float) -> float:
+    """Relative difference between two grids, zero when both vanish."""
+    scale = max(abs(coarse), abs(fine))
+    if scale == 0.0:
+        return 0.0
+    return abs(fine - coarse) / scale
 
 
 def gate_unstable(

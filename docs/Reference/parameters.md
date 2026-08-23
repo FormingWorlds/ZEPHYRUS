@@ -118,6 +118,9 @@ The knobs of the [escape-regime framework](../Explanations/regimes.md). Every de
 | `gamma_bates` | 0.75 | $> 0$ | Shape parameter of the Bates temperature profile of the extended upper structure. |
 | `kzz` | 300 | m² s⁻¹ | Eddy diffusion coefficient when the profile carries no `kzz` column. |
 | `gamma_wind` | 1.0 | $1 \leq \gamma \leq 5/3$ | Polytropic index at the sonic point (1 for an isothermal wind). |
+| `hydrostatic_levels_min` | 200 | integer $\geq 2$ | First quadrature grid of the diffusion-limited supply integrals. |
+| `hydrostatic_levels_max` | 3200 | integer $\geq$ `hydrostatic_levels_min` | Refinement ceiling. Reaching it without meeting the target is reported, not raised. |
+| `hydrostatic_rtol` | 0.01 | $> 0$ | Target relative change in the bulk hydrostatic rate between a grid and its refinement. The integrals are first order in the log-pressure step, so that change also estimates what is left to converge. |
 
 ## Dispatcher inputs (`dispatcher.EscapeInputs`)
 

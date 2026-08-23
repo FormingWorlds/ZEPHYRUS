@@ -30,6 +30,7 @@ from zephyrus.hydrostatic import (
     find_exobase,
     gate_unstable,
     hydrostatic_rates,
+    hydrostatic_rates_refined,
     jeans_effusion_velocity,
     volkov_flat_factor,
 )
@@ -352,3 +353,73 @@ def test_trace_species_survive_into_the_exobase_anchor():
     per_el_bare, _ = hydrostatic_rates(bare, M_MARS, 1000.0)
     assert 'H' not in per_el_bare
     assert sum(per_el_bare.values()) < 1e-4 * rates[-1]
+
+
+@pytest.mark.physics_invariant
+def test_supply_quadrature_refines_to_its_target():
+    """The supply integrals are refined until they stop moving the rate.
+
+    The integrals are first-order accurate in the log-pressure step, so the
+    change between a grid and its refinement estimates what is left to
+    converge, and one fixed count cannot report its own error. Doubling from
+    a coarse start must therefore drive the change below the target and say
+    so, the refined answer must be the finest grid's rather than an
+    extrapolation, and a ceiling reached without meeting the target must be
+    reported rather than passed off as converged.
+    """
+    prof = _co2_hydrogen_profile(0.01)
+    per, det = hydrostatic_rates_refined(prof, M_MARS, 1000.0, rtol=1e-2)
+    conv = det['convergence']
+    assert conv['converged'] is True
+    assert conv['rel_change_bulk'] <= 1e-2
+    assert conv['n_levels'] >= conv['n_levels_min']
+    # The returned rates are the ones the finest grid produced.
+    per_at_n, _ = hydrostatic_rates(prof, M_MARS, 1000.0, n_levels=conv['n_levels'])
+    assert sum(per.values()) == pytest.approx(sum(per_at_n.values()), rel=1e-12, abs=0.0)
+    # First order in the step: the coarse grid is measurably off, and the
+    # refinement moves the answer toward the fine one monotonically.
+    coarse, _ = hydrostatic_rates(prof, M_MARS, 1000.0, n_levels=100)
+    fine, _ = hydrostatic_rates(prof, M_MARS, 1000.0, n_levels=3200)
+    assert abs(sum(coarse.values()) - sum(fine.values())) / sum(fine.values()) > 1e-2
+    assert sum(coarse.values()) > sum(per.values()) >= sum(fine.values())
+    # A ceiling below the target is reported, not hidden.
+    _p, det_capped = hydrostatic_rates_refined(
+        prof, M_MARS, 1000.0, n_levels_min=50, n_levels_max=100, rtol=1e-12
+    )
+    assert det_capped['convergence']['converged'] is False
+    assert det_capped['convergence']['n_levels'] == 100
+    assert det_capped['convergence']['rel_change_bulk'] > 1e-12
+
+
+@pytest.mark.physics_invariant
+def test_exobase_temperature_floors_at_the_profile_top():
+    """A prescribed exobase temperature never builds a falling thermosphere.
+
+    The extension is the inflated structure the exobase quantities must be
+    read from, so it cannot end colder than the level it extends from: that
+    puts the exobase more strongly bound than its own anchor, inverting the
+    construction and biasing the branch toward retention. The prescribed
+    temperature is a stand-in for physics the branch does not solve, and in a
+    coupled run the profile top warms over secular time and can pass it, so
+    the value floors at the anchor and the call is flagged rather than
+    raising and stopping the run.
+    """
+    prof = _co2_hydrogen_profile(0.01)
+    t_top = float(prof.T[-1])
+    above = bates_extension(prof, M_MARS, 4.0 * t_top)
+    assert above['t_exo_floored'] is False
+    assert float(above['T'][-1]) > t_top
+    below = bates_extension(prof, M_MARS, 0.25 * t_top)
+    assert below['t_exo_floored'] is True
+    # Floored, not falling: the extension is isothermal at the anchor value.
+    assert float(below['T'][-1]) == pytest.approx(t_top, rel=1e-12, abs=0.0)
+    assert float(below['T'][0]) == pytest.approx(t_top, rel=1e-12, abs=0.0)
+    # The exobase is no more bound than the level it extends from.
+    per, det = hydrostatic_rates(prof, M_MARS, 0.25 * t_top)
+    assert det['flags'].get('t_exo_floored_to_profile_top') is True
+    lam_anchor = G * M_MARS * det['m_bar'] / (kb * t_top * float(prof.r[-1]))
+    lam_exo = G * M_MARS * det['m_bar'] / (kb * det['T_exo'] * det['r_exo'])
+    assert lam_exo <= lam_anchor
+    # At the anchor temperature exactly, nothing is flagged.
+    _p, det_eq = hydrostatic_rates(prof, M_MARS, t_top)
+    assert 't_exo_floored_to_profile_top' not in det_eq['flags']

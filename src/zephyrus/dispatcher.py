@@ -100,6 +100,9 @@ class DispatchSettings:
     gamma_bates: float = 0.75  # Bates profile shape parameter
     kzz: float = 3.0e2  # m^2/s eddy diffusion when the profile carries none
     gamma_wind: float = 1.0  # polytropic index at the sonic point (isothermal)
+    hydrostatic_levels_min: int = 200  # first quadrature grid of the supply integrals
+    hydrostatic_levels_max: int = 3200  # refinement ceiling
+    hydrostatic_rtol: float = 1.0e-2  # target relative change in the bulk rate
 
     def validate(self) -> None:
         """Raise ``ValueError`` on an unsupported option combination."""
@@ -131,6 +134,7 @@ class DispatchSettings:
             ('lambda_crit', self.lambda_crit),
             ('kzz', self.kzz),
             ('gamma_bates', self.gamma_bates),
+            ('hydrostatic_rtol', self.hydrostatic_rtol),
         ):
             if not math.isfinite(value) or value <= 0.0:
                 raise ValueError(f'{name} must be a positive finite value, got {value!r}')
@@ -146,6 +150,12 @@ class DispatchSettings:
         # The sonic-point scale height of Chatterjee & Pierrehumbert Eq. (17)
         # carries sqrt(5 - 3 gamma), which leaves the reals above the monatomic
         # 5/3. Below 1 the polytrope is no longer a wind solution.
+        if self.hydrostatic_levels_min < 2 or self.hydrostatic_levels_max < self.hydrostatic_levels_min:
+            raise ValueError(
+                'hydrostatic_levels_min must be at least 2 and no greater than '
+                f'hydrostatic_levels_max, got {self.hydrostatic_levels_min!r} and '
+                f'{self.hydrostatic_levels_max!r}'
+            )
         if not 1.0 <= self.gamma_wind <= 5.0 / 3.0:
             raise ValueError(
                 'gamma_wind must lie in [1, 5/3], the domain of the sonic-point '
@@ -359,8 +369,15 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
 
     # Step 4: hydrostatic branch (always evaluated: its exobase quantities
     # feed the diagnostics at every dispatch).
-    hs_per_element, hsd = hs.hydrostatic_rates(
-        inputs.profile, inputs.M_p, t_exo, gamma_bates=st.gamma_bates, kzz_default=st.kzz
+    hs_per_element, hsd = hs.hydrostatic_rates_refined(
+        inputs.profile,
+        inputs.M_p,
+        t_exo,
+        gamma_bates=st.gamma_bates,
+        kzz_default=st.kzz,
+        n_levels_min=st.hydrostatic_levels_min,
+        n_levels_max=st.hydrostatic_levels_max,
+        rtol=st.hydrostatic_rtol,
     )
     hs_flags = hsd.pop('flags')
     mdot_hs = sum(hs_per_element.values())
@@ -376,6 +393,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     unstable, contested = hs.gate_unstable(hsd['T_exo'], hsd, st.gate, f_plus_exo)
     diag['hydrostatic'] = dict(
         rate_kg_s=mdot_hs,
+        convergence=hsd['convergence'],
         T_exo=hsd['T_exo'],
         T_exo_mode=st.T_exo_mode,
         r_exo=hsd['r_exo'],
