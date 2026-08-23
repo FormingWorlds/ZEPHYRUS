@@ -231,7 +231,22 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # branches that measure one: the energy-limited rate and the
     # luminosity cap on the bolometric residual.
     xi_ktide = r_hill / inputs.R_p
-    k_factor = hy.k_tide(xi_ktide) if (st.tidal and xi_ktide > 1.0) else 1.0
+    # The tidal factor has a double root at xi = 1 and the rates divide by it,
+    # so it inflates them steeply as the lobe closes: 83-fold at xi = 1.1 and
+    # 6.7e5-fold at xi = 1.001. At and below the root the barrier is gone and
+    # the factor is undefined, so the rates are computed without it, which is
+    # the smaller of the two readings. Such a state is already relabeled by the
+    # Roche screen below; the flag says the reduction was dropped rather than
+    # applied, and the inflation the factor is contributing is reported beside
+    # the rate at every geometry so that a rate set by the divergence rather
+    # than by the physics is visible as such.
+    if st.tidal and xi_ktide <= 1.0:
+        k_factor = 1.0
+        flags['k_tide_undefined'] = True
+    elif st.tidal:
+        k_factor = hy.k_tide(xi_ktide)
+    else:
+        k_factor = 1.0
 
     # Step 1: bolometric candidate, computed at every point.
     lam_gate = bl.lambda_restricted(inputs.M_p, inputs.R_p, inputs.T_eq, photo['mmw'])
@@ -429,6 +444,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         flow_radius=flow_radius,
         xi_flow=xi_flow,
         xi_ktide=xi_ktide,
+        k_tide=k_factor,
+        tidal_inflation=1.0 / k_factor,
         r_atmosphere=r_atm,
         rate_branch=branch,
     )

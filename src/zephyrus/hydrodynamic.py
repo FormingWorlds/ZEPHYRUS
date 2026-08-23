@@ -59,7 +59,22 @@ def hill_radius_periapsis(M_p: float, M_star: float, a: float, e: float) -> floa
 
 
 def k_tide(xi: float) -> float:
-    """Erkaev et al. (2007) Eq. (17) tidal factor; valid for xi > 1 (K(1) = 0)."""
+    """Erkaev et al. (2007) Eq. (17) tidal factor, for xi > 1.
+
+    The factor is ``(xi - 1)^2 (2 xi + 1) / (2 xi^3)``, which has a double
+    root at ``xi = 1`` and rises toward 1 as ``xi`` grows. The energy-limited
+    rate divides by it, so the rate diverges as the atmosphere approaches its
+    Roche lobe: the factor is 1.5e-6 at xi = 1.001 and 1.2e-2 at xi = 1.1,
+    inflating the rate 6.7e5-fold and 83-fold. At and below the root the
+    polynomial turns back upward and returns values above 1, which would
+    reduce the rate rather than raise it, so the domain is enforced rather
+    than extrapolated: a caller at xi <= 1 has a planet filling its lobe and
+    needs the overflow machinery, not this factor.
+    """
+    if not xi > 1.0:
+        raise ValueError(
+            f'k_tide is defined for xi > 1 and has a double root at 1, got {xi!r}'
+        )
     return 1.0 - 3.0 / (2.0 * xi) + 1.0 / (2.0 * xi**3)
 
 

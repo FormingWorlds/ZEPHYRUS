@@ -75,6 +75,17 @@ def test_erkaev_table1_enhancement_factors():
     for xi, inv_k in ERKAEV_TABLE1:
         assert 1.0 / k_tide(xi) == pytest.approx(inv_k, rel=0.011, abs=0.0), xi
         assert 0.0 < k_tide(xi) < 1.0
+    # The factor is defined only above its double root. Below it the same
+    # polynomial turns back upward and exceeds 1, which would reduce the
+    # energy-limited rate where the tide is strongest, so the domain is
+    # enforced rather than extrapolated.
+    for outside in (1.0, 0.5, 0.0, -2.0):
+        with pytest.raises(ValueError, match='xi > 1'):
+            k_tide(outside)
+    # Divergence at the root, which is why a near-Roche rate is flagged:
+    # the inflation is 83-fold at xi = 1.1 and 6.7e5-fold just above 1.
+    assert 1.0 / k_tide(1.1) == pytest.approx(83.2, rel=0.01, abs=0.0)
+    assert 1.0 / k_tide(1.001) == pytest.approx(6.68e5, rel=0.01, abs=0.0)
     factors = [1.0 / k_tide(xi) for xi, _ in ERKAEV_TABLE1]
     assert all(a >= b for a, b in zip(factors, factors[1:]))
 
