@@ -453,6 +453,34 @@ def test_settings_and_inputs_error_contract():
             cool_o_finestructure=False,
             cool_recombination=False,
         ).validate()
+    # Numeric knobs are bounded too. Unbounded, an out-of-domain value either
+    # surfaced as a bare math domain error from inside a branch or, for a
+    # negative efficiency, changed the regime label with nothing said.
+    for field, value, expected in (
+        ('gamma_wind', 2.0, 'gamma_wind'),
+        ('T_exo_value', -100.0, 'T_exo_value'),
+        ('efficiency', -0.5, 'efficiency'),
+        ('efficiency', 5.0, 'efficiency'),
+        ('kn_crit', -1.0, 'kn_crit'),
+        ('kzz', -300.0, 'kzz'),
+        ('lambda_crit', -5.0, 'lambda_crit'),
+        ('gamma_bates', 0.0, 'gamma_bates'),
+        ('kn_hysteresis', 0.5, 'kn_hysteresis'),
+        ('P_photo', float('nan'), 'P_photo'),
+    ):
+        with pytest.raises(ValueError, match=expected):
+            DispatchSettings(**{field: value}).validate()
+    # The physical edges of each range stay legal: an isothermal wind, the
+    # monatomic index that is the domain limit of the sonic scale height, a
+    # disabled hysteresis window, and full efficiency.
+    for legal in (
+        {'gamma_wind': 1.0},
+        {'gamma_wind': 5.0 / 3.0},
+        {'kn_hysteresis': 1.0},
+        {'efficiency': 1.0},
+        {'efficiency': 0.6},
+    ):
+        DispatchSettings(**legal).validate()
     good = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0)
     bad_e = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, e=1.0)
     with pytest.raises(ValueError, match='e must be'):

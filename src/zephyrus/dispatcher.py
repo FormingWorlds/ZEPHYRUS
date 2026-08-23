@@ -120,6 +120,37 @@ class DispatchSettings:
             or self.cool_recombination
         ):
             raise ValueError('all cooling channels disabled; at least one must stay on')
+        # Numeric bounds. Outside them the closed forms leave their domains,
+        # and what a caller saw was a bare math domain error from inside the
+        # branch or, worse, a silently different regime label.
+        for name, value in (
+            ('P_photo', self.P_photo),
+            ('P_base_fixed', self.P_base_fixed),
+            ('kn_crit', self.kn_crit),
+            ('T_exo_value', self.T_exo_value),
+            ('lambda_crit', self.lambda_crit),
+            ('kzz', self.kzz),
+            ('gamma_bates', self.gamma_bates),
+        ):
+            if not math.isfinite(value) or value <= 0.0:
+                raise ValueError(f'{name} must be a positive finite value, got {value!r}')
+        if self.kn_hysteresis < 1.0 or not math.isfinite(self.kn_hysteresis):
+            raise ValueError(
+                'kn_hysteresis is a window factor at or above 1 (1 disables the '
+                f'window), got {self.kn_hysteresis!r}'
+            )
+        if not 0.0 < self.efficiency <= 1.0:
+            raise ValueError(
+                f'efficiency is a fraction of the deposited power, got {self.efficiency!r}'
+            )
+        # The sonic-point scale height of Chatterjee & Pierrehumbert Eq. (17)
+        # carries sqrt(5 - 3 gamma), which leaves the reals above the monatomic
+        # 5/3. Below 1 the polytrope is no longer a wind solution.
+        if not 1.0 <= self.gamma_wind <= 5.0 / 3.0:
+            raise ValueError(
+                'gamma_wind must lie in [1, 5/3], the domain of the sonic-point '
+                f'scale height, got {self.gamma_wind!r}'
+            )
 
 
 @dataclass
