@@ -121,22 +121,31 @@ def test_caldiroli_fit_spot_values_and_flux_guard():
 
 
 @pytest.mark.reference_pinned
-def test_wind_mean_masses_reproduce_lopez_pairs():
-    """The ionized-wind mean-mass rule reproduces the published pairs.
+def test_wind_mean_masses_against_lopez_pairs():
+    """The mean-mass rule recovers the published pairs it can recover.
 
-    Lopez (2017) prints (mu_wind, mu_plus) = (0.62, 1.3) proton masses for
-    a 90/10 H/He wind and (3, 6) for steam (fully dissociated 2:1 H:O).
-    The generalized rule (electrons counted, heavies singly ionized) must
-    recover both, and the per-ion mass must always be twice the per-particle
-    mass by construction.
+    Lopez (2017) prints (mu_wind, mu_plus) = (0.62, 1.3) for a 90/10 H/He
+    wind and (3, 6) for steam (fully dissociated 2:1 H:O), in atomic mass
+    units. The rule counts electrons and singly ionizes the heavies, which
+    makes the per-ion mass exactly twice the per-particle mass, so the steam
+    pair is recovered on both entries while the H/He pair cannot be: 1.3
+    halves to 0.65, not to the printed 0.62, a 4.6 percent inconsistency in
+    the source. The rule follows the per-ion value, which is the entry both
+    printed pairs agree with, and this test pins that reading rather than
+    widening a tolerance until both fit.
     """
     mu_w, mu_i = wind_mean_masses({'H': 0.9, 'He': 0.1})
-    assert mu_w == pytest.approx(0.62, rel=0.06, abs=0.0)
-    assert mu_i == pytest.approx(1.3, rel=0.02, abs=0.0)
+    assert mu_i == pytest.approx(1.3, rel=0.01, abs=0.0)
+    assert mu_w == pytest.approx(0.65373, rel=1e-4, abs=0.0)
+    assert mu_w != pytest.approx(0.62, rel=0.01, abs=0.0)
     mu_w, mu_i = wind_mean_masses({'H': 2.0 / 3.0, 'O': 1.0 / 3.0})
     assert mu_w == pytest.approx(3.0, rel=0.01, abs=0.0)
     assert mu_i == pytest.approx(6.0, rel=0.01, abs=0.0)
     assert mu_i == pytest.approx(2.0 * mu_w, rel=1e-12, abs=0.0)
+    # Unit convention: the values are in atomic mass units, so a bare atom
+    # comes back as its own standard atomic weight and not as a mass in kg.
+    assert wind_mean_masses({'H': 1.0})[1] == pytest.approx(1.008, rel=1e-12, abs=0.0)
+    assert wind_mean_masses({'O': 1.0})[1] == pytest.approx(15.999, rel=1e-12, abs=0.0)
 
 
 @pytest.mark.physics_invariant

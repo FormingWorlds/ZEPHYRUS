@@ -296,13 +296,22 @@ def caldiroli_efficiency(F_xuv: float, M_p: float, R_p: float, K: float) -> tupl
 
 
 def wind_mean_masses(element_fractions: dict) -> tuple[float, float]:
-    """(mu_wind, mu_plus) of an ionized wind, in proton masses.
+    """(mu_wind, mu_plus) of an ionized wind, in atomic mass units.
 
-    Generalizes the printed mean-mass pairs of Lopez (2017): with hydrogen
-    fully ionized, heavier atoms singly ionized, and the electrons counted
-    among the particles, the mean mass per particle is half the mean atomic
-    mass and the mean mass per ion is the mean atomic mass itself. The rule
-    reproduces Lopez's printed H/He pair (0.62, 1.3) and steam pair (3, 6).
+    Generalizes the mean-mass pairs of Lopez (2017): with hydrogen fully
+    ionized, heavier atoms singly ionized, and the electrons counted among
+    the particles, the mean mass per particle is half the mean atomic mass
+    and the mean mass per ion is the mean atomic mass itself.
+
+    Two conventions to keep straight. The returned values are in atomic mass
+    units, and the call sites multiply by the proton mass where Lopez writes
+    the hydrogen atom mass; the three candidate units span 0.36 percent on
+    the sound speed, and the proton mass sits 0.04 percent from Lopez's own.
+    And Lopez's printed pairs are not both reachable: the rule makes the
+    per-ion mass exactly twice the per-particle mass, so the printed steam
+    pair (3, 6) is recovered while the printed H/He pair (0.62, 1.3) is
+    internally inconsistent by 4.6 percent, 1.3 halving to 0.65. The rule
+    follows the per-ion value and the tests pin that reading.
     """
     mbar = sum(x * ELEMENT_AMU[el] for el, x in element_fractions.items())
     return mbar / 2.0, mbar
