@@ -45,8 +45,8 @@ def test_earth_mass_radius_recover_rocky_density():
     an order of magnitude and fails the band, which a bare value pin would
     miss.
     """
-    assert Me == pytest.approx(5.9722e24, rel=1e-9)
-    assert Re == pytest.approx(6.378e6, rel=1e-9)
+    assert Me == pytest.approx(5.9722e24, rel=1e-9, abs=0.0)
+    assert Re == pytest.approx(6.378e6, rel=1e-9, abs=0.0)
     rho = Me / (4 / 3 * np.pi * Re**3)
     # Terrestrial mean density, ~5.5e3 kg m-3; a decimal slip lands outside.
     assert 5.0e3 < rho < 6.0e3
@@ -61,8 +61,8 @@ def test_sun_to_earth_mass_ratio():
     brackets it tightly around ``332946`` so a mantissa or exponent slip in
     either mass fails.
     """
-    assert Ms == pytest.approx(1.98847e30, rel=1e-9)
-    assert Rs == pytest.approx(6.957e8, rel=1e-9)
+    assert Ms == pytest.approx(1.98847e30, rel=1e-9, abs=0.0)
+    assert Rs == pytest.approx(6.957e8, rel=1e-9, abs=0.0)
     ratio = Ms / Me
     # Known solar/Earth mass ratio, order 3.33e5.
     assert 3.32e5 < ratio < 3.34e5
@@ -77,10 +77,10 @@ def test_earth_orbit_parameters_are_physical():
     orbit cannot have ``e >= 1``.
     """
     # a_earth is 1 au by construction; compare as a number without float ==.
-    assert a_earth == pytest.approx(1.0, rel=1e-12)
+    assert a_earth == pytest.approx(1.0, rel=1e-12, abs=0.0)
     # Bound-orbit eccentricity: 0 <= e < 1, and Earth's is small.
     assert 0.0 <= e_earth < 1.0
-    assert e_earth == pytest.approx(0.017, rel=1e-6)
+    assert e_earth == pytest.approx(0.017, rel=1e-6, abs=0.0)
 
 
 def test_toi561_star_scaled_from_solar_values():
@@ -91,9 +91,9 @@ def test_toi561_star_scaled_from_solar_values():
     must recover those multipliers exactly, so a change to either the solar
     anchor or the multiplier is caught.
     """
-    assert R_TOI561 / Rs == pytest.approx(0.832, rel=1e-9)
-    assert M_TOI561 / Ms == pytest.approx(0.805, rel=1e-9)
-    assert L_TOI561 / Ls == pytest.approx(0.522, rel=1e-9)
+    assert R_TOI561 / Rs == pytest.approx(0.832, rel=1e-9, abs=0.0)
+    assert M_TOI561 / Ms == pytest.approx(0.805, rel=1e-9, abs=0.0)
+    assert L_TOI561 / Ls == pytest.approx(0.522, rel=1e-9, abs=0.0)
     # A sub-solar star: each quantity is strictly below its solar anchor.
     assert R_TOI561 < Rs
     assert M_TOI561 < Ms
@@ -108,8 +108,8 @@ def test_toi561b_planet_scaled_from_earth_values():
     density. The circular-orbit assumption ``e_TOI561b = 0`` is the boundary
     eccentricity.
     """
-    assert R_TOI561b / Re == pytest.approx(1.37, rel=1e-9)
-    assert M_TOI561b / Me == pytest.approx(2.24, rel=1e-9)
+    assert R_TOI561b / Re == pytest.approx(1.37, rel=1e-9, abs=0.0)
+    assert M_TOI561b / Me == pytest.approx(2.24, rel=1e-9, abs=0.0)
     rho = M_TOI561b / (4 / 3 * np.pi * R_TOI561b**3)
     # Rocky super-Earth mean density, a few 1e3 kg m-3.
     assert 3.0e3 < rho < 6.0e3
@@ -126,9 +126,9 @@ def test_jupiter_nominal_values_recover_gas_giant_density():
     in the Earth values moves it above ``5 g cm-3``. The mass ratio to Earth
     (about 318) brackets both pins at once.
     """
-    assert Mjup == pytest.approx(1.8982e27, rel=1e-9)
-    assert Rjup == pytest.approx(7.1492e7, rel=1e-9)
+    assert Mjup == pytest.approx(1.8982e27, rel=1e-9, abs=0.0)
+    assert Rjup == pytest.approx(7.1492e7, rel=1e-9, abs=0.0)
     rho = Mjup / (4.0 / 3.0 * np.pi * Rjup**3)
     # Gas-giant mean density in SI: about 1240 kg m-3.
-    assert rho == pytest.approx(1240.0, rel=0.02)
+    assert rho == pytest.approx(1240.0, rel=0.02, abs=0.0)
     assert 300.0 < Mjup / Me < 330.0

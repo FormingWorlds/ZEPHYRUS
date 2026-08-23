@@ -101,7 +101,7 @@ def test_ternary_deuterium_reductions():
         flux = solve_closure(frac * phi_crit_he, X, m, T, g0, b)
         f2, f3 = x2 / x1, x3 / x1
         ref = f3 * (flux[0] + a3 * flux[1] + a2 * phi_dl_he * x2 - phi_dl_d) / (1 + a3 * f2)
-        assert flux[2] == pytest.approx(ref, rel=1e-11), frac
+        assert flux[2] == pytest.approx(ref, rel=1e-11, abs=0.0), frac
 
     # (b) Subcritical He (retained), D escaping: their Eq. (8).
     for frac in (1.5, 3.0):
@@ -111,7 +111,7 @@ def test_ternary_deuterium_reductions():
         flux = solve_closure(phi, X, m, T, g0, b)
         assert flux[1] == pytest.approx(0.0, abs=0.0)
         ref = x3 * (flux[0] * (1 + a2 * x2 / x1) - phi_dl_d) / (x1 + a3 * x2)
-        assert flux[2] == pytest.approx(ref, rel=1e-11), frac
+        assert flux[2] == pytest.approx(ref, rel=1e-11, abs=0.0), frac
 
     # (c) Both activation thresholds are sharp at the printed critical rates.
     eps = 1e-6
@@ -187,7 +187,7 @@ def test_two_majors_trace_minor_relations():
                 ) / (1 + (b1k / b2k) * f2)
                 if xk_ref > 1e-6:
                     n_cmp += 1
-                    assert xk == pytest.approx(xk_ref, rel=1e-11), (f2, frac, k)
+                    assert xk == pytest.approx(xk_ref, rel=1e-11, abs=0.0), (f2, frac, k)
                     mu2 = m[1] / m[0]
                     xk_zk = (
                         1
@@ -208,7 +208,7 @@ def test_two_majors_trace_minor_relations():
             - (m[2] - m[0]) / (m[1] - m[0]) * (b_hc / b12)
             + (m[1] - m[2]) / (m[1] - m[0]) * (b_hc / b12) * f2
         ) / (1 + (b_hc / b_oc) * f2)
-        assert x3 == pytest.approx(x3_z90, rel=2e-8), f2
+        assert x3 == pytest.approx(x3_z90, rel=2e-8, abs=0.0), f2
     assert n_cmp >= 8  # enough entrained comparisons to be meaningful
     assert zk_dev > 0.05  # the 1986 variant is resolvably not reproduced
 
@@ -242,7 +242,7 @@ def test_first_entrainment_with_two_retained_heavies():
     assert flux_hi[idx] > 0.0
     assert flux_lo[3 - idx] == pytest.approx(0.0, abs=0.0)
     # The library's own first_threshold agrees with the printed expression.
-    assert first_threshold(X, m, T, g0, b) == pytest.approx(phi_thresh, rel=1e-9)
+    assert first_threshold(X, m, T, g0, b) == pytest.approx(phi_thresh, rel=1e-9, abs=0.0)
 
 
 @pytest.mark.reference_pinned
@@ -272,10 +272,10 @@ def test_zk23_nontrace_ternary_relations():
             X = np.array([f1, f2, f4])
             zk19 = (m[1] - m[0]) * g0 * b12 / kT / (1 + f4 * (b12 / b14 - 1))
             phi_star = f1 * (m[1] - m[0]) * g0 / kT / ((f1 + f2) / b12 + f4 / b14)
-            assert phi_star / f1 == pytest.approx(zk19, rel=1e-13), (f4, r21)
+            assert phi_star / f1 == pytest.approx(zk19, rel=1e-13, abs=0.0), (f4, r21)
             ph1 = first_threshold(X, m, T, g0, b)
             th = _activation_threshold(1, X, m, T, g0, b, ph1 * 1e-4, ph1 * 1e3)
-            assert (th / m[0]) / f1 == pytest.approx(zk19, rel=1e-9), (f4, r21)
+            assert (th / m[0]) / f1 == pytest.approx(zk19, rel=1e-9, abs=0.0), (f4, r21)
             eps = 1e-6
             _, _, lo_act = solve_closure(th * (1 - eps), X, m, T, g0, b, return_diag=True)
             _, _, hi_act = solve_closure(th * (1 + eps), X, m, T, g0, b, return_diag=True)
@@ -297,7 +297,7 @@ def test_zk23_nontrace_ternary_relations():
                 1 + f1 / f2 + (f4 / f2) * (b12 / b24)
             )
             rhs = g0 * (m[1] - m[0]) * b12 / kT
-            assert lhs == pytest.approx(rhs, rel=1e-12), (f4, frac)
+            assert lhs == pytest.approx(rhs, rel=1e-12, abs=0.0), (f4, frac)
 
 
 def _activation_threshold(k, X, m, T, g0, b, lo, hi, niter=100):
@@ -338,15 +338,15 @@ def test_chassefiere_prescribed_flux_partition():
         X, mm = np.array([x1, x2]), np.array([m1, m2])
         phi_c = b12 * x1 * (m2 - m1) * m1 * g0 / kT
         f1_c = solve_closure(phi_c, X, mm, T, g0, b)[0]
-        assert m1 + kT * f1_c / (b12 * g0 * x1) == pytest.approx(m2, rel=1e-12)
+        assert m1 + kT * f1_c / (b12 * g0 * x1) == pytest.approx(m2, rel=1e-12, abs=0.0)
         for frac in (1.2, 2.0, 10.0, 100.0):
             f1, f2 = solve_closure(frac * phi_c, X, mm, T, g0, b)
             f1_ref = frac * phi_c / m1  # his Eq. (5)
             mc = m1 + kT * f1 / (b12 * g0 * x1)  # his Eq. (7)
             pred6 = 1.0 / (1 + (x2 / x1) * (m2 / m1) * (mc - m2) / (mc - m1))
-            assert f1 / f1_ref == pytest.approx(pred6, rel=1e-12)
+            assert f1 / f1_ref == pytest.approx(pred6, rel=1e-12, abs=0.0)
             pred1 = (x2 / x1) * f1 * (mc - m2) / (mc - m1)  # his Eq. (1)
-            assert f2 == pytest.approx(pred1, rel=1e-12)
+            assert f2 == pytest.approx(pred1, rel=1e-12, abs=0.0)
 
 
 @pytest.mark.physics_invariant
@@ -377,7 +377,7 @@ def test_universal_b_closed_form():
     ref = X * (phi_tot - beta * (m - mbar))
     np.testing.assert_allclose(flux, ref, rtol=0, atol=1e-10 * np.max(ref))
     # Conservation on top of the closed form.
-    assert np.sum(m * flux) == pytest.approx(phi, rel=1e-12)
+    assert np.sum(m * flux) == pytest.approx(phi, rel=1e-12, abs=0.0)
 
 
 @pytest.mark.reference_pinned
@@ -392,9 +392,9 @@ def test_hunten_anchors_earth_mars_venus():
     """
     kt400 = kb_cgs * 400.0
     f1_earth = (140 - 1) * AMU_G * 2e19 * 980 / kt400
-    assert f1_earth == pytest.approx(8.1e13, rel=0.02)
+    assert f1_earth == pytest.approx(8.1e13, rel=0.02, abs=0.0)
     f1_mars = (130 - 1) * AMU_G * 2e19 * 373 / kt400
-    assert f1_mars == pytest.approx(2.9e13, rel=0.02)
+    assert f1_mars == pytest.approx(2.9e13, rel=0.02, abs=0.0)
     mc_venus = 1 + kt400 * 2e11 / (2.2e19 * 850 * AMU_G)
     assert mc_venus == pytest.approx(1.35, abs=0.02)
     for m2_amu, g0, b12, f1_ref in (
@@ -411,7 +411,7 @@ def test_hunten_anchors_earth_mars_venus():
             0.0, abs=0.0
         )
         assert solve_closure(phi_star * (1 + eps), X, m, 400.0, g0, b)[1] > 0.0
-        assert phi_star / m[0] == pytest.approx(f1_ref, rel=0.01)
+        assert phi_star / m[0] == pytest.approx(f1_ref, rel=0.01, abs=0.0)
 
 
 @pytest.mark.physics_invariant
@@ -439,8 +439,8 @@ def test_low_flux_collapse_and_zero_limit():
             phi = frac * phi1
             flux, _c, act = solve_closure(phi, X, m, T, g0, b, return_diag=True)
             assert act == frozenset({light})
-            assert flux[light] == pytest.approx(phi / m[light], rel=1e-12)
-            assert np.sum(m * flux) == pytest.approx(phi, rel=1e-12)
+            assert flux[light] == pytest.approx(phi / m[light], rel=1e-12, abs=0.0)
+            assert np.sum(m * flux) == pytest.approx(phi, rel=1e-12, abs=0.0)
         flux0, _c0, act0 = solve_closure(0.0, X, m, T, g0, b, return_diag=True)
         np.testing.assert_array_equal(flux0, 0.0)
         assert act0 == frozenset()
@@ -458,7 +458,7 @@ def test_per_species_shim_conserves_mass():
     per, diag, _flags = closure_per_species(
         1.0e6, {'H': 0.85, 'He': 0.10, 'O': 0.05}, 8000.0, 5 * Me, 2 * Re
     )
-    assert sum(per.values()) == pytest.approx(1.0e6, rel=1e-9)
+    assert sum(per.values()) == pytest.approx(1.0e6, rel=1e-9, abs=0.0)
     assert diag['mass_conservation_rel'] < 1e-9
     assert all(v >= 0.0 for v in per.values())
     assert 'H' in diag['active_set']
@@ -477,7 +477,7 @@ def test_shim_low_flux_and_rock_former_flag():
     """
     per, diag, _ = closure_per_species(1.0e-3, {'H': 0.5, 'O': 0.5}, 8000.0, 5 * Me, 2 * Re)
     assert per['O'] == pytest.approx(0.0, abs=0.0)
-    assert per['H'] == pytest.approx(1.0e-3, rel=1e-9)
+    assert per['H'] == pytest.approx(1.0e-3, rel=1e-9, abs=0.0)
     assert diag['retained'] == ['O']
     _per, _diag, flags = closure_per_species(
         1.0e6, {'H': 0.9, 'Si': 0.1}, 8000.0, 5 * Me, 2 * Re
@@ -494,12 +494,12 @@ def test_unfractionated_split_protocol():
     to the bulk rate.
     """
     per, flags = unfractionated_split(4.0, {'H': 3.0e18, 'O': 1.0e18}, {'H': 1.0})
-    assert per['H'] == pytest.approx(3.0, rel=1e-12)
-    assert per['O'] == pytest.approx(1.0, rel=1e-12)
+    assert per['H'] == pytest.approx(3.0, rel=1e-12, abs=0.0)
+    assert per['O'] == pytest.approx(1.0, rel=1e-12, abs=0.0)
     assert flags == {}
     per2, flags2 = unfractionated_split(4.0, None, {'H': 0.5, 'O': 0.5})
     assert flags2.get('split_from_base_composition') is True
-    assert sum(per2.values()) == pytest.approx(4.0, rel=1e-12)
+    assert sum(per2.values()) == pytest.approx(4.0, rel=1e-12, abs=0.0)
     # Mass weighting: oxygen outweighs hydrogen at equal mole fractions.
     assert per2['O'] > per2['H']
     # A reservoir that has run dry has no proportions to split by, which is
@@ -507,8 +507,8 @@ def test_unfractionated_split_protocol():
     # fallback as no reservoir at all, flagged, rather than dividing by zero.
     per3, flags3 = unfractionated_split(4.0, {'H': 0.0, 'O': 0.0}, {'H': 0.5, 'O': 0.5})
     assert flags3.get('split_from_base_composition') is True
-    assert per3 == pytest.approx(per2, rel=1e-12)
-    assert sum(per3.values()) == pytest.approx(4.0, rel=1e-12)
+    assert per3 == pytest.approx(per2, rel=1e-12, abs=0.0)
+    assert sum(per3.values()) == pytest.approx(4.0, rel=1e-12, abs=0.0)
     # Negative reservoir masses are malformed input, not a dry reservoir.
     with pytest.raises(ValueError, match='non-negative'):
         unfractionated_split(4.0, {'H': -1.0, 'O': 2.0}, {'H': 0.5, 'O': 0.5})

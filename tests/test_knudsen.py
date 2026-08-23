@@ -84,7 +84,7 @@ def test_laricchiuta_cross_sections_match_transcription_pins():
     """
     for pair, vals in PINNED_SIGMA.items():
         for T, ref in vals.items():
-            assert lar_sigma_diff(pair, T) == pytest.approx(ref, rel=0.01), (pair, T)
+            assert lar_sigma_diff(pair, T) == pytest.approx(ref, rel=0.01, abs=0.0), (pair, T)
     # Monotone decrease with temperature for a representative pair.
     ts = [300.0, 1000.0, 3000.0, 10000.0, 20000.0]
     sigmas = [lar_sigma_diff(('N', 'N'), t) for t in ts]
@@ -119,10 +119,10 @@ def test_hydrogen_route_pins_and_temperature_dependence():
     dependence by construction. The error contract: any species other than
     H or H2 is rejected.
     """
-    assert sigma_zk90_hydrogen('H', 1e4) == pytest.approx(6.4e-20, rel=0.02)
-    assert sigma_zk90_hydrogen('H2', 300.0) == pytest.approx(2.07e-19, rel=0.02)
+    assert sigma_zk90_hydrogen('H', 1e4) == pytest.approx(6.4e-20, rel=0.02, abs=0.0)
+    assert sigma_zk90_hydrogen('H2', 300.0) == pytest.approx(2.07e-19, rel=0.02, abs=0.0)
     r = sigma_zk90_hydrogen('H', 1e4) / sigma_zk90_hydrogen('H', 1e2)
-    assert r == pytest.approx((1e4 / 1e2) ** -0.25, rel=1e-9)
+    assert r == pytest.approx((1e4 / 1e2) ** -0.25, rel=1e-9, abs=0.0)
     with pytest.raises(ValueError, match='hydrogen route'):
         sigma_zk90_hydrogen('He', 1e4)
 
@@ -149,7 +149,7 @@ def test_ladder_provenance_and_geometric_bias():
     # A composite molecule with no tabulated radius falls back to its
     # largest constituent element without raising.
     geo_h2o = sigma_geometric('H2O')
-    assert geo_h2o == pytest.approx(math.pi * (2.0 * 1.52e-10) ** 2, rel=1e-12)
+    assert geo_h2o == pytest.approx(math.pi * (2.0 * 1.52e-10) ** 2, rel=1e-12, abs=0.0)
 
 
 @pytest.mark.physics_invariant
@@ -164,11 +164,11 @@ def test_kn_sonic_equals_mfp_over_scale_height():
     vmr = {'N': 1.0}
     n, r, T = 1e14, 1e7, 8000.0
     kn, sigma, prov = kn_sonic(n, r, vmr, T, gamma=1.0)
-    assert kn == pytest.approx(mean_free_path(sigma, n) / sonic_scale_height(r, 1.0), rel=1e-12)
+    assert kn == pytest.approx(mean_free_path(sigma, n) / sonic_scale_height(r, 1.0), rel=1e-12, abs=0.0)
     assert prov == {'N': 'laricchiuta'}
     # Rarefied edge: eight decades less dense means eight decades larger Kn.
     kn_thin, _, _ = kn_sonic(n * 1e-8, r, vmr, T)
-    assert kn_thin == pytest.approx(kn * 1e8, rel=1e-9)
+    assert kn_thin == pytest.approx(kn * 1e8, rel=1e-9, abs=0.0)
     assert math.isfinite(kn_thin)
 
 
@@ -185,10 +185,10 @@ def test_mixture_cross_section_is_density_weighted():
     s_n, _ = sigma_species('N', T)
     s_co2, _ = sigma_species('CO2', T)
     mix, _ = sigma_mixture({'N': 0.25, 'CO2': 0.75}, T)
-    assert mix == pytest.approx(0.25 * s_n + 0.75 * s_co2, rel=1e-12)
+    assert mix == pytest.approx(0.25 * s_n + 0.75 * s_co2, rel=1e-12, abs=0.0)
     assert min(s_n, s_co2) < mix < max(s_n, s_co2)
     mix_scaled, _ = sigma_mixture({'N': 2.5, 'CO2': 7.5}, T)
-    assert mix_scaled == pytest.approx(mix, rel=1e-12)
+    assert mix_scaled == pytest.approx(mix, rel=1e-12, abs=0.0)
 
 
 def test_hysteresis_window_moves_the_threshold_the_right_way():

@@ -58,7 +58,7 @@ def test_el_escape_scaling2_matches_erkaev2007_closed_form():
     val = EL_escape(False, 1.0, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
     expected = 6479585.361332079  # kg s-1, hand-evaluated at the reference geometry
     # Same closed form and constants as the source, so exact to float rounding.
-    assert val == pytest.approx(expected, rel=1e-9)
+    assert val == pytest.approx(expected, rel=1e-9, abs=0.0)
     # Wrong-scaling discrimination: scaling=3 uses Rxuv**3, not Rp * Rxuv**2.
     # With Rxuv = 1.2 * Rp the two branches are 20% apart, far above tolerance.
     wrong_scaling3 = EPSILON * np.pi * RXUV**3 * FXUV / (G * Me)
@@ -83,7 +83,7 @@ def test_el_escape_scaling3_matches_lehmer_catling_closed_form():
     """
     val = EL_escape(False, 1.0, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=3)
     expected = 7775502.433598499  # kg s-1, hand-evaluated at the reference geometry
-    assert val == pytest.approx(expected, rel=1e-9)
+    assert val == pytest.approx(expected, rel=1e-9, abs=0.0)
     # Wrong-scaling discrimination: scaling=2 uses Rp * Rxuv**2 and is 20%
     # smaller here, so a regression that reverts the exponent fails.
     wrong_scaling2 = EPSILON * np.pi * RP * RXUV**2 * FXUV / (G * Me)
@@ -128,7 +128,7 @@ def test_el_escape_tidal_raises_below_roche_lobe():
     rhill = a * (1 - e) * (Me / (3 * Ms)) ** (1 / 3)
     ksi = rhill / RP
     # Confirm the constructed geometry is genuinely sub-Roche-lobe.
-    assert ksi == pytest.approx(0.4692904927637428, rel=1e-9)
+    assert ksi == pytest.approx(0.4692904927637428, rel=1e-9, abs=0.0)
     assert ksi < 1.0
     with pytest.raises(ValueError, match='Roche lobe'):
         EL_escape(True, a, e, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
@@ -162,7 +162,7 @@ def test_el_escape_linear_in_xuv_flux():
     base = EL_escape(False, 1.0, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
     doubled = EL_escape(False, 1.0, 0.0, Me, Ms, EPSILON, RP, RXUV, 2 * FXUV, scaling=2)
     # Exact proportionality: a spurious additive offset would break this.
-    assert doubled == pytest.approx(2 * base, rel=1e-12)
+    assert doubled == pytest.approx(2 * base, rel=1e-12, abs=0.0)
     assert base > 0
     # Zero-flux limit: the rate collapses to exactly zero.
     zero = EL_escape(False, 1.0, 0.0, Me, Ms, EPSILON, RP, RXUV, 0.0, scaling=2)
@@ -180,7 +180,7 @@ def test_el_escape_decreases_with_planet_mass():
     light = EL_escape(False, 1.0, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
     heavy = EL_escape(False, 1.0, 0.0, 2 * Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
     # Exact 1/Mp relation: doubling Mp halves the rate.
-    assert heavy == pytest.approx(0.5 * light, rel=1e-12)
+    assert heavy == pytest.approx(0.5 * light, rel=1e-12, abs=0.0)
     # Monotone decrease, and the heavier planet still escapes at a positive rate.
     assert heavy < light
     massive = EL_escape(False, 1.0, 0.0, 1e3 * Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
@@ -204,7 +204,7 @@ def test_el_escape_tidal_correction_increases_escape():
     tidal = EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
     assert tidal > no_tidal
     # Pin the enhancement factor 1 / K_tide with ksi = Rhill / Rp.
-    assert tidal / no_tidal == pytest.approx(1.4594144515815166, rel=1e-9)
+    assert tidal / no_tidal == pytest.approx(1.4594144515815166, rel=1e-9, abs=0.0)
     # Dropped-K_tide discrimination: the ratio is well above 1, not ~1.
     assert tidal / no_tidal - 1.0 > 0.1
     # Boundedness: for this close-in geometry the Hill radius stays above Rp
@@ -231,7 +231,7 @@ def test_el_escape_tidal_eccentricity_increases_escape():
     # Higher eccentricity gives a smaller periapsis Hill radius, so more escape.
     assert eccentric > circular
     # Pin the enhancement against the hand-evaluated K_tide(e=0) / K_tide(e=0.3).
-    assert eccentric / circular == pytest.approx(1.2290962685206341, rel=1e-9)
+    assert eccentric / circular == pytest.approx(1.2290962685206341, rel=1e-9, abs=0.0)
     # Sign-convention discrimination: the (1 + e) periapsis slip would push the
     # ratio below 1, reversing the inequality asserted above.
     assert eccentric / circular > 1.0

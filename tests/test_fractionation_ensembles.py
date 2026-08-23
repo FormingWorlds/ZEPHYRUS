@@ -141,7 +141,7 @@ def test_binary_limit_matches_closed_form_over_random_draws():
         for frac in (0.3, 3.0):
             phi = frac * phi_c
             flux = solve_closure(phi, X, mm, T, g0, b)
-            assert m1 * flux[0] + m2 * flux[1] == pytest.approx(phi, rel=1e-12)
+            assert m1 * flux[0] + m2 * flux[1] == pytest.approx(phi, rel=1e-12, abs=0.0)
 
 
 @pytest.mark.physics_invariant
@@ -233,7 +233,7 @@ def test_active_set_unique_and_matches_bruteforce():
             assert a_set == act
             wref = max(np.max(np.abs(w)), 1e-300)
             assert np.max(np.abs(X * w - flux)) <= 1e-8 * wref * np.max(X)
-            assert c_bf == pytest.approx(c_mult, rel=1e-9)
+            assert c_bf == pytest.approx(c_mult, rel=1e-9, abs=0.0)
             if len(a_set) < n:
                 n_partial += 1
     assert n_partial > 0  # the retention branch is genuinely exercised

@@ -92,14 +92,14 @@ def test_volkov_flat_factor_against_published_correction():
     would double-count.
     """
     for lam, c_ref in VOLKOV_C_TABLE.items():
-        assert c_lambda(lam) == pytest.approx(c_ref, rel=6e-4), lam
+        assert c_lambda(lam) == pytest.approx(c_ref, rel=6e-4, abs=0.0), lam
         r = volkov_eq9_ratio(1e-4, lam)
-        assert (r - 1.0) / 1e-4 == pytest.approx(c_lambda(lam), rel=2e-3)
+        assert (r - 1.0) / 1e-4 == pytest.approx(c_lambda(lam), rel=2e-3, abs=0.0)
         assert volkov_eq9_ratio(1e-6, lam) == pytest.approx(1.0, abs=1e-4)
-    assert volkov_flat_factor(6.0) == pytest.approx(1.7, rel=1e-12)
-    assert volkov_flat_factor(15.0) == pytest.approx(1.4, rel=1e-12)
-    assert volkov_flat_factor(50.0) == pytest.approx(1.4, rel=1e-12)  # held
-    assert volkov_flat_factor(10.5) == pytest.approx(1.55, rel=0.01)
+    assert volkov_flat_factor(6.0) == pytest.approx(1.7, rel=1e-12, abs=0.0)
+    assert volkov_flat_factor(15.0) == pytest.approx(1.4, rel=1e-12, abs=0.0)
+    assert volkov_flat_factor(50.0) == pytest.approx(1.4, rel=1e-12, abs=0.0)  # held
+    assert volkov_flat_factor(10.5) == pytest.approx(1.55, rel=0.01, abs=0.0)
     assert volkov_flat_factor(15.0) < volkov_flat_factor(6.0)
     assert volkov_eq9_ratio(0.1, 15.0) > volkov_eq9_ratio(0.1, 6.0)
 
@@ -172,7 +172,7 @@ def test_yelle_figure1_mars_hydrogen_flux():
     f200, _ = _mars_h_flux(200.0)
     f300, _ = _mars_h_flux(300.0)
     f400, _ = _mars_h_flux(400.0)
-    assert f300 == pytest.approx(2.4e8, rel=0.4)
+    assert f300 == pytest.approx(2.4e8, rel=0.4, abs=0.0)
     assert f400 / f300 == pytest.approx(1.0, abs=0.2)  # saturated plateau
     assert f200 / f400 > 0.5
     assert f100 / f400 < 0.07  # Jeans-limited collapse
@@ -193,8 +193,8 @@ def test_escape_temperature_identities_and_gate():
     _per, det = hydrostatic_rates(prof, M_MARS, 300.0)
     m = det['m_bar']
     r = det['r_exo']
-    assert det['T_esc_neutral'] == pytest.approx(G * M_MARS * m / (2 * kb * r), rel=1e-12)
-    assert det['T_esc_plasma'] == pytest.approx(det['T_esc_neutral'] / 2.0, rel=1e-12)
+    assert det['T_esc_neutral'] == pytest.approx(G * M_MARS * m / (2 * kb * r), rel=1e-12, abs=0.0)
+    assert det['T_esc_plasma'] == pytest.approx(det['T_esc_neutral'] / 2.0, rel=1e-12, abs=0.0)
     det2 = dict(det, T_esc_neutral=500.0, T_esc_plasma=250.0)
     # Gate thresholds: neutral at 250 K, plasma at 125 K exobase temperature.
     assert gate_unstable(260.0, det2, 'neutral', 0.0) == (True, False)
@@ -228,7 +228,7 @@ def test_element_mapping_conserves_mass_and_dominant_bypass():
     rate_co2 = det['per_species_rate']['CO2']
     assert per_el['C'] + per_el['O'] + per_el['H'] == pytest.approx(
         rate_co2 + det['per_species_rate']['H'], rel=1e-9
-    )
+    , abs=0.0)
 
 
 def test_extension_truncates_when_unbound_and_flags():
@@ -250,8 +250,8 @@ def test_extension_truncates_when_unbound_and_flags():
     for ext in (hot, cool):
         assert np.all(np.diff(ext['r']) > 0)
     # The Bates profile approaches its asymptotic temperature from below.
-    assert cool['T'][-1] == pytest.approx(200.0, rel=1e-6)
-    assert cool['T'][0] == pytest.approx(100.0, rel=1e-9)
+    assert cool['T'][-1] == pytest.approx(200.0, rel=1e-6, abs=0.0)
+    assert cool['T'][0] == pytest.approx(100.0, rel=1e-9, abs=0.0)
 
 
 def test_exobase_locator_contract():
@@ -317,9 +317,9 @@ def test_jeans_effusion_velocity_shape():
     T, m = 300.0, 1.008 * amu
     v5 = jeans_effusion_velocity(T, m, 5.0)
     v10 = jeans_effusion_velocity(T, m, 10.0)
-    assert v10 / v5 == pytest.approx((11.0 / 6.0) * math.exp(-5.0), rel=1e-12)
+    assert v10 / v5 == pytest.approx((11.0 / 6.0) * math.exp(-5.0), rel=1e-12, abs=0.0)
     v_heavy = jeans_effusion_velocity(T, 16 * m, 5.0)
-    assert v5 / v_heavy == pytest.approx(4.0, rel=0.01)  # sqrt(16) prefactor
+    assert v5 / v_heavy == pytest.approx(4.0, rel=0.01, abs=0.0)  # sqrt(16) prefactor
     assert v_heavy > 0.0
 
 
@@ -343,7 +343,7 @@ def test_trace_species_survive_into_the_exobase_anchor():
         keys.append(set(per_el))
     # Linear in abundance across nine decades, so no threshold sits inside.
     for x, rate in zip(fractions, rates):
-        assert rate / x == pytest.approx(rates[0] / fractions[0], rel=1e-3), (x, rate)
+        assert rate / x == pytest.approx(rates[0] / fractions[0], rel=1e-3, abs=0.0), (x, rate)
     # Hydrogen is reported at every abundance, never dropped from the split.
     assert all('H' in k for k in keys)
     # Removing it entirely is the only way to lose it, and then the rate

@@ -99,7 +99,7 @@ def test_lambda_equals_two_bondi_radii_over_rp():
         lam = lambda_restricted(M_p, R_p, T_eq, mu)
         c2 = kb * T_eq / mu
         R_B = G * M_p / (2.0 * c2)
-        assert lam == pytest.approx(2.0 * R_B / R_p, rel=1e-12)
+        assert lam == pytest.approx(2.0 * R_B / R_p, rel=1e-12, abs=0.0)
     assert LAMBDA_BAND[0] < 20.0 < LAMBDA_BAND[1]
     # Monotone in mu: heavier gas is more tightly bound.
     lam_light = lambda_restricted(M_p, R_p, T_eq, 2.3 * amu)
@@ -160,12 +160,12 @@ def test_luminosity_cap_carries_the_tidal_barrier_reduction():
     assert det_tidal['mdot_luminosity'] > det_flat['mdot_luminosity']
     assert det_tidal['mdot_luminosity'] / det_flat['mdot_luminosity'] == pytest.approx(
         1.92, rel=0.01
-    )
+    , abs=0.0)
     # K = 1 is the untidal form, and the cap still bounds the rate.
     _rate_one, det_one = bolometric_candidate(
         *args, lambda_gate=30.0, lambda_crit=20.0, k_tide=1.0
     )
-    assert det_one['mdot_luminosity'] == pytest.approx(det_flat['mdot_luminosity'], rel=1e-12)
+    assert det_one['mdot_luminosity'] == pytest.approx(det_flat['mdot_luminosity'], rel=1e-12, abs=0.0)
     assert _rate_tidal <= det_tidal['mdot_luminosity'] * (1 + 1e-12)
 
 
@@ -179,11 +179,11 @@ def test_wind_temperature_and_opacity_scaling():
     M_p, R_p, T_eq = 4 * Me, 2.5 * Re, 1000.0
     launch = _launch(M_p, R_p, T_eq, {'H2': 1.0})
     _, det = bolometric_candidate(M_p, R_p, T_eq, 0.01, launch, 1.0, 5.0, 20.0)
-    assert det['T_wind'] == pytest.approx(1000.0 / 2**0.25, rel=1e-12)
+    assert det['T_wind'] == pytest.approx(1000.0 / 2**0.25, rel=1e-12, abs=0.0)
     _, det2 = bolometric_candidate(M_p, R_p, T_eq, 0.02, launch, 1.0, 5.0, 20.0)
-    assert det2['mdot_parker'] == pytest.approx(det['mdot_parker'] / 2.0, rel=1e-12)
+    assert det2['mdot_parker'] == pytest.approx(det['mdot_parker'] / 2.0, rel=1e-12, abs=0.0)
     # The Bondi cap does not depend on the opacity.
-    assert det2['mdot_bondi'] == pytest.approx(det['mdot_bondi'], rel=1e-12)
+    assert det2['mdot_bondi'] == pytest.approx(det['mdot_bondi'], rel=1e-12, abs=0.0)
 
 
 def test_inflated_launch_level_clamps_with_flag():
@@ -226,8 +226,8 @@ def test_tang_timescale_diagnostic_contract():
     assert tang_timescale_check(Me, Re, 1.0, 0.0, {'H': 1e18}) == {'evaluated': False}
     out = tang_timescale_check(Me, Re, 1.0, 1e5, {'H': 1e18})
     assert out['evaluated'] is True
-    assert out['t_mdot_s'] == pytest.approx(1e13, rel=1e-9)
-    assert out['t_cool_s'] == pytest.approx(1.2226e11, rel=1e-3)
+    assert out['t_mdot_s'] == pytest.approx(1e13, rel=1e-9, abs=0.0)
+    assert out['t_cool_s'] == pytest.approx(1.2226e11, rel=1e-3, abs=0.0)
     # Swap discrimination: the two timescales differ by two decades here.
     assert out['t_mdot_s'] > 50.0 * out['t_cool_s']
     assert out['terminated'] is True

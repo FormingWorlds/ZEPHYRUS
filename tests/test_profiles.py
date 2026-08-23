@@ -92,7 +92,7 @@ def test_isothermal_profile_obeys_hydrostatic_relation():
     for i in (0, len(prof.p) // 2):
         H = kb * T * prof.r[i] ** 2 / (G * M * mu)
         step = (prof.r[i + 1] - prof.r[i]) / (lnp[i + 1] - lnp[i])
-        assert step == pytest.approx(-H, rel=1e-12)
+        assert step == pytest.approx(-H, rel=1e-12, abs=0.0)
     # Curvature guard: the r^2 growth of H makes the true extent exceed the
     # plane-parallel (surface-H) estimate.
     H0 = kb * T * R**2 / (G * M * mu)
@@ -133,13 +133,13 @@ def test_interp_at_pressure_ideal_gas_and_node_exactness():
     prof = _n2_profile()
     k = len(prof.p) // 2
     lev = interp_at_pressure(prof, float(prof.p[k]))
-    assert lev['r'] == pytest.approx(float(prof.r[k]), rel=1e-12)
-    assert lev['T'] == pytest.approx(float(prof.T[k]), rel=1e-12)
+    assert lev['r'] == pytest.approx(float(prof.r[k]), rel=1e-12, abs=0.0)
+    assert lev['T'] == pytest.approx(float(prof.T[k]), rel=1e-12, abs=0.0)
     # Ideal gas at an off-node pressure.
     p_mid = np.sqrt(prof.p[k] * prof.p[k + 1])
     lev2 = interp_at_pressure(prof, float(p_mid))
-    assert lev2['n'] == pytest.approx(float(p_mid) / (kb * lev2['T']), rel=1e-12)
-    assert lev2['rho'] == pytest.approx(lev2['n'] * lev2['mmw'], rel=1e-12)
+    assert lev2['n'] == pytest.approx(float(p_mid) / (kb * lev2['T']), rel=1e-12, abs=0.0)
+    assert lev2['rho'] == pytest.approx(lev2['n'] * lev2['mmw'], rel=1e-12, abs=0.0)
     # Radius must lie strictly between the bracketing nodes.
     assert prof.r[k] < lev2['r'] < prof.r[k + 1]
 
@@ -155,7 +155,7 @@ def test_pressure_at_radius_inverts_the_profile():
     prof = _n2_profile()
     k = len(prof.p) // 3
     lev = interp_at_pressure(prof, float(prof.p[k]))
-    assert pressure_at_radius(prof, lev['r']) == pytest.approx(float(prof.p[k]), rel=1e-9)
+    assert pressure_at_radius(prof, lev['r']) == pytest.approx(float(prof.p[k]), rel=1e-9, abs=0.0)
     r_mid = 0.5 * (prof.r[k] + prof.r[k + 1])
     p_mid = pressure_at_radius(prof, r_mid)
     assert prof.p[k + 1] < p_mid < prof.p[k]
@@ -171,16 +171,16 @@ def test_photospheric_level_clamps_with_flags():
     """
     prof = _n2_profile()
     lev, flags = photospheric_level(prof)
-    assert lev['p'] == pytest.approx(2000.0, rel=1e-12)
+    assert lev['p'] == pytest.approx(2000.0, rel=1e-12, abs=0.0)
     assert flags == {}
     deep = isothermal_profile(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, 1e7, 1e4)
     lev_d, flags_d = photospheric_level(deep)
     assert flags_d.get('photo_clamped') is True
-    assert lev_d['p'] == pytest.approx(1e4, rel=1e-12)
+    assert lev_d['p'] == pytest.approx(1e4, rel=1e-12, abs=0.0)
     shallow = isothermal_profile(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, 1e3, 1e-4)
     lev_s, flags_s = photospheric_level(shallow)
     assert flags_s.get('photo_clamped') is True
-    assert lev_s['p'] == pytest.approx(1e3, rel=1e-12)
+    assert lev_s['p'] == pytest.approx(1e3, rel=1e-12, abs=0.0)
 
 
 @pytest.mark.reference_pinned
@@ -206,10 +206,10 @@ def test_lopez_base_pressure_is_the_nanobar_level():
     # Scale guard: eighty decades of headroom is a unit slip, five is right.
     assert p_base < 2000.0 * 1e-4
     # Linearity in gravity: doubling g doubles the base pressure.
-    assert lopez_base_pressure(1.008 * amu, 2 * g) == pytest.approx(2 * p_base, rel=1e-12)
+    assert lopez_base_pressure(1.008 * amu, 2 * g) == pytest.approx(2 * p_base, rel=1e-12, abs=0.0)
     # The proton-mass convention differs from the atomic-weight convention
     # by under a percent; both stay inside the pinned band.
-    assert lopez_base_pressure(m_p, g) == pytest.approx(p_base, rel=0.01)
+    assert lopez_base_pressure(m_p, g) == pytest.approx(p_base, rel=0.01, abs=0.0)
 
 
 def test_wind_base_level_lopez_converges_and_clamps():
@@ -225,7 +225,7 @@ def test_wind_base_level_lopez_converges_and_clamps():
     prof = _n2_profile(p_top=1e-6)
     lev, flags = wind_base_level(prof, 5 * Me, method='lopez')
     assert 'base_clamped' not in flags
-    assert lev['p'] == pytest.approx(lev['p_physical'], rel=1e-3)
+    assert lev['p'] == pytest.approx(lev['p_physical'], rel=1e-3, abs=0.0)
     # The N2 base sits at the nanobar scale (between 0.01 and 100 nanobar).
     assert 1e-6 < lev['p'] < 1e-2
     # The physical base pressure is a level quantity, not a flag: an
@@ -234,12 +234,12 @@ def test_wind_base_level_lopez_converges_and_clamps():
     deep = _n2_profile(p_top=1e-2)
     lev_d, flags_d = wind_base_level(deep, 5 * Me, method='lopez')
     assert flags_d.get('base_clamped') is True
-    assert lev_d['p'] == pytest.approx(float(deep.p[-1]), rel=1e-12)
+    assert lev_d['p'] == pytest.approx(float(deep.p[-1]), rel=1e-12, abs=0.0)
     # The clamped level sits above its own physical target, by the recorded
     # distance; a clamp that lost the target would fail both assertions.
     assert lev_d['p'] > lev_d['p_physical']
     expected_decades = np.log10(deep.p[-1] / lev_d['p_physical'])
-    assert flags_d['base_clamp_decades'] == pytest.approx(expected_decades, rel=1e-9)
+    assert flags_d['base_clamp_decades'] == pytest.approx(expected_decades, rel=1e-9, abs=0.0)
     assert flags_d['base_clamp_decades'] > 0.0
 
 
@@ -252,11 +252,11 @@ def test_wind_base_level_fixed_pressure_method():
     """
     prof = _n2_profile()
     lev, flags = wind_base_level(prof, 5 * Me, method='fixed_pressure', fixed_pressure=5.0)
-    assert lev['p'] == pytest.approx(5.0, rel=1e-12)
+    assert lev['p'] == pytest.approx(5.0, rel=1e-12, abs=0.0)
     assert flags == {}
     lev_c, flags_c = wind_base_level(prof, 5 * Me, method='fixed_pressure', fixed_pressure=1e-9)
     assert flags_c.get('base_clamped') is True
-    assert lev_c['p'] == pytest.approx(float(prof.p[-1]), rel=1e-12)
+    assert lev_c['p'] == pytest.approx(float(prof.p[-1]), rel=1e-12, abs=0.0)
 
 
 def test_wind_base_level_boreas_falls_back_without_dependency(monkeypatch):
@@ -273,11 +273,11 @@ def test_wind_base_level_boreas_falls_back_without_dependency(monkeypatch):
     lev, flags = wind_base_level(prof, 5 * Me, method='boreas', boreas_scalars=scalars)
     assert flags.get('base_method_fallback') == 'lopez'
     lev_ref, _ = wind_base_level(prof, 5 * Me, method='lopez')
-    assert lev['p'] == pytest.approx(lev_ref['p'], rel=1e-12)
+    assert lev['p'] == pytest.approx(lev_ref['p'], rel=1e-12, abs=0.0)
     # Missing scalars: same fallback, no exception.
     lev2, flags2 = wind_base_level(prof, 5 * Me, method='boreas', boreas_scalars=None)
     assert flags2.get('base_method_fallback') == 'lopez'
-    assert lev2['p'] == pytest.approx(lev_ref['p'], rel=1e-12)
+    assert lev2['p'] == pytest.approx(lev_ref['p'], rel=1e-12, abs=0.0)
 
 
 def test_wind_base_level_boreas_uses_solver_radius(monkeypatch):
@@ -320,7 +320,7 @@ def test_wind_base_level_boreas_uses_solver_radius(monkeypatch):
     scalars = {'R_p': 1.5 * Re, 'T_eq': 800.0, 'F_xuv': 10.0}
     lev, flags = wind_base_level(prof, 5 * Me, method='boreas', boreas_scalars=scalars)
     assert 'base_method_fallback' not in flags
-    assert lev['p'] == pytest.approx(pressure_at_radius(prof, r_target), rel=1e-9)
+    assert lev['p'] == pytest.approx(pressure_at_radius(prof, r_target), rel=1e-9, abs=0.0)
     # Interior radius: the level pressure must be between the endpoints.
     assert prof.p[-1] < lev['p'] < prof.p[0]
 

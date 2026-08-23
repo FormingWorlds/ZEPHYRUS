@@ -68,8 +68,8 @@ def test_vdw_diameter_rule_reproduces_printed_entries():
     # The assembled table itself carries the rule's output: the scaled
     # carbon and silicon diameters are pinned (hand-evaluated 275 * r/r_O),
     # so a wrong anchor in diameters() fails here, not only downstream.
-    assert d['C'] == pytest.approx(307.57, rel=1e-3)
-    assert d['Si'] == pytest.approx(379.93, rel=1e-3)
+    assert d['C'] == pytest.approx(307.57, rel=1e-3, abs=0.0)
+    assert d['Si'] == pytest.approx(379.93, rel=1e-3, abs=0.0)
     # The scaled diameters preserve the C > N > O size ordering.
     assert d['C'] > d['N'] > d['O']
 
@@ -96,7 +96,7 @@ def test_sn88_unit_reading_matches_zk86_table():
         b_86 = b_zk86(sp, 'H2', 1000.0)
         assert abs(b_86 / b_sn - 1.0) < 0.03, sp
         # Unit-slip guard: a wrong unit reading misses by decades.
-        assert b_sn == pytest.approx(b_86, rel=0.05)
+        assert b_sn == pytest.approx(b_86, rel=0.05, abs=0.0)
         assert not math.isclose(b_sn * 100.0, b_86, rel_tol=0.5)
 
 
@@ -179,7 +179,7 @@ def test_build_rows_source_order_and_classes():
     """
     r_hhe = build_rows(['H', 'He'])[0]
     assert r_hhe.uncertainty == 'measured'
-    assert r_hhe.b1000 == pytest.approx(1.6e20, rel=1e-12)
+    assert r_hhe.b1000 == pytest.approx(1.6e20, rel=1e-12, abs=0.0)
     r_krh2 = build_rows(['Kr', 'H2'])[0]
     assert r_krh2.provenance.startswith('SN88')
     assert r_krh2.uncertainty == 'measured'
@@ -190,7 +190,7 @@ def test_build_rows_source_order_and_classes():
     for r in (r_hhe, r_krh2, r_co, r_si):
         assert r.uncertainty in SIGMA_CLASS
     # The temperature law is the fitted power law.
-    assert r_hhe.b(2000.0) / r_hhe.b(1000.0) == pytest.approx(2.0**0.75, rel=1e-12)
+    assert r_hhe.b(2000.0) / r_hhe.b(1000.0) == pytest.approx(2.0**0.75, rel=1e-12, abs=0.0)
 
 
 def test_bmatrix_symmetry_and_error_contract():
@@ -213,7 +213,7 @@ def test_bmatrix_symmetry_and_error_contract():
     with pytest.raises(KeyError, match='no mass'):
         masses_g(['H', 'Zz'])
     # Masses convert to grams: hydrogen is 1.008 amu.
-    assert masses_g(['H'])[0] == pytest.approx(1.008 * 1.66053907e-24, rel=1e-6)
+    assert masses_g(['H'])[0] == pytest.approx(1.008 * 1.66053907e-24, rel=1e-6, abs=0.0)
 
 
 def test_b_pair_ladder_and_proxy_provenance():
@@ -227,18 +227,18 @@ def test_b_pair_ladder_and_proxy_provenance():
     values.
     """
     b_si, prov = b_pair('H', 'CO2', 1000.0)
-    assert b_si == pytest.approx(6.0e19 * 100.0, rel=1e-9)
+    assert b_si == pytest.approx(6.0e19 * 100.0, rel=1e-9, abs=0.0)
     assert prov.startswith('ZK23')
     b_co, prov_co = b_pair('CO', 'N2', 1000.0)
     assert prov_co == 'molecular-background table'
-    assert b_co == pytest.approx(9.28e16 * 1000.0**0.71 * 100.0, rel=1e-9)
+    assert b_co == pytest.approx(9.28e16 * 1000.0**0.71 * 100.0, rel=1e-9, abs=0.0)
     b_so2, prov_so2 = b_pair('SO2', 'N2', 1000.0)
     assert prov_so2.startswith('proxy')
     assert 'SO2->' in prov_so2
     assert b_so2 > 0.0
     # Cache round trip: the second call reproduces the first exactly.
     b_si2, prov2 = b_pair('CO2', 'H', 1000.0)
-    assert b_si2 == pytest.approx(b_si, rel=1e-12)
+    assert b_si2 == pytest.approx(b_si, rel=1e-12, abs=0.0)
     assert prov2 == prov
 
 
@@ -253,7 +253,7 @@ def test_b_mixture_blancs_law_limits():
     """
     b_pair_val, _ = b_pair('H', 'O2', 1000.0)
     b_mix, prov = b_mixture('H', {'H': 0.01, 'O2': 0.99}, 1000.0)
-    assert b_mix == pytest.approx(b_pair_val, rel=1e-12)
+    assert b_mix == pytest.approx(b_pair_val, rel=1e-12, abs=0.0)
     assert 'H-O2' in prov
     alone, _ = b_mixture('H', {'H': 1.0}, 1000.0)
     assert math.isinf(alone)

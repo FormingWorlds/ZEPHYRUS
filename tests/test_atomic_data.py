@@ -46,10 +46,10 @@ def test_three_level_transcription_spot_values():
     radiatively forbidden couplings are structural, not missing data.
     """
     n = THREE_LEVEL['N']
-    assert n['transitions'][(1, 3)][0] == pytest.approx(5.22e-3, rel=1e-12)
-    assert n['transitions'][(2, 3)][0] == pytest.approx(8.47e-2, rel=1e-12)
+    assert n['transitions'][(1, 3)][0] == pytest.approx(5.22e-3, rel=1e-12, abs=0.0)
+    assert n['transitions'][(2, 3)][0] == pytest.approx(8.47e-2, rel=1e-12, abs=0.0)
     h = THREE_LEVEL['H']
-    assert h['transitions'][(1, 3)][0] == pytest.approx(6.26e8, rel=1e-12)
+    assert h['transitions'][(1, 3)][0] == pytest.approx(6.26e8, rel=1e-12, abs=0.0)
     op = THREE_LEVEL['O+']
     assert [lv[1] for lv in op['levels']] == [4, 10, 6]
     assert [lv[0] for lv in op['levels']] == ['4S', '2D', '2P']
@@ -75,7 +75,7 @@ def test_badnell_fit_magnitude_slope_and_misprint_guard():
     factor 2 at 1e4 K.
     """
     a4 = badnell_alpha_rr(1.0e4)
-    assert a4 == pytest.approx(3.761e-13, rel=0.02)
+    assert a4 == pytest.approx(3.761e-13, rel=0.02, abs=0.0)
     # Swapped-coefficient discrimination: T0 and T1 interchanged gives
     # 4.82e-13, a 28 percent shift, far outside the 2 percent pin.
     assert abs(a4 - 4.82e-13) > 0.2 * a4
@@ -100,11 +100,11 @@ def test_case_b_coefficients_and_temperature_scaling():
     tabulated value falls back to the atomic-O coefficient rather than
     raising, because coefficient provenance is flagged upstream.
     """
-    assert alpha_case_b('H', 1.0e4) == pytest.approx(2.7e-13, rel=1e-12)
+    assert alpha_case_b('H', 1.0e4) == pytest.approx(2.7e-13, rel=1e-12, abs=0.0)
     for el in ('H', 'He', 'C', 'N', 'O'):
         ratio = alpha_case_b(el, 2.0e4) / alpha_case_b(el, 1.0e4)
-        assert ratio == pytest.approx(2.0**-0.9, rel=1e-12)
-    assert alpha_case_b('Xe', 8000.0) == pytest.approx(alpha_case_b('O', 8000.0), rel=1e-12)
+        assert ratio == pytest.approx(2.0**-0.9, rel=1e-12, abs=0.0)
+    assert alpha_case_b('Xe', 8000.0) == pytest.approx(alpha_case_b('O', 8000.0), rel=1e-12, abs=0.0)
     # Scale guard: all case B values live in the 1e-13 decade at 1e4 K.
     for el in ('He', 'C', 'N', 'O'):
         assert 5e-14 < alpha_case_b(el, 1.0e4) < 5e-13
@@ -126,7 +126,7 @@ def test_co2_band_coronal_limit_and_detailed_balance():
     a, b = CO2_KD['O']
     kd = a * T**b
     ke = 2.0 * kd * math.exp(-667.0 / T)
-    assert q == pytest.approx(HNU_15UM * ke * colliders['O'] * n_co2, rel=1e-3)
+    assert q == pytest.approx(HNU_15UM * ke * colliders['O'] * n_co2, rel=1e-3, abs=0.0)
     assert co2_band_cooling(n_co2, {}, T) == pytest.approx(0.0, abs=0.0)
     assert co2_band_cooling(n_co2, {'O': 0.0}, T) == pytest.approx(0.0, abs=0.0)
 
@@ -163,5 +163,5 @@ def test_o_finestructure_positive_and_activating():
     q300 = o_finestructure_cooling(1e8, 300.0)
     assert q150 > 0.0
     assert q300 > q150
-    assert o_finestructure_cooling(2e8, 300.0) / q300 == pytest.approx(2.0, rel=1e-12)
+    assert o_finestructure_cooling(2e8, 300.0) / q300 == pytest.approx(2.0, rel=1e-12, abs=0.0)
     assert o_finestructure_cooling(0.0, 300.0) == pytest.approx(0.0, abs=0.0)

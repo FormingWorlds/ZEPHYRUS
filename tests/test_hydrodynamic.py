@@ -73,7 +73,7 @@ def test_erkaev_table1_enhancement_factors():
     toward 1 as ``xi`` grows (boundedness: ``K`` in (0, 1) throughout).
     """
     for xi, inv_k in ERKAEV_TABLE1:
-        assert 1.0 / k_tide(xi) == pytest.approx(inv_k, rel=0.011), xi
+        assert 1.0 / k_tide(xi) == pytest.approx(inv_k, rel=0.011, abs=0.0), xi
         assert 0.0 < k_tide(xi) < 1.0
     factors = [1.0 / k_tide(xi) for xi, _ in ERKAEV_TABLE1]
     assert all(a >= b for a, b in zip(factors, factors[1:]))
@@ -102,7 +102,7 @@ def test_caldiroli_fit_spot_values_and_flux_guard():
     for log_phi, f_over_rho, eta_ref in CALDIROLI_SPOTS:
         m_planet, r_p, f_xuv = _planet_for(log_phi, f_over_rho)
         eta, _flags = caldiroli_efficiency(f_xuv, m_planet, r_p, K=1.0)
-        assert eta == pytest.approx(eta_ref, rel=0.05), (log_phi, f_over_rho)
+        assert eta == pytest.approx(eta_ref, rel=0.05, abs=0.0), (log_phi, f_over_rho)
     m_planet, r_p, f_xuv = _planet_for(12.5, 0.5)  # F/rho below the 1e2 bound
     eta, flags = caldiroli_efficiency(f_xuv, m_planet, r_p, K=1.0)
     assert eta is None
@@ -120,12 +120,12 @@ def test_wind_mean_masses_reproduce_lopez_pairs():
     mass by construction.
     """
     mu_w, mu_i = wind_mean_masses({'H': 0.9, 'He': 0.1})
-    assert mu_w == pytest.approx(0.62, rel=0.06)
-    assert mu_i == pytest.approx(1.3, rel=0.02)
+    assert mu_w == pytest.approx(0.62, rel=0.06, abs=0.0)
+    assert mu_i == pytest.approx(1.3, rel=0.02, abs=0.0)
     mu_w, mu_i = wind_mean_masses({'H': 2.0 / 3.0, 'O': 1.0 / 3.0})
-    assert mu_w == pytest.approx(3.0, rel=0.01)
-    assert mu_i == pytest.approx(6.0, rel=0.01)
-    assert mu_i == pytest.approx(2.0 * mu_w, rel=1e-12)
+    assert mu_w == pytest.approx(3.0, rel=0.01, abs=0.0)
+    assert mu_i == pytest.approx(6.0, rel=0.01, abs=0.0)
+    assert mu_i == pytest.approx(2.0 * mu_w, rel=1e-12, abs=0.0)
 
 
 @pytest.mark.physics_invariant
@@ -139,10 +139,10 @@ def test_rr_subcritical_floor_semantics():
     """
     rr = rr_chain(1.0 * Me, 10.0, 1.0 * Re, 1.0e4, {'H': 1.0})
     assert rr['subcritical'] is True
-    assert rr['R_s'] == pytest.approx(1.0 * Re, rel=1e-12)
+    assert rr['R_s'] == pytest.approx(1.0 * Re, rel=1e-12, abs=0.0)
     assert rr['R_s_calc'] < 1.0 * Re
-    assert rr['rho_s'] == pytest.approx(rr['rho_base'], rel=1e-12)
-    assert rr['barometric_factor'] == pytest.approx(1.0, rel=1e-12)
+    assert rr['rho_s'] == pytest.approx(rr['rho_base'], rel=1e-12, abs=0.0)
+    assert rr['barometric_factor'] == pytest.approx(1.0, rel=1e-12, abs=0.0)
     assert selection_mechanism(rr, el_won=False) == 'RR-selected:subcritical-floor'
 
 
@@ -161,12 +161,12 @@ def test_rr_barometric_factor_separates_the_two_rr_regimes():
     """
     rr = rr_chain(10.0 * Me, 10.0, 2.0 * Re, 1.0e4, {'C': 1.0 / 3.0, 'O': 2.0 / 3.0})
     assert rr['subcritical'] is False
-    assert rr['barometric_factor'] == pytest.approx(math.exp(1.5 - rr['lambda_b']), rel=1e-12)
+    assert rr['barometric_factor'] == pytest.approx(math.exp(1.5 - rr['lambda_b']), rel=1e-12, abs=0.0)
     # Strongly bound: several decades of suppression, so the sonic-point
     # density is far below the base density.
     assert rr['lambda_b'] > 4.0
     assert rr['barometric_factor'] < 1.0e-2
-    assert rr['rho_s'] == pytest.approx(rr['rho_base'] * rr['barometric_factor'], rel=1e-12)
+    assert rr['rho_s'] == pytest.approx(rr['rho_base'] * rr['barometric_factor'], rel=1e-12, abs=0.0)
 
     rr_h = rr_chain(0.7 * Mjup, 5.0, 2.0 * Rjup, 1.0e4, {'H': 1.0})
     assert not rr_h['subcritical']
@@ -195,10 +195,10 @@ def test_flux_scalings_of_both_limits():
     """
     a = rr_chain(5 * Me, 1.0, 1.5 * Re, 1e4, {'H': 1.0})
     b = rr_chain(5 * Me, 100.0, 1.5 * Re, 1e4, {'H': 1.0})
-    assert b['mdot_rr'] / a['mdot_rr'] == pytest.approx(10.0, rel=1e-6)
+    assert b['mdot_rr'] / a['mdot_rr'] == pytest.approx(10.0, rel=1e-6, abs=0.0)
     lo = el_rate(0.1, 1.0, Re, 1.1 * Re, Me, 1.0)
     hi = el_rate(0.1, 100.0, Re, 1.1 * Re, Me, 1.0)
-    assert hi / lo == pytest.approx(100.0, rel=1e-12)
+    assert hi / lo == pytest.approx(100.0, rel=1e-12, abs=0.0)
     # Zero-flux limits: no driver, no escape, for both chains.
     assert el_rate(0.1, 0.0, Re, 1.1 * Re, Me, 1.0) == pytest.approx(0.0, abs=1e-30)
     assert rr_chain(5 * Me, 0.0, 1.5 * Re, 1e4, {'H': 1.0})['mdot_rr'] == pytest.approx(
@@ -221,9 +221,9 @@ def test_murray_clay_fiducial_hot_jupiter_anchors():
     """
     m_planet, r_p = 0.7 * Mjup, 1.4 * Rjup
     rr = rr_chain(m_planet, 0.45, r_p, 1.0e4, {'H': 1.0})
-    assert rr['lambda_b'] == pytest.approx(5.49, rel=0.05)
+    assert rr['lambda_b'] == pytest.approx(5.49, rel=0.05, abs=0.0)
     assert 2.0 < rr['R_s'] / r_p < 4.0
-    assert rr['R_s'] / r_p == pytest.approx(rr['lambda_b'] / 2.0, rel=1e-9)
+    assert rr['R_s'] / r_p == pytest.approx(rr['lambda_b'] / 2.0, rel=1e-9, abs=0.0)
     sigma_pp = 1e-13 * 1e-4  # cm^2 -> m^2 at 1e4 K
     for f_si, kn_ref in ((0.45, 1e-4), (500.0, 1e-5)):
         rr = rr_chain(m_planet, f_si, r_p, 1.0e4, {'H': 1.0})
@@ -241,8 +241,8 @@ def test_hill_radius_periapsis_geometry():
     """
     r0 = hill_radius_periapsis(Me, Ms, 1.496e11, 0.0)
     r3 = hill_radius_periapsis(Me, Ms, 1.496e11, 0.3)
-    assert r3 == pytest.approx(0.7 * r0, rel=1e-12)
+    assert r3 == pytest.approx(0.7 * r0, rel=1e-12, abs=0.0)
     r8m = hill_radius_periapsis(8 * Me, Ms, 1.496e11, 0.0)
-    assert r8m == pytest.approx(2.0 * r0, rel=1e-12)
+    assert r8m == pytest.approx(2.0 * r0, rel=1e-12, abs=0.0)
     # Earth's Hill radius is about 1.5e9 m (0.01 au).
     assert 1.3e9 < r0 < 1.6e9

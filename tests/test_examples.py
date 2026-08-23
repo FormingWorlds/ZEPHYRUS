@@ -102,7 +102,7 @@ def test_dispatcher_example_verdict_closes_and_respects_limits():
     example = _load_example()
     result = dispatch(example.build_state('CO2', 1.0, 1.0, 10.0))
     total = sum(result.per_species.values())
-    assert total == pytest.approx(result.mdot, rel=1e-12)
+    assert total == pytest.approx(result.mdot, rel=1e-12, abs=0.0)
     # Scale guard: the wind rate on this planet is of order 1e6 kg/s, not
     # 1e0 (a dropped geometric factor) or 1e12 (a cgs slip).
     assert 1.0e5 < result.mdot < 1.0e8
@@ -116,7 +116,7 @@ def test_dispatcher_example_verdict_closes_and_respects_limits():
     assert quiet.mdot >= 0.0
     # The closure holds on the hydrostatic branch too, where the split comes
     # from the branch itself rather than from the fractionation solver.
-    assert sum(quiet.per_species.values()) == pytest.approx(quiet.mdot, rel=1e-12)
+    assert sum(quiet.per_species.values()) == pytest.approx(quiet.mdot, rel=1e-12, abs=0.0)
 
 
 @pytest.mark.physics_invariant
@@ -195,5 +195,5 @@ def test_dispatcher_example_track_changes_regime_as_the_star_quiets():
     # After the crossing the hydrostatic rate is flux independent, because
     # that branch carries no XUV physics: the last two samples agree.
     tail = [row['mdot'] for row in rows if row['regime'] == 'hydrostatic']
-    assert tail[-1] == pytest.approx(tail[0], rel=1e-12)
+    assert tail[-1] == pytest.approx(tail[0], rel=1e-12, abs=0.0)
     assert all(math.isfinite(row['mdot']) for row in rows)

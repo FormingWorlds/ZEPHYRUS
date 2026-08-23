@@ -63,17 +63,17 @@ def test_johnson_criterion_scalings():
     )
     r1, q_net1, q_c1 = q_net_over_qc(F_xuv=10.0, **args)
     r2, q_net2, q_c2 = q_net_over_qc(F_xuv=20.0, **args)
-    assert q_net2 == pytest.approx(2.0 * q_net1, rel=1e-12)
-    assert q_c2 == pytest.approx(q_c1, rel=1e-12)
-    assert r2 == pytest.approx(2.0 * r1, rel=1e-12)
+    assert q_net2 == pytest.approx(2.0 * q_net1, rel=1e-12, abs=0.0)
+    assert q_c2 == pytest.approx(q_c1, rel=1e-12, abs=0.0)
+    assert r2 == pytest.approx(2.0 * r1, rel=1e-12, abs=0.0)
     # Quadratic in the intercepting radius: doubling R_xuv quadruples Q_net.
     args_wide = dict(args, R_xuv=2.4 * Re)
     _, q_net_wide, q_c_wide = q_net_over_qc(F_xuv=10.0, **args_wide)
-    assert q_net_wide == pytest.approx(4.0 * q_net1, rel=1e-12)
-    assert q_c_wide == pytest.approx(q_c1, rel=1e-12)
+    assert q_net_wide == pytest.approx(4.0 * q_net1, rel=1e-12, abs=0.0)
+    assert q_c_wide == pytest.approx(q_c1, rel=1e-12, abs=0.0)
     args2 = dict(args, sigma_c=2e-19)
     r3, _, q_c3 = q_net_over_qc(F_xuv=10.0, **args2)
-    assert q_c3 == pytest.approx(q_c1 / 2.0, rel=1e-12)
+    assert q_c3 == pytest.approx(q_c1 / 2.0, rel=1e-12, abs=0.0)
     assert r3 > r1
 
 
@@ -88,11 +88,11 @@ def test_guo_triple_limits():
     """
     mu = 2.3 * amu
     wide = guo_triple(5 * Me, 1.5 * Re, 800.0, mu, Ms, 1.496e11, 0.0, lambda_exo=12.3)
-    assert wide['lambda_exo'] == pytest.approx(12.3, rel=1e-12)
+    assert wide['lambda_exo'] == pytest.approx(12.3, rel=1e-12, abs=0.0)
     assert wide['lambda_star'] < wide['lambda_rp']
-    assert wide['lambda_star'] == pytest.approx(wide['lambda_rp'], rel=1e-2)
+    assert wide['lambda_star'] == pytest.approx(wide['lambda_rp'], rel=1e-2, abs=0.0)
     lam_ref = G * (5 * Me) * mu / (1.380649e-23 * 800.0 * 1.5 * Re)
-    assert wide['lambda_rp'] == pytest.approx(lam_ref, rel=1e-9)
+    assert wide['lambda_rp'] == pytest.approx(lam_ref, rel=1e-9, abs=0.0)
     # Deep inside the Roche limit the corrected parameter reports zero.
     close = guo_triple(5 * Me, 1.5 * Re, 800.0, mu, Ms, 5e8, 0.0, lambda_exo=12.3)
     assert close['lambda_star'] == pytest.approx(0.0, abs=0.0)
@@ -111,10 +111,10 @@ def test_erkaev_critical_temperature_normalization():
     the second pin sits at x = 2, where a dropped 1/x doubles the value.
     """
     t_far = erkaev_tc(Mjup, Rjup, 1.0 * Rjup, 1e3 * Rjup)
-    assert t_far == pytest.approx(1.45e5, rel=1e-2)
+    assert t_far == pytest.approx(1.45e5, rel=1e-2, abs=0.0)
     # Non-degenerate pin: hand-evaluated 1.45e5 K * K(500) / 2 at x = 2.
     t_x2 = erkaev_tc(Mjup, Rjup, 2.0 * Rjup, 1e3 * Rjup)
-    assert t_x2 == pytest.approx(7.22825e4, rel=1e-3)
+    assert t_x2 == pytest.approx(7.22825e4, rel=1e-3, abs=0.0)
     # Dropped-1/x discrimination: that wrong formula returns 1.4457e5 here.
     assert abs(t_x2 - 1.4457e5) > 0.5 * t_x2
     assert t_x2 < t_far
@@ -122,7 +122,7 @@ def test_erkaev_critical_temperature_normalization():
     # Mass scaling is linear: twice the mass doubles the barrier.
     assert erkaev_tc(2 * Mjup, Rjup, 1.0 * Rjup, 1e3 * Rjup) == pytest.approx(
         2 * t_far, rel=1e-2
-    )
+    , abs=0.0)
 
 
 def test_along_profile_fluid_check_reports_truncation():
@@ -174,11 +174,11 @@ def test_rate_floor_screen_separates_numerical_content():
     laboratory-scale rate passes, and the screen returns the same number
     whatever the rate, because it never modifies anything.
     """
-    assert RATE_FLOOR_KG_S == pytest.approx(m_p / 3.15576e7, rel=1e-12)
-    assert RATE_FLOOR_KG_S == pytest.approx(5.3e-35, rel=1e-2)
+    assert RATE_FLOOR_KG_S == pytest.approx(m_p / 3.15576e7, rel=1e-12, abs=0.0)
+    assert RATE_FLOOR_KG_S == pytest.approx(5.3e-35, rel=1e-2, abs=0.0)
     empty = rate_floor_screen(1e-123)
     assert empty['above_floor'] is False
-    assert empty['floor_kg_s'] == pytest.approx(RATE_FLOOR_KG_S, rel=1e-12)
+    assert empty['floor_kg_s'] == pytest.approx(RATE_FLOOR_KG_S, rel=1e-12, abs=0.0)
     real = rate_floor_screen(1e-9)
     assert real['above_floor'] is True
     # Zero is below any floor, and the boundary itself is not above it.
@@ -215,11 +215,11 @@ def test_documentation_constants_are_complete():
     and their dayside reduction factors, are reporting constants consumers
     rely on; pin them so a silent edit fails.
     """
-    assert MURRAY_CLAY_EXPONENTS['RR_numerical'] == pytest.approx(0.6, rel=1e-12)
-    assert MURRAY_CLAY_EXPONENTS['EL_numerical'] == pytest.approx(0.9, rel=1e-12)
-    assert MURRAY_CLAY_EXPONENTS['RR_analytic_inherited'] == pytest.approx(0.5, rel=1e-12)
-    assert MURRAY_CLAY_EXPONENTS['EL_analytic_inherited'] == pytest.approx(1.0, rel=1e-12)
-    assert DAYSIDE_FACTORS['energy_limited'] == pytest.approx(0.26, rel=1e-12)
-    assert DAYSIDE_FACTORS['recombination_limited'] == pytest.approx(0.31, rel=1e-12)
+    assert MURRAY_CLAY_EXPONENTS['RR_numerical'] == pytest.approx(0.6, rel=1e-12, abs=0.0)
+    assert MURRAY_CLAY_EXPONENTS['EL_numerical'] == pytest.approx(0.9, rel=1e-12, abs=0.0)
+    assert MURRAY_CLAY_EXPONENTS['RR_analytic_inherited'] == pytest.approx(0.5, rel=1e-12, abs=0.0)
+    assert MURRAY_CLAY_EXPONENTS['EL_analytic_inherited'] == pytest.approx(1.0, rel=1e-12, abs=0.0)
+    assert DAYSIDE_FACTORS['energy_limited'] == pytest.approx(0.26, rel=1e-12, abs=0.0)
+    assert DAYSIDE_FACTORS['recombination_limited'] == pytest.approx(0.31, rel=1e-12, abs=0.0)
     # The reduction factors are genuine reductions.
     assert all(0.0 < v < 1.0 for v in DAYSIDE_FACTORS.values())

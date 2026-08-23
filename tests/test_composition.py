@@ -34,14 +34,14 @@ def test_element_masses_pin_isotope_conventions():
     averages (Ne 20.180, Ar 39.948 amu), which must resolvably differ; the
     reactive elements carry the standard atomic weights.
     """
-    assert ELEMENT_AMU['Ne'] == pytest.approx(19.992, rel=1e-9)
-    assert ELEMENT_AMU['Ar'] == pytest.approx(35.968, rel=1e-9)
+    assert ELEMENT_AMU['Ne'] == pytest.approx(19.992, rel=1e-9, abs=0.0)
+    assert ELEMENT_AMU['Ar'] == pytest.approx(35.968, rel=1e-9, abs=0.0)
     # Discrimination: the elemental-average masses differ by 1 to 11 percent.
-    assert ELEMENT_AMU['Ne'] != pytest.approx(20.180, rel=1e-3)
-    assert ELEMENT_AMU['Ar'] != pytest.approx(39.948, rel=1e-2)
+    assert ELEMENT_AMU['Ne'] != pytest.approx(20.180, rel=1e-3, abs=0.0)
+    assert ELEMENT_AMU['Ar'] != pytest.approx(39.948, rel=1e-2, abs=0.0)
     # Standard atomic weights for the reactive elements.
-    assert ELEMENT_AMU['H'] == pytest.approx(1.008, rel=1e-9)
-    assert ELEMENT_AMU['O'] == pytest.approx(15.999, rel=1e-9)
+    assert ELEMENT_AMU['H'] == pytest.approx(1.008, rel=1e-9, abs=0.0)
+    assert ELEMENT_AMU['O'] == pytest.approx(15.999, rel=1e-9, abs=0.0)
 
 
 def test_parse_formula_counts_and_strips_annotations():
@@ -86,10 +86,10 @@ def test_species_mass_amu_matches_stoichiometric_sum():
     hydrogen and would expose a dropped count.
     """
     m_h2o = species_mass_amu('H2O')
-    assert m_h2o == pytest.approx(2 * 1.008 + 15.999, rel=1e-12)
+    assert m_h2o == pytest.approx(2 * 1.008 + 15.999, rel=1e-12, abs=0.0)
     # Scale guard: water is 18 amu, not 17 (OH) or 19.
     assert 17.5 < m_h2o < 18.5
-    assert species_mass_amu('CO2') == pytest.approx(12.011 + 2 * 15.999, rel=1e-12)
+    assert species_mass_amu('CO2') == pytest.approx(12.011 + 2 * 15.999, rel=1e-12, abs=0.0)
 
 
 def test_atomize_conserves_stoichiometry_and_normalizes():
@@ -101,12 +101,12 @@ def test_atomize_conserves_stoichiometry_and_normalizes():
     negative entries are ignored, and the result always renormalizes to 1.
     """
     a = atomize({'CO2': 1.0})
-    assert a['C'] == pytest.approx(1.0 / 3.0, rel=1e-12)
-    assert a['O'] == pytest.approx(2.0 / 3.0, rel=1e-12)
+    assert a['C'] == pytest.approx(1.0 / 3.0, rel=1e-12, abs=0.0)
+    assert a['O'] == pytest.approx(2.0 / 3.0, rel=1e-12, abs=0.0)
     b = atomize({'H2': 0.5, 'H2O': 0.5, 'CO2': 0.0})
-    assert sum(b.values()) == pytest.approx(1.0, rel=1e-12)
+    assert sum(b.values()) == pytest.approx(1.0, rel=1e-12, abs=0.0)
     # 2*0.5 + 2*0.5 = 2 hydrogens against 0.5 oxygens: a 4:1 ratio.
-    assert b['H'] / b['O'] == pytest.approx(4.0, rel=1e-12)
+    assert b['H'] / b['O'] == pytest.approx(4.0, rel=1e-12, abs=0.0)
     assert 'C' not in b  # zero-fraction species contribute nothing
 
 
@@ -131,7 +131,7 @@ def test_mean_particle_mass_reproduces_known_mixtures():
     convention slip.
     """
     m = mean_particle_mass({'H': 0.9, 'He': 0.1})
-    assert m / amu == pytest.approx(0.9 * 1.008 + 0.1 * 4.0026, rel=1e-12)
+    assert m / amu == pytest.approx(0.9 * 1.008 + 0.1 * 4.0026, rel=1e-12, abs=0.0)
     # Convention guards: atomic mean, not pure H and not the molecular mean.
     assert m / amu > 1.2
     assert m / amu < 2.0

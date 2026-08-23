@@ -134,7 +134,7 @@ def test_totality_over_random_physical_inputs():
         assert all(math.isfinite(v) and v >= 0.0 for v in res.per_species.values())
         tot = sum(res.per_species.values())
         if res.mdot > 0.0:
-            assert tot == pytest.approx(res.mdot, rel=1e-6)
+            assert tot == pytest.approx(res.mdot, rel=1e-6, abs=0.0)
         assert isinstance(res.diagnostics, dict)
         assert 'knudsen' in res.diagnostics
         seen.add(res.regime)
@@ -195,8 +195,8 @@ def test_routing_hydrodynamic_and_el_candidate_matches_el_escape():
     eps = hydro['efficiency']
     r_xuv = _photo_radius(inp)
     ref = EL_escape(True, inp.a, inp.e, inp.M_p, inp.M_star, eps, inp.R_p, r_xuv, inp.F_xuv, 2)
-    assert hydro['mdot_el'] == pytest.approx(ref, rel=1e-9)
-    assert res.mdot == pytest.approx(min(hydro['mdot_el'], hydro['mdot_rr']), rel=1e-9)
+    assert hydro['mdot_el'] == pytest.approx(ref, rel=1e-9, abs=0.0)
+    assert res.mdot == pytest.approx(min(hydro['mdot_el'], hydro['mdot_rr']), rel=1e-9, abs=0.0)
     winner = 'EL' if hydro['mdot_el'] <= hydro['mdot_rr'] else 'RR'
     assert res.regime == f'hydrodynamic:{winner}'
 
@@ -256,9 +256,9 @@ def test_roche_screen_renames_without_changing_the_rate():
     below, above = at(lo), at(hi)
     assert below.regime == 'roche_overflow'
     assert above.regime.startswith('hydrodynamic')
-    assert below.mdot == pytest.approx(above.mdot, rel=1e-9)
+    assert below.mdot == pytest.approx(above.mdot, rel=1e-9, abs=0.0)
     hydro = below.diagnostics['hydrodynamic']
-    assert below.mdot == pytest.approx(min(hydro['mdot_el'], hydro['mdot_rr']), rel=1e-9)
+    assert below.mdot == pytest.approx(min(hydro['mdot_el'], hydro['mdot_rr']), rel=1e-9, abs=0.0)
     assert below.diagnostics['roche']['rate_branch'] == above.regime
     bolo = below.diagnostics['bolometric']
     overflow_geometry_rate = min(bolo['mdot_parker'], bolo['mdot_bondi'])
@@ -306,14 +306,28 @@ def test_roche_subflag_separates_the_two_geometries():
 def test_diagnostics_are_boxed(monkeypatch):
     """Sabotaging every diagnostics producer changes no dispatch outcome.
 
-    The container is reporting only: no control flow reads it back. The
-    test proves it by replacing every diagnostics-side producer with a
-    stub returning garbage of the right shape and asserting the regime,
-    the bulk rate, and the per-species split are unchanged; a regression
-    in which any diagnostic feeds a routing decision fails loudly here.
+    The container is reporting only: no control flow reads it back. The test
+    proves it by replacing every diagnostics-side producer with a stub
+    returning garbage of the right shape and asserting the regime, the bulk
+    rate, and every per-species rate are unchanged. It runs on one state per
+    branch, each dispatching a rate of order unity or above, because a state
+    whose rate sits near the denormal floor would compare equal to anything
+    under any absolute tolerance and the assertion would not discriminate.
     """
-    inp = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0)
-    reference = dispatch(inp)
+    states = {
+        'hydrostatic': _inputs(
+            0.107 * Me, 0.53 * Re, 440.0, {'CO2': 0.99, 'H2': 0.01}, F_xuv=0.01, a=0.2 * AU
+        ),
+        'hydrodynamic:EL': _inputs(Me, Re, 1000.0, {'N2': 1.0}, F_xuv=100.0),
+        'hydrodynamic:RR': _inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=5000.0),
+        'boiloff': _inputs(
+            Me, 1.5 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=10.0, a=0.0775 * AU
+        ),
+    }
+    reference = {k: dispatch(v) for k, v in states.items()}
+    for expected, res in zip(states, reference.values()):
+        assert res.regime == expected, (expected, res.regime)
+        assert res.mdot > 1.0, (expected, res.mdot)
     nan = float('nan')
     monkeypatch.setattr('zephyrus.diagnostics.q_net_over_qc', lambda *a, **k: (nan, nan, nan))
     monkeypatch.setattr('zephyrus.diagnostics.guo_triple', lambda *a, **k: {})
@@ -323,13 +337,17 @@ def test_diagnostics_are_boxed(monkeypatch):
     monkeypatch.setattr('zephyrus.diagnostics.self_consistency_screen', lambda *a, **k: {})
     monkeypatch.setattr('zephyrus.diagnostics.rate_floor_screen', lambda *a, **k: {})
     monkeypatch.setattr('zephyrus.boiloff.tang_timescale_check', lambda *a, **k: {})
-    sabotaged = dispatch(inp)
-    assert sabotaged.regime == reference.regime
-    assert sabotaged.mdot == pytest.approx(reference.mdot, rel=1e-12)
-    for el, v in reference.per_species.items():
-        assert sabotaged.per_species[el] == pytest.approx(v, rel=1e-12)
-    # The sabotage genuinely reached the container.
-    assert sabotaged.diagnostics['guo_triple'] == {}
+    for name, inp in states.items():
+        sabotaged = dispatch(inp)
+        ref = reference[name]
+        assert sabotaged.regime == ref.regime, name
+        assert sabotaged.mdot == pytest.approx(ref.mdot, rel=1e-12, abs=0.0), name
+        assert set(sabotaged.per_species) == set(ref.per_species), name
+        for el, v in ref.per_species.items():
+            assert sabotaged.per_species[el] == pytest.approx(v, rel=1e-12, abs=0.0), (name, el)
+        assert sabotaged.flags == ref.flags, name
+        # The sabotage genuinely reached the container.
+        assert sabotaged.diagnostics['guo_triple'] == {}
 
 
 def test_hysteresis_memory_moves_the_threshold():
@@ -370,10 +388,10 @@ def test_base_out_of_range_extend_mode():
     # the recorded distance is the gap between the two. A diagnostic that
     # echoed the clamped level instead would give a zero distance here.
     base_clamp = res_clamp.diagnostics['base_level']
-    assert base_clamp['p_Pa'] == pytest.approx(1e-2, rel=1e-9)
+    assert base_clamp['p_Pa'] == pytest.approx(1e-2, rel=1e-9, abs=0.0)
     assert base_clamp['p_physical_Pa'] < base_clamp['p_Pa']
     decades = np.log10(base_clamp['p_Pa'] / base_clamp['p_physical_Pa'])
-    assert decades == pytest.approx(res_clamp.flags['base_clamp_decades'], rel=1e-9)
+    assert decades == pytest.approx(res_clamp.flags['base_clamp_decades'], rel=1e-9, abs=0.0)
     settings = DispatchSettings(base_out_of_range='extend')
     inp_ext = _inputs(
         5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, p_top=1e-2, settings=settings
@@ -384,7 +402,7 @@ def test_base_out_of_range_extend_mode():
     assert res_ext.diagnostics['base_level']['p_Pa'] < 1e-2
     # On the extension the base reaches its target, so the two agree.
     base_ext = res_ext.diagnostics['base_level']
-    assert base_ext['p_physical_Pa'] == pytest.approx(base_ext['p_Pa'], rel=1e-9)
+    assert base_ext['p_physical_Pa'] == pytest.approx(base_ext['p_Pa'], rel=1e-9, abs=0.0)
 
 
 def test_fractionation_toggle_and_split_protocol():
@@ -400,7 +418,7 @@ def test_fractionation_toggle_and_split_protocol():
     )
     assert on.regime.startswith('hydrodynamic')
     assert 'closure' in on.diagnostics
-    assert sum(on.per_species.values()) == pytest.approx(on.mdot, rel=1e-6)
+    assert sum(on.per_species.values()) == pytest.approx(on.mdot, rel=1e-6, abs=0.0)
     settings = DispatchSettings(fractionate=False)
     off = dispatch(
         _inputs(
@@ -416,7 +434,7 @@ def test_fractionation_toggle_and_split_protocol():
     assert off.regime.startswith('hydrodynamic')
     assert 'closure' not in off.diagnostics
     assert off.flags.get('split_from_base_composition') is True
-    assert sum(off.per_species.values()) == pytest.approx(off.mdot, rel=1e-6)
+    assert sum(off.per_species.values()) == pytest.approx(off.mdot, rel=1e-6, abs=0.0)
 
 
 def test_settings_and_inputs_error_contract():
@@ -470,7 +488,7 @@ def test_caldiroli_efficiency_mode_applies_and_falls_back():
     )
     eff = strong.diagnostics['hydrodynamic']['efficiency']
     assert 'efficiency_fallback_fixed' not in strong.flags
-    assert eff != pytest.approx(0.1, rel=0.05)
+    assert eff != pytest.approx(0.1, rel=0.05, abs=0.0)
     assert 0.0 < eff < 1.0
     weak = dispatch(
         _inputs(
@@ -485,7 +503,7 @@ def test_caldiroli_efficiency_mode_applies_and_falls_back():
     )
     assert weak.flags.get('caldiroli_below_flux_bound') is True
     assert weak.flags.get('efficiency_fallback_fixed') is True
-    assert weak.diagnostics['hydrodynamic']['efficiency'] == pytest.approx(0.1, rel=1e-12)
+    assert weak.diagnostics['hydrodynamic']['efficiency'] == pytest.approx(0.1, rel=1e-12, abs=0.0)
 
 
 def test_t_exo_thermostat_mode_estimates_and_flags():
@@ -505,7 +523,7 @@ def test_t_exo_thermostat_mode_estimates_and_flags():
     assert res.flags.get('T_exo_thermostat') is True
     assert 800.0 <= res.diagnostics['hydrostatic']['T_exo'] <= 5.0e4
     if res.mdot > 0.0:
-        assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-6)
+        assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-6, abs=0.0)
 
 
 def test_extend_mode_truncated_extension_keeps_the_clamp():

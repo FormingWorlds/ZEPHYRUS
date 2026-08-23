@@ -64,7 +64,7 @@ def test_populations_reach_boltzmann_in_the_lte_limit():
             ((n3, g3, e3), (n1, g1, e1)),
         ):
             boltz = (ga / gb) * math.exp(-HC_CM * (ea - eb) * 1e7 / (kb_cgs * T))
-            assert na / nb == pytest.approx(boltz, rel=1e-3), sp
+            assert na / nb == pytest.approx(boltz, rel=1e-3, abs=0.0), sp
         checked += 1
     assert checked >= 4  # most of the seven systems thermalize fully
 
@@ -81,7 +81,7 @@ def test_cooling_linear_in_electron_density_in_the_coronal_limit():
     """
     q1 = three_level_cooling('N', 1e8, 1.0, 9000.0)
     q2 = three_level_cooling('N', 1e8, 2.0, 9000.0)
-    assert q2 / q1 == pytest.approx(2.0, rel=1e-3)
+    assert q2 / q1 == pytest.approx(2.0, rel=1e-3, abs=0.0)
     q_lte1 = three_level_cooling('N', 1e8, 1e19, 9000.0)
     q_lte2 = three_level_cooling('N', 1e8, 2e19, 9000.0)
     assert q_lte2 / q_lte1 < 1.1
@@ -151,10 +151,10 @@ def test_front_and_recombination_selection_follow_composition():
     from zephyrus.atomic_data import alpha_case_b, badnell_alpha_rr
 
     a_n = recombination_alpha({'N': 0.8, 'O': 0.2}, 1e4)
-    assert a_n == pytest.approx(badnell_alpha_rr(1e4), rel=1e-12)
+    assert a_n == pytest.approx(badnell_alpha_rr(1e4), rel=1e-12, abs=0.0)
     a_mix = recombination_alpha({'H': 0.6, 'O': 0.4}, 1e4)
     expected = 0.6 * alpha_case_b('H', 1e4) + 0.4 * alpha_case_b('O', 1e4)
-    assert a_mix == pytest.approx(expected, rel=1e-12)
+    assert a_mix == pytest.approx(expected, rel=1e-12, abs=0.0)
     # Ratio comparison: at 1e-13 scale an absolute tolerance would swamp the
     # difference, so the resolvability check is multiplicative.
     assert a_n / a_mix > 1.5
@@ -170,14 +170,14 @@ def test_rootfind_contract_edges_and_root():
     edge clamps high immediately.
     """
     T, d = solve_wind_temperature(700.0, _base(), {'N': 1.0}, 0.0)
-    assert T == pytest.approx(700.0, rel=1e-12)
+    assert T == pytest.approx(700.0, rel=1e-12, abs=0.0)
     assert d['clamped'] == 'low'
     T, d = solve_wind_temperature(700.0, _base(), {'N': 1.0}, 5.0)
     assert 700.0 <= T <= 5.0e4
     if d['clamped'] is None:
         assert abs(d['q_heat'] - d['q_cool']) / d['q_heat'] < 1e-3
     T, d = solve_wind_temperature(6.0e4, _base(), {'N': 1.0}, 5.0)
-    assert T == pytest.approx(5.0e4, rel=1e-12)
+    assert T == pytest.approx(5.0e4, rel=1e-12, abs=0.0)
     assert d['clamped'] == 'high'
 
 
@@ -222,7 +222,7 @@ def test_balance_parts_sum_and_channel_toggles():
     """
     comp = {'N': 0.8, 'O': 0.2}
     r_all, d_all = balance_at(9000.0, _base(), comp, 5.0)
-    assert sum(d_all['parts'].values()) == pytest.approx(d_all['q_cool'], rel=1e-12)
+    assert sum(d_all['parts'].values()) == pytest.approx(d_all['q_cool'], rel=1e-12, abs=0.0)
     r_no_atomic, d_no = balance_at(9000.0, _base(), comp, 5.0, cool_atomic=False)
     assert 'atomic_lines' not in d_no['parts']
     assert d_no['q_cool'] <= d_all['q_cool']
