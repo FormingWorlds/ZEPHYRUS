@@ -13,6 +13,7 @@ import numpy as np
 
 from zephyrus.composition import ELEMENT_AMU, parse_formula, species_mass_amu
 from zephyrus.constants import G, amu, kb
+from zephyrus.constants import rate_floor as RATE_FLOOR_KG_S
 from zephyrus.diffusion import b_mixture
 from zephyrus.knudsen import sigma_mixture
 
@@ -68,11 +69,11 @@ from zephyrus.knudsen import sigma_mixture
 
 ALPHA_THERMAL = -0.25  # thermal diffusion factor (Yelle 2024, after Banks & Kockarts)
 
-# Rates below one proton mass per Julian year are numerical artifacts on
-# any planetary reservoir; species whose supply-free Jeans rate already
-# sits below this floor skip the diffusion integrals (their harmonic-mean
-# rate could only be smaller).
-RATE_FLOOR_KG_S = 1.67262192369e-27 / 3.15576e7
+# Rates below one proton mass per Julian year are numerical artifacts on any
+# planetary reservoir; species whose supply-free Jeans rate already sits below
+# that floor skip the diffusion integrals, since their harmonic-mean rate
+# could only be smaller. The constant itself is defined once, in diagnostics,
+# which is where it is reported from.
 
 
 def volkov_flat_factor(lam: float) -> float:

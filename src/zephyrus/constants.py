@@ -14,6 +14,12 @@ h_planck = 6.62607015e-34             # Planck constant (exact SI value)       [
 m_p     = 1.67262192369e-27           # Proton mass (CODATA 2018)              [kg]
 amu     = 1.66053906660e-27           # Atomic mass constant (CODATA 2018)     [kg]
 
+# One proton crossing the planetary surface per Julian year: the smallest
+# mass-loss rate with physical content on any planetary reservoir. Reported
+# beside every escape verdict and never applied, since whether a rate is
+# negligible is the caller's decision.
+rate_floor = m_p / 3.15576e7          # Rate floor                             [kg s-1]
+
 ######################################### Units conversions #########################################
 s2yr                = 1/(3600*24*365)       # convert [seconds]      to [years]
 erg2joule           = 1e-7                  # convert [ergs]         to [Joules]
