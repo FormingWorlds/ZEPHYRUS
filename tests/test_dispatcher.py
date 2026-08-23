@@ -272,10 +272,10 @@ def test_roche_subflag_separates_the_two_geometries():
     itself reaches the lobe, from the narrow band where only the would-be
     sonic surface does. A Mars-mass CO2 planet at 0.028 au with a 2000 K
     exobase has its extended structure outside the Hill radius while its
-    photosphere sits far inside, so the subflag is dynamical even though
-    the Hill sphere still encloses the planet many times over; a bound
-    Earth-mass CO2 planet whose bolometric sonic radius alone passes the
-    Hill radius gets the other subflag, with its atmosphere well inside.
+    photosphere sits far inside, so the subflag is dynamical even though the
+    Hill sphere still encloses the planet many times over; an inflated
+    hydrogen envelope whose Parker sonic radius alone passes the Hill radius
+    gets the other subflag, with its atmosphere well inside.
     """
     dyn = dispatch(
         _inputs(
@@ -294,13 +294,19 @@ def test_roche_subflag_separates_the_two_geometries():
     assert roche['xi_ktide'] > 1.0  # not the trivial planet-inside-its-lobe case
     assert roche['r_atmosphere'] > roche['R_hill_periapsis']
 
-    bound = dispatch(_inputs(Me, Re, 1600.0, {'CO2': 1.0}, F_xuv=0.01, a=0.03 * AU))
+    # The other subflag on the branch it naturally belongs to: an inflated
+    # hydrogen envelope whose Parker sonic radius passes the Hill radius
+    # while the atmosphere itself stays inside it.
+    bound = dispatch(
+        _inputs(3 * Me, 2.0 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.0775 * AU)
+    )
     roche_b = bound.diagnostics['roche']
     assert bound.regime == 'roche_overflow'
     assert bound.flags.get('roche_subflag') == 'no_transonic'
-    assert roche_b['r_atmosphere'] < roche_b['R_hill_periapsis']
-    # The rate under that label carries no numerical content, and says so.
-    assert bound.diagnostics['rate_floor']['above_floor'] is False
+    assert roche_b['rate_branch'] == 'boiloff'
+    assert roche_b['xi_flow'] <= 1.0  # the sonic surface is outside the lobe
+    assert roche_b['r_atmosphere'] < roche_b['R_hill_periapsis']  # the gas is not
+    assert roche_b['xi_ktide'] > 1.0
 
 
 def test_diagnostics_are_boxed(monkeypatch):
