@@ -13,22 +13,10 @@ See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 
 import importlib.util
 import re
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
-# Python 3.10 can only resolve an fwl-mors that predates the Spada Zenodo
-# record accessor, so the cache key cannot be resolved there at all. On 3.11
-# and above a missing accessor is a real failure: it means the dependency
-# moved under us, which is exactly what this file exists to notice.
-if sys.version_info < (3, 11):
-    pytest.skip(
-        'this interpreter resolves an fwl-mors that predates the Spada Zenodo '
-        'record accessor, so the nightly cache key cannot be resolved here',
-        allow_module_level=True,
-    )
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
