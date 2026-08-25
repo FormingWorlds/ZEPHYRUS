@@ -148,10 +148,10 @@ jobs:
             --cov=zephyrus \
             --cov-fail-under=${FAST_FAIL_UNDER}
 
-  # A fixed-name aggregate gate for branch protection. The `test` job's
-  # own name carries the matrix OS/Python legs, so a required status
-  # check pinned to a leg name breaks silently if the matrix changes.
-  # This job's name never changes and fails whenever any leg of `test`
+  # A fixed-name aggregate required check for branch protection. The
+  # `test` job's own name carries the matrix OS/Python legs, so a check
+  # pinned to a leg name breaks silently if the matrix changes. This
+  # job's name never changes, and it fails whenever any leg of `test`
   # fails, so it is the one check branch protection should require.
   required-check:
     name: CI required
