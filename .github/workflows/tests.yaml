@@ -151,19 +151,16 @@ jobs:
   # A fixed-name aggregate required check for branch protection. The
   # `test` job's own name carries the matrix OS/Python legs, so a check
   # pinned to a leg name breaks silently if the matrix changes. This
-  # job's name never changes, and it fails whenever any leg of `test`
-  # fails, so it is the one check branch protection should require.
+  # job's name never changes, and the job fails whenever a needed job
+  # does not succeed, so it is the one check to require.
   required-check:
     name: CI required
     runs-on: ubuntu-latest
     if: always()
     needs: [test]
     steps:
-      - name: Fail unless all checks succeeded
+      - name: Fail unless all required jobs succeeded
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
         run: |
-          result="${{ needs.test.result }}"
-          echo "test job result: ${result}"
-          if [ "${result}" != "success" ]; then
-            echo "One or more ZEPHYRUS-check legs did not succeed."
-            exit 1
-          fi
+          echo "One or more required jobs did not succeed."
+          exit 1
