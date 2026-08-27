@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 # Push and PR CI: unit + smoke tiers only, on ubuntu + macos x Python
-# 3.11-3.12. Targets a fast wall-time. The integration and slow tiers,
+# 3.12. Targets a fast wall-time. The integration and slow tiers,
 # which run the real MORS-coupled escape, live in the scheduled nightly
 # workflow `nightly.yml` together with the Codecov upload.
 
@@ -33,7 +33,7 @@ jobs:
       # workflow_dispatch) get the full matrix.
       matrix:
         os: ${{ github.event.pull_request.draft == true && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest"]') }}
-        python-version: ${{ github.event.pull_request.draft == true && fromJSON('["3.12"]') || fromJSON('["3.11", "3.12"]') }}
+        python-version: ['3.12']
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -58,15 +58,15 @@ jobs:
           python -m pip install -e ".[develop]"
 
       - name: Validate test structure
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: bash tools/validate_test_structure.sh
 
       - name: Run test-quality lint
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: python tools/check_test_quality.py --check
 
       - name: Pre-flight fail_under ratchet check
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
         run: |
