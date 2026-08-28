@@ -9,4 +9,5 @@
         - along_profile_fluid_check
         - self_consistency_screen
         - potential_screens
+        - rate_floor_screen
       show_source: true

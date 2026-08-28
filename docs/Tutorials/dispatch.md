@@ -220,7 +220,7 @@ Two things in that figure deserve attention.
 - One proton crossing the surface per year, $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate that can mean anything. Below it, report no escape. The module computes what the physics gives and leaves the convention to you, but it does hand you the comparison: `diagnostics['rate_floor']['above_floor']` is false on both of these points.
 - Above that floor, ask whether the rate matters, by comparing it against the inventory and the age. The diagnostics already do this: `diagnostics['self_consistency']` divides the reservoirs by the rate and compares against the age you supplied.
 
-A rate can clear the floor by a hundred decades and still be irrelevant. A Mars-mass planet losing $2 \times 10^{-9}$ kg s⁻¹ loses 66 grams a year.
+A rate can clear the floor by a hundred decades and still be irrelevant. A Mars-mass planet losing $2 \times 10^{-9}$ kg s⁻¹ loses 63 grams a year.
 
 ---
 
@@ -279,7 +279,7 @@ The subflag is the part worth reading. This atmosphere reaches 0.96 Hill radii, 
 
 ## Step 5: read the diagnostics
 
-A call returns seventeen or eighteen diagnostic groups, depending on which branch ran, and none of them gates anything: the dispatch logic never reads them back, and there is no switch to turn them off. The regime boundaries carry real physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that instead of hiding it.
+A call returns seventeen or eighteen diagnostic groups, the eighteenth appearing when a hydrodynamic branch produced the rate and its species split, or when the two escape-temperature conventions disagree, and none of them gates anything: the dispatch logic never reads them back, and there is no switch to turn them off. The regime boundaries carry real physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that instead of hiding it.
 
 The [dispatch results reference](../Reference/results.md) documents every key. What follows is the order to read them in, which is the order the questions occur to you. Every snippet in this step uses the same result:
 
@@ -581,7 +581,9 @@ What escapes changes with the branch, which is the lower panel. In the wind phas
 
 The hydrostatic rate is flat, at $4.695 \times 10^{-2}$ kg s⁻¹ for ten billion years, because that branch has no XUV physics in it: a prescribed exobase temperature, a frozen profile, and a diffusion-limited supply that does not know about the star. The flat line is a visible reminder of what the branch does not model. It is also why hydrostatic heavy-element rates carry a lower-limit flag: the nonthermal channels that actually remove heavy species from a real exosphere are absent.
 
-And the consistency screen fires in the middle of the track, not at the ends, which is the shaded span. Between about 40 and 800 Myr the dispatched rate would have emptied the supplied inventory faster than the star aged, so those snapshots are not compatible with their own ages. After the crossing the screen goes quiet again, but read that carefully: the state became consistent because escape effectively stopped, not because the inventory survived.
+One property of this track is worth stating before you read it as a set of independent snapshots: it is not one. Each call is given the previous label, which is what a time-stepping run does and what makes the hysteresis window useful, so a label inside the window depends on the sample before it and therefore on the sampling. The crossing age quoted below is the crossing of this sampling, not a property of the planet alone; on the switch itself the window is 0.667 to 1.5 wide in the Knudsen number, so the ambiguity is confined to that band.
+
+And the consistency screen fires in the middle of the track, not at the ends, which is the shaded span. Between 65 and 767 Myr the dispatched rate would have emptied the supplied inventory faster than the star aged, so those snapshots are not compatible with their own ages. After the crossing the screen goes quiet again, but read that carefully: the state became consistent because escape effectively stopped, not because the inventory survived.
 
 ---
 

@@ -22,7 +22,7 @@ Every physically posed state returns a result. A `ValueError` means the state or
 
 | Label | Physics | Rate |
 |---|---|---|
-| `boiloff` | Bolometrically driven outflow from an atmosphere inflated beyond its own sonic radius. | Closed-form transonic Parker wind, Bondi-capped, and luminosity-capped past the activation gate. |
+| `boiloff` | Bolometrically driven outflow from an atmosphere too weakly bound to hold itself, which the restricted Jeans parameter tests. The launch level can sit inside or outside the sonic radius; when it is outside, the Mach number is clamped to 1 and `bondi_inflated` says so. | Closed-form transonic Parker wind, Bondi-capped, and luminosity-capped past the activation gate. |
 | `hydrodynamic:EL` | A collisional XUV-driven wind whose rate is set by the energy budget. | The smaller of the two hydrodynamic limits, the energy-limited one winning. |
 | `hydrodynamic:RR` | The same wind, with the recombination-limited rate winning the minimum. | Read `rr_chain['barometric_factor']` to see whether the rate is set by the recombination-limited base ionization (factor near 1) or by the wind failing to reach the sonic point (factor decades below 1). |
 | `hydrostatic` | Too rarefied for a wind; per-species Jeans escape from the exobase, capped by diffusive resupply. | Natively per-species; heavy-element rates are lower limits. |
@@ -62,7 +62,7 @@ The `effect` column says whether the returned rate already reflects the flag or 
 | `bolometric_residual` | `True` | The luminosity-capped bolometric residual beat the XUV branch and took the label. | The rate reflects it |
 | `gate_rerouted` | `True` | The exobase was too hot to stay hydrostatic, so the state was routed back to the hydrodynamic rate. | The rate reflects it |
 | `contested_ion` | `True` | The neutral and plasma escape-temperature conventions disagree about the branch. Both rates are recorded in `diagnostics['contested_ion']`. | Reporting only |
-| `hysteresis_active` | `True` | A previous regime label was supplied, so the hysteresis window was applied to the collisionality threshold. | The rate reflects it |
+| `hysteresis_active` | `True` | A previous regime label was supplied, so the hysteresis window was available. It says the memory was offered, not that it changed anything: read `diagnostics['knudsen']['threshold_applied']` against `kn_crit` to see whether the window actually moved the threshold on this call. | The rate reflects it |
 
 ### The hydrostatic branch
 

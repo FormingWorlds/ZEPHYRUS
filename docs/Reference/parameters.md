@@ -98,7 +98,7 @@ The knobs of the [escape-regime framework](../Explanations/regimes.md). Every de
 | Name | Default | Options / units | Meaning |
 |---|---|---|---|
 | `base_method` | `'lopez'` | `'lopez'`, `'fixed_pressure'`, `'boreas'` | How the XUV wind base is located on the profile. The Lopez (2017) level is $P_\mathrm{base} = \mu g / \sigma_{\nu_0}$, about a nanobar; `'boreas'` uses the optional BOREAS solver and falls back to `'lopez'` with a flag when it is absent or does not converge. |
-| `base_out_of_range` | `'clamp'` | `'clamp'`, `'extend'` | What happens when the profile top is deeper than the physical base level: clamp to the top level (flagged, distance recorded) or evaluate the base on the extended upper structure. Profiles reaching below 1 nanobar never engage it. |
+| `base_out_of_range` | `'clamp'` | `'clamp'`, `'extend'` | What happens when the profile top is deeper than the physical base level: clamp to the top level (flagged, distance recorded) or evaluate the base on the extended upper structure. Whether it engages depends on the state: the Lopez base is $\mu g / \sigma_{\nu_0}$, tens of nanobars on an Earth-mass carbon dioxide planet but below a nanobar on a low-gravity hydrogen envelope, so no single profile top clears it everywhere. Read `base_clamped` rather than assuming. |
 | `P_photo` | 2000 | Pa | Photospheric-type level for the energy-limited geometric factor (20 mbar, after Baumeister et al. 2023). |
 | `P_base_fixed` | 5.0 | Pa | Base pressure for the `'fixed_pressure'` method only. |
 | `kn_crit` | 1.0 | $> 0$ | Sonic-point Knudsen threshold of the fluid-to-kinetic switch; the physical band 0.1 to 3 is a diagnostic constant, not a knob. |
@@ -113,7 +113,7 @@ The knobs of the [escape-regime framework](../Explanations/regimes.md). Every de
 | `cool_o_finestructure` | `True` | `True`, `False` | Atomic O fine-structure cooling at 63 and 147 micron. |
 | `cool_recombination` | `True` | `True`, `False` | Recombination (continuum) cooling. Disabling all four channels at once is rejected. |
 | `fractionate` | `True` | `True`, `False` | Apply the N-species closure on confirmed hydrodynamic verdicts; otherwise split by reservoir mass fractions. |
-| `tidal` | `True` | `True`, `False` | Apply the Erkaev et al. (2007) tidal factor to the energy-limited candidate. |
+| `tidal` | `True` | `True`, `False` | Apply the Erkaev et al. (2007) tidal factor. It divides the energy-limited rate and the interior-luminosity cap alike, so both candidates measure one barrier; `False` sets $K_\mathrm{tide} = 1$ in both. |
 | `lambda_crit` | 20.0 | $> 0$ | Boil-off activation threshold on the restricted Jeans parameter (literature band 15 to 35). |
 | `gamma_bates` | 0.75 | $> 0$ | Shape parameter of the Bates temperature profile of the extended upper structure. |
 | `kzz` | 300 | m² s⁻¹ | Eddy diffusion coefficient when the profile carries no `kzz` column. |
@@ -129,7 +129,7 @@ The knobs of the [escape-regime framework](../Explanations/regimes.md). Every de
 | `M_p`, `R_p` | kg, m | Planet (interior) mass and radius. |
 | `M_star`, `a`, `e` | kg, m, dimensionless | Stellar mass, semi-major axis, eccentricity (the Hill radius is evaluated at periapsis). |
 | `T_eq` | K | Equilibrium temperature; the boil-off wind runs at $T_\mathrm{eq} / 2^{1/4}$. |
-| `F_xuv`, `F_bol`, `F_int` | W m⁻² | XUV flux, bolometric instellation, and interior heat flux (the luminosity cap). |
+| `F_xuv`, `F_bol`, `F_int` | W m⁻² | XUV flux, bolometric instellation, and interior heat flux (the luminosity cap). `F_bol` is validated and carried with the state but no branch reads it: the bolometric branch takes its temperature from `T_eq`. It is required so that a caller assembling a state cannot omit it and then find a later version silently reading zero. |
 | `kappa_photo` | m² kg⁻¹ | Photospheric opacity; the boil-off rate scales as its inverse. |
 | `profile` | not applicable | `profiles.Profile`: pressure, radius, temperature, per-species mixing ratios, and mean molecular mass per level, base to top. |
 | `settings` | not applicable | The `DispatchSettings` block above. |

@@ -443,7 +443,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             per_species = dict(hs_per_element)
             flags.update(hs_flags)
             flow_radius = hsd['r_exo']
-        # Step 6: the bolometric residual stays a candidate past the gate.
+        # Step 5: the bolometric residual stays a candidate past the gate.
         if bolo_rate > rate:
             branch = 'boiloff'
             rate = bolo_rate
@@ -456,7 +456,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
                 flags.pop(key, None)
     label = branch
 
-    # Step 5: the Roche screen on the active flow radius. The screen renames
+    # Step 6: the Roche screen on the active flow radius. The screen renames
     # the state and never touches the rate. Its boundary is a rate
     # comparison, since the branch whose flow radius gets tested is the one
     # that won step 6, so reporting the winning branch's own rate keeps the
