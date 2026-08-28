@@ -214,7 +214,7 @@ def _tutorial_blocks():
         yield index, code, (quoted.group(1).rstrip('\n') if quoted else None)
 
 
-def test_tutorial_snippets_print_what_the_page_quotes():
+def test_tutorial_snippets_print_what_the_page_quotes(monkeypatch):
     """Every tutorial snippet runs in order and prints its quoted output.
 
     The page states that every printed number is the verbatim output of a
@@ -226,6 +226,14 @@ def test_tutorial_snippets_print_what_the_page_quotes():
     hand otherwise: a coefficient change three modules away moves a number
     here, and nothing else notices.
     """
+    # The page's first snippet imports the worked example by its path from the
+    # repository root, which is what a reader running from a clone would type.
+    # That resolves only with the root on sys.path, and whether it is there
+    # depends on how pytest was started: `python -m pytest` puts the working
+    # directory there and the console script does not, so CI and a local run
+    # disagreed. Prepending it here makes the test independent of the
+    # invocation, and monkeypatch undoes it afterwards.
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
     namespace: dict = {}
     compared = 0
     for index, code, quoted in _tutorial_blocks():
