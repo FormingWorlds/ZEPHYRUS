@@ -13,7 +13,7 @@ special case of the escape-fractionation lineage it generalizes:
   reproduced.
 - The non-trace three-species relations of Zahnle & Kasting (2023,
   Eqs. 19-20).
-- The prescribed-flux partition of Chassefiere (1996, Eqs. 1, 6, 7).
+- The prescribed-flux partition of Chassefière (1996, Eqs. 1, 6, 7).
 - The universal-b closed form and the Hunten et al. (1987) Earth, Mars,
   and Venus numerical anchors.
 - Low-flux collapse onto the lightest species and the zero-flux limit.
@@ -313,7 +313,7 @@ def _activation_threshold(k, X, m, T, g0, b, lo, hi, niter=100):
 
 @pytest.mark.reference_pinned
 def test_chassefiere_prescribed_flux_partition():
-    """The binary partition reproduces Chassefiere (1996, Eqs. 1, 6, 7).
+    """The binary partition reproduces Chassefière (1996, Eqs. 1, 6, 7).
 
     His crossover mass ``m_c = m_1 + kT F_1 / (b g X_1)`` evaluated at the
     threshold flux equals the heavy mass exactly (his dropout test and the

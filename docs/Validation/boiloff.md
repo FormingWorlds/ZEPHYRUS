@@ -10,7 +10,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the boil-
 
 ## Notes
 
-The Bondi cap follows Gupta & Schlichting (2020, MNRAS 493, 792, Eq. 10) and the luminosity cap Gupta & Schlichting (2019, MNRAS 487, 24, Eq. 9), whose barrier carries the Erkaev tidal factor at xi = R_Hill / R_p so that the cap and the energy-limited rate it competes against measure the same barrier; the cap ordering and the gate semantics are asserted as physics invariants in the same file. The Tang et al. (2024, ApJ 976, 221, Eq. 8) timescale comparison runs as a diagnostic only.
+The Bondi cap follows Gupta & Schlichting (2020, MNRAS 493, 792, Eq. 10) and the luminosity cap Gupta & Schlichting (2019, MNRAS 487, 24, Eq. 8), whose barrier carries the Erkaev tidal factor at xi = R_Hill / R_p so that the cap and the energy-limited rate it competes against measure the same barrier; the cap ordering and the gate semantics are asserted as physics invariants in the same file. The Tang et al. (2024, ApJ 976, 221, Eq. 8) timescale comparison runs as a diagnostic only.
 
 ## Anchor type
 

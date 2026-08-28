@@ -37,7 +37,7 @@ from zephyrus.constants import G, kb
 #   approximation on a static profile.
 # - Luminosity cap, applied only past the activation gate:
 #   Mdot_E = L / (g R_p K) with L = 4 pi R_p^2 F_int (Gupta & Schlichting
-#   2019, MNRAS 487, 24, their Eq. 9). Capping the residual bolometric
+#   2019, MNRAS 487, 24, their Eq. 8). Capping the residual bolometric
 #   channel by the interior luminosity sidesteps the open dispute over how
 #   long core-powered mass loss survives after boil-off (Tang et al. 2024,
 #   ApJ 976, 221, argue it is brief; Gupta & Schlichting argue it lasts).

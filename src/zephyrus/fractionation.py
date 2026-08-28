@@ -42,7 +42,7 @@ from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g
 # al. (2018, Icarus 307, 327, Eq. 5) and Zahnle et al. (1990, Eqs. 35, 36,
 # 42); the non-trace three-species relations of Zahnle & Kasting (2023,
 # GeCoA 361, 228, Eqs. 19-20); the prescribed-flux partition of
-# Chassefiere (1996, Icarus 124, 537, Eqs. 1, 6, 7); the universal-b
+# Chassefière (1996, Icarus 124, 537, Eqs. 1, 6, 7); the universal-b
 # closed form; and the Hunten et al. (1987) Earth, Mars, and Venus
 # numerical anchors.
 #
