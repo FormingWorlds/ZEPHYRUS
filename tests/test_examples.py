@@ -205,13 +205,31 @@ def test_dispatcher_example_track_changes_regime_as_the_star_quiets():
 TUTORIAL = Path(__file__).resolve().parents[1] / 'docs' / 'Tutorials' / 'dispatch.md'
 
 
-def _tutorial_blocks():
-    """Every python fence in the dispatcher tutorial with the output it quotes."""
+# The one snippet that reads the real stellar evolution tracks. Executing it
+# needs the Spada grid under FWL_DATA, which the unit and smoke tier does not
+# download, so this tier runs every other block and the integration tier runs
+# the whole page. Excluding it by name rather than by whether the data happens
+# to be present keeps the two tiers checking the same thing everywhere.
+TUTORIAL_DATA_DEPENDENT = 'stellar_track('
+
+
+def _tutorial_blocks(skip_data_dependent=True):
+    """Every python fence in the dispatcher tutorial with the output it quotes.
+
+    Yields ``(index, code, quoted_or_None)``, with ``code`` None for a block
+    the caller should not run. The stellar-track block is the last on the
+    page and nothing after it reads its results, so skipping it leaves the
+    shared namespace usable for every earlier block.
+    """
     text = TUTORIAL.read_text()
     pattern = re.compile(r'```python\n(.*?)```(.*?)(?=```python|\Z)', re.S)
     for index, (code, after) in enumerate(pattern.findall(text), start=1):
         quoted = re.search(r'```text\n(.*?)```', after, re.S)
-        yield index, code, (quoted.group(1).rstrip('\n') if quoted else None)
+        expected = quoted.group(1).rstrip('\n') if quoted else None
+        if skip_data_dependent and TUTORIAL_DATA_DEPENDENT in code:
+            yield index, None, None
+            continue
+        yield index, code, expected
 
 
 def test_tutorial_snippets_print_what_the_page_quotes(monkeypatch):
@@ -237,6 +255,8 @@ def test_tutorial_snippets_print_what_the_page_quotes(monkeypatch):
     namespace: dict = {}
     compared = 0
     for index, code, quoted in _tutorial_blocks():
+        if code is None:
+            continue
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             exec(compile(code, f'<tutorial block {index}>', 'exec'), namespace)
@@ -249,5 +269,6 @@ def test_tutorial_snippets_print_what_the_page_quotes(monkeypatch):
         )
         compared += 1
     # Guard against the extraction silently finding nothing, which would make
-    # the assertions above vacuous.
-    assert compared >= 15, f'only {compared} tutorial output blocks were compared'
+    # the assertions above vacuous. Eighteen of the nineteen output blocks are
+    # comparable here; the stellar track is the integration tier's.
+    assert compared >= 17, f'only {compared} tutorial output blocks were compared'
