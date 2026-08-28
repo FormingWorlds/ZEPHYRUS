@@ -36,8 +36,9 @@ from zephyrus.dispatcher import (
     dispatch,
 )
 from zephyrus.escape import EL_escape
+from zephyrus.hydrodynamic import caldiroli_efficiency
 from zephyrus.planets_parameters import Me, Ms, Re
-from zephyrus.profiles import isothermal_profile
+from zephyrus.profiles import isothermal_profile, photospheric_level
 
 pytestmark = [pytest.mark.smoke, pytest.mark.timeout(60)]
 
@@ -863,3 +864,40 @@ def test_dispatched_split_names_the_element_that_leaves():
     # And the sum still holds, which is the weaker claim of the two.
     for res in (static, wind):
         assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-9, abs=0.0)
+
+
+@pytest.mark.reference_pinned
+def test_caldiroli_efficiency_geometry_conversion():
+    """The fitted efficiency is converted to the geometry it is used in.
+
+    Caldiroli et al. (2022) fit their efficiency against a rate written on an
+    ``R_p^3`` geometry, while the dispatcher's energy-limited rate is the
+    Erkaev form on ``R_p R_XUV^2`` (``scaling=2``). Decision 12 therefore
+    converts the fitted value by ``(R_p / R_XUV)^2`` before using it. The
+    conversion is a pure geometric factor, so nothing about the rate's shape
+    reveals whether it was applied: dropping it entirely left the suite green.
+    This pins it against the two radii the same call reports.
+    """
+    settings = DispatchSettings(efficiency_mode='caldiroli')
+    inp = _inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=10.0, a=0.0775 * AU, settings=settings)
+    res = dispatch(inp)
+    hy = res.diagnostics['hydrodynamic']
+    raw, _flags = caldiroli_efficiency(10.0, Me, Re, hy['K_tide'])
+    assert raw is not None
+    # The XUV radius is the photospheric level the settings select, which is
+    # the radius the Erkaev form cubes; it is recomputed here from the same
+    # profile rather than read back, so the test does not depend on the
+    # module reporting it.
+    photo, _pf = photospheric_level(inp.profile, settings.P_photo)
+    r_xuv = photo['r']
+    factor = (Re / r_xuv) ** 2
+    assert hy['efficiency'] == pytest.approx(raw * factor, rel=1e-9, abs=0.0)
+    # Discrimination: the factor is not 1 on this state, so an unconverted
+    # efficiency is a different number.
+    assert factor != pytest.approx(1.0, rel=1e-3, abs=0.0)
+    assert hy['efficiency'] != pytest.approx(raw, rel=1e-3, abs=0.0)
+    # The XUV radius is above the planetary radius, so the conversion always
+    # reduces the efficiency: the fitted value refers to a larger absorbing
+    # area than the Erkaev geometry charges for.
+    assert r_xuv > Re
+    assert hy['efficiency'] < raw

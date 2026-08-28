@@ -19,6 +19,8 @@ The physical invariants under test:
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
 
+import math
+
 import pytest
 
 from zephyrus.constants import G, amu, m_p
@@ -223,3 +225,48 @@ def test_documentation_constants_are_complete():
     assert DAYSIDE_FACTORS['recombination_limited'] == pytest.approx(0.31, rel=1e-12, abs=0.0)
     # The reduction factors are genuine reductions.
     assert all(0.0 < v < 1.0 for v in DAYSIDE_FACTORS.values())
+
+
+@pytest.mark.reference_pinned
+def test_johnson_critical_power_absolute_normalization():
+    """The transonic criterion's scale, since its whole content is a threshold.
+
+    The diagnostic reports whether the absorbed power exceeds the critical
+    power, so the ratio crossing 1 is the entire statement and any error in
+    the normalization moves that crossing. Johnson et al. (2013, ApJL 768, L4)
+    Eq. (10) is ``Q_c = 4 pi r_* (gamma / (c_c sigma_c Kn_m))
+    sqrt(2 U(r_*) / m) U(r_0)`` with ``c_c = sqrt(2)`` and
+    ``U(r) = G M m / r``, evaluated here from the constants rather than by
+    calling the function. The intercepted power is
+    ``Q_net = eps pi R_XUV^2 F_XUV``.
+    """
+    eps, f_xuv, r_xuv = 0.15, 100.0, 1.5 * Re
+    mass_p, m_mean, sigma_c = 5 * Me, 16.0 * amu, 1.0e-19
+    r_sonic, r_base, gamma, kn_m = 5.0 * Re, 1.6 * Re, 1.0, 1.0
+    u_star = G * mass_p * m_mean / r_sonic
+    u_0 = G * mass_p * m_mean / r_base
+    q_c_expected = (
+        4.0
+        * math.pi
+        * r_sonic
+        * gamma
+        / (math.sqrt(2.0) * sigma_c * kn_m)
+        * math.sqrt(2.0 * u_star / m_mean)
+        * u_0
+    )
+    q_net_expected = eps * math.pi * r_xuv**2 * f_xuv
+    ratio, q_net, q_c = q_net_over_qc(
+        eps, f_xuv, r_xuv, r_sonic, r_base, mass_p, m_mean, sigma_c, gamma, kn_m
+    )
+    assert q_net == pytest.approx(q_net_expected, rel=1e-12, abs=0.0)
+    assert q_c == pytest.approx(q_c_expected, rel=1e-12, abs=0.0)
+    assert ratio == pytest.approx(q_net_expected / q_c_expected, rel=1e-12, abs=0.0)
+    # Discrimination: dropping the c_c = sqrt(2) normalization raises the
+    # critical power by that factor and moves the threshold with it.
+    assert q_c != pytest.approx(q_c_expected * math.sqrt(2.0), rel=0.01, abs=0.0)
+    # The Kn_m and sigma_c dependences are inverse and linear in the critical
+    # power, which is what lets a caller rescale the criterion.
+    _r2, _n2, q_c_half = q_net_over_qc(
+        eps, f_xuv, r_xuv, r_sonic, r_base, mass_p, m_mean, 2.0 * sigma_c, gamma, kn_m
+    )
+    assert q_c_half == pytest.approx(0.5 * q_c_expected, rel=1e-12, abs=0.0)

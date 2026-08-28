@@ -461,3 +461,44 @@ def test_per_element_shares_follow_the_species_that_escape():
     assert per_el['O'] == pytest.approx(
         rate_co2 * 2.0 * species_mass_amu('O') / m_co2, rel=1e-9, abs=0.0
     )
+
+
+@pytest.mark.reference_pinned
+def test_yelle_harmonic_mean_and_area_referral():
+    """The Eq. 14 combination and the Eq. 15 area referral, at their scale.
+
+    Yelle (2024, Icarus 416, 116099) combines the effusion flux and the
+    diffusion-limited supply by the harmonic mean of Eq. (14),
+    ``phi = phi_J phi_l / (phi_J + phi_l)``, and refers the flux from the
+    exobase back to the anchor radius through the ``(r_x / r_0)^2`` factor of
+    Eq. (15). Both are invisible on a state where the two fluxes differ by
+    decades, since there the harmonic mean equals the smaller one and the
+    referral is a fixed rescaling: a plain minimum reproduces the combination
+    to one part in 1e5 on the default exobase temperature. This test therefore
+    runs at the exobase temperature where the two fluxes cross, where the
+    harmonic mean is 0.61 of the minimum and a substitution cannot hide.
+    """
+    prof = _co2_hydrogen_profile(0.01)
+    # 130 K puts the hydrogen effusion flux within a factor 1.6 of its supply.
+    _per, det = hydrostatic_rates(prof, M_MARS, 130.0)
+    d = det['species']['H']
+    phi_j, phi_l, phi = d['phi_jeans'], d['phi_diffusion'], d['phi_per_area_r0']
+    assert 0.5 < phi_j / phi_l < 3.0, 'the crossover state has drifted'
+    assert phi == pytest.approx(phi_j * phi_l / (phi_j + phi_l), rel=1e-12, abs=0.0)
+    # Discrimination: a plain minimum is 1.6 times the harmonic mean here.
+    assert phi < 0.75 * min(phi_j, phi_l)
+    # The harmonic mean is below both arguments, always, which is the property
+    # that makes it a supply cap rather than a blend.
+    assert phi < phi_j and phi < phi_l
+    # Area referral: the flux is quoted at the anchor, so it carries the ratio
+    # of the exobase and anchor areas explicitly.
+    r_x, r_0 = det['r_exo'], det['r_anchor']
+    assert r_x > r_0
+    referral = (r_x / r_0) ** 2
+    assert referral > 1.05, 'the referral factor is too close to 1 to discriminate'
+    # Rebuild the effusion flux from the reported exobase quantities: the
+    # referral is the only factor between the local flux and the quoted one.
+    # The mixing ratio is the diffusively enriched one at the exobase, not the
+    # anchor value, which for a light trace species differs by decades.
+    local = d['volkov_C'] * d['w_jeans'] * d['X_tilde_exo'] * det['n_exo']
+    assert phi_j == pytest.approx(referral * local, rel=1e-9, abs=0.0)

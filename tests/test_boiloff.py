@@ -334,3 +334,39 @@ def test_printed_activation_band_matches_its_source():
     assert LAMBDA_BAND == (15.0, 35.0)
     lo, hi = LAMBDA_BAND
     assert lo < 20.0 < hi  # the default threshold sits inside its own band
+
+
+@pytest.mark.reference_pinned
+def test_parker_rate_absolute_normalization():
+    """The Parker rate's overall scale, not only its shape.
+
+    The suite pins how the rate varies (monotone in flux, shutting off past
+    the Bondi radius, capped by the Bondi and luminosity terms), and those
+    all survive a wrong prefactor. This pins the scale: at a launch level
+    sitting exactly at the Bondi radius the Mach number is 1 by construction
+    and Owen & Wu (2016, ApJ 817, 107) Eq. (9) reduces to
+    ``Mdot = 4 pi G M_p / (kappa c_s)``, evaluated here from the constants
+    rather than by calling the function, so a changed factor fails.
+
+    Order of magnitude against the source: at one Earth mass, an equilibrium
+    temperature of 1000 K, a hydrogen and helium envelope, and a photospheric
+    opacity of 0.01 m^2 kg^-1, this is 2.9e14 kg/s, which is 1.5e-3 Earth
+    masses per year, within an order of magnitude of the 1e-2 Earth masses per
+    year Owen & Wu quote for the onset of the phase on an inflated envelope.
+    """
+    m_p, t_eq, kappa = Me, 1000.0, 0.01
+    mu = 2.35 * amu
+    t_w = t_eq / 2.0**0.25
+    c_s = math.sqrt(kb * t_w / mu)
+    r_bondi = G * m_p / (2.0 * c_s**2)
+    expected = 4.0 * math.pi * G * m_p / (kappa * c_s)
+    launch = {'r': r_bondi, 'mmw': mu, 'rho': 1e-6, 'p': 1e-6 * kb * t_w / mu}
+    _rate, det = bolometric_candidate(m_p, Re, t_eq, kappa, launch, 1.0, 5.0, 20.0)
+    assert det['mach'] == pytest.approx(1.0, abs=1e-9)
+    assert det['mdot_parker'] == pytest.approx(expected, rel=1e-12, abs=0.0)
+    # Scale guard against the published onset rate, in Earth masses per year.
+    per_year = det['mdot_parker'] * 3.15576e7 / Me
+    assert 1.0e-4 < per_year < 1.0e-1
+    # Discrimination: a doubled or halved prefactor leaves that window but,
+    # more to the point, fails the exact pin above.
+    assert det['mdot_parker'] != pytest.approx(2.0 * expected, rel=0.1, abs=0.0)

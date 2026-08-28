@@ -25,6 +25,7 @@ import pytest
 from zephyrus.knudsen import (
     FALLBACK_VDW_RADIUS_A,
     KN_BAND,
+    SQRT2,
     effective_threshold,
     kn_sonic,
     lar_sigma_diff,
@@ -268,3 +269,39 @@ def test_printed_knudsen_band_matches_its_source():
     assert KN_BAND == (0.1, 3.0)
     lo, hi = KN_BAND
     assert lo < 1.0 < hi  # the default threshold sits inside its own band
+
+
+@pytest.mark.reference_pinned
+def test_sonic_scale_height_gamma_dependence():
+    """The scale height is pinned away from the degenerate isothermal case.
+
+    At gamma = 1 the closed form of Chatterjee & Pierrehumbert (2026, ApJ
+    998, 236) Eq. (17), ``H_sc = (1 + gamma) r_sc / (4 + sqrt(2)
+    sqrt(5 - 3 gamma))``, collapses to ``r_sc / 3`` because the numerator is
+    2 and the denominator is 6, and several wrong forms agree with it there:
+    replacing the numerator by a constant 2, or the radical by sqrt(2), both
+    give r_sc / 3 at gamma = 1 and diverge from the correct form away from it.
+    Pinning the isothermal value alone therefore pins nothing, so the form is
+    evaluated at the polytropic and monatomic values as well.
+    """
+    assert sonic_scale_height(1.0, 1.0) == pytest.approx(1.0 / 3.0, rel=1e-12, abs=0.0)
+    assert sonic_scale_height(1.0, 1.4) == pytest.approx(0.4558481560, rel=1e-9, abs=0.0)
+    assert sonic_scale_height(1.0, 5.0 / 3.0) == pytest.approx(2.0 / 3.0, rel=1e-12, abs=0.0)
+    # The monatomic value is where the radical vanishes, so the denominator is
+    # exactly 4 and the ratio is exactly (1 + 5/3)/4.
+    assert sonic_scale_height(1.0, 5.0 / 3.0) == pytest.approx(
+        (1.0 + 5.0 / 3.0) / 4.0, rel=1e-12, abs=0.0
+    )
+    # Discrimination against the two forms that are degenerate at gamma = 1.
+    for gamma in (1.4, 5.0 / 3.0):
+        correct = sonic_scale_height(1.0, gamma)
+        numerator_wrong = 2.0 / (4.0 + SQRT2 * math.sqrt(5.0 - 3.0 * gamma))
+        radical_wrong = (1.0 + gamma) / (4.0 + SQRT2 * SQRT2)
+        assert correct != pytest.approx(numerator_wrong, rel=1e-3, abs=0.0), gamma
+        assert correct != pytest.approx(radical_wrong, rel=1e-3, abs=0.0), gamma
+    # Monotone rising in gamma over the physical range, and linear in r_sc.
+    heights = [sonic_scale_height(1.0, g) for g in (1.0, 1.2, 1.4, 1.6, 5.0 / 3.0)]
+    assert all(b > a for a, b in zip(heights[:-1], heights[1:]))
+    assert sonic_scale_height(3.0, 1.4) == pytest.approx(
+        3.0 * sonic_scale_height(1.0, 1.4), rel=1e-12, abs=0.0
+    )

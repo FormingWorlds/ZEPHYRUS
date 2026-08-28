@@ -22,7 +22,7 @@ import math
 
 import pytest
 
-from zephyrus.atomic_data import HC_CM, LYA_BLACK, THREE_LEVEL
+from zephyrus.atomic_data import HC_CM, LYA_BLACK, THREE_LEVEL, alpha_case_b
 from zephyrus.constants import kb_cgs
 from zephyrus.thermostat import (
     balance_at,
@@ -227,3 +227,79 @@ def test_balance_parts_sum_and_channel_toggles():
     assert 'atomic_lines' not in d_no['parts']
     assert d_no['q_cool'] <= d_all['q_cool']
     assert r_no_atomic >= r_all
+
+
+@pytest.mark.reference_pinned
+def test_line_cooling_coronal_limit_absolute_normalization():
+    """The line cooling's scale, evaluated from the rate coefficient itself.
+
+    Far below the critical density every collisional excitation out of the
+    ground state radiates before it is deexcited, so the cooling reduces to
+    ``sum over transitions of dE k_lu n_e n_tot`` with the Maxwellian
+    collisional rate coefficient ``k_lu = Upsilon (8.629e-6 / (g_l sqrt(T)))
+    exp(-dE / k_B T)``. That is evaluated here from the level data and the
+    constants rather than by calling the function, so the prefactor and the
+    statistical weights are pinned rather than only the shape. Without this
+    the whole channel could be scaled by any factor with the suite green.
+    """
+    T, n_tot = 8000.0, 1.0e6
+    data = THREE_LEVEL['O']
+    levels = data['levels']
+    for n_e in (1.0e0, 1.0e2):
+        expected = 0.0
+        for (lo, up), (a_ul, upsilon) in data['transitions'].items():
+            if a_ul <= 0.0 or lo != 1:
+                continue
+            g_lo = levels[lo - 1][1]
+            de = HC_CM * (levels[up - 1][2] - levels[lo - 1][2]) * 1e7
+            k_lu = upsilon * 8.629e-6 / (g_lo * math.sqrt(T)) * math.exp(-de / (kb_cgs * T))
+            expected += de * k_lu * n_e * n_tot
+        got = three_level_cooling('O', n_tot, n_e, T)
+        assert got == pytest.approx(expected, rel=1e-3, abs=0.0), n_e
+    # Linear in the electron density in this limit, and in the total density.
+    q1 = three_level_cooling('O', n_tot, 1.0e0, T)
+    q2 = three_level_cooling('O', 2.0 * n_tot, 2.0e0, T)
+    assert q2 / q1 == pytest.approx(4.0, rel=1e-3, abs=0.0)
+
+
+@pytest.mark.reference_pinned
+def test_recombination_cooling_coefficient():
+    """Recombination cooling removes 3/2 k_B T per recombination.
+
+    The channel is ``Q = n_e n_+ alpha_B (3/2) k_B T``, and the 3/2 is the
+    mean thermal energy carried off by the recombining electron. Pinned
+    against a hand evaluation, since the factor is the whole content of the
+    term and doubling it doubled the channel with the suite green.
+    """
+    T = 1.0e4
+    # The published coefficient at 1e4 K, which the term is built on.
+    assert alpha_case_b('H', T) == pytest.approx(2.7e-13, rel=1e-9, abs=0.0)
+    # The balance's own term, rebuilt from the quantities it reports. The
+    # module works in cgs internally, so the number density converts from
+    # m^-3 at the boundary and the square of that conversion is where a
+    # units slip would hide.
+    base = _base(n_si=1.0e18, vmr={'H': 1.0})
+    _r, det = balance_at(T, base, {'H': 1.0}, 1.0e2)
+    n_cgs = base['n'] * 1e-6
+    f_plus = det['f_plus']
+    expected = (f_plus * n_cgs) ** 2 * det['alpha_rec_cgs'] * 1.5 * kb_cgs * T
+    assert det['parts']['recombination'] == pytest.approx(expected, rel=1e-9, abs=0.0)
+    # Discrimination: the 3/2 is the mean energy carried off per
+    # recombination and is the whole content of the coefficient, so the same
+    # term with a 3 instead is a different number by exactly a factor two.
+    assert det['parts']['recombination'] != pytest.approx(
+        2.0 * expected, rel=0.01, abs=0.0
+    )
+    # Quadratic in the electron density, not in the total density: doubling
+    # the gas density raises the term by less than four, because the
+    # ionization fraction falls as recombination speeds up. The identity
+    # above is what pins the coefficient; this pins that the term is built
+    # on the electron density and not on the neutral one.
+    dense = _base(n_si=2.0e18, vmr={'H': 1.0})
+    _r2, det2 = balance_at(T, dense, {'H': 1.0}, 1.0e2)
+    ratio = det2['parts']['recombination'] / det['parts']['recombination']
+    assert 1.0 < ratio < 4.0
+    assert det2['f_plus'] < det['f_plus']
+    n2_cgs = dense['n'] * 1e-6
+    electron_ratio = (det2['f_plus'] * n2_cgs) ** 2 / (det['f_plus'] * n_cgs) ** 2
+    assert ratio == pytest.approx(electron_ratio, rel=1e-6, abs=0.0)
