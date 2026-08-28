@@ -282,3 +282,40 @@ def test_launch_level_reports_its_own_optical_depth():
     assert det2['tau_launch'] == pytest.approx(10.0 * det['tau_launch'], rel=1e-12, abs=0.0)
     # Reporting only: it raises no flag and gates nothing.
     assert 'tau_launch' not in det['flags']
+
+
+@pytest.mark.physics_invariant
+def test_luminosity_cap_flags_itself_when_binding():
+    """The interior-luminosity cap says when it is the term setting the rate.
+
+    The cap is absent while the activation gate is open and applies once it
+    closes, so a state crossing the gate drops discontinuously while keeping
+    the same label. The flag is the marker for that: past the gate the cap is
+    usually the binding term, and the drop across the threshold is a factor
+    of thousands rather than a rounding, so a caller stepping a track through
+    the gate needs to see which term won and not infer it from the label.
+    """
+    launch = _launch(2.0 * Me, 1.5 * Re, 1000.0, {'H2': 0.9, 'He': 0.1})
+    # Inside the gate: no cap exists, so it cannot be flagged.
+    rate_open, det_open = bolometric_candidate(
+        2.0 * Me, 1.5 * Re, 1000.0, 0.01, launch, 1.0, 5.0, 20.0
+    )
+    assert det_open['active'] is True
+    assert det_open['mdot_luminosity'] is None
+    assert 'luminosity_capped' not in det_open['flags']
+    # Past the gate on the same state: the cap exists and binds, and the rate
+    # falls to it by orders of magnitude.
+    rate_shut, det_shut = bolometric_candidate(
+        2.0 * Me, 1.5 * Re, 1000.0, 0.01, launch, 1.0, 25.0, 20.0
+    )
+    assert det_shut['active'] is False
+    assert det_shut['flags'].get('luminosity_capped') is True
+    assert rate_shut == pytest.approx(det_shut['mdot_luminosity'], rel=1e-12, abs=0.0)
+    assert rate_shut < rate_open / 100.0
+    # A large interior flux lifts the cap above the other terms, and then it
+    # is not the binding one and is not flagged.
+    rate_hot, det_hot = bolometric_candidate(
+        2.0 * Me, 1.5 * Re, 1000.0, 0.01, launch, 1.0e12, 25.0, 20.0
+    )
+    assert det_hot['mdot_luminosity'] > rate_hot
+    assert 'luminosity_capped' not in det_hot['flags']

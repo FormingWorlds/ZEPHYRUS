@@ -181,6 +181,13 @@ def bolometric_candidate(
         mdot_lum = L / barrier if barrier > 0.0 else math.inf
         caps.append(mdot_lum)
     rate = min(caps)
+    if mdot_lum is not None and rate == mdot_lum:
+        # The interior luminosity is the binding term. Worth a flag rather
+        # than an inference from the branch being past its gate: the cap
+        # switches on at the gate, so a state that crosses the activation
+        # threshold drops discontinuously (a factor 6.7e3 on a two Earth-mass
+        # hydrogen envelope) while keeping the same label.
+        flags['luminosity_capped'] = True
     return rate, dict(
         T_wind=T_w,
         c_s=c_s,
