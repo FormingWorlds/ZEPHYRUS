@@ -250,3 +250,21 @@ def test_sigma_mixture_normalizes_over_what_is_present():
     # A mixture with nothing in it has no cross section to report.
     with pytest.raises(ValueError, match='positive mole fraction'):
         sigma_mixture({'CO2': 0.0, 'H2': -1e-20}, 1.0e4)
+
+
+@pytest.mark.reference_pinned
+def test_printed_knudsen_band_matches_its_source():
+    """The printed switch band is the one the literature states.
+
+    The band is not tuning freedom and not a tolerance: kinetic simulations
+    place the fluid-to-kinetic transition near 0.1 for heating deposited in a
+    sharp layer and near 1 for distributed heating (Johnson et al. 2013, ApJL
+    768, L4), and Chatterjee & Pierrehumbert (2026, ApJ 998, 236) extend the
+    upper edge to 3 where the energy limit may survive. The dispatcher prints
+    the counterfactual labels at both edges beside every verdict, so the band
+    is a reported result and its numbers are pinned here rather than being
+    free to drift.
+    """
+    assert KN_BAND == (0.1, 3.0)
+    lo, hi = KN_BAND
+    assert lo < 1.0 < hi  # the default threshold sits inside its own band

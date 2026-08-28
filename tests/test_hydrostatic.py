@@ -24,6 +24,7 @@ import numpy as np
 import pytest
 from scipy.special import erfcx
 
+from zephyrus.composition import species_mass_amu
 from zephyrus.constants import G, amu, kb
 from zephyrus.hydrostatic import (
     bates_extension,
@@ -423,3 +424,40 @@ def test_exobase_temperature_floors_at_the_profile_top():
     # At the anchor temperature exactly, nothing is flagged.
     _p, det_eq = hydrostatic_rates(prof, M_MARS, t_top)
     assert 't_exo_floored_to_profile_top' not in det_eq['flags']
+
+
+@pytest.mark.physics_invariant
+def test_per_element_shares_follow_the_species_that_escape():
+    """The split names which element leaves, not just how much in total.
+
+    Element rates summing to the bulk rate is a weak claim: the dispatcher
+    renormalizes the split onto the bulk rate, so the sum matches by
+    construction and a permuted mapping would conserve mass while moving the
+    wrong elements out of the planet. What has to hold is the identity of the
+    shares. On a carbon dioxide host carrying one percent hydrogen, hydrogen
+    is the only species light enough to escape and carries the whole rate,
+    twenty decades above the carbon and oxygen the heavy background supplies,
+    and the CO2 that does leave splits onto carbon and oxygen in
+    stoichiometric mass proportion.
+    """
+    prof = _co2_hydrogen_profile(0.01)
+    per_el, det = hydrostatic_rates(prof, M_MARS, 1000.0)
+    assert set(per_el) == {'H', 'C', 'O'}
+    # Hydrogen carries the rate, and by twenty decades, so a permutation onto
+    # carbon or oxygen cannot pass as a rounding difference.
+    assert per_el['H'] > 1.0e19 * per_el['O']
+    assert per_el['H'] > 1.0e19 * per_el['C']
+    assert per_el['H'] == pytest.approx(det['per_species_rate']['H'], rel=1e-12, abs=0.0)
+    # Oxygen above carbon, in the ratio the CO2 formula fixes: two oxygens of
+    # 15.999 against one carbon of 12.011.
+    assert per_el['O'] / per_el['C'] == pytest.approx(
+        2.0 * species_mass_amu('O') / species_mass_amu('C'), rel=1e-9, abs=0.0
+    )
+    rate_co2 = det['per_species_rate']['CO2']
+    m_co2 = species_mass_amu('CO2')
+    assert per_el['C'] == pytest.approx(
+        rate_co2 * species_mass_amu('C') / m_co2, rel=1e-9, abs=0.0
+    )
+    assert per_el['O'] == pytest.approx(
+        rate_co2 * 2.0 * species_mass_amu('O') / m_co2, rel=1e-9, abs=0.0
+    )

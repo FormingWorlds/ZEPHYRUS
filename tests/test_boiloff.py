@@ -319,3 +319,18 @@ def test_luminosity_cap_flags_itself_when_binding():
     )
     assert det_hot['mdot_luminosity'] > rate_hot
     assert 'luminosity_capped' not in det_hot['flags']
+
+
+@pytest.mark.reference_pinned
+def test_printed_activation_band_matches_its_source():
+    """The printed activation band is the literature threshold spread.
+
+    The restricted Jeans threshold is 20 by default, which is the Owen & Wu
+    (2016, ApJ 817, 107) shutoff at R_p / R_B = 0.1 expressed through the mean
+    molecular mass, and the band 15 to 35 is the spread of the values the
+    literature quotes for it. Like the Knudsen band this is printed beside
+    every verdict as a reported width, so it is pinned rather than left free.
+    """
+    assert LAMBDA_BAND == (15.0, 35.0)
+    lo, hi = LAMBDA_BAND
+    assert lo < 20.0 < hi  # the default threshold sits inside its own band

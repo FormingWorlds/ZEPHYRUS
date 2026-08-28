@@ -135,6 +135,15 @@ def test_totality_over_random_physical_inputs():
         tot = sum(res.per_species.values())
         if res.mdot > 0.0:
             assert tot == pytest.approx(res.mdot, rel=1e-6, abs=0.0)
+        else:
+            # A zero bulk rate is still a conservation statement, and it is
+            # the one a relative tolerance cannot make: nothing may leave.
+            # Roughly a quarter of these draws land here, on states so
+            # strongly bound that every branch underflows, and skipping them
+            # left the split unchecked exactly where it is cheapest to break.
+            assert res.mdot == 0.0
+            assert tot == 0.0
+            assert all(v == 0.0 for v in res.per_species.values())
         assert isinstance(res.diagnostics, dict)
         assert 'knudsen' in res.diagnostics
         seen.add(res.regime)
@@ -711,3 +720,146 @@ def test_one_exobase_temperature_per_call():
     assert t_top < t_base <= t_branch
     assert t_base > 0.5 * t_branch
     assert t_base != pytest.approx(t_eq, rel=0.1, abs=0.0)
+
+
+# Each row is (flag, a state that must raise it, a state that must not). Every
+# warning the result can carry belongs here: a flag nothing asserts can be
+# deleted without the suite noticing, which makes it a comment rather than part
+# of the contract. The negative state is what stops a flag that fires on
+# everything from passing as discrimination.
+FLAG_CASES = (
+    (
+        'near_roche',
+        dict(M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.10),
+        dict(M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.30),
+    ),
+    (
+        'k_tide_undefined',
+        dict(M_p=Me, R_p=2 * Re, T_eq=2000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=1.0, a=0.004),
+        dict(M_p=Me, R_p=2 * Re, T_eq=2000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=1.0, a=0.10),
+    ),
+    (
+        'roche_overflow',
+        dict(M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.0775),
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
+    ),
+    (
+        'bolometric_residual',
+        dict(M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.0775),
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
+    ),
+    (
+        'thermostat_clamped',
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'N2': 0.8, 'O2': 0.2}, F_xuv=700.0, a=0.0775),
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
+    ),
+    (
+        'caldiroli_out_of_box',
+        dict(
+            M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775,
+            settings=DispatchSettings(efficiency_mode='caldiroli'),
+        ),
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
+    ),
+    (
+        'volkov_extrapolated',
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=0.1, a=0.0775),
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
+    ),
+    (
+        'contested_ion',
+        dict(
+            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01, a=0.2, settings=DispatchSettings(T_exo_value=6000.0),
+        ),
+        dict(
+            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01, a=0.2,
+        ),
+    ),
+    (
+        'extension_unbound',
+        dict(
+            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01, a=0.2, settings=DispatchSettings(T_exo_value=6000.0),
+        ),
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=0.1, a=0.0775),
+    ),
+    (
+        'gate_rerouted',
+        dict(
+            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01, a=0.2, settings=DispatchSettings(T_exo_value=15000.0),
+        ),
+        dict(
+            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01, a=0.2, settings=DispatchSettings(T_exo_value=3000.0),
+        ),
+    ),
+    (
+        'base_clamp_decades',
+        dict(M_p=10 * Me, R_p=1.8 * Re, T_eq=800.0, comp={'CO2': 1.0}, F_xuv=1.0, a=0.5, p_top=1.0),
+        dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
+    ),
+)
+
+
+@pytest.mark.physics_invariant
+def test_every_warning_flag_has_a_state_that_raises_it_and_one_that_does_not():
+    """Each flag fires on a state that warrants it and stays off otherwise.
+
+    A flag no test asserts is a comment: it can be deleted and the suite stays
+    green, so nothing holds the module to raising it. Each row pins one flag
+    against a state that must raise it and a state that must not, and the
+    second half is what keeps a flag that fires on everything from passing as
+    a working warning.
+    """
+    for flag, on, off in FLAG_CASES:
+        res_on = dispatch(_inputs(**_flag_state(on)))
+        assert flag in res_on.flags, f'{flag} did not fire on its positive state'
+        res_off = dispatch(_inputs(**_flag_state(off)))
+        assert flag not in res_off.flags, f'{flag} fired on its negative state'
+
+
+def _flag_state(spec):
+    """Expand a FLAG_CASES row into _inputs keyword arguments."""
+    kw = dict(spec)
+    comp = kw.pop('comp')
+    m_p, r_p, t_eq = kw.pop('M_p'), kw.pop('R_p'), kw.pop('T_eq')
+    kw['a'] = kw['a'] * AU
+    return dict(M_p=m_p, R_p=r_p, T_eq=t_eq, comp=comp, **kw)
+
+
+@pytest.mark.physics_invariant
+def test_dispatched_split_names_the_element_that_leaves():
+    """The dispatched split is checked by identity, not only by its sum.
+
+    The dispatcher renormalizes the per-species rates onto the bulk rate, so
+    a sums-to-mdot assertion cannot fail however the shares are assigned: a
+    permuted mapping conserves total mass while moving the wrong elements out
+    of the planet, which is what the PROTEUS side debits reservoirs by. Both
+    branches that produce a split are pinned by which element dominates.
+    """
+    # Hydrostatic: only hydrogen is light enough to leave the Mars-mass host,
+    # and it carries the rate by nineteen decades over the heavy background.
+    static = dispatch(
+        _inputs(
+            0.107 * Me, 0.53 * Re, 440.0, {'CO2': 0.99, 'H2': 0.01}, F_xuv=0.01, a=0.2 * AU
+        )
+    )
+    assert static.regime == 'hydrostatic'
+    assert set(static.per_species) == {'H', 'C', 'O'}
+    assert max(static.per_species, key=static.per_species.get) == 'H'
+    assert static.per_species['H'] > 1.0e19 * static.per_species['O']
+    assert static.per_species['O'] > static.per_species['C']  # two O per C, heavier
+    # Hydrodynamic: a carbon dioxide wind carries oxygen over carbon, in the
+    # ratio the closure returns rather than one this test recomputes, but the
+    # ordering and the absence of hydrogen are its own statement.
+    wind = dispatch(_inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=5.0e3, a=0.0775 * AU))
+    assert wind.regime.startswith('hydrodynamic')
+    assert set(wind.per_species) == {'C', 'O'}
+    assert wind.per_species['O'] > wind.per_species['C']
+    assert 1.5 < wind.per_species['O'] / wind.per_species['C'] < 4.0
+    # And the sum still holds, which is the weaker claim of the two.
+    for res in (static, wind):
+        assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-9, abs=0.0)
