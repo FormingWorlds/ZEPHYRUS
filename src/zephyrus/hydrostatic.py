@@ -82,7 +82,16 @@ def volkov_flat_factor(lam: float) -> float:
     Direct simulation Monte Carlo runs exceed the Jeans flux by a factor
     1.7 near lambda = 6, falling to 1.4 by lambda = 15 (Volkov et al.
     2011); linear between, held at the endpoint values outside, where the
-    caller flags the extrapolation.
+    caller flags the extrapolation on either side.
+
+    The two sides are not equally safe. Above lambda = 15 the enhancement
+    is falling toward 1 and holding it at 1.4 overstates the flux by less
+    than that as the exosphere becomes more strongly bound. Below lambda = 6
+    it is rising and the Jeans picture is degrading toward hydrodynamic
+    outflow, so holding 1.7 understates it, and this is the side the branch
+    actually visits: a trace light species on a heavy background reaches
+    lambda well below 1, which is a factor of several beyond where the
+    simulations were run.
     """
     if lam <= 6.0:
         return 1.7
@@ -270,7 +279,7 @@ def hydrostatic_rates(
         lam_x = G * M_p * m_i / (kb * t_x * r_x)
         w_j = jeans_effusion_velocity(t_x, m_i, lam_x)
         c_enh = volkov_flat_factor(lam_x)
-        if lam_x > 15.0:
+        if lam_x > 15.0 or lam_x < 6.0:
             flags['volkov_extrapolated'] = True
 
         area = 4.0 * math.pi * r_0**2

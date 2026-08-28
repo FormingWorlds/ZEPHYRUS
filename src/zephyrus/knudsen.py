@@ -34,6 +34,16 @@ KN_BAND = (0.1, 3.0)
 # reduced integral to a cross section. The implementation reproduces the
 # measured room-temperature viscosities of N2, O2, CO, and CO2 to within
 # 7 percent (see the companion tests).
+#
+# Only part of this table is reachable through the mixture rule below, which
+# is a mole-fraction average of like-pair cross sections (Chatterjee &
+# Pierrehumbert Eq. 25) and therefore never asks for a cross pair. Of the
+# thirteen tabulated pairs, the six cross pairs are unreachable by
+# construction, and the four molecular like pairs are unreachable from a
+# dispatch, which feeds the switch atomized element fractions: (N, N),
+# (O, O), and (C, C) are the live rows. The rest are kept because they are
+# transcribed from the source and a pair-resolved mixture rule would want
+# them, not because anything reads them today.
 # ---------------------------------------------------------------------------
 
 # Table 3 (neutral-neutral, m = 6): rows are (c0, c1, c2) of
@@ -154,7 +164,17 @@ def sigma_zk90_hydrogen(species: str, T: float) -> float:
     return sigma_cm2 * 1e-4
 
 
-def sigma_geometric(species: str) -> float:
+# Radius assumed for an element with no tabulated van der Waals value. It is
+# not a measurement of anything: Bondi (1964) prints no alkali, alkaline
+# earth, or transition metals, so aluminium, phosphorus, chlorine,
+# potassium, calcium, and titanium reach the geometric rung with nothing
+# behind them. Species that fall back on it carry their own provenance
+# class, because a cross section built on this number must not be read as
+# one built on a published radius.
+FALLBACK_VDW_RADIUS_A = 1.5
+
+
+def sigma_geometric(species: str) -> tuple[float, bool]:
     """Last-resort geometric hard-sphere cross section pi (2 r_vdW)^2, in m^2.
 
     Uses the Bondi (1964) van der Waals radius; for a composite molecule
@@ -165,13 +185,18 @@ def sigma_geometric(species: str) -> float:
     atomic N), which biases the Knudsen number low and the switch toward
     hydrodynamic verdicts. The provenance class records which species sit
     on this rung so the bias stays visible.
+
+    Returns ``(sigma [m^2], tabulated)``, where ``tabulated`` is False when
+    the radius came from ``FALLBACK_VDW_RADIUS_A`` rather than the published
+    table, so the caller can class the two apart.
     """
     base = species.split('_')[0]
     if base in BONDI_VDW_RADIUS_A:
-        r = BONDI_VDW_RADIUS_A[base]
-    else:
-        r = max(BONDI_VDW_RADIUS_A.get(el, 1.5) for el in parse_formula(base))
-    return math.pi * (2.0 * r * 1e-10) ** 2
+        return math.pi * (2.0 * BONDI_VDW_RADIUS_A[base] * 1e-10) ** 2, True
+    radii = [BONDI_VDW_RADIUS_A.get(el) for el in parse_formula(base)]
+    tabulated = all(r is not None for r in radii)
+    r_max = max(r if r is not None else FALLBACK_VDW_RADIUS_A for r in radii)
+    return math.pi * (2.0 * r_max * 1e-10) ** 2, tabulated
 
 
 def sigma_species(species: str, T: float) -> tuple[float, str]:
@@ -182,14 +207,16 @@ def sigma_species(species: str, T: float) -> tuple[float, str]:
     diffusion-inversion route for H and H2; the geometric Bondi-radius
     hard sphere as last resort. Returns ``(sigma [m^2], provenance)`` with
     provenance one of ``'laricchiuta'``, ``'zk90-scaled'``,
-    ``'geometric-vdw'``.
+    ``'geometric-vdw'``, or ``'geometric-assumed-radius'`` when even the van
+    der Waals radius was assumed rather than published.
     """
     base = species.split('_')[0]
     if (base, base) in LARICCHIUTA_PAIRS:
         return lar_sigma_diff((base, base), T), 'laricchiuta'
     if base in ('H', 'H2'):
         return sigma_zk90_hydrogen(base, T), 'zk90-scaled'
-    return sigma_geometric(base), 'geometric-vdw'
+    sigma, tabulated = sigma_geometric(base)
+    return sigma, 'geometric-vdw' if tabulated else 'geometric-assumed-radius'
 
 
 def sigma_mixture(vmr: dict[str, float], T: float) -> tuple[float, dict]:
@@ -229,6 +256,20 @@ def sigma_mixture(vmr: dict[str, float], T: float) -> tuple[float, dict]:
 # point and sustains a hydrodynamic wind; above it, the gas decouples before
 # reaching sonic conditions and escape is hydrostatic (Jeans-like). The
 # threshold's physical band is KN_BAND above.
+#
+# This is the neutral onset, and deliberately so: the cross sections above
+# are neutral-neutral collision integrals, while the wind the switch is
+# applied to can be substantially ionized (the recombination chain reports
+# its base ionization fraction, which reaches 0.86 on a heavy composition).
+# Chatterjee & Pierrehumbert make the same choice and state its cost:
+# collisionality rises with ionization, because ion-atom charge exchange and
+# atom-electron collisions carry larger cross sections, so working with the
+# neutral onset is "reasonable when advection-dominated and weakly ionized"
+# and, for characterizing rapid mass loss, "highly conservative". The
+# direction is one-sided. Including the ion channels would shorten the mean
+# free path, lower Kn_sc, and move points toward hydrodynamic verdicts, so
+# every hydrostatic call this switch makes on an ionized wind is a call the
+# fuller physics could overturn, and no hydrodynamic call is.
 # ---------------------------------------------------------------------------
 
 

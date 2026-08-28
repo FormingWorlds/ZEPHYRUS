@@ -23,6 +23,7 @@ import math
 import pytest
 
 from zephyrus.knudsen import (
+    FALLBACK_VDW_RADIUS_A,
     KN_BAND,
     effective_threshold,
     kn_sonic,
@@ -143,13 +144,30 @@ def test_ladder_provenance_and_geometric_bias():
     assert prov_n == 'laricchiuta'
     assert prov_h == 'zk90-scaled'
     assert prov_he == 'geometric-vdw'
-    geo = sigma_geometric('N')
+    geo, tabulated_n = sigma_geometric('N')
+    assert tabulated_n is True
     assert geo / lar_sigma_diff(('N', 'N'), 300.0) == pytest.approx(1.0, abs=0.25)
     assert 2.0 < geo / lar_sigma_diff(('N', 'N'), 1e4) < 4.0  # high-T overshoot
     # A composite molecule with no tabulated radius falls back to its
     # largest constituent element without raising.
-    geo_h2o = sigma_geometric('H2O')
+    geo_h2o, tabulated_h2o = sigma_geometric('H2O')
+    assert tabulated_h2o is True
     assert geo_h2o == pytest.approx(math.pi * (2.0 * 1.52e-10) ** 2, rel=1e-12, abs=0.0)
+    # An element Bondi does not tabulate reaches the rung on an assumed
+    # radius, and says so rather than passing for a published one. Bondi
+    # prints no alkali, alkaline earth, or transition metals, so this is
+    # every rock-forming vapour species outside the seven scaled elements.
+    for assumed in ('Ti', 'K', 'Ca', 'Al', 'P', 'Cl'):
+        sigma_a, tabulated_a = sigma_geometric(assumed)
+        assert tabulated_a is False, assumed
+        assert sigma_a == pytest.approx(
+            math.pi * (2.0 * FALLBACK_VDW_RADIUS_A * 1e-10) ** 2, rel=1e-12, abs=0.0
+        )
+        assert sigma_species(assumed, 1e4)[1] == 'geometric-assumed-radius', assumed
+    # A molecule inherits the assumed class from any uncovered constituent,
+    # so titanium dioxide cannot pass as a published radius on oxygen's.
+    assert sigma_species('TiO2', 1e4)[1] == 'geometric-assumed-radius'
+    assert sigma_species('SiO2', 1e4)[1] == 'geometric-vdw'
 
 
 @pytest.mark.physics_invariant
