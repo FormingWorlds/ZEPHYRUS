@@ -500,7 +500,7 @@ def hysteresis_window(composition: str = 'CO2') -> list[dict]:
     """Show the previous label deciding the verdict inside the window."""
     print('\n=== Evolutionary use: the hysteresis window ===')
     out = []
-    for f_xuv in (0.747, 0.793):
+    for f_xuv in (0.72, 0.78):
         for previous in (None, 'hydrostatic', 'hydrodynamic:EL'):
             state = build_state(composition, 1.0, 1.0, f_xuv)
             state.prev_regime = previous

@@ -150,13 +150,10 @@ Output:
 ```text
 hydrodynamic:EL
 2347722.550685174
-{'C': 660973.0964302735, 'O': 1686749.4542549003}
+{'C': 660971.2983440236, 'O': 1686751.2523411503}
 0.0
 {}
-['base_level', 'bolometric', 'closure', 'documentation', 'erkaev_tc_K',
- 'fluid_check', 'guo_triple', 'hydrodynamic', 'hydrostatic', 'johnson_q',
- 'knudsen', 'lambda_gate', 'potential_screens', 'rate_floor', 'roche',
- 'self_consistency', 'tang_timescale', 'thermostat']
+['base_level', 'bolometric', 'closure', 'documentation', 'erkaev_tc_K', 'fluid_check', 'guo_triple', 'hydrodynamic', 'hydrostatic', 'johnson_q', 'knudsen', 'lambda_gate', 'potential_screens', 'rate_floor', 'roche', 'self_consistency', 'tang_timescale', 'thermostat']
 ```
 
 Five fields, and each one guarantees something. `regime` is one of five labels. `mdot` is a non-negative bulk rate in kg s⁻¹, here $2.35 \times 10^{6}$ kg s⁻¹, or $7.4 \times 10^{13}$ kg yr⁻¹. `per_species` gives element rates that sum to `mdot` at machine precision, which is what a coupled run relies on when it debits element inventories, and which is worth asserting in your own code. `flags` records every clamp, fallback, and screen that fired; an empty dictionary means nothing needed reporting. `diagnostics` is the container of step 5.
@@ -182,10 +179,10 @@ Output:
 ```text
      0.01  hydrostatic        4.989e-123   4.5e+18  {0.1: 'hydrostatic', 3.0: 'hydrostatic'}
    0.0389  hydrostatic        4.989e-123  2.28e+18  {0.1: 'hydrostatic', 3.0: 'hydrostatic'}
-    0.151  hydrostatic        4.989e-123  3.06e+10  {0.1: 'hydrostatic', 3.0: 'hydrostatic'}
-    0.587  hydrostatic        4.989e-123      3.92  {0.1: 'hydrostatic', 3.0: 'hydrostatic'}
-     2.28  hydrodynamic:EL     5.356e+05     0.118  {0.1: 'hydrostatic', 3.0: 'hydrodynamic'}
-     8.87  hydrodynamic:EL     2.082e+06     0.033  {0.1: 'hydrodynamic', 3.0: 'hydrodynamic'}
+    0.151  hydrostatic        4.989e-123  5.26e+08  {0.1: 'hydrostatic', 3.0: 'hydrostatic'}
+    0.587  hydrostatic        4.989e-123      2.99  {0.1: 'hydrostatic', 3.0: 'hydrodynamic'}
+     2.28  hydrodynamic:EL     5.356e+05     0.117  {0.1: 'hydrostatic', 3.0: 'hydrodynamic'}
+     8.87  hydrodynamic:EL     2.082e+06    0.0329  {0.1: 'hydrodynamic', 3.0: 'hydrodynamic'}
      34.5  hydrodynamic:EL     8.090e+06    0.0127  {0.1: 'hydrodynamic', 3.0: 'hydrodynamic'}
       134  hydrodynamic:EL     3.144e+07   0.00558  {0.1: 'hydrodynamic', 3.0: 'hydrodynamic'}
       520  hydrodynamic:EL     1.222e+08   0.00265  {0.1: 'hydrodynamic', 3.0: 'hydrodynamic'}
@@ -203,12 +200,12 @@ print(boundary_flux('N2-O2', 0.01, 10.0))
 Output:
 
 ```text
-0.7695387060616504
+0.7456904716337459
 566.3838601554727
 0.10311115795045854
 ```
 
-The first crossing is the collisionality switch. Below 0.77 W m⁻² the heating is too weak to keep the gas collisional where a wind would go sonic, so the sonic-point Knudsen number `kn_sc` exceeds 1 and escape is per-particle from the exobase. Above it a fluid wind exists and the rate is the smaller of the two hydrodynamic limits. The second crossing, at 567 W m⁻², is inside the wind: the recombination-limited rate drops below the energy-limited one and names the label.
+The first crossing is the collisionality switch. Below 0.75 W m⁻² the heating is too weak to keep the gas collisional where a wind would go sonic, so the sonic-point Knudsen number `kn_sc` exceeds 1 and escape is per-particle from the exobase. Above it a fluid wind exists and the rate is the smaller of the two hydrodynamic limits. The second crossing, at 567 W m⁻², is inside the wind: the recombination-limited rate drops below the energy-limited one and names the label.
 
 The third number is that first crossing for a nitrogen and oxygen atmosphere of the same mass and radius, and it sits a factor 7.5 lower. Composition moves the boundaries, not just the rates: that planet also never reaches the recombination-limited label anywhere in the swept range.
 
@@ -301,7 +298,7 @@ print(kn['counterfactual_labels'])
 Output:
 
 ```text
-0.03002758706914175 1.0
+0.029975982248303154 1.0
 {0.1: 'hydrodynamic', 3.0: 'hydrodynamic'}
 ```
 
@@ -318,8 +315,8 @@ print(hy['selection_mechanism'], hy['T_wind'], hy['efficiency'], hy['K_tide'])
 Output:
 
 ```text
-2347722.550685174 11475561.253503852
-EL-selected 8430.51967382717 0.1 0.9175976086377635
+2347722.550685174 11494353.468961576
+EL-selected 8433.517741299554 0.1 0.9175976086377635
 ```
 
 Both candidates are always computed, so you can see the margin. `selection_mechanism` says which one won, and takes a third value, `RR-selected:subcritical-floor`, when the sonic radius had to be floored at the wind base. It deliberately does not say why an RR win was small: the minimum can select the recombination-limited rate either because the recombination-limited base ionization sets it or because the wind is throttled between base and sonic point, and calling the second one recombination-limited would be a category error. What separates them is `rr_chain['barometric_factor']`, the fraction of the base density reaching the sonic point, which is 0.0095 here. `T_wind` is the temperature a local heating against cooling balance returned, 8431 K here rather than the canonical $10^{4}$ K, and it feeds the sound speed, the barometric exponent, and the recombination coefficient, so it moves the crossover flux of step 3.
@@ -333,7 +330,7 @@ print(result.diagnostics['johnson_q']['q_net_over_qc'])
 Output:
 
 ```text
-10.112600626056176
+10.113448223279315
 ```
 
 The transonic energy criterion[^johnson] compares the absorbed, efficiency-degraded power against the power needed to sustain a transonic outflow. A ratio below 1 says the heating cannot drive the flow sonic no matter what a rate formula returns. At 10.1 there is an order of magnitude in hand.
@@ -350,9 +347,7 @@ print(result.diagnostics['erkaev_tc_K'])
 Output:
 
 ```text
-{'lambda_exo': 301.102296003742, 'lambda_rp': 330.8696490591677,
- 'lambda_star': 303.6051987475083,
- 'thresholds': 'thermally driven lambda < ~3; tidal lambda* < 3; XUV lambda* > 6'}
+{'lambda_exo': 301.102296003742, 'lambda_rp': 330.8696490591677, 'lambda_star': 303.6051987475083, 'thresholds': 'thermally driven lambda < ~3; tidal lambda* < 3; XUV lambda* > 6'}
 11.795855551916663
 wind
 4233.123936051893
@@ -370,10 +365,8 @@ print(result.diagnostics['self_consistency'])
 Output:
 
 ```text
-{'levels_checked': 120, 'worst_kn': 0.12382483136593705, 'fluid': True,
- 'truncated_at_profile_top': True}
-{'evaluated': True, 't_deplete_s': 2193615254279.937, 'age_s': 3155760000000000.0,
- 'inconsistent': True}
+{'levels_checked': 120, 'worst_kn': 0.12382483136593705, 'fluid': True, 'truncated_at_profile_top': True}
+{'evaluated': True, 't_deplete_s': 2193615254279.937, 'age_s': 3155760000000000.0, 'inconsistent': True}
 ```
 
 The fluid condition has to hold everywhere below the sonic surface, not only at it, so the check walks the profile levels and reports the worst local Knudsen number, declaring the truncation at the profile top. The consistency screen is the sharp one here: at $2.3 \times 10^{6}$ kg s⁻¹ this planet empties one Earth atmosphere in 70 000 years, against the 100 Myr age supplied with the state. The state is not wrong, but it cannot have persisted, and a static grid point that fails this screen is telling you the grid, not the code, needs a second look.
@@ -388,8 +381,7 @@ print(result.diagnostics['knudsen']['provenance'])
 Output:
 
 ```text
-{'p_Pa': 0.0033116709279622522, 'p_physical_Pa': 0.0033116709279622522,
- 'r_m': 6828145.239345033, 'T_K': 999.7834337004138, 'clamp_decades': None}
+{'p_Pa': 0.0033116709279622522, 'p_physical_Pa': 0.0033116709279622522, 'r_m': 6828145.239345033, 'T_K': 999.7834337004138, 'clamp_decades': None}
 {'C': 'laricchiuta', 'O': 'laricchiuta'}
 ```
 
@@ -419,7 +411,7 @@ Output:
 0.1 hydrostatic
 1.0 hydrodynamic:EL
 3.0 hydrodynamic:EL
-(0.6118163711150405, 2.63867996005799)
+(0.5862277954328179, 2.6150528403823805)
 ```
 
 At 1 W m⁻² the same planet is hydrostatic under the strict edge of the criterion and a wind under the default. Across the band the boundary itself runs from 0.61 to 2.6 W m⁻², a factor of 4.3, from a criterion whose own range is a factor of 30. That number is a result, not an error bar to hide: quote a regime boundary with it.
@@ -500,9 +492,9 @@ print(fitted.diagnostics['hydrodynamic']['efficiency'], sorted(fitted.flags))
 Output:
 
 ```text
-0.1 hydrodynamic:EL 2347722.550685174 2347722.550685174 11475561.253503852
-0.3 hydrodynamic:EL 7043167.652055521 7043167.652055521 11475561.253503852
-0.6 hydrodynamic:RR 11475561.253503852 14086335.304111041 11475561.253503852
+0.1 hydrodynamic:EL 2347722.550685174 2347722.550685174 11494353.468961576
+0.3 hydrodynamic:EL 7043167.652055521 7043167.652055521 11494353.468961576
+0.6 hydrodynamic:RR 11494353.468961576 14086335.304111041 11494353.468961576
 0.7908366641614278 ['caldiroli_out_of_box']
 ```
 
@@ -513,7 +505,7 @@ At 0.6 the energy-limited candidate overtakes the recombination-limited one and 
 Supply the previous label and a hysteresis window opens around the threshold, so a time-stepping track cannot chatter between branches on numerical noise:
 
 ```python
-for f_xuv in (0.747, 0.793):
+for f_xuv in (0.72, 0.78):
     for previous in (None, 'hydrostatic', 'hydrodynamic:EL'):
         state = build_state('CO2', 1.0, 1.0, f_xuv)
         state.prev_regime = previous
@@ -525,12 +517,12 @@ for f_xuv in (0.747, 0.793):
 Output:
 
 ```text
-0.747 None hydrostatic 1.124 1.0
-0.747 hydrostatic hydrostatic 1.124 0.6666666666666666
-0.747 hydrodynamic:EL hydrodynamic:EL 1.124 1.5
-0.793 None hydrodynamic:EL 0.898 1.0
-0.793 hydrostatic hydrostatic 0.898 0.6666666666666666
-0.793 hydrodynamic:EL hydrodynamic:EL 0.898 1.5
+0.72 None hydrostatic 1.137 1.0
+0.72 hydrostatic hydrostatic 1.137 0.6666666666666666
+0.72 hydrodynamic:EL hydrodynamic:EL 1.137 1.5
+0.78 None hydrodynamic:EL 0.854 1.0
+0.78 hydrostatic hydrostatic 0.854 0.6666666666666666
+0.78 hydrodynamic:EL hydrodynamic:EL 0.854 1.5
 ```
 
 Inside the window the previous label wins, in both directions, and the applied threshold in the diagnostics tells you when the memory was in use.
@@ -552,13 +544,24 @@ for row in rows[::6]:
 Output:
 
 ```text
+
+=== A stellar history: CO2 + 1% H2, 1 Me, 1 Re at 0.2 au ===
+   age [Myr]     F_xuv  regime             rate [kg/s]      Kn_sc  snapshot
+         1.0      58.4  hydrodynamic:EL      1.273e+07    0.00941  consistent
+        45.0      1.62  hydrodynamic:EL      3.542e+05      0.253  consistent
+       310.1       1.4  hydrodynamic:EL      3.045e+05      0.363  inconsistent
+      1138.9     0.852  hydrostatic          4.682e-02       3.37  consistent
+      3039.5     0.495  hydrostatic          4.682e-02   1.64e+03  consistent
+      6189.6      0.34  hydrostatic          4.682e-02   1.07e+06  consistent
+      9439.6     0.324  hydrostatic          4.682e-02   2.69e+06  consistent
+  label changes from hydrodynamic:EL to hydrostatic between 767 and 939 Myr, and the rate drops from 2.273e+05 to 4.682e-02 kg/s
       1.0     58.4 hydrodynamic:EL     1.273e+07   0.00941 False
-     45.0     1.62 hydrodynamic:EL     3.542e+05     0.265 False
-    310.1      1.4 hydrodynamic:EL     3.045e+05     0.388 True
-   1138.9    0.852 hydrostatic         4.682e-02      4.81 False
-   3039.5    0.495 hydrostatic         4.682e-02  6.73e+03 False
-   6189.6     0.34 hydrostatic         4.682e-02  1.58e+07 False
-   9439.6    0.324 hydrostatic         4.682e-02  4.83e+07 False
+     45.0     1.62 hydrodynamic:EL     3.542e+05     0.253 False
+    310.1      1.4 hydrodynamic:EL     3.045e+05     0.363 True
+   1138.9    0.852 hydrostatic         4.682e-02      3.37 False
+   3039.5    0.495 hydrostatic         4.682e-02  1.64e+03 False
+   6189.6     0.34 hydrostatic         4.682e-02  1.07e+06 False
+   9439.6    0.324 hydrostatic         4.682e-02  2.69e+06 False
 ```
 
 The flux conversion is worth reading in the source: MORS returns X-ray and extreme-ultraviolet luminosities in erg s⁻¹, and the state needs W m⁻² at the planet.

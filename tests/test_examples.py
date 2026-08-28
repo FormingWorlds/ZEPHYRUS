@@ -14,8 +14,11 @@ than a mocked one. See docs/How-to/run_tests.md.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import math
+import re
 from pathlib import Path
 from unittest.mock import patch
 
@@ -197,3 +200,47 @@ def test_dispatcher_example_track_changes_regime_as_the_star_quiets():
     tail = [row['mdot'] for row in rows if row['regime'] == 'hydrostatic']
     assert tail[-1] == pytest.approx(tail[0], rel=1e-12, abs=0.0)
     assert all(math.isfinite(row['mdot']) for row in rows)
+
+
+TUTORIAL = Path(__file__).resolve().parents[1] / 'docs' / 'Tutorials' / 'dispatch.md'
+
+
+def _tutorial_blocks():
+    """Every python fence in the dispatcher tutorial with the output it quotes."""
+    text = TUTORIAL.read_text()
+    pattern = re.compile(r'```python\n(.*?)```(.*?)(?=```python|\Z)', re.S)
+    for index, (code, after) in enumerate(pattern.findall(text), start=1):
+        quoted = re.search(r'```text\n(.*?)```', after, re.S)
+        yield index, code, (quoted.group(1).rstrip('\n') if quoted else None)
+
+
+@pytest.mark.smoke
+def test_tutorial_snippets_print_what_the_page_quotes():
+    """Every tutorial snippet runs in order and prints its quoted output.
+
+    The page states that every printed number is the verbatim output of a
+    snippet the reader can run, which is a claim about the documentation that
+    only a test can hold. The snippets share one namespace and run in the
+    order they appear, as a reader would execute them, and each quoted output
+    block must match what the preceding snippet printed, character for
+    character. This is the guard against the drift that has to be repaired by
+    hand otherwise: a coefficient change three modules away moves a number
+    here, and nothing else notices.
+    """
+    namespace: dict = {}
+    compared = 0
+    for index, code, quoted in _tutorial_blocks():
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            exec(compile(code, f'<tutorial block {index}>', 'exec'), namespace)
+        printed = buffer.getvalue().rstrip('\n')
+        if quoted is None:
+            continue
+        assert printed == quoted, (
+            f'tutorial block {index} prints something other than the page quotes:\n'
+            f'--- page ---\n{quoted}\n--- code ---\n{printed}'
+        )
+        compared += 1
+    # Guard against the extraction silently finding nothing, which would make
+    # the assertions above vacuous.
+    assert compared >= 15, f'only {compared} tutorial output blocks were compared'
