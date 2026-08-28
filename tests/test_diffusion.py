@@ -219,16 +219,27 @@ def test_bmatrix_symmetry_and_error_contract():
 def test_b_pair_ladder_and_proxy_provenance():
     """The pair ladder resolves each rung and records substitutions.
 
-    A printed pair (H-CO2) resolves through the library and converts to SI
-    (a factor 100 on cm^-1 s^-1); a molecular pair outside the library
-    (CO-N2) resolves through the molecular-background table; an untabulated
+    The ladder is ordered by provenance class, so a measured row wins over an
+    estimated one wherever both exist. H-CO2 is the case that separates them:
+    Table 2 carries it as an 'E' estimate scaled from named analog pairs,
+    while the molecular-background compilation carries a measured row, and
+    the measured value is 11.7 percent below the estimate. A pair Table 2
+    measures directly (H-He, class 'M') stays on Table 2. A molecular pair
+    outside Table 2 (CO-N2) resolves through the compilation; an untabulated
     molecule (SO2) substitutes the nearest-mass covered species with the
     substitution named in the provenance. Cached lookups return identical
     values.
     """
     b_si, prov = b_pair('H', 'CO2', 1000.0)
-    assert b_si == pytest.approx(6.0e19 * 100.0, rel=1e-9, abs=0.0)
-    assert prov.startswith('ZK23')
+    assert prov == 'molecular-background table'
+    assert b_si == pytest.approx(8.4e17 * 1000.0**0.6 * 100.0, rel=1e-9, abs=0.0)
+    # Discrimination: the Table 2 estimate it now outranks is a different
+    # number, so an ordering regression would fail here rather than pass.
+    assert b_si != pytest.approx(6.0e19 * 100.0, rel=0.02, abs=0.0)
+    assert b_si < 6.0e19 * 100.0
+    # A Table 2 measured row still outranks the compilation.
+    _b_he, prov_he = b_pair('H', 'He', 1000.0)
+    assert prov_he == 'ZK23 T2 [M]'
     b_co, prov_co = b_pair('CO', 'N2', 1000.0)
     assert prov_co == 'molecular-background table'
     assert b_co == pytest.approx(9.28e16 * 1000.0**0.71 * 100.0, rel=1e-9, abs=0.0)

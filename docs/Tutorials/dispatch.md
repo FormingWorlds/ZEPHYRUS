@@ -438,9 +438,9 @@ for t_exo in (1000.0, 2000.0, 4000.0):
 Output:
 
 ```text
-1000.0 hydrostatic 345.3493715507801 345.3493715479417 7.746587977671953e-10
-2000.0 hydrostatic 351.51013842063026 351.3803695476915 0.03541670869293938
-4000.0 hydrostatic 1553.1885864133374 357.67085653574424 326.2824298111698
+1000.0 hydrostatic 348.0757562039205 348.0757562010821 7.746587977671953e-10
+2000.0 hydrostatic 354.3317635509398 354.20199467800103 0.03541670869293938
+4000.0 hydrostatic 1556.0942672561685 360.57653737857527 326.2824298111698
 ```
 
 The sweep starts at the profile's own top temperature, near 1000 K here, because a prescribed value below it would ask for a thermosphere that cools with height, whose exobase is more strongly bound than the level it extends from. That request is floored at the top and flagged rather than refused, since in a coupled run the profile top warms past a fixed prescription over secular time. Over the factor of four above it the bulk rate moves by a factor 4.5 while the carbon rate moves by eleven orders of magnitude. The reason is in the per-species detail:
@@ -455,7 +455,7 @@ Output:
 
 ```text
 0.28260377845019297
-1.450974373622763e+16 258509561614714.28
+1.450974655098389e+16 260647390967054.03
 ```
 
 At the 4000 K end of the sweep hydrogen sits at an exobase Jeans parameter of 0.28, with a Jeans flux nearly sixty times the supply diffusion can deliver through the heavy background, so its escape is set by that supply and the exobase temperature barely enters: the hydrogen column of the table above moves by 3.6% across the whole sweep. Carbon and oxygen are Jeans limited and carry the whole exponential, eleven orders of magnitude of it. One case, both halves of the harmonic mean that combines them[^yelle], and a warning against reading a bulk rate as though one mechanism produced it.
@@ -555,10 +555,10 @@ Output:
       1.0     58.4 hydrodynamic:EL     1.273e+07   0.00941 False
      45.0     1.62 hydrodynamic:EL     3.542e+05     0.265 False
     310.1      1.4 hydrodynamic:EL     3.045e+05     0.388 True
-   1138.9    0.852 hydrostatic         4.695e-02      4.81 False
-   3039.5    0.495 hydrostatic         4.695e-02  6.73e+03 False
-   6189.6     0.34 hydrostatic         4.695e-02  1.58e+07 False
-   9439.6    0.324 hydrostatic         4.695e-02  4.83e+07 False
+   1138.9    0.852 hydrostatic         4.682e-02      4.81 False
+   3039.5    0.495 hydrostatic         4.682e-02  6.73e+03 False
+   6189.6     0.34 hydrostatic         4.682e-02  1.58e+07 False
+   9439.6    0.324 hydrostatic         4.682e-02  4.83e+07 False
 ```
 
 The flux conversion is worth reading in the source: MORS returns X-ray and extreme-ultraviolet luminosities in erg s⁻¹, and the state needs W m⁻² at the planet.

@@ -477,13 +477,19 @@ def b_pair(sp_i: str, sp_j: str, T: float) -> tuple[float, str]:
             prov = f'ZK23 T2 [{cls}]'
             _PAIR_CACHE[key] = (b1000, ZK23_EXPONENT, prov)
             return b1000 * (T / 1000.0) ** ZK23_EXPONENT * 100.0, prov
-    elif a in ALL_MASS and b in ALL_MASS:
-        try:
-            r = build_rows([a, b])[0]
-            _PAIR_CACHE[key] = (r.b1000, r.exponent, r.provenance)
-            return r.b(T) * 100.0, r.provenance
-        except (ValueError, KeyError):
-            pass
+    # Order by provenance class, not by convenience. A measured row of the
+    # published Table 2 comes first; then the molecular-background
+    # compilation, whose rows trace to the same measured primaries; then
+    # anything estimated, which is Table 2's own 'E' rows and the Eq. (10)
+    # scaling built on a hard-sphere diameter ratio. Reaching the scaling
+    # before the compilation preempted eleven measured rows and read between
+    # 1 and 26 percent low on them.
+    hit = _zk23_lookup(key)
+    if hit is not None and hit[1] == 'M':
+        b1000, cls, _src = hit
+        prov = f'ZK23 T2 [{cls}]'
+        _PAIR_CACHE[key] = (b1000, ZK23_EXPONENT, prov)
+        return b1000 * (T / 1000.0) ** ZK23_EXPONENT * 100.0, prov
     fit = MOLECULAR_BACKGROUND.get(key) or MOLECULAR_BACKGROUND.get(key[::-1])
     if fit is not None:
         a_fit, s_fit = fit
@@ -491,6 +497,13 @@ def b_pair(sp_i: str, sp_j: str, T: float) -> tuple[float, str]:
         prov = 'molecular-background table'
         _PAIR_CACHE[key] = (b1000, s_fit, prov)
         return b1000 * (T / 1000.0) ** s_fit * 100.0, prov
+    if a in ALL_MASS and b in ALL_MASS:
+        try:
+            r = build_rows([a, b])[0]
+            _PAIR_CACHE[key] = (r.b1000, r.exponent, r.provenance)
+            return r.b(T) * 100.0, r.provenance
+        except (ValueError, KeyError):
+            pass
 
     covered = substitutable()
 
