@@ -102,6 +102,25 @@ def brand_colors() -> dict:
     return palette
 
 
+def _mono_family() -> str:
+    """Monospace family for in-axes labels, or a generic fallback.
+
+    The visual language sets Spline Sans Mono, which arrives with
+    proteus-mpl. Naming it unconditionally would make matplotlib substitute a
+    face with a warning wherever that package is absent, and the figures a
+    reader produced would differ from the committed ones with nothing saying
+    why, so the name is used only when the package that supplies it is there.
+    """
+    try:
+        import proteus_mpl  # noqa: F401
+    except ImportError:
+        return 'monospace'
+    return 'Spline Sans Mono'
+
+
+MONO = _mono_family()
+
+
 # Marker per label, so the figure never encodes a regime in color alone.
 REGIME_MARKERS = {
     'boiloff': 'D',
@@ -675,7 +694,7 @@ def make_figure(sweeps: dict, boundaries: dict, bands: dict, outpath: str) -> No
                 ha='center',
                 fontsize=11,
                 color=palette['rule'],
-                fontfamily='Spline Sans Mono',
+                fontfamily=MONO,
             )
         for _before, _after, flux in boundaries.get(composition, []):
             ax.axvline(flux, color=palette['rule'], linestyle='--', linewidth=1.0)
@@ -686,7 +705,7 @@ def make_figure(sweeps: dict, boundaries: dict, bands: dict, outpath: str) -> No
                 textcoords='offset points',
                 fontsize=11,
                 color=palette['rule'],
-                fontfamily='Spline Sans Mono',
+                fontfamily=MONO,
             )
         ax.set_xscale('log')
         ax.set_yscale('log')
@@ -700,7 +719,7 @@ def make_figure(sweeps: dict, boundaries: dict, bands: dict, outpath: str) -> No
         xy=(0.03, 0.14),
         xycoords='axes fraction',
         fontsize=11,
-        fontfamily='Spline Sans Mono',
+        fontfamily=MONO,
     )
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 0.11))
@@ -738,7 +757,7 @@ def make_track_figure(rows: list[dict], outpath: str) -> None:
             ha='center',
             fontsize=11,
             color=palette['rule'],
-            fontfamily='Spline Sans Mono',
+            fontfamily=MONO,
         )
 
     ax_rate.plot(
@@ -772,7 +791,7 @@ def make_track_figure(rows: list[dict], outpath: str) -> None:
                 ha='right',
                 fontsize=11,
                 color=palette['rule'],
-                fontfamily='Spline Sans Mono',
+                fontfamily=MONO,
             )
 
     elements = sorted({el for row in rows for el in row['per_species']})
@@ -801,7 +820,7 @@ def make_track_figure(rows: list[dict], outpath: str) -> None:
         xycoords='axes fraction',
         fontsize=11,
         color=palette['rule'],
-        fontfamily='Spline Sans Mono',
+        fontfamily=MONO,
     )
     fig.subplots_adjust(left=0.12, right=0.98, top=0.97, bottom=0.09, hspace=0.08)
     fig.savefig(outpath, bbox_inches=None)

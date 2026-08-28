@@ -33,10 +33,12 @@ from zephyrus.constants import G, ev2joule, kb, m_p
 #   sqrt(F_XUV), and an isothermal Parker wind carries it to the sonic
 #   point with the barometric factor exp(3/2 - lambda_b), the exact
 #   isothermal value. min(EL, RR) selects RR two physically distinct ways:
-#   genuine recombination saturation (the sqrt(F) regime at modest
-#   lambda_b) and barometric suppression at large lambda_b, where the label
-#   "recombination limited" would be a category error; the selection
-#   mechanism is reported so the two are never conflated. Where the two
+#   genuine recombination saturation, and barometric suppression at large
+#   lambda_b, where the label "recombination limited" would be a category
+#   error. The flux scaling does not separate them, since the base ion
+#   density follows sqrt(F_XUV) at every lambda_b in this chain; the
+#   barometric factor does, and it is reported beside the rate. The
+#   selection diagnostic names which candidate won, not why. Where the two
 #   candidates cross in flux is sensitive to the wind temperature: the RR
 #   chain carries it through the sound speed, the barometric exponent, and
 #   the recombination coefficient, so a thermostat-driven wind temperature

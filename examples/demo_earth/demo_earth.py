@@ -1,10 +1,10 @@
-import numpy as np
 import matplotlib.pyplot as plt
 import mors
+import numpy as np
 
 from zephyrus.constants import *
-from zephyrus.planets_parameters import *
 from zephyrus.escape import EL_escape
+from zephyrus.planets_parameters import *
 
 ########################### Initialization #####################################
 
@@ -16,7 +16,7 @@ tidal_contribution       = False            # Tidal correction factor           
 semi_major_axis          = a_earth*au2m     # Planetary semi-major axis              [m]
 eccentricity             = e_earth          # Planetary eccentricity                 [dimensionless]
 M_planet                 = Me               # Planetary mass                         [kg]
-epsilon                  = 0.15             # Escape efficiency factor               [dimensionless]  
+epsilon                  = 0.15             # Escape efficiency factor               [dimensionless]
 R_earth                  = Re               # Planetary radius                       [m]
 Rxuv                     = Re               # XUV planetary radius                   [m]
 
