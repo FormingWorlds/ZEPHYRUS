@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 # Push and PR CI: unit + smoke tiers only, on ubuntu + macos x Python
-# 3.10-3.12. Targets a fast wall-time. The integration and slow tiers,
+# 3.12. Targets a fast wall-time. The integration and slow tiers,
 # which run the real MORS-coupled escape, live in the scheduled nightly
 # workflow `nightly.yml` together with the Codecov upload.
 
@@ -33,7 +33,7 @@ jobs:
       # workflow_dispatch) get the full matrix.
       matrix:
         os: ${{ github.event.pull_request.draft == true && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest"]') }}
-        python-version: ${{ github.event.pull_request.draft == true && fromJSON('["3.12"]') || fromJSON('["3.10", "3.11", "3.12"]') }}
+        python-version: ['3.12']
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -58,15 +58,15 @@ jobs:
           python -m pip install -e ".[develop]"
 
       - name: Validate test structure
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: bash tools/validate_test_structure.sh
 
       - name: Run test-quality lint
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: python tools/check_test_quality.py --check
 
       - name: Pre-flight fail_under ratchet check
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
         run: |
@@ -137,10 +137,7 @@ jobs:
       - name: Run unit + smoke tests
         run: |
           FAST_FAIL_UNDER=$(python - <<'PY'
-          try:
-              import tomllib
-          except ModuleNotFoundError:  # Python 3.10 ships no stdlib tomllib
-              import tomlkit as tomllib
+          import tomllib
           with open('pyproject.toml') as f:
               data = tomllib.loads(f.read())
           print(data['tool']['zephyrus']['coverage_fast']['fail_under'])
@@ -150,3 +147,20 @@ jobs:
           pytest -m "(unit or smoke) and not skip" \
             --cov=zephyrus \
             --cov-fail-under=${FAST_FAIL_UNDER}
+
+  # A fixed-name aggregate required check for branch protection. The
+  # `test` job's own name carries the matrix OS/Python legs, so a check
+  # pinned to a leg name breaks silently if the matrix changes. This
+  # job's name never changes, and the job fails whenever a needed job
+  # does not succeed, so it is the one check to require.
+  required-check:
+    name: CI required
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [test]
+    steps:
+      - name: Fail unless all required jobs succeeded
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
+        run: |
+          echo "One or more required jobs did not succeed."
+          exit 1
