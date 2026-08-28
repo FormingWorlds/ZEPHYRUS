@@ -150,7 +150,7 @@ def test_global_properties_across_thresholds():
 
     Twenty random systems (up to twelve species, isotope-close pairs every
     third draw), each scanned over 400 fluxes spanning the full activation
-    ladder: mass conservation and non-negativity at every point;
+    fallback order: mass conservation and non-negativity at every point;
     componentwise monotonicity of the velocity scales in the flux; monotone
     growth of the active set; two-sided continuity at every bisected
     threshold (including non-negativity and conservation exactly there);

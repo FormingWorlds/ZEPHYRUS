@@ -136,7 +136,7 @@ def viscosity_pure(pair: tuple, mass_gmol: float, T: float) -> float:
 
     ``eta = 2.6693e-5 sqrt(M T) / (sigma^2 Omega^(2,2)*)`` poise, with the
     molar mass in g/mol and the collision integral in Angstrom^2 (the
-    standard first Chapman-Enskog approximation; see e.g. Hirschfelder,
+    standard first Chapman-Enskog approximation; see e.g., Hirschfelder,
     Curtiss & Bird 1954). Exposed as the validation route: it anchors the
     Laricchiuta transcription on measured viscosities.
     """
@@ -167,7 +167,7 @@ def sigma_zk90_hydrogen(species: str, T: float) -> float:
 # Radius assumed for an element with no tabulated van der Waals value. It is
 # not a measurement of anything: Bondi (1964) prints no alkali, alkaline
 # earth, or transition metals, so aluminium, phosphorus, chlorine,
-# potassium, calcium, and titanium reach the geometric rung with nothing
+# potassium, calcium, and titanium reach the geometric fallback with nothing
 # behind them. Species that fall back on it carry their own provenance
 # class, because a cross section built on this number must not be read as
 # one built on a published radius.
@@ -180,11 +180,11 @@ def sigma_geometric(species: str) -> tuple[float, bool]:
     Uses the Bondi (1964) van der Waals radius; for a composite molecule
     without a tabulated radius, the largest constituent-element radius sets
     the scale. A hard sphere has no temperature dependence, so against the
-    shrinking collision integrals this rung is roughly right at room
+    shrinking collision integrals this fallback is roughly right at room
     temperature but overshoots by a factor of a few at 1e4 K (2.6 for
     atomic N), which biases the Knudsen number low and the switch toward
     hydrodynamic verdicts. The provenance class records which species sit
-    on this rung so the bias stays visible.
+    on this fallback so the bias stays visible.
 
     Returns ``(sigma [m^2], tabulated)``, where ``tabulated`` is False when
     the radius came from ``FALLBACK_VDW_RADIUS_A`` rather than the published
@@ -202,7 +202,7 @@ def sigma_geometric(species: str) -> tuple[float, bool]:
 def sigma_species(species: str, T: float) -> tuple[float, str]:
     """Cross section for one species with its provenance class.
 
-    The ladder, most trusted rung first: the Laricchiuta et al. (2009)
+    The fallback order, most trusted source first: the Laricchiuta et al. (2009)
     like-pair collision integral where tabulated; the Zahnle et al. (1990)
     diffusion-inversion route for H and H2; the geometric Bondi-radius
     hard sphere as last resort. Returns ``(sigma [m^2], provenance)`` with

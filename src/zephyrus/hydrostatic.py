@@ -49,7 +49,7 @@ from zephyrus.knudsen import sigma_mixture
 #   thermal diffusion factor alpha = -0.25 for light species (Yelle 2024,
 #   after Banks & Kockarts), and the limiting flux is the inverse of the
 #   resistance integral g. Binary coefficients come from the diffusion
-#   library ladder; Blanc's law combines pairs into the mixture value.
+#   library fallback order; Blanc's law combines pairs into the mixture value.
 # - Combination: the harmonic mean of the Jeans and diffusion-limited
 #   fluxes, Phi = Phi_J Phi_l / (Phi_J + Phi_l) (Yelle 2024, Eq. 14), both
 #   referred to the anchor area (their Eq. 15). The dominant species has no
@@ -62,7 +62,7 @@ from zephyrus.knudsen import sigma_mixture
 #   temperature is unstable (their Figure 10 criterion) and callers
 #   re-route such points to the hydrodynamic branch.
 #
-# Hydrostatic heavy-element rates are lower limits: the non-thermal
+# Hydrostatic heavy-element rates are lower limits: the nonthermal
 # channels (ion outflow, photochemical ejection, sputtering) that dominate
 # heavy-species loss in this regime are not modeled; the
 # ``hydrostatic_lower_limit`` flag travels with every result.
@@ -248,7 +248,7 @@ def hydrostatic_rates(
     state, both escape temperatures, the ``dominant`` species that supplies
     itself without a diffusion cap, the per-species terms, coefficient
     provenance, and flags (including ``hydrostatic_lower_limit``, which is
-    always on: non-thermal loss channels are absent).
+    always on: nonthermal loss channels are absent).
     """
     ext = bates_extension(profile, M_p, T_exo, gamma=gamma_bates, n_levels=n_levels)
     i_x, flags = find_exobase(ext, M_p)

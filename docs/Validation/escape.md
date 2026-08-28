@@ -27,9 +27,9 @@ Analytical limit (closed-form energy-limited rate at a fixed geometry), one per 
 
 ## Cross-references
 
-- `src/zephyrus/escape.py`, `EL_escape` docstring References section: cites Watson et al. (1981), Lammer et al. (2003), Eq. 6, and Erkaev et al. (2007), Eq. 21, for the default `scaling=2` radius term; Lopez, Fortney & Miller (2012), Eq. 2, Lopez & Fortney (2013), Eq. 1, and Lehmer & Catling (2017), Eq. 1, for the `scaling=3` term; and Erkaev et al. (2007), Eq. 17, for the tidal reduction factor.
-- `docs/Explanations/model.md`: user-facing overview of the energy-limited escape model and its tidal correction.
+- `src/zephyrus/hydrodynamic.py`, `EL_escape` docstring References section (the function moved there with this branch; `zephyrus.escape` re-exports it and the released import path is unchanged): cites Watson et al. (1981), Lammer et al. (2003), Eq. 6, and Erkaev et al. (2007), Eq. 21, for the default `scaling=2` radius term; Lopez, Fortney & Miller (2012), Eq. 2, Lopez & Fortney (2013), Eq. 1, and Lehmer & Catling (2017), Eq. 1, for the `scaling=3` term; and Erkaev et al. (2007), Eq. 17, for the tidal reduction factor.
+- `docs/Explanations/energy_limited.md`: user-facing account of the energy-limited rate, its two radius scalings, and the tidal correction, with the equations numbered. `docs/Explanations/model.md` is the hub that links to it.
 
 ## Last comparison
 
-2026-07-10, against `src/zephyrus/escape.py` at the branch head.
+2026-08-28, against `src/zephyrus/hydrodynamic.py` at the branch head.

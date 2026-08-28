@@ -50,7 +50,7 @@ ELEMENT_AMU = {
 # volume and marked tentative there); Batsanov (2001) gives 2.10 to 2.27 and
 # Alvarez (2013) 2.51, so quantities scaled from the Mg radius carry a 36 to
 # 55 percent softness beyond their provenance class. Used as the last-resort
-# geometric rung of the collision cross-section ladder and by the
+# geometric fallback of the collision cross-section fallback order and by the
 # kinetic-diameter scaling rule of the binary-diffusion library.
 BONDI_VDW_RADIUS_A = {
     'H': 1.20,
@@ -84,7 +84,7 @@ def parse_formula(name: str) -> dict[str, int]:
     Parameters
     ----------
     name : str
-        Molecular formula, e.g. ``'H2O'``, ``'CO2'``, ``'He'``.
+        Molecular formula, e.g., ``'H2O'``, ``'CO2'``, ``'He'``.
 
     Returns
     -------

@@ -561,7 +561,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
 
 
 def _resolve_wind_base(inputs: EscapeInputs, t_exo: float) -> tuple[dict, dict]:
-    """The wind-base level with the out-of-range policy applied.
+    """The wind-base level, and what happens when the profile cannot reach it.
 
     Locates the base by the configured method; when the physical base
     pressure lies above the profile top and the policy is ``'extend'``,

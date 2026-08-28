@@ -95,7 +95,7 @@ def substitutable() -> tuple[str, ...]:
 # these pairs), and at the temperatures where rock vapor exists Na and Mg
 # ionize readily while these are neutral-gas coefficients. The Fe radius
 # spans about 20 percent across published compilations and the Mg radius is
-# a flagged outlier of Bondi's own table, so those two rungs are soft beyond
+# a flagged outlier of Bondi's own table, so those two fallbacks are soft beyond
 # their provenance class (see the notes in composition.BONDI_VDW_RADIUS_A).
 ROCK_FORMERS = ('Na', 'Mg', 'Si', 'Fe')
 
@@ -447,7 +447,7 @@ def masses_g(species: list) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------
-# The pair ladder for arbitrary (possibly molecular) species, used by the
+# The pair fallback order for arbitrary (possibly molecular) species, used by the
 # hydrostatic branch, and Blanc's law for mixtures.
 # ---------------------------------------------------------------------------
 
@@ -457,7 +457,7 @@ _PAIR_CACHE: dict = {}
 def b_pair(sp_i: str, sp_j: str, T: float) -> tuple[float, str]:
     """Binary diffusion parameter b = n D for one pair, in SI [m^-1 s^-1].
 
-    The ladder, most trusted rung first: the atomic library above (printed
+    The fallback order, most trusted source first: the atomic library above (printed
     rows, then the Eq. 10 scaling); the molecular-background table; as a
     last resort, the library value of the nearest-mass covered species,
     with the substitution recorded in the provenance string. Trailing

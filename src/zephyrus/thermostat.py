@@ -68,11 +68,11 @@ _ION_OF = {'C': 'C+', 'N': 'N+', 'O': 'O+'}
 def three_level_populations(species: str, n_tot: float, n_e: float, T: float):
     """Steady-state level populations (n1, n2, n3) of a three-level system.
 
-    Electron-impact excitation and de-excitation plus radiative decay, with
+    Electron-impact excitation and deexcitation plus radiative decay, with
     no radiative excitation (every emitted photon escapes: cool-to-space).
     Rate coefficients follow the effective-collision-strength form
     ``k_lu = gamma (8.629e-6 / (g_l sqrt(T))) exp(-E_lu / kB T)`` with
-    de-excitation by detailed balance (Nakayama et al. 2022, Eqs. 13-14).
+    deexcitation by detailed balance (Nakayama et al. 2022, Eqs. 13-14).
     Densities in cm^-3.
     """
     data = THREE_LEVEL[species]

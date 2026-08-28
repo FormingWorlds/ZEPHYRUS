@@ -43,7 +43,7 @@ The PROTEUS configuration block for ZEPHYRUS lives under `[escape]` and `[escape
 | `escape.zephyrus.tidal` | bool | - | If `true`, include the tidal correction $K_\mathrm{tide}$ in `EL_escape`. |
 
 !!! note "`scaling=3` is hard-coded"
-    The PROTEUS wrapper always calls `EL_escape` with `scaling=3`, i.e. the $R_\mathrm{XUV}^3$ form. This is not exposed as a config option. Standalone users of `EL_escape` can choose `scaling=2` (the function default, $R_p R_\mathrm{XUV}^2$).
+    The PROTEUS wrapper always calls `EL_escape` with `scaling=3`, i.e., the $R_\mathrm{XUV}^3$ form. This is not exposed as a config option. Standalone users of `EL_escape` can choose `scaling=2` (the function default, $R_p R_\mathrm{XUV}^2$).
 
 ---
 

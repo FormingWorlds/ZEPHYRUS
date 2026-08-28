@@ -1,6 +1,6 @@
 # Validation: `src/zephyrus/knudsen.py`
 
-This page tracks the `@pytest.mark.reference_pinned` tests that anchor the collision cross-section ladder of `zephyrus.knudsen` against laboratory data.
+This page tracks the `@pytest.mark.reference_pinned` tests that anchor the collision cross-section fallback order of `zephyrus.knudsen` against laboratory data.
 
 | Test id | Reference | Scope |
 |---|---|---|

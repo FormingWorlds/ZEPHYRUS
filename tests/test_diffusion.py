@@ -2,7 +2,7 @@
 
 Exercises the binary-diffusion library: its printed sources, the unit
 reading of the Sasaki & Nakazawa (1988) table, the Zahnle & Kasting (2023)
-Eq. (10) scaling rule, the pair ladder, and Blanc's law. The physical
+Eq. (10) scaling rule, the pair fallback order, and Blanc's law. The physical
 invariants under test:
 
 - Reference pins: the Sasaki & Nakazawa unit reading reproduces the
@@ -216,10 +216,10 @@ def test_bmatrix_symmetry_and_error_contract():
     assert masses_g(['H'])[0] == pytest.approx(1.008 * 1.66053907e-24, rel=1e-6, abs=0.0)
 
 
-def test_b_pair_ladder_and_proxy_provenance():
-    """The pair ladder resolves each rung and records substitutions.
+def test_b_pair_fallback_order_and_proxy_provenance():
+    """The pair fallback order resolves each fallback and records substitutions.
 
-    The ladder is ordered by provenance class, so a measured row wins over an
+    The fallback order is ordered by provenance class, so a measured row wins over an
     estimated one wherever both exist. H-CO2 is the case that separates them:
     Table 2 carries it as an 'E' estimate scaled from named analog pairs,
     while the molecular-background compilation carries a measured row, and
@@ -294,12 +294,12 @@ CHEMISTRY_EXTRAS = ('NO', 'O3', 'C2H6', 'SO', 'PH3', 'HCN', 'OH')
 
 @pytest.mark.physics_invariant
 def test_every_species_a_coupled_run_can_supply_has_a_coefficient():
-    """No species a PROTEUS run can supply leaves the pair ladder empty.
+    """No species a PROTEUS run can supply leaves the pair fallback order empty.
 
     Four species of the vapour list and one volatile carry no kinetic
     diameter of their own, and aluminium appears in no diffusion
     compilation at all, so each reaches its coefficient by substitution.
-    What the ladder guarantees is that the substitution exists, is finite,
+    What the fallback order guarantees is that the substitution exists, is finite,
     and is named: an unnamed substitution would let a rock vapour silently
     diffuse like atomic oxygen.
     """

@@ -279,7 +279,7 @@ The subflag is the part worth reading. This atmosphere reaches 0.96 Hill radii, 
 
 ## Step 5: read the diagnostics
 
-A call returns seventeen or eighteen diagnostic groups, the eighteenth appearing when a hydrodynamic branch produced the rate and its species split, or when the two escape-temperature conventions disagree, and none of them gates anything: the dispatch logic never reads them back, and there is no switch to turn them off. The regime boundaries carry real physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that instead of hiding it.
+A call returns 17 or 18 diagnostic groups, the 18th appearing when a hydrodynamic branch produced the rate and its species split, or when the two escape-temperature conventions disagree, and none of them gates anything: the dispatch logic never reads them back, and there is no switch to turn them off. The regime boundaries carry real physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that instead of hiding it.
 
 The [dispatch results reference](../Reference/results.md) documents every key. What follows is the order to read them in, which is the order the questions occur to you. Every snippet in this step uses the same result:
 
@@ -435,7 +435,7 @@ Output:
 4000.0 hydrostatic 1556.0942672561685 360.57653737857527 326.2824298111698
 ```
 
-The sweep starts at the profile's own top temperature, near 1000 K here, because a prescribed value below it would ask for a thermosphere that cools with height, whose exobase is more strongly bound than the level it extends from. That request is floored at the top and flagged rather than refused, since in a coupled run the profile top warms past a fixed prescription over secular time. Over the factor of four above it the bulk rate moves by a factor 4.5 while the carbon rate moves by eleven orders of magnitude. The reason is in the per-species detail:
+The sweep starts at the profile's own top temperature, near 1000 K here, because a prescribed value below it would ask for a thermosphere that cools with height, whose exobase is more strongly bound than the level it extends from. That request is floored at the top and flagged rather than refused, since in a coupled run the profile top warms past a fixed prescription over secular time. Over the factor of four above it the bulk rate moves by a factor 4.5 while the carbon rate moves by 11 orders of magnitude. The reason is in the per-species detail:
 
 ```python
 species = out.diagnostics['hydrostatic']['detail']['species']
@@ -450,7 +450,7 @@ Output:
 1.450974655098389e+16 260647390967054.03
 ```
 
-At the 4000 K end of the sweep hydrogen sits at an exobase Jeans parameter of 0.28, with a Jeans flux nearly sixty times the supply diffusion can deliver through the heavy background, so its escape is set by that supply and the exobase temperature barely enters: the hydrogen column of the table above moves by 3.6% across the whole sweep. Carbon and oxygen are Jeans limited and carry the whole exponential, eleven orders of magnitude of it. One case, both halves of the harmonic mean that combines them[^yelle], and a warning against reading a bulk rate as though one mechanism produced it.
+At the 4000 K end of the sweep hydrogen sits at an exobase Jeans parameter of 0.28, with a Jeans flux nearly sixty times the supply diffusion can deliver through the heavy background, so its escape is set by that supply and the exobase temperature barely enters: the hydrogen column of the table above moves by 3.6% across the whole sweep. Carbon and oxygen are Jeans limited and carry the whole exponential, 11 orders of magnitude of it. One case, both halves of the harmonic mean that combines them[^yelle], and a warning against reading a bulk rate as though one mechanism produced it.
 
 ### Fractionation
 

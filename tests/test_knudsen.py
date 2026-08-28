@@ -1,6 +1,6 @@
 """Tests for ``src/zephyrus/knudsen.py``.
 
-Exercises the neutral collision cross-section ladder and the sonic-point
+Exercises the neutral collision cross-section fallback order and the sonic-point
 Knudsen switch. The physical invariants under test:
 
 - Reference pin: the Laricchiuta et al. (2009) collision integrals reproduce
@@ -10,8 +10,8 @@ Knudsen switch. The physical invariants under test:
   path over the analytic sonic-point scale height; the mixture cross section
   is exactly density weighted.
 - Monotonicity / boundedness: cross sections shrink with temperature; the
-  temperature-independent geometric rung overshoots the collision-integral
-  rung at high temperature (its documented bias); the hysteresis window
+  temperature-independent geometric fallback overshoots the collision-integral
+  fallback at high temperature (its documented bias); the hysteresis window
   widens or tightens the switch threshold on the correct side.
 - Error contract: the hydrogen route rejects non-hydrogen species.
 
@@ -129,11 +129,11 @@ def test_hydrogen_route_pins_and_temperature_dependence():
         sigma_zk90_hydrogen('He', 1e4)
 
 
-def test_ladder_provenance_and_geometric_bias():
-    """The ladder assigns the right rung and the hard-sphere bias shows.
+def test_fallback_order_provenance_and_geometric_bias():
+    """The fallback order assigns the right fallback and the hard-sphere bias shows.
 
-    N sits on the collision-integral rung, H on the hydrogen route, He (no
-    Laricchiuta entry, not hydrogen) on the geometric rung. A hard sphere
+    N sits on the collision-integral fallback, H on the hydrogen route, He (no
+    Laricchiuta entry, not hydrogen) on the geometric fallback. A hard sphere
     has no temperature dependence, so at 300 K the geometric N cross
     section is comparable to the collision integral, while at 1e4 K it
     overshoots by a factor of a few, the documented bias that pushes the
@@ -154,7 +154,7 @@ def test_ladder_provenance_and_geometric_bias():
     geo_h2o, tabulated_h2o = sigma_geometric('H2O')
     assert tabulated_h2o is True
     assert geo_h2o == pytest.approx(math.pi * (2.0 * 1.52e-10) ** 2, rel=1e-12, abs=0.0)
-    # An element Bondi does not tabulate reaches the rung on an assumed
+    # An element Bondi does not tabulate reaches the fallback on an assumed
     # radius, and says so rather than passing for a published one. Bondi
     # prints no alkali, alkaline earth, or transition metals, so this is
     # every rock-forming vapour species outside the seven scaled elements.

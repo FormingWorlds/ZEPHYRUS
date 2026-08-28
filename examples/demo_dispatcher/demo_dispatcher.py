@@ -4,7 +4,7 @@ Runs the regime framework over a set of synthetic atmospheres: one verdict
 read field by field, a flux sweep that crosses two regime boundaries, the
 boil-off and Roche-overflow labels, the diagnostics container, the four
 knobs that move a boundary, and one planet dispatched along a stellar XUV
-history. Prints a table per step and writes one figure.
+history. Prints a table per step and writes two figures, each as a PDF and a PNG.
 
 Every function returns its results, so the steps can be imported and reused
 one at a time; nothing runs on import. From the repository root:
