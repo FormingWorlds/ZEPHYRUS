@@ -214,7 +214,6 @@ def _tutorial_blocks():
         yield index, code, (quoted.group(1).rstrip('\n') if quoted else None)
 
 
-@pytest.mark.smoke
 def test_tutorial_snippets_print_what_the_page_quotes():
     """Every tutorial snippet runs in order and prints its quoted output.
 
