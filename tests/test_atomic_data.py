@@ -25,12 +25,14 @@ from zephyrus.atomic_data import (
     BADNELL_N,
     CO2_KD,
     HNU_15UM,
+    T_15UM,
     THREE_LEVEL,
     alpha_case_b,
     badnell_alpha_rr,
     co2_band_cooling,
     o_finestructure_cooling,
 )
+from zephyrus.constants import kb_cgs
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
@@ -124,17 +126,33 @@ def test_co2_band_coronal_limit_and_detailed_balance():
 
     In the coronal limit every collisional excitation radiates, so the full
     expression must reduce to ``h nu k_e n_M n_CO2`` with the excitation
-    rate fixed by detailed balance, ``k_e = 2 k_d exp(-667 K / T)``,
-    independent of the Einstein coefficient and the escape probability.
-    Zero colliders give exactly zero cooling (the error-contract limit).
+    rate fixed by detailed balance, independent of the Einstein coefficient
+    and the escape probability. Zero colliders give exactly zero cooling
+    (the error-contract limit).
+
+    The detailed-balance exponential carries the band quantum in kelvin,
+    ``h nu / k_B = 959.7 K``, which the module derives rather than taking the
+    667 the source prints: 667 is the bending-mode wavenumber in cm^-1, and
+    ``h c`` times it is the same 1.325e-13 erg quantum the source prints two
+    equations earlier. The test pins the derived form and excludes the
+    printed one, which differs by a factor 2.7 at this temperature.
     """
     T = 300.0
     n_co2, colliders = 1e6, {'O': 1e6}
     q = co2_band_cooling(n_co2, colliders, T)
     a, b = CO2_KD['O']
     kd = a * T**b
-    ke = 2.0 * kd * math.exp(-667.0 / T)
+    # The quantum in kelvin is not an independent number: it follows from the
+    # printed quantum and the Boltzmann constant, so this recomputes it.
+    t_quantum = HNU_15UM / kb_cgs
+    assert t_quantum == pytest.approx(T_15UM, rel=1e-3, abs=0.0)
+    assert t_quantum == pytest.approx(1.4388 * 667.0, rel=1e-3, abs=0.0)
+    ke = 2.0 * kd * math.exp(-t_quantum / T)
     assert q == pytest.approx(HNU_15UM * ke * colliders['O'] * n_co2, rel=1e-3, abs=0.0)
+    # Discrimination: the wavenumber-as-temperature form is 2.7 times larger
+    # at 300 K, far outside the pin above.
+    ke_printed = 2.0 * kd * math.exp(-667.0 / T)
+    assert ke_printed / ke == pytest.approx(2.65, rel=0.02, abs=0.0)
     assert co2_band_cooling(n_co2, {}, T) == pytest.approx(0.0, abs=0.0)
     assert co2_band_cooling(n_co2, {'O': 0.0}, T) == pytest.approx(0.0, abs=0.0)
 
@@ -173,3 +191,37 @@ def test_o_finestructure_positive_and_activating():
     assert q300 > q150
     assert o_finestructure_cooling(2e8, 300.0) / q300 == pytest.approx(2.0, rel=1e-12, abs=0.0)
     assert o_finestructure_cooling(0.0, 300.0) == pytest.approx(0.0, abs=0.0)
+
+
+@pytest.mark.physics_invariant
+def test_co2_escape_probability_respects_its_ceiling():
+    """The escape probability never exceeds the non-LTE ceiling of 0.5.
+
+    Half the photons escaping is the ceiling for this two-level band, and the
+    zero-column limit sits there. The thin-column branch of the fitted
+    tabulation rises through 0.5 below a column parameter of 3.4e-4 and
+    diverges as the column vanishes, which is the fit leaving its range and
+    not physics, so it is capped. Capping also makes the zero-column case
+    continuous with its neighbours, where before the probability jumped from
+    0.573 just above zero down to 0.5 at zero.
+    """
+    # Densities well above the critical one, so the band is in the LTE regime
+    # where the cooling is proportional to the escape probability. In the
+    # coronal limit it is independent of the probability by construction and
+    # this assertion would hold for any cap at all.
+    T, n_co2, colliders = 300.0, 1e12, {'CO2': 1e14, 'O': 1e12}
+    q_zero = co2_band_cooling(n_co2, colliders, T, col_co2=0.0)
+    # Thin columns are continuous with, and never above, the zero-column case.
+    for col in (1e-30, 1e-20, 1e-6, 1e2, 1e6):
+        q = co2_band_cooling(n_co2, colliders, T, col_co2=col)
+        assert q <= q_zero * (1.0 + 1e-12), col
+        assert q == pytest.approx(q_zero, rel=1e-9, abs=0.0), col
+    # Without the cap the thin-column fit reaches 0.573 at a column parameter
+    # of 1e-12 and diverges below it, so it would have exceeded the ceiling by
+    # 15 percent and more here rather than matching it.
+    assert 0.4732 * (6.43e-15 * 1e-6) ** -0.0069 > 0.5
+    # The column dependence the band exists to carry survives the cap: a
+    # thick column is trapped to a ninth of the untrapped rate.
+    q_thick = co2_band_cooling(n_co2, colliders, T, col_co2=1e16)
+    assert q_thick < 0.2 * q_zero
+    assert q_thick == pytest.approx(0.121 * q_zero, rel=0.05, abs=0.0)

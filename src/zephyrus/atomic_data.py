@@ -146,8 +146,22 @@ def alpha_case_b(element: str, T: float) -> float:
 # deexcitation rates k_d = A T^B are measured only over roughly 150 to
 # 500 K, and the band's real applicability ceiling is CO2 dissociation, so
 # it acts as a base-region coolant; both limitations travel with any use.
+#
+# One documented departure from the printed source. Their detailed-balance
+# relation reads k_e = 2 k_d exp(-667/T_n), citing Castle et al. (2006), and
+# 667 is the bending-mode wavenumber in cm^-1, not a temperature: h c times
+# 667 cm^-1 is 1.325e-13 erg, which is the same 15 micron quantum they print
+# two equations earlier, and in temperature units that quantum is 959.7 K,
+# not 667 K. The printed formula has dropped the second radiation constant,
+# 1.4388 K cm. The implementation uses the quantum, so the exponential is
+# exp(-h nu / k_B T) with h nu / k_B = 959.7 K. It matters most where the
+# band matters most: the excitation rate falls by a factor 7 at 150 K and
+# 2.7 at 300 K against the printed form, and by only 3.5 percent at the wind
+# temperatures the thermostat selects, where the band is a few percent of
+# the cooling budget.
 # ---------------------------------------------------------------------------
 HNU_15UM = 1.325e-13  # erg, the 15 micron quantum
+T_15UM = 959.7  # K, that quantum over the Boltzmann constant
 A10_CO2 = 0.46  # s^-1, Einstein coefficient of the bending mode
 SIGMA_CO2_15UM = 6.43e-15  # cm^2, band column parameter for the escape probability
 CO2_KD = {
@@ -169,13 +183,30 @@ def co2_band_cooling(n_co2: float, colliders: dict, T: float, col_co2: float = 0
     [cm^-3]; ``col_co2`` is the overlying CO2 column [cm^-2] for the escape
     probability, whose zero-column limit is the non-LTE ceiling 0.5.
     Excitation rates follow from detailed balance,
-    ``k_e = 2 k_d exp(-667 K / T)``.
+    ``k_e = 2 k_d exp(-h nu / k_B T)``.
+
+    The abundances are molecular, and deliberately: this is a base-region
+    coolant. The band exists while CO2 does, and the deexcitation fits it
+    rests on were measured over roughly 150 to 500 K, so it is evaluated on
+    the molecular density of the level rather than on a dissociated or
+    ionized fraction, unlike the atomic-line and fine-structure channels
+    beside it. Above dissociation the band should be absent rather than
+    small, which this function does not enforce and the caller must not read
+    into it; at the wind temperatures the thermostat selects the band is a
+    few percent of the cooling budget, and at the 1000 to 3000 K base it is
+    most of it.
     """
     sn = SIGMA_CO2_15UM * col_co2
     if sn > 2.0:
         eps = 0.7202 * sn**-0.613
     elif sn > 0.0:
-        eps = 0.4732 * sn**-0.0069
+        # The thin-column branch of the fit rises through 0.5 below a column
+        # parameter of 3.4e-4 and diverges as the column vanishes, which is
+        # the fit leaving its range rather than physics: half the photons
+        # escaping is the non-LTE ceiling for this two-level band, and the
+        # tabulation the fit reproduces approaches it. Capping there also
+        # makes the zero-column case continuous with its neighbours.
+        eps = min(0.4732 * sn**-0.0069, 0.5)
     else:
         eps = 0.5
     ke_sum = kd_sum = 0.0
@@ -184,7 +215,7 @@ def co2_band_cooling(n_co2: float, colliders: dict, T: float, col_co2: float = 0
             continue
         a, b = CO2_KD[sp]
         kd = a * T**b
-        ke = 2.0 * kd * math.exp(-667.0 / T)
+        ke = 2.0 * kd * math.exp(-T_15UM / T)
         kd_sum += kd * n
         ke_sum += ke * n
     if ke_sum == 0.0:

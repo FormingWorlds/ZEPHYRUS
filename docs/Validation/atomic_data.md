@@ -9,7 +9,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the trans
 
 ## Notes
 
-The CO2 15 micron band and the O fine-structure channels follow Johnstone et al. (2018, A&A 617, A107) Eqs. (34) to (38) and (41) to (43); their coronal (collision-limited) reductions and detailed-balance structure are asserted as physics invariants in the same test file. The band deexcitation coefficients are measured only over roughly 150 to 500 K, a limitation the module documents.
+The CO2 15 micron band and the O fine-structure channels follow Johnstone et al. (2018, A&A 617, A107) Eqs. (34) to (38) and (41) to (43); their coronal (collision-limited) reductions and detailed-balance structure are asserted as physics invariants in the same test file. Two departures from the printed source are pinned rather than inherited. The detailed-balance exponential uses the band quantum in kelvin, $h\nu / k_\mathrm{B} = 959.7$ K, where the source prints 667: that 667 is the bending-mode wavenumber in cm$^{-1}$, and $hc$ times it is the same $1.325 \times 10^{-13}$ erg quantum the source prints two equations earlier, so the printed formula has dropped the second radiation constant of 1.4388 K cm. The excitation rate differs by a factor 2.7 at 300 K and 3.5 percent at the wind temperatures the thermostat selects. And the escape probability is capped at the non-LTE ceiling of 0.5, which the fitted thin-column branch would otherwise exceed below a column parameter of $3.4 \times 10^{-4}$ and diverge through as the column vanishes. The band deexcitation coefficients are measured only over roughly 150 to 500 K, and the band is evaluated on molecular abundances because it is a base-region coolant; both limitations the module documents.
 
 ## Anchor type
 
