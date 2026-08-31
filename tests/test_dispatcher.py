@@ -29,6 +29,7 @@ import math
 import numpy as np
 import pytest
 
+from zephyrus.constants import kb
 from zephyrus.dispatcher import (
     REGIME_LABELS,
     DispatchSettings,
@@ -37,6 +38,7 @@ from zephyrus.dispatcher import (
 )
 from zephyrus.escape import EL_escape
 from zephyrus.hydrodynamic import caldiroli_efficiency
+from zephyrus.nozzle import isothermal_column_density, nozzle_candidate
 from zephyrus.planets_parameters import Me, Ms, Re
 from zephyrus.profiles import isothermal_profile, photospheric_level
 
@@ -541,6 +543,68 @@ def test_nozzle_orbit_average_on_eccentric_wins_only():
     # returns the instantaneous rate and the convention is free.
     assert noz_c['rate_kg_s'] == pytest.approx(noz_c['rate_periapsis_kg_s'], rel=1e-12)
     assert noz_c['rate_apoapsis_kg_s'] == pytest.approx(noz_c['rate_periapsis_kg_s'], rel=1e-12)
+
+
+@pytest.mark.physics_invariant
+def test_wind_launch_level_cancels_along_the_wind_column():
+    """In wind mode the launch level cancels along the wind's own column.
+
+    The launch-level convention rests on the Bernoulli invariance of
+    ``rho exp(Phi / v_th^2)``, which holds only when the density and the
+    sound speed belong to one column. The wind setting launches from the
+    wind base at the wind's temperature, so moving the level along the
+    isothermal column through that anchor must leave the rate alone. The
+    guard matters because taking the density from the profile's own
+    (far colder) structure instead moves the rate by more than two decades
+    over the same range of levels, which is what the invariance claim
+    would otherwise be hiding.
+
+    The base is placed by hand rather than by the Lopez default, which on
+    this planet puts the wind base at 1.29 lobe radii: outside the lobe
+    the exponent is clamped and the rate is the lobe-filling boundary
+    value, which is linear in the launch density and invariant along no
+    column at all.
+    """
+    state = _inputs(
+        3 * Me,
+        2.2 * Re,
+        1000.0,
+        {'H2': 0.9, 'He': 0.1},
+        F_xuv=13.4,
+        a=0.07 * AU,
+        settings=DispatchSettings(
+            nozzle_temperature='wind', base_method='fixed_pressure', P_base_fixed=5.0
+        ),
+    )
+    noz = dispatch(state).diagnostics['nozzle']
+    assert not noz['saturated']
+    r_ref, rho_ref, v_th = noz['r_launch'], noz['rho_launch'], noz['v_th']
+    reference = noz['rate_full_orbit_kg_s']
+
+    # The discriminator is the same closed form at the wrong sound speed:
+    # the profile's own, which is what the launch state carried before the
+    # column was made consistent with the barrier.
+    v_cold = math.sqrt(kb * state.T_eq / noz['mu_kg'])
+    on_column, cold_column = [], []
+    for factor in (0.6, 0.8, 1.5, 2.5):
+        r = r_ref * factor
+        for bucket, speed in ((on_column, v_th), (cold_column, v_cold)):
+            rho = isothermal_column_density(rho_ref, r_ref, r, state.M_p, speed)
+            bucket.append(
+                nozzle_candidate(
+                    state.M_p,
+                    state.M_star,
+                    state.a,
+                    state.e,
+                    rho,
+                    r,
+                    noz['T_K'],
+                    noz['mu_kg'],
+                )[0]
+            )
+    for value in on_column:
+        assert value == pytest.approx(reference, rel=0.01)
+    assert max(cold_column) / min(cold_column) > 5.0
 
 
 def test_nozzle_temperature_setting_selects_and_validates():

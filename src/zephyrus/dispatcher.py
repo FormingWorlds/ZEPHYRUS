@@ -376,16 +376,28 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # reported beside the interior and intercepted stellar luminosities
     # shows where that assumption is strained.
     if st.nozzle_temperature == 'wind':
-        t_nozzle, mu_nozzle = t_wind, rr['mu_wind'] * m_p
+        t_nozzle = t_wind
+        mu_nozzle = rr['mu_wind'] * m_p
+        # The wind's own isothermal column, anchored at the wind base. The
+        # density there is the ideal-gas value at the base pressure for the
+        # wind's temperature and mean mass, because pressure is continuous
+        # across the temperature transition and density is not. The rate is
+        # invariant along this column, so the anchor is also the launch
+        # level; ``nozzle.isothermal_column_density`` is what makes that
+        # invariance true rather than assumed, and the column is a device
+        # for placing the level, not a claim about structure below the base.
+        r_nozzle = base['r']
+        rho_nozzle = base['p'] * mu_nozzle / (kb * t_nozzle)
     else:
         t_nozzle, mu_nozzle = photo['T'], photo['mmw']
+        r_nozzle, rho_nozzle = photo['r'], photo['rho']
     nozzle_full, noz = nz.nozzle_candidate(
         inputs.M_p,
         inputs.M_star,
         inputs.a,
         inputs.e,
-        rho_ph=photo['rho'],
-        r_ph=photo['r'],
+        rho_ph=rho_nozzle,
+        r_ph=r_nozzle,
         T=t_nozzle,
         mu_kg=mu_nozzle,
     )
@@ -400,6 +412,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     noz['rate_kg_s'] = nozzle_rate
     noz['rate_full_orbit_kg_s'] = nozzle_full
     noz['temperature_mode'] = st.nozzle_temperature
+    noz['r_launch'] = r_nozzle
+    noz['rho_launch'] = rho_nozzle
     # The power comparison: what the isothermal flow demands against what
     # the planet has. Built from the barrier the rate applied plus the
     # acceleration to the sonic speed, so it stays finite and meaningful

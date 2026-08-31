@@ -144,6 +144,24 @@ def volume_averaged_potential(r_v: float, M_d: float, M_a: float, separation: fl
     )
 
 
+def isothermal_column_density(
+    rho_ref: float, r_ref: float, r: float, M_p: float, v_th: float
+) -> float:
+    """Density at ``r`` on an isothermal hydrostatic column through ``r_ref``.
+
+    ``rho(r) = rho_ref exp[(G M_p / v_th^2)(1/r - 1/r_ref)]``, the closed
+    solution of hydrostatic balance in a point-mass potential at constant
+    sound speed. This is the column the Bernoulli argument behind the
+    launch-level convention assumes: along it the product
+    ``rho exp(Phi / v_th^2)`` is constant, so the nozzle rate does not
+    depend on which level is called the launch level. It is a device for
+    placing that level consistently with the sound speed evaluating the
+    barrier, not a claim about the structure below the anchor, which for a
+    wind anchor is far hotter than the atmosphere really is there.
+    """
+    return rho_ref * math.exp((G * M_p / v_th**2) * (1.0 / r - 1.0 / r_ref))
+
+
 def _phase_state(
     M_p: float,
     M_star: float,
