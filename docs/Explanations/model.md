@@ -15,7 +15,7 @@ Which physics carries the continuous loss depends on how tightly the atmosphere 
 - `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (the energy-limited rate is the smaller of the two hydrodynamic limits here).
 - `hydrodynamic:RR`: the same fluid wind, but the rate is capped below the energy limit because radiative recombination re-emits part of the absorbed energy (the radiation-recombination-limited rate wins).
 - `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape), species by species, capped by how fast diffusion can resupply each species.
-- `roche_overflow`: the flow region reaches the planet's Hill sphere, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow. The label sits on top of whichever regime above produced the rate, which is then a lower limit, because the tidally driven flow an overflowing planet drives is not modeled.
+- `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017) outruns every bound candidate and is dispatched as the rate, or the flow region reaches the planet's Hill sphere and the label sits on top of whichever regime produced the rate, which is then a lower limit. `diagnostics['roche']['rate_branch']` says which reading applies.
 
 The classification logic reduces to three questions, asked in a fixed order:
 
@@ -38,7 +38,7 @@ flowchart TD
     class Q1,Q2,Q3 decision
 ```
 
-The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and two refinements are omitted for clarity (a thermally unstable exosphere re-routes from the hydrostatic branch back to the wind rate, and a residual bolometric rate remains in play past the boil-off gate). The [escape regimes](regimes.md) page walks every step with its equations and thresholds.
+The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and three refinements are omitted for clarity (a thermally unstable exosphere re-routes from the hydrostatic branch back to the wind rate, a residual bolometric rate remains in play past the boil-off gate, and the tidally driven L1 transfer rate competes as a final candidate wherever the overflow description applies, taking the overflow label with its own rate when it wins). The [escape regimes](regimes.md) page walks every step with its equations and thresholds.
 
 The regime boundaries are not sharp lines in nature. Each threshold carries a physical band (the collisionality threshold spans a factor of 30 across heating geometries, the boil-off threshold a factor of about two across the literature), and ZEPHYRUS reports, beside every verdict, the diagnostics needed to see how close the state sat to each boundary and what the label would have been at the band edges.
 

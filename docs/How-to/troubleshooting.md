@@ -72,11 +72,12 @@ The flux scaling will not separate them either: the base ion density follows $\s
 
 **Cause.** The label reports a geometry, not a rate. The screen tests the flow radius of the branch that won the rate comparison, and when the bolometric residual wins, that radius is its sonic radius $R_\mathrm{B} = \Lambda R_\mathrm{p} 2^{1/4} / 2$, which grows with the Jeans parameter. A tightly bound heavy atmosphere therefore puts it several Hill radii out while the atmosphere itself sits deep inside, which is the opposite of overflowing. The flipping under a small change is the other half: the label boundary is a comparison between two rate candidates, so wherever the two are within a few percent of each other, a small input change moves the label. The rate does not move with it, because the screen never changes the rate.
 
-**What to do.** Read four things: `diagnostics['roche']['rate_branch']` (which branch the rate came from), `r_atmosphere` against `R_hill_periapsis` in the same group (does the atmosphere itself reach the lobe, which is what `roche_subflag` reports as `dynamical`), `diagnostics['rate_floor']['above_floor']` (is the rate a number at all), and `flags['bolometric_residual']`.
+**What to do.** Read four things: `diagnostics['roche']['rate_branch']` (which branch the rate came from; `roche_nozzle` means the L1 transfer itself was dispatched), `r_atmosphere` against `R_hill_periapsis` in the same group (does the atmosphere itself reach the lobe, which is what `roche_subflag` reports as `dynamical`), `diagnostics['rate_floor']['above_floor']` (is the rate a number at all), and `flags['bolometric_residual']`.
 
-The three cases that produces:
+The four cases that produces:
 
-- Subflag `dynamical` and a rate above the floor: the atmosphere reaches its Roche lobe, the rate is the bound-flow estimate, and the real rate is higher by whatever a tidally driven flow through the inner Lagrange point would carry. Treat it as a lower limit.
+- `rate_branch` reading `roche_nozzle`: the rate is the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017), dispatched because it beat every bound candidate inside its applicability criterion. It is a real transfer rate, not a rename; `diagnostics['nozzle']` carries the barrier, the saturation state, and the lift power against the available luminosities.
+- Subflag `dynamical` on a bound branch and a rate above the floor: the atmosphere reaches its Roche lobe while the nozzle candidate lost or sat outside its criterion, the rate is the bound-flow estimate, and the real rate is higher by whatever the tidal flow would carry. Treat it as a lower limit.
 - Subflag `no_transonic` with `r_atmosphere` well inside the Hill radius: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly-bound case above, not an overflow; the [regimes page](../Explanations/regimes.md) explains why the two look alike to the screen.
 - `above_floor` false: the label is decided by the ordering of two rates with no numerical content. Report no escape and treat the geometry as a note.
 

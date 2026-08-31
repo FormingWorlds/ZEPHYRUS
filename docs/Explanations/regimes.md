@@ -10,8 +10,8 @@ One call takes one planetary state and returns one verdict. The inputs are the p
 2. Otherwise the hydrodynamic candidate is assembled: the wind base is located on the profile, a thermostat sets the wind temperature, and the candidate is the smaller of the energy-limited and radiation-recombination-limited rates, with the winner naming the sub-label.
 3. The sonic-point Knudsen number decides whether that wind is collisional enough to exist. If it is, the hydrodynamic label stands and the [fractionation closure](fractionation.md) partitions the rate over species; if not, the state re-routes to the hydrostatic branch.
 4. The hydrostatic branch evaluates per-species Jeans escape on an extended upper structure. Its stability gate can send a thermally unstable exosphere back to the hydrodynamic rate.
-5. The bolometric residual stays a candidate past the activation gate, capped by the interior luminosity, and takes the rate and the label if it beats whichever branch won above.
-6. Last, the Roche screen tests the active flow radius against the Hill sphere; an overflowing state is renamed `roche_overflow` and keeps the rate its own branch computed. The screen runs after the residual comparison, so the radius it tests belongs to the branch that actually won.
+5. The bolometric residual stays a candidate past the activation gate, capped by the interior luminosity, and takes the rate and the label if it beats whichever branch won above. The tidally driven transfer through the L1 nozzle [^jackson17] competes last, on both sides of the gate, wherever the overflow description applies; a nozzle win labels the state `roche_overflow` and dispatches the transfer rate itself.
+6. Last, the Roche screen tests the active flow radius against the Hill sphere; an overflowing state is renamed `roche_overflow` and keeps the rate its own branch computed. The screen runs after both comparisons, so the radius it tests belongs to the branch that actually won.
 
 ```mermaid
 flowchart TD
@@ -25,21 +25,24 @@ flowchart TD
     Q2 -- no --> Q3{"Exobase hotter than half<br/>the escape temperature?"}
     Q3 -- yes --> HD
     Q3 -- no --> HS["HYDROSTATIC<br/>per-species Jeans<br/>+ diffusion supply cap"]
-    BO --> Q5
+    BO --> QN
     HD --> Q4{"Luminosity-capped residual<br/>larger than the branch rate?"}
     HS --> Q4
     Q4 -- yes --> BO2["BOIL-OFF<br/>residual takes the label"]
     Q4 -- no --> KEEP["Branch label stands"]
-    BO2 --> Q5{"Active flow radius<br/>past the Hill radius?"}
-    KEEP --> Q5
+    BO2 --> QN{"L1 nozzle applicable<br/>and larger than<br/>the standing rate?"}
+    KEEP --> QN
+    QN -- yes --> RN["ROCHE OVERFLOW<br/>L1 nozzle transfer rate"]
+    QN -- no --> Q5{"Active flow radius<br/>past the Hill radius?"}
     Q5 -- yes --> RO["ROCHE OVERFLOW<br/>the branch rate stands,<br/>as a lower limit"]
     Q5 -- no --> OUT(["Regime label + bulk rate<br/>+ per-species rates<br/>+ flags + diagnostics"])
+    RN --> OUT
     RO --> OUT
     classDef regime fill:#1e6091,stroke:#0f3a5c,color:#ffffff
     classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
     classDef stage fill:#ffffff,stroke:#1e6091,color:#111111
-    class BO,BO2,HD,HS,RO regime
-    class Q1,Q2,Q3,Q4,Q5 decision
+    class BO,BO2,HD,HS,RN,RO regime
+    class Q1,Q2,Q3,Q4,QN,Q5 decision
     class BOLO,BASE,HYD,KEEP stage
 ```
 
@@ -115,9 +118,11 @@ Two escape temperatures gate the branch's validity. The neutral escape temperatu
 
 Everything above assumes the flow is bound to the planet. Before the label is finalized, the active flow radius of the winning branch (the sonic radius on the boil-off branch, the larger of the XUV and sonic radii on the hydrodynamic branch, the exobase radius on the hydrostatic branch) is tested against the periapsis Hill radius of Eq. (3) on the [energy-limited page](energy_limited.md). A flow that reaches the Hill sphere is spilling over the gravitational boundary rather than escaping through a bound outflow, and the state is named `roche_overflow` for it.
 
-The screen renames a state and never changes its rate. The reason is that the branch whose flow radius gets tested is the one that won step 6, so the two sides of the screen's boundary hold the same branch; reporting that branch's own rate keeps the dispatched rate continuous across the boundary, while substituting a different branch's formula would make it jump by orders of magnitude at a line the physics puts nowhere in particular. What the label means is therefore that the flow reaches the lobe and that the rate beside it is the bound-flow estimate, a lower limit on what tides would do. Nothing in this version computes the tidally driven flow through the inner Lagrange point that a genuinely overflowing planet drives; the closed form for it is Eq. (3) of Jackson et al. (2017) [^jackson17], and their own reading is worth carrying: Roche-lobe overflow and evaporative escape are not two processes but one unbound hydrodynamic outflow, differing in whether the photosphere nearly coincides with the lobe.
+The screen renames a state and never changes its rate. The reason is that the branch whose flow radius gets tested is the one that won the final comparison, so the two sides of the screen's boundary hold the same branch; reporting that branch's own rate keeps the dispatched rate continuous across the boundary, while substituting a different branch's formula would make it jump by orders of magnitude at a line the physics puts nowhere in particular. When the rename fires on a bound branch, the label means the flow reaches the lobe and the rate beside it is the bound-flow estimate, a lower limit on what tides would do.
 
-Owen & Jackson (2012) separate two geometries inside that corner [^oj12], and a subflag says which one fired. Dynamical overflow is the atmosphere itself reaching the lobe, tested against the outer extent of the modeled and extended structure, reported as `r_atmosphere` in `diagnostics['roche']`. The other case is an atmosphere inside its lobe whose sonic surface would have to sit outside it, so no transonic solution exists; they describe it as a narrow band and hypothesize a subsonic wind out to the lobe. The distinction is worth reading before a label is trusted, because the flow radius tested on the bolometric branch is a sonic radius that grows with the Jeans parameter: a tightly bound heavy atmosphere can push it several Hill radii out while the atmosphere itself sits deep inside, at a rate with no numerical content. `r_atmosphere` and `diagnostics['rate_floor']` are what separate that case from a real one.
+The tidally driven flow through the inner Lagrange point that a genuinely overflowing planet drives is itself a candidate in the final comparison, from Eq. (3) of Jackson et al. (2017) [^jackson17], in the mass-transfer lineage of Ritter (1988) [^ritter] rebuilt to hold at planetary mass ratios: an isothermal Bernoulli flow from the photosphere to L1, an exponential barrier between the photospheric and L1 potentials from their volume-averaged Roche potential (their Eq. 14) evaluated at the Eggleton (1983) lobe radius [^eggleton], and the elliptical nozzle area that the potential's curvature at L1 admits. Their own reading is what motivates the design: Roche-lobe overflow and evaporative escape are not two processes but one unbound hydrodynamic outflow, differing in whether the photosphere nearly coincides with the lobe. The candidate is computed at every call and competes wherever the overflow description applies, which is where the isothermal sonic radius $G M_\mathrm{p} / (2 v_\mathrm{th}^2)$ reaches the L1 distance (their Figure 9 crossover): inward of that no spherical transonic wind fits inside the lobe and the nozzle is the flow's constriction, while outward of it the gas chokes at its own sonic surface first and the wind branches are the description. A candidate below the one-proton-per-year floor does not compete either, because this label boundary is a rate crossing and a crossing between two numerically empty numbers would rename the deeply bound corner on no content. When the nozzle wins, the label is `roche_overflow`, the rate is the transfer rate itself, and the boundary against the losing branch is continuous by construction; the applicability edge, by contrast, is a criterion boundary like the activation gate, and the jump across it is a result to measure, not an artifact to hide. The flow carries no energy cap, faithful to the primary, whose isothermal treatment has the radiation field maintain the temperature; the diagnostics report the power needed to lift the dispatched flow to L1 beside the interior luminosity and the intercepted instellation, which is where that assumption shows its strain. Three conventions travel with the branch: the geometry is evaluated at periapsis (flagged on eccentric wins; the model treats a circular, synchronously rotating donor), the launch level is the photospheric level whose Bernoulli invariance makes the level choice largely cancel, and a launch level at or beyond the lobe clamps the exponential at its lobe-filling boundary value, flagged `nozzle_saturated`, a lower bound on the transfer. The temperature evaluating the sound speed and the barrier is the model's dominant uncertainty by its authors' own statement, and the `nozzle_temperature` setting chooses it. Two published regulators are deliberately not computed: the torque-balance rate (their Eq. 24), which needs the stellar tidal dissipation and can be orders of magnitude below the nozzle rate where disk-stellar torque balance holds, so the dispatched transfer rate is an upper limit in that reading; and the stability of the transfer itself, which couples to orbital evolution the module does not model.
+
+Owen & Jackson (2012) separate two geometries inside that corner [^oj12], and a subflag says which one fired. Dynamical overflow is the atmosphere itself reaching the lobe, tested against the outer extent of the modeled and extended structure, reported as `r_atmosphere` in `diagnostics['roche']`, and it takes precedence whichever candidate carries the rate. The second case is an atmosphere inside its lobe whose sonic surface would have to sit outside it, so no transonic solution exists; they describe it as a narrow band and hypothesize a subsonic wind out to the lobe. A third subflag value, `nozzle`, marks a label won by the rate crossing while the structure sits inside the Hill sphere. The distinction is worth reading before a label is trusted, because the flow radius tested on the bolometric branch is a sonic radius that grows with the Jeans parameter: a tightly bound heavy atmosphere can push it several Hill radii out while the atmosphere itself sits deep inside, at a rate with no numerical content. `r_atmosphere` and `diagnostics['rate_floor']` are what separate that case from a real one.
 
 Near misses (a flow radius above two thirds of the Hill radius, so that the Hill radius is less than 1.5 flow radii) raise a `near_roche` flag, because the tidal factor inflates the energy-limited rate steeply there; the flag reports, and never modifies, the rate.
 
@@ -154,6 +159,10 @@ For the framework in use rather than in principle, the [dispatcher tutorial](../
 [^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
 
 [^jackson17]: Jackson, B., Arras, P., Penev, K., Peacock, S., & Marchant, P. (2017). A new model of Roche lobe overflow for short-period gaseous planets and binary stars. *The Astrophysical Journal, 835*(2), 145. https://doi.org/10.3847/1538-4357/835/2/145
+
+[^ritter]: Ritter, H. (1988). Turning on and off mass transfer in cataclysmic binaries. *Astronomy & Astrophysics, 202*, 93.
+
+[^eggleton]: Eggleton, P. P. (1983). Approximations to the radii of Roche lobes. *The Astrophysical Journal, 268*, 368. https://doi.org/10.1086/160960
 
 [^caldiroli]: Caldiroli, A., Haardt, F., Gallo, E., Spinelli, R., Malsky, I., & Rauscher, E. (2022). Irradiation-driven escape of primordial planetary atmospheres II. Evaporation efficiency of sub-Neptunes through hot Jupiters. *Astronomy & Astrophysics, 663*, A122. https://doi.org/10.1051/0004-6361/202142763
 

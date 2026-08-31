@@ -114,6 +114,7 @@ The knobs of the [escape-regime framework](../Explanations/regimes.md). Every de
 | `cool_recombination` | `True` | `True`, `False` | Recombination (continuum) cooling. Disabling all four channels at once is rejected. |
 | `fractionate` | `True` | `True`, `False` | Apply the N-species closure on confirmed hydrodynamic verdicts; otherwise split by reservoir mass fractions. |
 | `tidal` | `True` | `True`, `False` | Apply the Erkaev et al. (2007) tidal factor. It divides the energy-limited rate and the interior-luminosity cap alike, so both candidates measure one barrier; `False` sets $K_\mathrm{tide} = 1$ in both. |
+| `nozzle_temperature` | `'photospheric'` | `'photospheric'`, `'wind'` | Which temperature and mean particle mass evaluate the L1 nozzle candidate's sound speed and barrier: the photospheric level (the construction of Jackson et al. 2017) or the thermostat's wind state (the upper envelope their Figure 9 explores). The temperature is that model's dominant uncertainty by its authors' own statement, so the spread across the two settings is analysis, not a module output. |
 | `lambda_crit` | 20.0 | $> 0$ | Boil-off activation threshold on the restricted Jeans parameter (literature band 15 to 35). |
 | `gamma_bates` | 0.75 | $> 0$ | Shape parameter of the Bates temperature profile of the extended upper structure. |
 | `kzz` | 300 | m² s⁻¹ | Eddy diffusion coefficient when the profile carries no `kzz` column. |
