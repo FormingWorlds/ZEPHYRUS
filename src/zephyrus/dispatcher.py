@@ -361,19 +361,25 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # The tidally driven L1 nozzle candidate (Jackson et al. 2017 Eq. 3),
     # computed at every point: it joins the final comparison on both sides
     # of the activation gate, and its power comparison is an always-on
-    # diagnostic. The temperature setting decides what evaluates the sound
-    # speed and the barrier: the photospheric level (the primary's own
-    # construction, a bolometrically maintained flow) or the thermostat's
-    # wind state (the upper envelope their Figure 9 explores). The flow is
-    # uncapped, faithful to the primary, whose isothermal model has the
-    # radiation field maintain the temperature; the lift power reported
-    # beside the interior and intercepted stellar luminosities shows where
-    # that assumption is strained.
+    # diagnostic. The temperature setting decides which state the flow is
+    # launched from: the photospheric level (the primary's own
+    # construction, a bolometrically maintained flow) or the wind base at
+    # the thermostat's wind state (the upper envelope their Figure 9
+    # explores). Both settings launch from one level with one temperature
+    # and one mean mass, which is what the Bernoulli cancellation behind
+    # the launch-level convention requires; the wind setting rebuilds the
+    # launch density from the ideal gas law at the base pressure rather
+    # than carrying the photosphere's cold density into a hot sound speed.
+    # The radius is still the profile's, so the hot structure is not
+    # solved, only its thermodynamic state, and that is a stated limit.
+    # The flow is uncapped, faithful to the primary; the lift power
+    # reported beside the interior and intercepted stellar luminosities
+    # shows where that assumption is strained.
     if st.nozzle_temperature == 'wind':
         t_nozzle, mu_nozzle = t_wind, rr['mu_wind'] * m_p
     else:
         t_nozzle, mu_nozzle = photo['T'], photo['mmw']
-    nozzle_rate, noz = nz.nozzle_candidate(
+    nozzle_full, noz = nz.nozzle_candidate(
         inputs.M_p,
         inputs.M_star,
         inputs.a,
@@ -383,27 +389,24 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         T=t_nozzle,
         mu_kg=mu_nozzle,
     )
-    noz['rate_kg_s'] = nozzle_rate
-    noz['temperature_mode'] = st.nozzle_temperature
-    # The overflow description applies where the isothermal sonic radius
-    # reaches the L1 distance (the periapsis Hill radius to leading order
-    # in the mass ratio), so that no spherical transonic wind fits inside
-    # the lobe and the nozzle is the constriction (Jackson et al. 2017,
-    # their Section 4 and Figure 9). Inward of that the flow chokes at its
-    # own sonic surface and the wind branches are the description, so the
-    # candidate reports but does not compete. This edge is a criterion
+    # The dispatched candidate is the average duty-cycled over the arc
+    # where the overflow description applies; the unguarded average is
+    # kept beside it so the closed form stays comparable with the
+    # primary's published rates. The applicability edge is a criterion
     # boundary like the activation gate, not a rate crossing, and the jump
     # across it is a result to measure rather than hide.
-    nozzle_applicable = noz['R_sonic'] >= r_hill
-    noz['applicable'] = nozzle_applicable
-    noz['R_sonic_over_R_L1'] = noz['R_sonic'] / r_hill
-    # The power comparison: what lifting the flow to L1 costs against what
-    # the planet has. At saturation the barrier is gone and the lift power
-    # with it.
-    noz['power_lift_W'] = nozzle_rate * max(noz['delta_phi'], 0.0)
+    nozzle_rate = noz['rate_applicable_kg_s']
+    nozzle_applicable = noz['applicable']
+    noz['rate_kg_s'] = nozzle_rate
+    noz['rate_full_orbit_kg_s'] = nozzle_full
+    noz['temperature_mode'] = st.nozzle_temperature
+    # The power comparison: what the isothermal flow demands against what
+    # the planet has. Built from the barrier the rate applied plus the
+    # acceleration to the sonic speed, so it stays finite and meaningful
+    # at saturation, where the barrier is gone and the acceleration is not.
     noz['L_int_W'] = 4.0 * math.pi * inputs.R_p**2 * inputs.F_int
     noz['L_bol_intercepted_W'] = math.pi * inputs.R_p**2 * inputs.F_bol
-    diag['nozzle'] = noz
+    diag['nozzle'] = dict(noz)
 
     # Step 3: the sonic-point Knudsen switch.
     n_sc = rr['rho_s'] / (rr['mu_plus_wind'] * m_p)  # heavy-particle density
@@ -536,10 +539,18 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             # an interior point of it.
             flags['nozzle_saturated'] = True
         if inputs.e > 0.0:
-            # The geometry is evaluated at periapsis on a model built for
-            # a circular orbit; elsewhere on the orbit the instantaneous
-            # rate is lower.
-            flags['nozzle_periapsis'] = True
+            # The rate is a time average over the orbit, evaluated with
+            # the circular formula at each separation. Under saturation it
+            # scales as the cube of the separation, so periapsis is a
+            # lower bound there and an upper bound while the barrier is
+            # unclamped; the average is what a secular caller needs either
+            # way.
+            flags['nozzle_orbit_averaged'] = True
+        if noz['applicable_orbit_fraction'] < 1.0:
+            # The overflow description holds only on an arc around
+            # periapsis. The rate is duty-cycled over that arc, so it
+            # omits the wind the planet drives on the rest of the orbit.
+            flags['nozzle_partial_orbit'] = True
     label = 'roche_overflow' if branch == 'roche_nozzle' else branch
 
     # Step 6: the Roche screen on the active flow radius. The screen renames

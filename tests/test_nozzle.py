@@ -260,3 +260,20 @@ def test_curvature_rejects_unphysical_mass_ratio():
     ok = curvature_a(1e-5)
     assert math.isfinite(ok)
     assert 4.0 < ok <= 8.0
+
+
+def test_orbit_average_rejects_an_empty_quadrature():
+    """A non-positive phase count raises rather than dividing by zero.
+
+    The orbit average sums Kepler weights over ``n_phase`` midpoint nodes,
+    so a count below one has no weight to divide by. A single node is
+    legal and, on a circular orbit, exact.
+    """
+    m_p, m_s, a = 3.0 * Me, Ms, 0.05 * AU
+    args = (m_p, m_s, a, 0.0, 1e-6, 2.0 * Re, 1200.0, 2.3 * amu)
+    for bad in (0, -1):
+        with pytest.raises(ValueError, match='n_phase'):
+            nozzle_candidate(*args, n_phase=bad)
+    one, _ = nozzle_candidate(*args, n_phase=1)
+    many, _ = nozzle_candidate(*args, n_phase=64)
+    assert one == pytest.approx(many, rel=1e-12)

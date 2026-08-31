@@ -376,7 +376,12 @@ def test_nozzle_competes_only_inside_its_domain():
     noz_o = outside.diagnostics['nozzle']
     assert noz_o['applicable'] is False
     assert noz_o['R_sonic_over_R_L1'] < 1.0
-    assert noz_o['rate_kg_s'] > outside.mdot
+    # The unguarded Eq. (3) average would have won; the duty-cycled rate
+    # the dispatcher competes is zero, because no arc of the orbit is
+    # inside the overflow description.
+    assert noz_o['rate_full_orbit_kg_s'] > outside.mdot
+    assert noz_o['rate_kg_s'] == 0.0
+    assert noz_o['applicable_orbit_fraction'] == 0.0
     assert outside.regime == 'boiloff'
 
 
@@ -456,25 +461,54 @@ def test_nozzle_saturation_flag_marks_lobe_contact():
     assert 'nozzle_saturated' not in unsaturated.flags
 
 
-def test_nozzle_periapsis_flag_on_eccentric_wins_only():
-    """An eccentric nozzle win says the geometry was taken at periapsis.
+def test_nozzle_orbit_average_on_eccentric_wins_only():
+    """An eccentric nozzle win dispatches a duty-cycled orbit average.
 
-    The primary treats a circular, synchronously rotating donor, so the
-    periapsis evaluation is this module's convention and the flag makes it
-    visible on the result it produced; the circular win must not raise it.
+    The primary treats a circular, synchronously rotating donor, so both
+    the quasi-static evaluation at each separation and the duty cycle over
+    the arc where the overflow description applies are this module's
+    conventions, and the flags make them visible on the result they
+    produced. A circular win must raise neither, and its average must be
+    the instantaneous rate exactly, so the convention costs nothing where
+    it does not apply.
     """
     ecc = dispatch(
         _inputs(
             3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU, e=0.3
         )
     )
+    noz = ecc.diagnostics['nozzle']
     assert ecc.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
-    assert ecc.flags.get('nozzle_periapsis') is True
+    assert ecc.flags.get('nozzle_orbit_averaged') is True
+    # The periapsis separation is the one the geometry is built on, and it
+    # is not the semi-major axis: a rate taken at ``a`` instead would sit
+    # 31% below the periapsis value on this state.
+    assert noz['a_periapsis'] == pytest.approx(0.7 * 0.07 * AU, rel=1e-12)
+    # The applicable arc surrounds periapsis, because the L1 distance grows
+    # with separation while the sonic radius does not.
+    assert noz['R_sonic_over_R_L1'] > 1.0 > noz['R_sonic_over_R_L1_apoapsis']
+    assert 0.0 < noz['applicable_orbit_fraction'] < 1.0
+    assert ecc.flags.get('nozzle_partial_orbit') is True
+    # Duty-cycled below the full-orbit average, which is itself below the
+    # periapsis rate: this donor is unsaturated, so the rate falls with
+    # separation and periapsis is the richest phase.
+    assert noz['rate_kg_s'] < noz['rate_full_orbit_kg_s'] < noz['rate_periapsis_kg_s']
+    assert ecc.mdot == pytest.approx(noz['rate_kg_s'], rel=1e-12)
+
     circ = dispatch(
         _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
     )
+    noz_c = circ.diagnostics['nozzle']
     assert circ.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
-    assert 'nozzle_periapsis' not in circ.flags
+    assert 'nozzle_orbit_averaged' not in circ.flags
+    assert 'nozzle_partial_orbit' not in circ.flags
+    # At most one by construction, so this is the whole-orbit claim without
+    # an equality against a float literal.
+    assert noz_c['applicable_orbit_fraction'] >= 1.0
+    # Every phase of a circular orbit is the same phase, so the quadrature
+    # returns the instantaneous rate and the convention is free.
+    assert noz_c['rate_kg_s'] == pytest.approx(noz_c['rate_periapsis_kg_s'], rel=1e-12)
+    assert noz_c['rate_apoapsis_kg_s'] == pytest.approx(noz_c['rate_periapsis_kg_s'], rel=1e-12)
 
 
 def test_nozzle_temperature_setting_selects_and_validates():

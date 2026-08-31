@@ -38,21 +38,36 @@ from zephyrus.constants import G, kb
 #   and beyond lobe contact the exponent is clamped at zero, which is the
 #   paper's own lobe-filling case (their Figure 5 solid curves), and the
 #   clamped value is a boundary value rather than a trusted rate.
+# - L1 distance: the small-mass-ratio expansion of the L1 root, checked
+#   against the exact stationary point of the corotating axial potential
+#   (see ``l1_distance``). The Hill radius is its leading order and sits
+#   0.5% outside it at planetary mass ratios, 5% at q = 1e-2.
 # - Applicability: the overflow description holds where the isothermal
 #   sonic radius R_sonic = G M_d / (2 v_th^2) lies at or beyond the L1
 #   distance, so that no spherical transonic wind fits inside the lobe and
-#   the L1 nozzle is the flow's constriction (their Section 4 and
-#   Figure 9). Inward of that the gas chokes at its own sonic surface
-#   first and the wind branches of this package are the right
-#   description; the candidate rate is still reported there, but the
-#   dispatcher does not let it compete. Without this criterion the nozzle
-#   area, which grows as the cube of the separation, hands a loosely
-#   bound envelope an unbounded rate at separations where the planet is
-#   nowhere near its lobe.
+#   the L1 nozzle is the flow's constriction. Where the sonic radius lies
+#   inside the L1 distance the gas chokes at its own sonic surface first
+#   and the wind branches of this package are the right description.
+#   Without this criterion the nozzle area, which grows as the cube of the
+#   separation, hands a loosely bound envelope an unbounded rate at
+#   separations where the planet is nowhere near its lobe. The primary
+#   draws the comparison qualitatively, in their Section 4 and Figure 9,
+#   to ask which of the two pictures a planet belongs in; making it a gate
+#   is this module's sharpening of it and not a rule they state.
+# - Orbit average: the returned rate is the time average over the orbit,
+#   Kepler-weighted through the eccentric anomaly, and the detail dict
+#   also carries it duty-cycled over the applicable arc, which is what a
+#   dispatcher competes. A secular caller integrates over many orbital
+#   periods and needs the mass carried per unit time. Each phase is
+#   evaluated with the circular formula at its own separation; the primary
+#   has no eccentric treatment, so the quasi-static evaluation and the
+#   duty cycle are both ours. At e = 0 the average is the instantaneous
+#   rate exactly.
 # - Stated limitations carried from the primary: the flow is isothermal
 #   (their Section 3.1 names the neglected thermal structure), the orbit
-#   circular and the rotation synchronous (an eccentric caller is
-#   evaluated at periapsis, our convention rather than theirs), and the
+#   circular and the rotation synchronous (an eccentric caller is averaged
+#   over its orbit as above, our convention rather than theirs, and the
+#   rotation is synchronous at no single phase of such an orbit), and the
 #   rate can overestimate the transfer where the escaping gas keeps its
 #   orbital angular momentum and disk-stellar torque balance regulates the
 #   flow instead (their Eq. 24 and Figure 6); the torque-balance rate
@@ -90,6 +105,21 @@ def eggleton_lobe_radius(q: float, separation: float) -> float:
     return separation * 0.49 * q13**2 / (0.6 * q13**2 + math.log(1.0 + q13))
 
 
+def l1_distance(q: float, separation: float) -> float:
+    """Distance from the donor's center to the inner Lagrange point, in m.
+
+    The small-mass-ratio expansion of the L1 root, ``x_L1/a = eps -
+    eps^2/3 - eps^3/9`` with ``eps = (q/3)^(1/3)``, which is the Hill
+    radius at leading order and falls inside it beyond that. Checked
+    against the exact stationary point of the corotating axial potential:
+    the relative error is 8e-7 at ``q = 1e-5`` and 7e-4 at ``q = 1e-2``,
+    against 0.5% and 5.3% for the Hill radius itself. ``separation`` is
+    the orbital separation [m].
+    """
+    eps = (q / 3.0) ** (1.0 / 3.0)
+    return separation * (eps - eps**2 / 3.0 - eps**3 / 9.0)
+
+
 def volume_averaged_potential(r_v: float, M_d: float, M_a: float, separation: float) -> float:
     """Volume-averaged Roche potential at volume-equivalent radius ``r_v``.
 
@@ -114,60 +144,21 @@ def volume_averaged_potential(r_v: float, M_d: float, M_a: float, separation: fl
     )
 
 
-def nozzle_candidate(
+def _phase_state(
     M_p: float,
     M_star: float,
-    a: float,
-    e: float,
+    sep: float,
     rho_ph: float,
     r_ph: float,
-    T: float,
-    mu_kg: float,
-) -> tuple[float, dict]:
-    """Roche-lobe overflow rate through the L1 nozzle, Jackson et al. (2017) Eq. (3).
-
-    Parameters
-    ----------
-    M_p, M_star : float
-        Donor (planet) and accretor (star) masses [kg].
-    a, e : float
-        Semi-major axis [m] and eccentricity. The geometry is evaluated at
-        the periapsis separation ``a (1 - e)``, matching the Roche screen's
-        periapsis Hill radius; the primary treats a circular, synchronously
-        rotating donor, so the periapsis evaluation is this module's
-        convention and an upper bound on the instantaneous rate elsewhere
-        on the orbit.
-    rho_ph, r_ph : float
-        Density [kg m^-3] and radius [m] of the launch level. The profile
-        radius stands in for the volume-equivalent photospheric radius
-        without the primary's Appendix distortion conversion, a
-        few-percent radius convention worth about 1.6x in rate per percent
-        near lobe contact and nothing for a donor well inside its lobe.
-        The Bernoulli structure makes rho_ph exp(Phi_ph / v_th^2)
-        level-invariant along an isothermal column, so the level choice
-        itself largely cancels; the temperature is the sensitivity.
-    T, mu_kg : float
-        Temperature [K] and mean particle mass [kg] evaluating the
-        isothermal sound speed and the exponential barrier.
-
-    Returns
-    -------
-    (rate, detail)
-        The candidate rate [kg/s] and a detail dict: the sound speed, the
-        mass ratio and curvature, the lobe radius, both potentials and
-        their difference, the applied exponent, the nozzle area, and
-        ``saturated`` (the photospheric potential reached the L1 value, so
-        the exponent was clamped at zero and the rate is the lobe-filling
-        boundary value).
-    """
-    a_peri = a * (1.0 - e)
-    v_th = math.sqrt(kb * T / mu_kg)
-    omega2 = G * (M_p + M_star) / a_peri**3
-    q = M_p / M_star
-    a_curv = curvature_a(q)
-    r_lobe = eggleton_lobe_radius(q, a_peri)
-    phi_l1 = volume_averaged_potential(r_lobe, M_p, M_star, a_peri)
-    phi_ph = volume_averaged_potential(r_ph, M_p, M_star, a_peri)
+    v_th: float,
+    q: float,
+    a_curv: float,
+) -> dict:
+    """Rate, geometry, and heat demand at one orbital separation."""
+    omega2 = G * (M_p + M_star) / sep**3
+    r_lobe = eggleton_lobe_radius(q, sep)
+    phi_l1 = volume_averaged_potential(r_lobe, M_p, M_star, sep)
+    phi_ph = volume_averaged_potential(r_ph, M_p, M_star, sep)
     delta_phi = phi_l1 - phi_ph
     exponent = -delta_phi / v_th**2
     # The saturation test is geometric, not potential-ordered: outside the
@@ -182,17 +173,17 @@ def nozzle_candidate(
         exponent = 0.0
     area = 2.0 * math.pi * v_th**2 / (omega2 * math.sqrt(a_curv * (a_curv - 1.0)))
     rate = rho_ph * math.exp(-0.5 + exponent) * v_th * area
-    # The Figure 9 crossover quantity: the overflow description applies
-    # where this sonic radius reaches the L1 distance (see module notes).
-    r_sonic = G * M_p / (2.0 * v_th**2)
-    return rate, dict(
-        T_K=T,
-        mu_kg=mu_kg,
-        v_th=v_th,
-        R_sonic=r_sonic,
-        q=q,
-        A=a_curv,
-        a_periapsis=a_peri,
+    # Heat the isothermal flow demands per unit mass, which is what the
+    # radiation field has to supply for the uncapped model to hold. For a
+    # steady flow dh + d(v^2/2) + dPhi = dq, and an isothermal ideal gas
+    # has dh = 0, so integrating from a launch level at rest to the
+    # transonic point at L1 gives the barrier the rate actually applied
+    # plus v_th^2/2. Built from the applied exponent, so it is the
+    # clamped barrier at saturation and never the divergent one; the
+    # acceleration term survives there and the barrier does not.
+    heat = max(-exponent, 0.0) * v_th**2 + 0.5 * v_th**2
+    return dict(
+        separation=sep,
         r_lobe=r_lobe,
         phi_L1=phi_l1,
         phi_ph=phi_ph,
@@ -200,4 +191,144 @@ def nozzle_candidate(
         exponent_applied=exponent,
         area_m2=area,
         saturated=saturated,
+        rate=rate,
+        power=rate * heat,
+        R_L1=l1_distance(q, sep),
+    )
+
+
+def nozzle_candidate(
+    M_p: float,
+    M_star: float,
+    a: float,
+    e: float,
+    rho_ph: float,
+    r_ph: float,
+    T: float,
+    mu_kg: float,
+    n_phase: int = 64,
+) -> tuple[float, dict]:
+    """Orbit-averaged Roche-lobe overflow rate through the L1 nozzle.
+
+    The rate is Jackson et al. (2017) Eq. (3) at each orbital separation,
+    averaged in time over the orbit and duty-cycled over the arc where the
+    overflow description applies.
+
+    Parameters
+    ----------
+    M_p, M_star : float
+        Donor (planet) and accretor (star) masses [kg].
+    a, e : float
+        Semi-major axis [m] and eccentricity.
+    rho_ph, r_ph : float
+        Density [kg m^-3] and radius [m] of the launch level. The profile
+        radius stands in for the volume-equivalent photospheric radius
+        without the primary's Appendix distortion conversion, a
+        few-percent radius convention worth about 1.6x in rate per percent
+        near lobe contact and nothing for a donor well inside its lobe.
+        The Bernoulli structure makes rho_ph exp(Phi_ph / v_th^2)
+        level-invariant along an isothermal column, so the level choice
+        largely cancels there; on a non-isothermal column it does not, and
+        the temperature is the leading sensitivity either way.
+    T, mu_kg : float
+        Temperature [K] and mean particle mass [kg] evaluating the
+        isothermal sound speed and the exponential barrier.
+    n_phase : int
+        Midpoint nodes in eccentric anomaly for the orbit average. The
+        quadrature converges to machine precision well below the default:
+        measured relative change 4.3e-7 from 16 to 32 nodes and 3e-14 from
+        32 to 64 at e = 0.5 on two states. At ``e = 0`` every node holds
+        the same value and the average is the instantaneous rate exactly.
+
+    Returns
+    -------
+    (rate, detail)
+        The orbit-averaged Eq. (3) rate [kg/s], unguarded, so that the
+        closed form stays directly comparable with the primary's own
+        published rates, and a detail dict. The rate a caller should
+        compete is ``detail['rate_applicable_kg_s']``, the same average
+        duty-cycled over the arc where the overflow description applies.
+        In the detail dict, Phase-independent
+        entries are the sound speed, the sonic radius, the mass ratio, and
+        the curvature; the geometry entries (lobe radius, both potentials,
+        the applied exponent, the nozzle area, ``saturated``) are reported
+        at periapsis, which is the tightest geometry of the orbit; and the
+        orbit entries are the applicable and saturated orbit fractions,
+        the periapsis and apoapsis rates, and the averaged lift power,
+        which is reported both duty-cycled (pairing with the rate a caller
+        competes) and over the full orbit (pairing with the returned
+        unguarded rate).
+    """
+    if n_phase < 1:
+        raise ValueError(f'n_phase must be at least 1, got {n_phase!r}')
+    v_th = math.sqrt(kb * T / mu_kg)
+    q = M_p / M_star
+    a_curv = curvature_a(q)
+    # The Figure 9 crossover quantity: the overflow description applies
+    # where this sonic radius reaches the L1 distance (see module notes).
+    r_sonic = G * M_p / (2.0 * v_th**2)
+
+    # Orbit average. A secular caller integrates over many orbital periods,
+    # so what it needs is the mass carried per unit time rather than the
+    # instantaneous rate at one phase. The corotating Roche geometry is
+    # defined for a circular synchronous donor, so each phase is evaluated
+    # with the circular formula at that separation and the result averaged
+    # in time. That quasi-static reading is this module's construction and
+    # not the primary's, which has no eccentric treatment. Time weighting
+    # is Kepler's, dt proportional to (1 - e cos E) dE, and the separation
+    # at that anomaly carries the same factor.
+    w_sum = rate_sum = power_sum = duty_rate_sum = duty_power_sum = 0.0
+    applicable_sum = saturated_sum = 0.0
+    for i in range(n_phase):
+        ecc_anomaly = (i + 0.5) * 2.0 * math.pi / n_phase
+        w = 1.0 - e * math.cos(ecc_anomaly)
+        st = _phase_state(M_p, M_star, a * w, rho_ph, r_ph, v_th, q, a_curv)
+        w_sum += w
+        rate_sum += w * st['rate']
+        power_sum += w * st['power']
+        # The applicable arc surrounds periapsis, because the L1 distance
+        # grows with separation while the sonic radius does not. Off that
+        # arc the gas chokes at its own sonic surface first and the nozzle
+        # carries nothing, so the duty-cycled average is what a dispatcher
+        # should compete. What the duty cycle leaves out is the wind the
+        # planet drives on the rest of the orbit, which one dispatched
+        # rate cannot also carry. The returned rate is the unguarded
+        # Eq. (3) average, so the closed form stays comparable with the
+        # primary's own published rates; the gate is the caller's.
+        if r_sonic >= st['R_L1']:
+            duty_rate_sum += w * st['rate']
+            duty_power_sum += w * st['power']
+            applicable_sum += w
+        if st['saturated']:
+            saturated_sum += w
+
+    peri = _phase_state(M_p, M_star, a * (1.0 - e), rho_ph, r_ph, v_th, q, a_curv)
+    apo = _phase_state(M_p, M_star, a * (1.0 + e), rho_ph, r_ph, v_th, q, a_curv)
+    return rate_sum / w_sum, dict(
+        T_K=T,
+        mu_kg=mu_kg,
+        v_th=v_th,
+        R_sonic=r_sonic,
+        q=q,
+        A=a_curv,
+        n_phase=n_phase,
+        a_periapsis=a * (1.0 - e),
+        r_lobe=peri['r_lobe'],
+        phi_L1=peri['phi_L1'],
+        phi_ph=peri['phi_ph'],
+        delta_phi=peri['delta_phi'],
+        exponent_applied=peri['exponent_applied'],
+        area_m2=peri['area_m2'],
+        saturated=peri['saturated'],
+        R_L1=peri['R_L1'],
+        R_sonic_over_R_L1=r_sonic / peri['R_L1'],
+        R_sonic_over_R_L1_apoapsis=r_sonic / apo['R_L1'],
+        rate_periapsis_kg_s=peri['rate'],
+        rate_apoapsis_kg_s=apo['rate'],
+        rate_applicable_kg_s=duty_rate_sum / w_sum,
+        applicable=applicable_sum > 0.0,
+        applicable_orbit_fraction=applicable_sum / w_sum,
+        saturated_orbit_fraction=saturated_sum / w_sum,
+        power_lift_W=duty_power_sum / w_sum,
+        power_lift_full_orbit_W=power_sum / w_sum,
     )
