@@ -96,7 +96,7 @@ Every flag describes the branch whose rate was dispatched. The hydrodynamic cand
 
 ## Diagnostics
 
-Eighteen groups on a typical call. Nothing in the dispatch control flow reads any of them, and there is no option to switch them off: the regime boundaries carry genuine physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that.
+Nineteen groups on a typical call. Nothing in the dispatch control flow reads any of them, and there is no option to switch them off: the regime boundaries carry genuine physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that.
 
 | Group | Key contents | What it answers |
 |---|---|---|
