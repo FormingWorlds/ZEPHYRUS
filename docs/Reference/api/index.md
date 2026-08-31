@@ -8,6 +8,7 @@ This is an overview of ZEPHYRUS' API for the user's reference. If you want to un
 | [`zephyrus.escape`](escape.md) | `EL_escape`: energy-limited atmospheric mass-loss rate |
 | [`zephyrus.dispatcher`](dispatcher.md) | `dispatch`: the escape-regime dispatcher (one call, one regime, one rate) |
 | [`zephyrus.boiloff`](boiloff.md) | Bolometrically driven boil-off with Bondi and luminosity caps |
+| [`zephyrus.nozzle`](nozzle.md) | Roche-lobe overflow: the tidally driven L1 nozzle transfer rate |
 | [`zephyrus.hydrodynamic`](hydrodynamic.md) | Energy-limited and radiation-recombination-limited rates |
 | [`zephyrus.hydrostatic`](hydrostatic.md) | Per-species Jeans escape with the diffusion-limited supply cap |
 | [`zephyrus.collision`](collision.md) | `mass_loss`: fractional atmospheric loss in a giant impact |
@@ -43,6 +44,7 @@ src/zephyrus
     ├── hydrostatic.py          # Jeans escape with diffusion-limited supply
     ├── __init__.py             # Package entry point and top-level exports
     ├── knudsen.py              # Cross sections and the Knudsen switch
+    ├── nozzle.py               # Roche-lobe overflow through the L1 nozzle
     ├── planets_parameters.py   # Sun, Earth, Jupiter, TOI-561 reference values
     ├── profiles.py             # Profile container and escape working levels
     └── thermostat.py           # Wind-temperature thermostat

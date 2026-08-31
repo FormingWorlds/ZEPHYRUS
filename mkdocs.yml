@@ -38,6 +38,7 @@ nav:
         - Escape: Reference/api/escape.md
         - Dispatcher: Reference/api/dispatcher.md
         - Boil-off: Reference/api/boiloff.md
+        - Nozzle: Reference/api/nozzle.md
         - Hydrodynamic: Reference/api/hydrodynamic.md
         - Hydrostatic: Reference/api/hydrostatic.md
         - Collision: Reference/api/collision.md
@@ -55,6 +56,7 @@ nav:
         - Escape: Validation/escape.md
         - Dispatcher: Validation/dispatcher.md
         - Boil-off: Validation/boiloff.md
+        - Nozzle: Validation/nozzle.md
         - Hydrodynamic: Validation/hydrodynamic.md
         - Hydrostatic: Validation/hydrostatic.md
         - Collision: Validation/collision.md
