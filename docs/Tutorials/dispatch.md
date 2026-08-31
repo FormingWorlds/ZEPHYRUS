@@ -268,12 +268,12 @@ Output:
 ```text
 roche_overflow 24622841.930601332
 189433055.79726917 167277833.86655325 0.8830445835470955
-no_transonic
+dynamical
 ```
 
 The flow radius of the winning branch now exceeds the Hill radius, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow, and the label says so. The rate is unchanged by the label: the screen renames a state and never recomputes its rate, so what you get is whatever the winning branch produced, here the luminosity-capped bolometric residual at $2.5 \times 10^{7}$ kg s⁻¹ named in `diagnostics['roche']['rate_branch']`. Read it as a lower limit. The tidally driven transfer through the inner Lagrange point is computed on every call and reports $5.4 \times 10^{10}$ kg s⁻¹ as `rate_full_orbit_kg_s` in `diagnostics['nozzle']`, but it competes only where the overflow description applies, and here the isothermal sonic radius sits just inside the L1 distance (`R_sonic_over_R_L1` reads 0.96), so a spherical wind chokes before the nozzle does and the candidate stands down: `rate_kg_s`, the rate the dispatcher actually competes, is zero.
 
-The subflag is the part worth reading. This atmosphere reaches 0.96 Hill radii, just inside the lobe, and only its sonic surface would sit outside, which is `no_transonic`; an atmosphere whose own extent passes the lobe gets `dynamical` instead. The two are far apart physically, and the same screen catches both, so compare `r_atmosphere` against `R_hill_periapsis` in the same group before you trust the label. On a tightly bound heavy atmosphere the label can fire on geometry alone with no rate behind it; the [troubleshooting guide](../How-to/troubleshooting.md) walks the four cases.
+The subflag is the part worth reading, and it is read against the Roche lobe rather than the Hill radius, because the lobe is the critical surface and sits about 0.70 of the way out to it. This atmosphere reaches 0.96 Hill radii, which is 1.37 lobe radii, so its own extent is past the lobe and the subflag is `dynamical`. Compare `r_atmosphere` against `r_lobe` in `diagnostics['nozzle']` to see it. The other value, `no_transonic`, is the narrower case where the atmosphere stays inside its lobe and only the would-be sonic surface sits outside the Hill radius, and `neither` marks a state that carries the label on the rate crossing alone. On a tightly bound heavy atmosphere the label can fire on geometry alone with no rate behind it; the [troubleshooting guide](../How-to/troubleshooting.md) walks the four cases.
 
 ---
 

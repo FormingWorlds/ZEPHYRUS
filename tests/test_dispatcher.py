@@ -308,19 +308,49 @@ def test_roche_subflag_separates_the_two_geometries():
     assert roche['xi_ktide'] > 1.0  # not the trivial planet-inside-its-lobe case
     assert roche['r_atmosphere'] > roche['R_hill_periapsis']
 
-    # The other subflag on the branch it naturally belongs to: an inflated
-    # hydrogen envelope whose Parker sonic radius passes the Hill radius
-    # while the atmosphere itself stays inside it.
+    # The second subflag: an atmosphere inside its own Roche lobe whose
+    # would-be sonic surface sits outside the Hill radius, which is the
+    # narrow band Owen & Jackson (2012) describe. The comparator is the
+    # lobe rather than the Hill radius, because the lobe is the critical
+    # surface and sits about 0.70 of the way out to the Hill radius.
     bound = dispatch(
-        _inputs(3 * Me, 2.0 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.0775 * AU)
+        _inputs(
+            0.5 * Me,
+            2.0 * Re,
+            1000.0,
+            {'CO2': 1.0},
+            F_xuv=1e-2,
+            a=0.03 * AU,
+            settings=DispatchSettings(T_exo_value=2000.0),
+        )
     )
     roche_b = bound.diagnostics['roche']
     assert bound.regime == 'roche_overflow'
     assert bound.flags.get('roche_subflag') == 'no_transonic'
-    assert roche_b['rate_branch'] == 'boiloff'
-    assert roche_b['xi_flow'] <= 1.0  # the sonic surface is outside the lobe
-    assert roche_b['r_atmosphere'] < roche_b['R_hill_periapsis']  # the gas is not
+    assert roche_b['rate_branch'].startswith('hydrodynamic')
+    assert roche_b['xi_flow'] <= 1.0  # the sonic surface is outside the Hill radius
+    assert roche_b['r_atmosphere'] < bound.diagnostics['nozzle']['r_lobe']  # the gas is not
     assert roche_b['xi_ktide'] > 1.0
+
+    # The third: the label won by the rate crossing alone, with neither
+    # the atmosphere nor the flow radius reaching out.
+    neither = dispatch(
+        _inputs(
+            0.107 * Me,
+            0.53 * Re,
+            1000.0,
+            {'CO2': 1.0},
+            F_xuv=1e-4,
+            a=0.02 * AU,
+            settings=DispatchSettings(T_exo_value=2000.0),
+        )
+    )
+    roche_n = neither.diagnostics['roche']
+    assert neither.regime == 'roche_overflow'
+    assert roche_n['rate_branch'] == 'roche_nozzle'
+    assert neither.flags.get('roche_subflag') == 'neither'
+    assert roche_n['r_atmosphere'] < neither.diagnostics['nozzle']['r_lobe']
+    assert roche_n['xi_flow'] > 1.0
 
 
 def test_nozzle_win_relabels_with_the_transfer_rate():
@@ -413,9 +443,11 @@ def test_nozzle_crossing_is_continuous():
     inner = at(lo)
     assert inner.regime == 'roche_overflow'
     assert inner.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
-    # This donor's structure stays inside the Hill sphere, so the subflag
-    # marks the rate crossing itself rather than a geometric spill.
-    assert inner.flags.get('roche_subflag') == 'nozzle'
+    # This donor's extended structure passes its own Roche lobe while
+    # staying inside the Hill sphere, so the geometric subflag reads
+    # dynamical whichever candidate carries the rate.
+    assert inner.flags.get('roche_subflag') == 'dynamical'
+    assert inner.diagnostics['roche']['r_atmosphere'] >= inner.diagnostics['nozzle']['r_lobe']
     assert at(hi).regime == 'hydrostatic'
     for _ in range(50):
         mid = 0.5 * (lo + hi)

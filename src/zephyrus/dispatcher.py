@@ -530,7 +530,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         branch = 'roche_nozzle'
         rate = nozzle_rate
         per_species = None
-        flow_radius = noz['r_lobe']
+        # ``flow_radius`` is deliberately left as the branch that lost the
+        # rate comparison computed it. The nozzle's own flow passes the
+        # lobe by construction, so substituting the lobe radius would pin
+        # xi_flow at the fixed lobe-to-Hill ratio and throw away the one
+        # geometric fact the screen still reports on this branch. The lobe
+        # radius travels in ``diagnostics['nozzle']['r_lobe']``.
         for key in tuple(hydro_flags) + ('hydrostatic_lower_limit', 'bolometric_residual'):
             flags.pop(key, None)
         if noz['saturated']:
@@ -580,28 +585,29 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         r_atmosphere=r_atm,
         rate_branch=branch,
     )
-    if xi_flow <= 1.0 or xi_ktide <= 1.0:
+    # The label has two routes in and one precedence rule, written once:
+    # the geometric trigger on the winning branch's flow radius, and the
+    # rate crossing when the nozzle candidate won above. The subflag is
+    # geometric under either route, so an atmosphere that spills reads
+    # ``dynamical`` whichever candidate carries the rate, and the
+    # mechanism question is answered by ``rate_branch`` instead.
+    # ``near_roche`` warns about the tidal inflation of a bound rate, so
+    # it is not raised once the state is already labeled.
+    if xi_flow <= 1.0 or xi_ktide <= 1.0 or branch == 'roche_nozzle':
         label = 'roche_overflow'
         flags['roche_overflow'] = True
-        # Dynamical overflow when the atmosphere itself reaches the lobe;
-        # no transonic solution when only the flow radius does, which is the
-        # narrow band Owen & Jackson (2012) describe.
-        flags['roche_subflag'] = (
-            'dynamical' if (xi_ktide <= 1.0 or r_hill <= r_atm) else 'no_transonic'
-        )
-    elif branch == 'roche_nozzle':
-        # The label arrived through the rate crossing rather than the
-        # geometric trigger. The subflag still reads the geometry: an
-        # atmosphere that itself reaches the lobe is dynamical overflow
-        # whichever candidate carries the rate; ``nozzle`` marks the
-        # remaining case, a photosphere close enough to the lobe for the
-        # L1 transfer to outrun the bound branches while the structure
-        # sits inside the Hill sphere. ``near_roche`` is a warning about
-        # the tidal inflation of a bound rate, which this rate is not.
-        flags['roche_overflow'] = True
-        flags['roche_subflag'] = (
-            'dynamical' if (xi_ktide <= 1.0 or r_hill <= r_atm) else 'nozzle'
-        )
+        # Dynamical overflow when the atmosphere itself reaches the Roche
+        # lobe, which is the critical surface and sits about 0.70 of the
+        # way out to the Hill radius; no transonic solution when only the
+        # flow radius passes the Hill radius, which is the narrow band
+        # Owen & Jackson (2012) describe; ``neither`` when the label came
+        # from the rate crossing alone.
+        if xi_ktide <= 1.0 or r_atm >= noz['r_lobe']:
+            flags['roche_subflag'] = 'dynamical'
+        elif xi_flow <= 1.0:
+            flags['roche_subflag'] = 'no_transonic'
+        else:
+            flags['roche_subflag'] = 'neither'
     elif xi_flow < 1.5:
         flags['near_roche'] = True
 
