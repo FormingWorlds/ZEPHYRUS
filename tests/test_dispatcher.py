@@ -239,24 +239,29 @@ def test_routing_roche_overflow_inside_the_hill_sphere():
 def test_roche_screen_renames_without_changing_the_rate():
     """Crossing the overflow boundary changes the label and not the rate.
 
-    The screen's boundary is a rate comparison: the branch whose flow
-    radius gets tested is the one that won the final comparison, so the two
-    sides of the boundary hold the same branch and the dispatched rate must
-    be continuous across it. Bisecting in orbital distance, which moves the
-    Hill radius and nothing else about the atmosphere, brackets the label
-    change; the rates on either side agree to machine precision and both
-    equal the hydrodynamic candidate. Discrimination: substituting the
-    Bondi-capped bolometric rate at the overflow geometry, which is what a
-    rate-changing screen returns, differs here by more than a decade.
+    The screen's boundary is a geometric criterion on the winning branch's
+    flow radius, so the two sides of the boundary hold the same branch and
+    the dispatched rate must be continuous across it. The family here is a
+    luminosity-capped bolometric residual whose sonic radius crosses the
+    Hill radius as the orbit widens, chosen because every other candidate
+    stays subdominant across the bracket: the XUV flux is negligible and
+    the nozzle candidate sits outside its applicability criterion, so the
+    rename is the only thing that changes. Bisecting in orbital distance
+    brackets the label change; the rates on either side agree to machine
+    precision and both equal the capped residual. Discrimination:
+    substituting the Bondi-capped bolometric rate at the overflow geometry,
+    which is what a rate-changing screen returns, is more than a decade
+    larger, because that form bypasses the luminosity cap.
     """
     comp = {'H2': 0.9, 'He': 0.1}
 
     def at(a):
-        return dispatch(_inputs(3 * Me, 2.2 * Re, 980.0, comp, F_xuv=13.4, a=a))
+        return dispatch(_inputs(3 * Me, 2.0 * Re, 1000.0, comp, F_xuv=0.1, a=a))
 
-    lo, hi = 0.05 * AU, 0.3 * AU
+    lo, hi = 0.078 * AU, 0.3 * AU
     inner = at(lo)
     assert inner.regime == 'roche_overflow'
+    assert inner.diagnostics['nozzle']['applicable'] is False
     for _ in range(50):
         mid = 0.5 * (lo + hi)
         if at(mid).regime == inner.regime:
@@ -265,12 +270,11 @@ def test_roche_screen_renames_without_changing_the_rate():
             hi = mid
     below, above = at(lo), at(hi)
     assert below.regime == 'roche_overflow'
-    assert above.regime.startswith('hydrodynamic')
+    assert above.regime == 'boiloff'
     assert below.mdot == pytest.approx(above.mdot, rel=1e-9, abs=0.0)
-    hydro = below.diagnostics['hydrodynamic']
-    assert below.mdot == pytest.approx(min(hydro['mdot_el'], hydro['mdot_rr']), rel=1e-9, abs=0.0)
-    assert below.diagnostics['roche']['rate_branch'] == above.regime
     bolo = below.diagnostics['bolometric']
+    assert below.mdot == pytest.approx(bolo['mdot_luminosity'], rel=1e-9, abs=0.0)
+    assert below.diagnostics['roche']['rate_branch'] == above.regime
     overflow_geometry_rate = min(bolo['mdot_parker'], bolo['mdot_bondi'])
     assert overflow_geometry_rate > 10.0 * below.mdot
 
@@ -317,6 +321,211 @@ def test_roche_subflag_separates_the_two_geometries():
     assert roche_b['xi_flow'] <= 1.0  # the sonic surface is outside the lobe
     assert roche_b['r_atmosphere'] < roche_b['R_hill_periapsis']  # the gas is not
     assert roche_b['xi_ktide'] > 1.0
+
+
+def test_nozzle_win_relabels_with_the_transfer_rate():
+    """A nozzle win labels ``roche_overflow`` and carries a real transfer rate.
+
+    A puffy sub-Neptune whose photosphere sits within a few thermal units
+    of its lobe dispatches the Jackson et al. (2017) L1 rate: the label is
+    ``roche_overflow``, the branch is ``roche_nozzle``, the subflag reads
+    ``dynamical`` because this envelope's extended structure itself reaches
+    past the Hill sphere and the geometric reading takes precedence, the
+    split is unfractionated (the nozzle is a bulk photospheric flow, not
+    the closure's wind base), and ``near_roche`` stays down because it
+    warns about the tidal inflation of a bound rate, which this is not.
+    """
+    res = dispatch(
+        _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
+    )
+    noz = res.diagnostics['nozzle']
+    assert res.regime == 'roche_overflow'
+    assert res.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert res.flags.get('roche_subflag') == 'dynamical'
+    assert (
+        res.diagnostics['roche']['r_atmosphere'] > res.diagnostics['roche']['R_hill_periapsis']
+    )
+    assert res.mdot == pytest.approx(noz['rate_kg_s'], rel=1e-12, abs=0.0)
+    assert noz['applicable'] is True
+    assert 'near_roche' not in res.flags
+    assert 'closure' not in res.diagnostics
+    assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-9, abs=0.0)
+
+
+def test_nozzle_competes_only_inside_its_domain():
+    """The nozzle candidate needs applicability and a non-empty rate to win.
+
+    Two refusals, one per condition. A bound CO2 planet has a nozzle rate
+    below the one-proton-per-Julian-year floor, so a crossing against the
+    similarly empty hydrodynamic rate decides nothing and the verdict
+    stands. A residual-driven sub-Neptune at a wide orbit has a nozzle
+    candidate above its own dispatched rate, but the isothermal sonic
+    radius sits inside the L1 distance (Jackson et al. 2017, their
+    Figure 9), so a spherical wind chokes first, the candidate reports
+    without competing, and the bolometric verdict stands.
+    """
+    empty = dispatch(_inputs(Me, Re, 700.0, {'CO2': 1.0}, F_xuv=10.0, a=0.1 * AU))
+    noz = empty.diagnostics['nozzle']
+    assert noz['applicable'] is True
+    assert 0.0 <= noz['rate_kg_s'] < empty.diagnostics['rate_floor']['floor_kg_s']
+    assert empty.regime == 'hydrodynamic:EL'
+
+    outside = dispatch(
+        _inputs(3 * Me, 2.0 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU)
+    )
+    noz_o = outside.diagnostics['nozzle']
+    assert noz_o['applicable'] is False
+    assert noz_o['R_sonic_over_R_L1'] < 1.0
+    assert noz_o['rate_kg_s'] > outside.mdot
+    assert outside.regime == 'boiloff'
+
+
+def test_nozzle_crossing_is_continuous():
+    """The dispatched rate is continuous across the nozzle rate crossing.
+
+    Where the nozzle candidate overtakes the standing branch rate the label
+    changes because two rates cross, so the dispatched rate on either side
+    of the bisected boundary is the same number: the boundary is a rate
+    crossing, unlike the criterion boundaries (the activation gate, the
+    Knudsen switch, the applicability edge), whose jumps are results.
+    """
+    prof_settings = DispatchSettings(T_exo_value=3000.0)
+
+    def at(a):
+        return dispatch(
+            _inputs(
+                0.107 * Me,
+                0.53 * Re,
+                600.0,
+                {'CO2': 1.0},
+                F_xuv=1e-4,
+                a=a,
+                settings=prof_settings,
+            )
+        )
+
+    lo, hi = 0.010 * AU, 0.014 * AU
+    inner = at(lo)
+    assert inner.regime == 'roche_overflow'
+    assert inner.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    # This donor's structure stays inside the Hill sphere, so the subflag
+    # marks the rate crossing itself rather than a geometric spill.
+    assert inner.flags.get('roche_subflag') == 'nozzle'
+    assert at(hi).regime == 'hydrostatic'
+    for _ in range(50):
+        mid = 0.5 * (lo + hi)
+        if at(mid).regime == inner.regime:
+            lo = mid
+        else:
+            hi = mid
+    below, above = at(lo), at(hi)
+    assert below.regime == 'roche_overflow'
+    assert above.regime == 'hydrostatic'
+    assert below.mdot == pytest.approx(above.mdot, rel=1e-6, abs=0.0)
+
+
+def test_nozzle_saturation_flag_marks_lobe_contact():
+    """A launch level at or beyond the lobe wins at the boundary value, flagged.
+
+    A loose hydrogen envelope whose photospheric level sits far outside its
+    shrunken lobe dispatches the saturated nozzle rate with
+    ``nozzle_saturated`` raised; the unsaturated nozzle win of the puffy
+    sub-Neptune family must not raise it.
+    """
+    saturated = dispatch(
+        _inputs(
+            2 * Me,
+            2.5 * Re,
+            1500.0,
+            {'H2': 0.9, 'He': 0.1},
+            F_xuv=13.4,
+            a=0.015 * AU,
+            p_top=1e3,
+        )
+    )
+    assert saturated.regime == 'roche_overflow'
+    assert saturated.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert saturated.flags.get('nozzle_saturated') is True
+    assert saturated.diagnostics['nozzle']['saturated'] is True
+    assert math.isfinite(saturated.mdot)
+
+    unsaturated = dispatch(
+        _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
+    )
+    assert unsaturated.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert 'nozzle_saturated' not in unsaturated.flags
+
+
+def test_nozzle_periapsis_flag_on_eccentric_wins_only():
+    """An eccentric nozzle win says the geometry was taken at periapsis.
+
+    The primary treats a circular, synchronously rotating donor, so the
+    periapsis evaluation is this module's convention and the flag makes it
+    visible on the result it produced; the circular win must not raise it.
+    """
+    ecc = dispatch(
+        _inputs(
+            3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU, e=0.3
+        )
+    )
+    assert ecc.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert ecc.flags.get('nozzle_periapsis') is True
+    circ = dispatch(
+        _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
+    )
+    assert circ.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert 'nozzle_periapsis' not in circ.flags
+
+
+def test_nozzle_temperature_setting_selects_and_validates():
+    """The nozzle temperature setting moves the diagnostic and validates.
+
+    The default evaluates the sound speed at the photospheric level (the
+    primary's construction); ``wind`` evaluates it at the thermostat's wind
+    state; anything else is rejected by the settings validator.
+    """
+    state = dict(F_xuv=13.4, a=0.07 * AU)
+    photo = dispatch(_inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, **state))
+    assert photo.diagnostics['nozzle']['temperature_mode'] == 'photospheric'
+    assert photo.diagnostics['nozzle']['T_K'] == pytest.approx(1000.0, rel=1e-9, abs=0.0)
+    wind = dispatch(
+        _inputs(
+            3 * Me,
+            2.2 * Re,
+            1000.0,
+            {'H2': 0.9, 'He': 0.1},
+            settings=DispatchSettings(nozzle_temperature='wind'),
+            **state,
+        )
+    )
+    assert wind.diagnostics['nozzle']['temperature_mode'] == 'wind'
+    assert wind.diagnostics['nozzle']['T_K'] == pytest.approx(
+        wind.diagnostics['hydrodynamic']['T_wind'], rel=1e-9, abs=0.0
+    )
+    with pytest.raises(ValueError):
+        DispatchSettings(nozzle_temperature='photosphere').validate()
+
+
+def test_nozzle_power_diagnostic_reports_the_lift_cost():
+    """The lift power travels beside the two luminosities on every call.
+
+    The nozzle carries no energy cap, so the diagnostic is what shows where
+    the isothermal assumption is strained: the power to lift the dispatched
+    flow to L1, against the interior luminosity and the intercepted
+    instellation, present and finite whether the candidate won or lost.
+    """
+    for res in (
+        dispatch(
+            _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
+        ),
+        dispatch(_inputs(Me, Re, 700.0, {'CO2': 1.0}, F_xuv=10.0, a=0.1 * AU)),
+    ):
+        noz = res.diagnostics['nozzle']
+        for key in ('power_lift_W', 'L_int_W', 'L_bol_intercepted_W'):
+            assert math.isfinite(noz[key])
+            assert noz[key] >= 0.0
+        assert noz['L_int_W'] > 0.0
+        assert noz['L_bol_intercepted_W'] > 0.0
 
 
 def test_diagnostics_are_boxed(monkeypatch):
@@ -547,7 +756,9 @@ def test_caldiroli_efficiency_mode_applies_and_falls_back():
     )
     assert weak.flags.get('caldiroli_below_flux_bound') is True
     assert weak.flags.get('efficiency_fallback_fixed') is True
-    assert weak.diagnostics['hydrodynamic']['efficiency'] == pytest.approx(0.1, rel=1e-12, abs=0.0)
+    assert weak.diagnostics['hydrodynamic']['efficiency'] == pytest.approx(
+        0.1, rel=1e-12, abs=0.0
+    )
 
 
 def test_t_exo_thermostat_mode_estimates_and_reports_itself():
@@ -572,7 +783,10 @@ def test_t_exo_thermostat_mode_estimates_and_reports_itself():
         _inputs(10 * Me, 1.8 * Re, 800.0, {'CO2': 1.0}, F_xuv=1.0, a=0.5 * AU)
     )
     assert prescribed.diagnostics['hydrostatic']['T_exo_mode'] == 'prescribed'
-    assert prescribed.diagnostics['hydrostatic']['T_exo'] != res.diagnostics['hydrostatic']['T_exo']
+    assert (
+        prescribed.diagnostics['hydrostatic']['T_exo']
+        != res.diagnostics['hydrostatic']['T_exo']
+    )
     assert 800.0 <= res.diagnostics['hydrostatic']['T_exo'] <= 5.0e4
     if res.mdot > 0.0:
         assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-6, abs=0.0)
@@ -657,7 +871,9 @@ def test_flags_describe_the_branch_that_produced_the_rate():
     diagnostics report them at every dispatch, which is what makes the
     scoping necessary rather than automatic.
     """
-    hydro = dispatch(_inputs(Me, Re, 1000.0, {'N2': 0.8, 'O2': 0.2}, F_xuv=100.0, a=0.0775 * AU))
+    hydro = dispatch(
+        _inputs(Me, Re, 1000.0, {'N2': 0.8, 'O2': 0.2}, F_xuv=100.0, a=0.0775 * AU)
+    )
     assert hydro.regime.startswith('hydrodynamic')
     assert hydro.flags.get('subcritical_sonic') is True
     boiloff = dispatch(
@@ -731,8 +947,12 @@ def test_one_exobase_temperature_per_call():
 FLAG_CASES = (
     (
         'near_roche',
-        dict(M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.10),
-        dict(M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.30),
+        dict(
+            M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.10
+        ),
+        dict(
+            M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.30
+        ),
     ),
     (
         'k_tide_undefined',
@@ -741,12 +961,26 @@ FLAG_CASES = (
     ),
     (
         'roche_overflow',
-        dict(M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.0775),
+        dict(
+            M_p=3 * Me,
+            R_p=2 * Re,
+            T_eq=1000.0,
+            comp={'H2': 0.9, 'He': 0.1},
+            F_xuv=0.1,
+            a=0.0775,
+        ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
     ),
     (
         'bolometric_residual',
-        dict(M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.0775),
+        dict(
+            M_p=3 * Me,
+            R_p=2 * Re,
+            T_eq=1000.0,
+            comp={'H2': 0.9, 'He': 0.1},
+            F_xuv=0.1,
+            a=0.0775,
+        ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
     ),
     (
@@ -757,7 +991,12 @@ FLAG_CASES = (
     (
         'caldiroli_out_of_box',
         dict(
-            M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775,
+            M_p=Me,
+            R_p=Re,
+            T_eq=1000.0,
+            comp={'CO2': 1.0},
+            F_xuv=10.0,
+            a=0.0775,
             settings=DispatchSettings(efficiency_mode='caldiroli'),
         ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
@@ -770,36 +1009,68 @@ FLAG_CASES = (
     (
         'contested_ion',
         dict(
-            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
-            F_xuv=0.01, a=0.2, settings=DispatchSettings(T_exo_value=6000.0),
+            M_p=0.107 * Me,
+            R_p=0.53 * Re,
+            T_eq=440.0,
+            comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01,
+            a=0.2,
+            settings=DispatchSettings(T_exo_value=6000.0),
         ),
         dict(
-            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
-            F_xuv=0.01, a=0.2,
+            M_p=0.107 * Me,
+            R_p=0.53 * Re,
+            T_eq=440.0,
+            comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01,
+            a=0.2,
         ),
     ),
     (
         'extension_unbound',
         dict(
-            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
-            F_xuv=0.01, a=0.2, settings=DispatchSettings(T_exo_value=6000.0),
+            M_p=0.107 * Me,
+            R_p=0.53 * Re,
+            T_eq=440.0,
+            comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01,
+            a=0.2,
+            settings=DispatchSettings(T_exo_value=6000.0),
         ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=0.1, a=0.0775),
     ),
     (
         'gate_rerouted',
         dict(
-            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
-            F_xuv=0.01, a=0.2, settings=DispatchSettings(T_exo_value=15000.0),
+            M_p=0.107 * Me,
+            R_p=0.53 * Re,
+            T_eq=440.0,
+            comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01,
+            a=0.2,
+            settings=DispatchSettings(T_exo_value=15000.0),
         ),
         dict(
-            M_p=0.107 * Me, R_p=0.53 * Re, T_eq=440.0, comp={'CO2': 0.99, 'H2': 0.01},
-            F_xuv=0.01, a=0.2, settings=DispatchSettings(T_exo_value=3000.0),
+            M_p=0.107 * Me,
+            R_p=0.53 * Re,
+            T_eq=440.0,
+            comp={'CO2': 0.99, 'H2': 0.01},
+            F_xuv=0.01,
+            a=0.2,
+            settings=DispatchSettings(T_exo_value=3000.0),
         ),
     ),
     (
         'base_clamp_decades',
-        dict(M_p=10 * Me, R_p=1.8 * Re, T_eq=800.0, comp={'CO2': 1.0}, F_xuv=1.0, a=0.5, p_top=1.0),
+        dict(
+            M_p=10 * Me,
+            R_p=1.8 * Re,
+            T_eq=800.0,
+            comp={'CO2': 1.0},
+            F_xuv=1.0,
+            a=0.5,
+            p_top=1.0,
+        ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
     ),
 )
@@ -844,9 +1115,7 @@ def test_dispatched_split_names_the_element_that_leaves():
     # Hydrostatic: only hydrogen is light enough to leave the Mars-mass host,
     # and it carries the rate by nineteen decades over the heavy background.
     static = dispatch(
-        _inputs(
-            0.107 * Me, 0.53 * Re, 440.0, {'CO2': 0.99, 'H2': 0.01}, F_xuv=0.01, a=0.2 * AU
-        )
+        _inputs(0.107 * Me, 0.53 * Re, 440.0, {'CO2': 0.99, 'H2': 0.01}, F_xuv=0.01, a=0.2 * AU)
     )
     assert static.regime == 'hydrostatic'
     assert set(static.per_species) == {'H', 'C', 'O'}

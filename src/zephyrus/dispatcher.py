@@ -16,6 +16,7 @@ from zephyrus import diagnostics as dg
 from zephyrus import hydrodynamic as hy
 from zephyrus import hydrostatic as hs
 from zephyrus import knudsen as kn
+from zephyrus import nozzle as nz
 from zephyrus import thermostat as th
 from zephyrus.composition import atomize, mean_particle_mass
 from zephyrus.constants import kb, m_p
@@ -56,8 +57,13 @@ from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 #    renamed ``roche_overflow`` and keeps the rate its own branch
 #    computed: the screen renames a state and never changes its rate.
 #    Near misses raise ``near_roche``.
-# 6. The final rate is the larger of the surviving branch rate and the
-#    bolometric residual, labeled by the winner.
+# 6. The final rate is the largest of the surviving branch rate, the
+#    bolometric residual, and the tidally driven L1 nozzle rate
+#    (Jackson et al. 2017), labeled by the winner. A nozzle win labels
+#    ``roche_overflow`` with a real transfer rate, so that boundary is a
+#    rate crossing and the dispatched rate is continuous across it; the
+#    step 5 rename keeps its bound-flow lower-limit meaning, and
+#    ``diagnostics['roche']['rate_branch']`` says which reading applies.
 #
 # Diagnostics are boxed: nothing in this module branches on anything the
 # diagnostics container carries, and the container has no off switch.
@@ -96,6 +102,7 @@ class DispatchSettings:
     cool_recombination: bool = True
     fractionate: bool = True
     tidal: bool = True
+    nozzle_temperature: str = 'photospheric'  # 'photospheric' | 'wind'
     lambda_crit: float = 20.0  # boil-off activation threshold (band 15 to 35)
     gamma_bates: float = 0.75  # Bates profile shape parameter
     kzz: float = 3.0e2  # m^2/s eddy diffusion when the profile carries none
@@ -116,6 +123,8 @@ class DispatchSettings:
             raise ValueError("efficiency_mode must be 'fixed' or 'caldiroli'")
         if self.T_exo_mode not in ('prescribed', 'thermostat'):
             raise ValueError("T_exo_mode must be 'prescribed' or 'thermostat'")
+        if self.nozzle_temperature not in ('photospheric', 'wind'):
+            raise ValueError("nozzle_temperature must be 'photospheric' or 'wind'")
         if not (
             self.cool_atomic
             or self.cool_co2_band
@@ -150,7 +159,10 @@ class DispatchSettings:
         # The sonic-point scale height of Chatterjee & Pierrehumbert Eq. (17)
         # carries sqrt(5 - 3 gamma), which leaves the reals above the monatomic
         # 5/3. Below 1 the polytrope is no longer a wind solution.
-        if self.hydrostatic_levels_min < 2 or self.hydrostatic_levels_max < self.hydrostatic_levels_min:
+        if (
+            self.hydrostatic_levels_min < 2
+            or self.hydrostatic_levels_max < self.hydrostatic_levels_min
+        ):
             raise ValueError(
                 'hydrostatic_levels_min must be at least 2 and no greater than '
                 f'hydrostatic_levels_max, got {self.hydrostatic_levels_min!r} and '
@@ -174,8 +186,8 @@ class EscapeInputs:
     e: float  # eccentricity
     T_eq: float  # K, equilibrium temperature
     F_xuv: float  # W m^-2
-    F_bol: float  # W m^-2, bolometric instellation (carried with the state;
-    #               not consumed by any branch in this version)
+    F_bol: float  # W m^-2, bolometric instellation (consumed only by the
+    #               nozzle power diagnostic; no branch rate reads it)
     F_int: float  # W m^-2, interior heat flux (luminosity cap)
     kappa_photo: float  # m^2 kg^-1, photospheric opacity
     profile: Profile
@@ -346,6 +358,53 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     )
     diag['thermostat'] = thermo
 
+    # The tidally driven L1 nozzle candidate (Jackson et al. 2017 Eq. 3),
+    # computed at every point: it joins the final comparison on both sides
+    # of the activation gate, and its power comparison is an always-on
+    # diagnostic. The temperature setting decides what evaluates the sound
+    # speed and the barrier: the photospheric level (the primary's own
+    # construction, a bolometrically maintained flow) or the thermostat's
+    # wind state (the upper envelope their Figure 9 explores). The flow is
+    # uncapped, faithful to the primary, whose isothermal model has the
+    # radiation field maintain the temperature; the lift power reported
+    # beside the interior and intercepted stellar luminosities shows where
+    # that assumption is strained.
+    if st.nozzle_temperature == 'wind':
+        t_nozzle, mu_nozzle = t_wind, rr['mu_wind'] * m_p
+    else:
+        t_nozzle, mu_nozzle = photo['T'], photo['mmw']
+    nozzle_rate, noz = nz.nozzle_candidate(
+        inputs.M_p,
+        inputs.M_star,
+        inputs.a,
+        inputs.e,
+        rho_ph=photo['rho'],
+        r_ph=photo['r'],
+        T=t_nozzle,
+        mu_kg=mu_nozzle,
+    )
+    noz['rate_kg_s'] = nozzle_rate
+    noz['temperature_mode'] = st.nozzle_temperature
+    # The overflow description applies where the isothermal sonic radius
+    # reaches the L1 distance (the periapsis Hill radius to leading order
+    # in the mass ratio), so that no spherical transonic wind fits inside
+    # the lobe and the nozzle is the constriction (Jackson et al. 2017,
+    # their Section 4 and Figure 9). Inward of that the flow chokes at its
+    # own sonic surface and the wind branches are the description, so the
+    # candidate reports but does not compete. This edge is a criterion
+    # boundary like the activation gate, not a rate crossing, and the jump
+    # across it is a result to measure rather than hide.
+    nozzle_applicable = noz['R_sonic'] >= r_hill
+    noz['applicable'] = nozzle_applicable
+    noz['R_sonic_over_R_L1'] = noz['R_sonic'] / r_hill
+    # The power comparison: what lifting the flow to L1 costs against what
+    # the planet has. At saturation the barrier is gone and the lift power
+    # with it.
+    noz['power_lift_W'] = nozzle_rate * max(noz['delta_phi'], 0.0)
+    noz['L_int_W'] = 4.0 * math.pi * inputs.R_p**2 * inputs.F_int
+    noz['L_bol_intercepted_W'] = math.pi * inputs.R_p**2 * inputs.F_bol
+    diag['nozzle'] = noz
+
     # Step 3: the sonic-point Knudsen switch.
     n_sc = rr['rho_s'] / (rr['mu_plus_wind'] * m_p)  # heavy-particle density
     if n_sc > _TINY:
@@ -454,18 +513,45 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             # warnings about that candidate stop describing the result.
             for key in tuple(hydro_flags) + ('hydrostatic_lower_limit',):
                 flags.pop(key, None)
-    label = branch
+    # The nozzle candidate competes last, on both sides of the activation
+    # gate, wherever the overflow description applies: where the
+    # photosphere approaches the lobe, the tidally driven transfer through
+    # L1 outruns every bound-flow estimate, and the label boundary it
+    # creates is a rate crossing, continuous by construction. A candidate
+    # below the one-proton-per-Julian-year floor does not compete: this
+    # label is a rate crossing, not a geometric verdict, and a crossing
+    # between two numerically empty numbers would rename the deeply bound
+    # corner on no physical content (the floor otherwise stays reported
+    # and never applied, and a geometric verdict still ignores it).
+    if nozzle_applicable and nozzle_rate > rate and nozzle_rate > dg.RATE_FLOOR_KG_S:
+        branch = 'roche_nozzle'
+        rate = nozzle_rate
+        per_species = None
+        flow_radius = noz['r_lobe']
+        for key in tuple(hydro_flags) + ('hydrostatic_lower_limit', 'bolometric_residual'):
+            flags.pop(key, None)
+        if noz['saturated']:
+            # The photospheric potential reached the L1 value, so the rate
+            # is the lobe-filling boundary value of the model rather than
+            # an interior point of it.
+            flags['nozzle_saturated'] = True
+        if inputs.e > 0.0:
+            # The geometry is evaluated at periapsis on a model built for
+            # a circular orbit; elsewhere on the orbit the instantaneous
+            # rate is lower.
+            flags['nozzle_periapsis'] = True
+    label = 'roche_overflow' if branch == 'roche_nozzle' else branch
 
     # Step 6: the Roche screen on the active flow radius. The screen renames
     # the state and never touches the rate. Its boundary is a rate
     # comparison, since the branch whose flow radius gets tested is the one
-    # that won step 6, so reporting the winning branch's own rate keeps the
-    # dispatched rate continuous across the boundary; substituting another
-    # branch's formula would not. What the label means is therefore that the
-    # flow reaches the Roche lobe and that the rate beside it is the
-    # bound-flow estimate, a lower limit on what tides would do. The rate a
-    # tidally driven nozzle flow through L1 would carry is not implemented
-    # (Jackson et al. 2017, ApJ 835, 145, their Eq. 3).
+    # that won the final comparison, so reporting the winning branch's own
+    # rate keeps the dispatched rate continuous across the boundary;
+    # substituting another branch's formula would not. When the rename fires
+    # on a bound branch, the rate beside the label is the bound-flow
+    # estimate, a lower limit on what tides would do; when the nozzle
+    # candidate won above, the rate is the tidally driven transfer itself
+    # and the subflag reads ``nozzle``.
     xi_flow = r_hill / flow_radius if flow_radius > 0 else math.inf
     # The outer extent of the atmosphere itself, modeled plus extended,
     # which is what separates the two overflow geometries. It is reported
@@ -491,6 +577,19 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         # narrow band Owen & Jackson (2012) describe.
         flags['roche_subflag'] = (
             'dynamical' if (xi_ktide <= 1.0 or r_hill <= r_atm) else 'no_transonic'
+        )
+    elif branch == 'roche_nozzle':
+        # The label arrived through the rate crossing rather than the
+        # geometric trigger. The subflag still reads the geometry: an
+        # atmosphere that itself reaches the lobe is dynamical overflow
+        # whichever candidate carries the rate; ``nozzle`` marks the
+        # remaining case, a photosphere close enough to the lobe for the
+        # L1 transfer to outrun the bound branches while the structure
+        # sits inside the Hill sphere. ``near_roche`` is a warning about
+        # the tidal inflation of a bound rate, which this rate is not.
+        flags['roche_overflow'] = True
+        flags['roche_subflag'] = (
+            'dynamical' if (xi_ktide <= 1.0 or r_hill <= r_atm) else 'nozzle'
         )
     elif xi_flow < 1.5:
         flags['near_roche'] = True

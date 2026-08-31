@@ -153,7 +153,7 @@ hydrodynamic:EL
 {'C': 660971.2983440236, 'O': 1686751.2523411503}
 0.0
 {}
-['base_level', 'bolometric', 'closure', 'documentation', 'erkaev_tc_K', 'fluid_check', 'guo_triple', 'hydrodynamic', 'hydrostatic', 'johnson_q', 'knudsen', 'lambda_gate', 'potential_screens', 'rate_floor', 'roche', 'self_consistency', 'tang_timescale', 'thermostat']
+['base_level', 'bolometric', 'closure', 'documentation', 'erkaev_tc_K', 'fluid_check', 'guo_triple', 'hydrodynamic', 'hydrostatic', 'johnson_q', 'knudsen', 'lambda_gate', 'nozzle', 'potential_screens', 'rate_floor', 'roche', 'self_consistency', 'tang_timescale', 'thermostat']
 ```
 
 Five fields, and each one guarantees something. `regime` is one of five labels. `mdot` is a non-negative bulk rate in kg s⁻¹, here $2.35 \times 10^{6}$ kg s⁻¹, or $7.4 \times 10^{13}$ kg yr⁻¹. `per_species` gives element rates that sum to `mdot` at machine precision, which is what a coupled run relies on when it debits element inventories, and which is worth asserting in your own code. `flags` records every clamp, fallback, and screen that fired; an empty dictionary means nothing needed reporting. `diagnostics` is the container of step 5.
@@ -271,7 +271,7 @@ roche_overflow 24622841.930601332
 no_transonic
 ```
 
-The flow radius of the winning branch now exceeds the Hill radius, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow, and the label says so. The rate is unchanged by the label: the screen renames a state and never recomputes its rate, so what you get is whatever the winning branch produced, here the luminosity-capped bolometric residual at $2.5 \times 10^{7}$ kg s⁻¹ named in `diagnostics['roche']['rate_branch']`. Read it as a lower limit, because the tidally driven flow a genuinely overflowing planet drives is not modeled.
+The flow radius of the winning branch now exceeds the Hill radius, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow, and the label says so. The rate is unchanged by the label: the screen renames a state and never recomputes its rate, so what you get is whatever the winning branch produced, here the luminosity-capped bolometric residual at $2.5 \times 10^{7}$ kg s⁻¹ named in `diagnostics['roche']['rate_branch']`. Read it as a lower limit. The tidally driven transfer through the inner Lagrange point is computed on every call and reports $5.4 \times 10^{10}$ kg s⁻¹ in `diagnostics['nozzle']`, but it competes only where the overflow description applies, and here the isothermal sonic radius sits just inside the L1 distance (`R_sonic_over_R_L1` reads 0.95), so a spherical wind chokes before the nozzle does and the candidate stands down.
 
 The subflag is the part worth reading. This atmosphere reaches 0.96 Hill radii, just inside the lobe, and only its sonic surface would sit outside, which is `no_transonic`; an atmosphere whose own extent passes the lobe gets `dynamical` instead. The two are far apart physically, and the same screen catches both, so compare `r_atmosphere` against `R_hill_periapsis` in the same group before you trust the label. On a tightly bound heavy atmosphere the label can fire on geometry alone with no rate behind it; the [troubleshooting guide](../How-to/troubleshooting.md) walks the three cases.
 
