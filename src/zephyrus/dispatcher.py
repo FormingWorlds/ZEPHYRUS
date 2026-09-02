@@ -543,7 +543,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # corner on no physical content (the floor otherwise stays reported
     # and never applied, and a geometric verdict still ignores it).
     if nozzle_applicable and nozzle_rate > rate and nozzle_rate > dg.RATE_FLOOR_KG_S:
-        branch = 'roche_nozzle'
+        branch = 'roche_overflow'
         rate = nozzle_rate
         per_species = None
         # ``flow_radius`` is deliberately left as the branch that lost the
@@ -573,7 +573,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             winner_flags['nozzle_partial_orbit'] = True
     # Only the winner's warnings reach the result.
     flags.update(winner_flags)
-    label = 'roche_overflow' if branch == 'roche_nozzle' else branch
+    label = branch
 
     # Step 6: the Roche screen on the active flow radius. The screen renames
     # the state and never touches the rate. Its boundary is a rate
@@ -610,7 +610,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # mechanism question is answered by ``rate_branch`` instead.
     # ``near_roche`` warns about the tidal inflation of a bound rate, so
     # it is not raised once the state is already labeled.
-    if xi_flow <= 1.0 or xi_ktide <= 1.0 or branch == 'roche_nozzle':
+    if xi_flow <= 1.0 or xi_ktide <= 1.0 or branch == 'roche_overflow':
         label = 'roche_overflow'
         flags['roche_overflow'] = True
         # Dynamical overflow when the atmosphere itself reaches the Roche

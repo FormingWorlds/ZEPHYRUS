@@ -349,7 +349,7 @@ def test_roche_subflag_separates_the_two_geometries():
     )
     roche_n = neither.diagnostics['roche']
     assert neither.regime == 'roche_overflow'
-    assert roche_n['rate_branch'] == 'roche_nozzle'
+    assert roche_n['rate_branch'] == 'roche_overflow'
     assert neither.flags.get('roche_subflag') == 'neither'
     assert roche_n['r_atmosphere'] < neither.diagnostics['nozzle']['r_lobe']
     assert roche_n['xi_flow'] > 1.0
@@ -360,7 +360,7 @@ def test_nozzle_win_relabels_with_the_transfer_rate():
 
     A puffy sub-Neptune whose photosphere sits within a few thermal units
     of its lobe dispatches the Jackson et al. (2017) L1 rate: the label is
-    ``roche_overflow``, the branch is ``roche_nozzle``, the subflag reads
+    ``roche_overflow``, the branch is ``roche_overflow`` too, the subflag reads
     ``dynamical`` because this envelope's extended structure itself reaches
     past the Hill sphere and the geometric reading takes precedence, the
     split is unfractionated (the nozzle is a bulk photospheric flow, not
@@ -372,7 +372,7 @@ def test_nozzle_win_relabels_with_the_transfer_rate():
     )
     noz = res.diagnostics['nozzle']
     assert res.regime == 'roche_overflow'
-    assert res.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert res.diagnostics['roche']['rate_branch'] == 'roche_overflow'
     assert res.flags.get('roche_subflag') == 'dynamical'
     assert (
         res.diagnostics['roche']['r_atmosphere'] > res.diagnostics['roche']['R_hill_periapsis']
@@ -444,7 +444,7 @@ def test_nozzle_crossing_is_continuous():
     lo, hi = 0.010 * AU, 0.014 * AU
     inner = at(lo)
     assert inner.regime == 'roche_overflow'
-    assert inner.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert inner.diagnostics['roche']['rate_branch'] == 'roche_overflow'
     # This donor's extended structure passes its own Roche lobe while
     # staying inside the Hill sphere, so the geometric subflag reads
     # dynamical whichever candidate carries the rate.
@@ -483,7 +483,7 @@ def test_nozzle_saturation_flag_marks_lobe_contact():
         )
     )
     assert saturated.regime == 'roche_overflow'
-    assert saturated.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert saturated.diagnostics['roche']['rate_branch'] == 'roche_overflow'
     assert saturated.flags.get('nozzle_saturated') is True
     assert saturated.diagnostics['nozzle']['saturated'] is True
     assert math.isfinite(saturated.mdot)
@@ -491,7 +491,7 @@ def test_nozzle_saturation_flag_marks_lobe_contact():
     unsaturated = dispatch(
         _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
     )
-    assert unsaturated.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert unsaturated.diagnostics['roche']['rate_branch'] == 'roche_overflow'
     assert 'nozzle_saturated' not in unsaturated.flags
 
 
@@ -512,7 +512,7 @@ def test_nozzle_orbit_average_on_eccentric_wins_only():
         )
     )
     noz = ecc.diagnostics['nozzle']
-    assert ecc.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert ecc.diagnostics['roche']['rate_branch'] == 'roche_overflow'
     assert ecc.flags.get('nozzle_orbit_averaged') is True
     # The periapsis separation is the one the geometry is built on, and it
     # is not the semi-major axis: a rate taken at ``a`` instead would sit
@@ -533,7 +533,7 @@ def test_nozzle_orbit_average_on_eccentric_wins_only():
         _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
     )
     noz_c = circ.diagnostics['nozzle']
-    assert circ.diagnostics['roche']['rate_branch'] == 'roche_nozzle'
+    assert circ.diagnostics['roche']['rate_branch'] == 'roche_overflow'
     assert 'nozzle_orbit_averaged' not in circ.flags
     assert 'nozzle_partial_orbit' not in circ.flags
     # At most one by construction, so this is the whole-orbit claim without
