@@ -283,7 +283,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         st.lambda_crit,
         k_tide=k_factor,
     )
-    flags.update(bolo['flags'])
+    # Each candidate's warnings are held with that candidate and merged only
+    # if it wins, so the flag set always describes the dispatched rate and
+    # never a candidate that lost. Input hygiene (stale inputs, base clamps,
+    # the tidal factor, hysteresis) is a property of the state rather than of
+    # a candidate, so it merges as it is found.
+    bolo_flags = dict(bolo['flags'])
     diag['lambda_gate'] = lam_gate
     diag['bolometric'] = {k: v for k, v in bolo.items() if k != 'flags'}
     diag['bolometric']['rate_kg_s'] = bolo_rate
@@ -501,35 +506,32 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         branch = 'boiloff'
         rate = bolo_rate
         flow_radius = bolo['R_sonic']
+        winner_flags = bolo_flags
     else:
         if kn_sc <= threshold:
             branch = hydro_label
             rate = mdot_hydro
             flow_radius = max(r_xuv, rr['R_s'])
-            flags.update(hydro_flags)
+            winner_flags = hydro_flags
         elif unstable:
             branch = hydro_label
             rate = mdot_hydro
             flow_radius = max(r_xuv, rr['R_s'])
             flags['gate_rerouted'] = True
-            flags.update(hydro_flags)
+            winner_flags = hydro_flags
         else:
             branch = 'hydrostatic'
             rate = mdot_hs
             per_species = dict(hs_per_element)
-            flags.update(hs_flags)
+            winner_flags = hs_flags
             flow_radius = hsd['r_exo']
         # Step 5: the bolometric residual stays a candidate past the gate.
         if bolo_rate > rate:
             branch = 'boiloff'
             rate = bolo_rate
             per_species = None
-            flags['bolometric_residual'] = True
             flow_radius = bolo['R_sonic']
-            # The residual displaces whichever candidate had won, so the
-            # warnings about that candidate stop describing the result.
-            for key in tuple(hydro_flags) + ('hydrostatic_lower_limit',):
-                flags.pop(key, None)
+            winner_flags = dict(bolo_flags, bolometric_residual=True)
     # The nozzle candidate competes last, on both sides of the activation
     # gate, wherever the overflow description applies: where the
     # photosphere approaches the lobe, the tidally driven transfer through
@@ -550,13 +552,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         # xi_flow at the fixed lobe-to-Hill ratio and throw away the one
         # geometric fact the screen still reports on this branch. The lobe
         # radius travels in ``diagnostics['nozzle']['r_lobe']``.
-        for key in tuple(hydro_flags) + ('hydrostatic_lower_limit', 'bolometric_residual'):
-            flags.pop(key, None)
+        winner_flags = {}
         if noz['saturated']:
             # The photospheric potential reached the L1 value, so the rate
             # is the lobe-filling boundary value of the model rather than
             # an interior point of it.
-            flags['nozzle_saturated'] = True
+            winner_flags['nozzle_saturated'] = True
         if inputs.e > 0.0:
             # The rate is a time average over the orbit, evaluated with
             # the circular formula at each separation. Under saturation it
@@ -564,12 +565,14 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             # lower bound there and an upper bound while the barrier is
             # unclamped; the average is what a secular caller needs either
             # way.
-            flags['nozzle_orbit_averaged'] = True
+            winner_flags['nozzle_orbit_averaged'] = True
         if noz['applicable_orbit_fraction'] < 1.0:
             # The overflow description holds only on an arc around
             # periapsis. The rate is duty-cycled over that arc, so it
             # omits the wind the planet drives on the rest of the orbit.
-            flags['nozzle_partial_orbit'] = True
+            winner_flags['nozzle_partial_orbit'] = True
+    # Only the winner's warnings reach the result.
+    flags.update(winner_flags)
     label = 'roche_overflow' if branch == 'roche_nozzle' else branch
 
     # Step 6: the Roche screen on the active flow radius. The screen renames
