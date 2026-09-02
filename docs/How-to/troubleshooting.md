@@ -80,6 +80,7 @@ The four cases that produces:
 - Subflag `dynamical` on a bound branch and a rate above the floor: the atmosphere reaches its Roche lobe while the nozzle candidate lost or sat outside its criterion, the rate is the bound-flow estimate, and the real rate is higher by whatever the tidal flow would carry. Treat it as a lower limit.
 - Subflag `no_transonic` with `r_atmosphere` well inside the Hill radius: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly-bound case above, not an overflow; the [regimes page](../Explanations/regimes.md) explains why the two look alike to the screen.
 - `above_floor` false: the label is decided by the ordering of two rates with no numerical content. Report no escape and treat the geometry as a note.
+- A rate above the floor but far below anything that matters. The floor marks what is distinguishable from zero in floating point, one proton per Julian year, which is many decades below a rate that could change an atmosphere. Around one nozzle win in twenty is dispatched below 1e-20 kg s⁻¹, which clears the floor and means nothing physically. Read `diagnostics['self_consistency']` beside it: what settles whether a rate matters is the depletion timescale against the age you passed in, not the floor.
 
 Points whose flow radius exceeds two thirds of the Hill radius raise `near_roche` instead of the label, and the tidal factor is steep there, so a rate from that region carries the tidal correction's sensitivity with it.
 

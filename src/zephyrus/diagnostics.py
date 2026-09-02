@@ -193,7 +193,7 @@ def self_consistency_screen(reservoirs: dict | None, mdot: float, age: float | N
 
 
 def rate_floor_screen(mdot: float) -> dict:
-    """Numerical-content screen: the rate against one proton per year.
+    """Numerical-content screen: the rate against one proton per Julian year.
 
     A strongly bound heavy atmosphere returns rates many decades below
     anything with physical content, and a regime label attached to such a

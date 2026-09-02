@@ -30,7 +30,7 @@ The closure evaluates at the XUV wind base on the atomized composition (molecule
 | `boiloff` | Reservoir mass fractions (no fractionation: the flow is fast and bulk) |
 | `hydrostatic` | Natively per-species: each species carries its own Jeans flux and supply cap (see [escape regimes](regimes.md)) |
 
-The split follows the branch and not the label, which matters under `roche_overflow`: that label renames a state without changing its rate, so the split is whatever the branch named in `diagnostics['roche']['rate_branch']` would have produced.
+The split follows the branch and not the label, which matters under `roche_overflow`, where two readings meet. When the geometric screen renamed a bound state, the label left the rate alone and the split is whatever the branch named in `diagnostics['roche']['rate_branch']` produced. When that field reads `roche_overflow` itself, the tidally driven transfer through L1 was dispatched: it is a bulk flow with no per-species physics, so the elements leave in their reservoir proportions and no closure runs.
 
 ---
 

@@ -537,11 +537,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # photosphere approaches the lobe, the tidally driven transfer through
     # L1 outruns every bound-flow estimate, and the label boundary it
     # creates is a rate crossing, continuous by construction. A candidate
-    # below the one-proton-per-Julian-year floor does not compete: this
-    # label is a rate crossing, not a geometric verdict, and a crossing
-    # between two numerically empty numbers would rename the deeply bound
-    # corner on no physical content (the floor otherwise stays reported
-    # and never applied, and a geometric verdict still ignores it).
+    # below the one-proton-per-Julian-year floor does not compete: the
+    # label here turns entirely on which of two numbers is larger, and
+    # between two numerically empty numbers that decides nothing, so it
+    # would rename the deeply bound corner on no physical content. The
+    # floor otherwise stays reported and never applied, and a geometric
+    # verdict still ignores it.
     if nozzle_applicable and nozzle_rate > rate and nozzle_rate > dg.RATE_FLOOR_KG_S:
         branch = 'roche_overflow'
         rate = nozzle_rate
@@ -582,8 +583,10 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # rate keeps the dispatched rate continuous across the boundary;
     # substituting another branch's formula would not. When the rename fires
     # on a bound branch, the rate beside the label is the bound-flow
-    # estimate, a lower limit on what tides would do; when the nozzle
-    # candidate won above, the rate is the tidally driven transfer itself
+    # estimate, and a lower limit on the tidal transfer only where the
+    # nozzle candidate sat outside its criterion; where it was applicable
+    # and lost, the candidate rate is below the dispatched one. When the
+    # nozzle won above, the rate is the tidally driven transfer itself
     # and the subflag reads ``nozzle``.
     xi_flow = r_hill / flow_radius if flow_radius > 0 else math.inf
     # The outer extent of the atmosphere itself, modeled plus extended,
@@ -604,7 +607,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     )
     # The label has two routes in and one precedence rule, written once:
     # the geometric trigger on the winning branch's flow radius, and the
-    # rate crossing when the nozzle candidate won above. The subflag is
+    # crossing of two rates when the nozzle candidate won above. The subflag is
     # geometric under either route, so an atmosphere that spills reads
     # ``dynamical`` whichever candidate carries the rate, and the
     # mechanism question is answered by ``rate_branch`` instead.
@@ -618,7 +621,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         # way out to the Hill radius; no transonic solution when only the
         # flow radius passes the Hill radius, which is the narrow band
         # Owen & Jackson (2012) describe; ``neither`` when the label came
-        # from the rate crossing alone.
+        # from that crossing alone.
         if xi_ktide <= 1.0 or r_atm >= noz['r_lobe']:
             flags['roche_subflag'] = 'dynamical'
         elif xi_flow <= 1.0:

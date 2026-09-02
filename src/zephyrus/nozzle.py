@@ -64,7 +64,8 @@ from zephyrus.constants import G, kb
 #   duty cycle are both ours. At e = 0 the average is the instantaneous
 #   rate exactly.
 # - Stated limitations carried from the primary: the flow is isothermal
-#   (their Section 3.1 names the neglected thermal structure), the orbit
+#   (their Section 3 names the neglected heating and cooling balance and
+#   calls the approximation an important limitation), the orbit
 #   circular and the rotation synchronous (an eccentric caller is averaged
 #   over its orbit as above, our convention rather than theirs, and the
 #   rotation is synchronous at no single phase of such an orbit), and the
