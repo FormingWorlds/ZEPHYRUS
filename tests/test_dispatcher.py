@@ -29,7 +29,8 @@ import math
 import numpy as np
 import pytest
 
-from zephyrus.constants import kb
+from zephyrus.composition import species_mass_amu
+from zephyrus.constants import G, amu, kb
 from zephyrus.dispatcher import (
     REGIME_LABELS,
     DispatchSettings,
@@ -40,7 +41,7 @@ from zephyrus.escape import EL_escape
 from zephyrus.hydrodynamic import caldiroli_efficiency
 from zephyrus.nozzle import isothermal_column_density, nozzle_candidate
 from zephyrus.planets_parameters import Me, Ms, Re
-from zephyrus.profiles import isothermal_profile, photospheric_level
+from zephyrus.profiles import Profile, isothermal_profile, photospheric_level
 
 pytestmark = [pytest.mark.smoke, pytest.mark.timeout(60)]
 
@@ -76,6 +77,40 @@ def _inputs(M_p, R_p, T_eq, comp, F_xuv, a=0.1 * AU, e=0.0, p_surf=1e7, p_top=1e
     )
     defaults.update(kw)
     return EscapeInputs(**defaults)
+
+
+def _inverted_profile(M_p, R_p, T_base, T_top, comp, p_surf=1e7, p_top=1e-5, n=160):
+    """Hydrostatic profile whose temperature rises with altitude.
+
+    The isothermal builder makes the profile temperature identical to
+    ``T_eq`` at every level, so no test on it can tell a profile
+    temperature from an equilibrium one, and no test on it can see the
+    launch-level cancellation fail. This integrates the same hydrostatic
+    relation on a temperature that ramps linearly in log pressure, which is
+    the shape a real upper atmosphere has and the shape that breaks the
+    isothermal Bernoulli argument.
+    """
+    tot = sum(comp.values())
+    mu = sum(x * species_mass_amu(sp) for sp, x in comp.items()) / tot * amu
+    lnp = np.linspace(math.log(p_surf), math.log(p_top), n)
+    frac = (lnp - lnp[0]) / (lnp[-1] - lnp[0])
+    T = T_base + (T_top - T_base) * frac
+    r = np.empty(n)
+    r[0] = R_p
+    last = n - 1
+    for i in range(n - 1):
+        H = kb * T[i] * r[i] ** 2 / (G * M_p * mu)
+        r[i + 1] = r[i] - H * (lnp[i + 1] - lnp[i])
+        if G * M_p * mu / (kb * T[i + 1] * r[i + 1]) < 2.2:
+            # The same boundedness stop the isothermal builder uses: past
+            # it the scale height grows faster than the radius and the
+            # integration runs away instead of describing an atmosphere.
+            last = i
+            break
+    lnp, r, T = lnp[: last + 1], r[: last + 1], T[: last + 1]
+    n = last + 1
+    vmr = {sp: np.full(n, x / tot) for sp, x in comp.items()}
+    return Profile(p=np.exp(lnp), r=r, T=T, vmr=vmr, mmw=np.full(n, mu), kzz=None)
 
 
 def _random_inputs(rng):
@@ -678,6 +713,9 @@ def test_diagnostics_are_boxed(monkeypatch):
         'boiloff': _inputs(
             Me, 1.5 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=10.0, a=0.0775 * AU
         ),
+        'roche_overflow': _inputs(
+            3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU
+        ),
     }
     reference = {k: dispatch(v) for k, v in states.items()}
     for expected, res in zip(states, reference.values()):
@@ -1233,6 +1271,114 @@ def _flag_state(spec):
 
 
 @pytest.mark.physics_invariant
+@pytest.mark.physics_invariant
+def test_launch_level_is_a_width_on_a_realistic_column():
+    """Off an isothermal column the launch level is a width, not a cancellation.
+
+    The transfer rate is invariant to the launch level only along a column
+    whose sound speed matches the density that column carries. Real
+    profiles are not isothermal, so the cancellation leaves a residual, and
+    the residual is reported rather than assumed small. The isothermal
+    control is the contrast: the same sweep on the builder every other test
+    uses moves the rate by a few percent, while a modest inversion moves it
+    by a factor.
+    """
+    comp = {'H2': 0.9, 'He': 0.1}
+    inverted = _inverted_profile(3 * Me, 2.2 * Re, 1000.0, 1600.0, comp)
+    # The profile is warmer than the equilibrium temperature everywhere
+    # above its base, so a rate reading T_eq instead of the profile is
+    # detectable here and is not on an isothermal fixture.
+    assert inverted.T[-1] > inverted.T[0]
+    spreads = {}
+    for label, profile in (('inverted', inverted), ('isothermal', None)):
+        rates = []
+        for p_photo in (2.0e4, 2.0e3, 2.0e2, 2.0e1):
+            extra = {'profile': profile} if profile is not None else {}
+            state = _inputs(
+                3 * Me,
+                2.2 * Re,
+                1000.0,
+                comp,
+                F_xuv=13.4,
+                a=0.07 * AU,
+                settings=DispatchSettings(P_photo=p_photo),
+                **extra,
+            )
+            rates.append(dispatch(state).diagnostics['nozzle']['rate_full_orbit_kg_s'])
+        spreads[label] = max(rates) / min(rates)
+    assert spreads['isothermal'] < 1.2
+    assert spreads['inverted'] > 2.0
+    noz = dispatch(
+        _inputs(3 * Me, 2.2 * Re, 1000.0, comp, F_xuv=13.4, a=0.07 * AU, profile=inverted)
+    ).diagnostics['nozzle']
+    assert noz['T_K'] > 1000.0  # the profile's photospheric level, not T_eq
+
+
+def test_nozzle_win_keeps_the_losing_branch_flow_radius():
+    """A nozzle win reports the wind's flow radius, not the lobe radius.
+
+    The lobe radius is a fixed fraction of the Hill radius at every
+    planetary mass ratio, so substituting it would pin the reported ratio
+    at a constant and discard the one geometric fact the screen still
+    carries on this branch. The lobe radius has its own key.
+    """
+    res = dispatch(
+        _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
+    )
+    roche, noz = res.diagnostics['roche'], res.diagnostics['nozzle']
+    assert roche['rate_branch'] == 'roche_overflow'
+    assert roche['flow_radius'] != pytest.approx(noz['r_lobe'], rel=1e-6)
+    assert roche['xi_flow'] == pytest.approx(
+        roche['R_hill_periapsis'] / roche['flow_radius'], rel=1e-12
+    )
+    # The constant the substitution would have produced, for contrast.
+    assert roche['R_hill_periapsis'] / noz['r_lobe'] == pytest.approx(1.418, rel=0.01)
+
+
+def test_nozzle_win_splits_by_reservoir_not_by_the_losing_branch():
+    """A nozzle win carries a bulk split, not the split its rival computed.
+
+    The transfer is a bulk flow through L1 with no per-species physics, so
+    the elements leave in their reservoir proportions. The state below is
+    the discriminator: its hydrostatic rival gives hydrogen the entire
+    flux by Jeans selection, so inheriting that split instead of replacing
+    it would be visible as hydrogen dominating a carbon dioxide planet.
+    """
+    settings = DispatchSettings(T_exo_value=2000.0)
+    won = dispatch(
+        _inputs(
+            0.107 * Me,
+            0.53 * Re,
+            600.0,
+            {'CO2': 0.99, 'H2': 0.01},
+            F_xuv=1e-4,
+            a=0.008 * AU,
+            settings=settings,
+        )
+    )
+    assert won.diagnostics['roche']['rate_branch'] == 'roche_overflow'
+    total = sum(won.per_species.values())
+    assert total == pytest.approx(won.mdot, rel=1e-12)
+    shares = {k: v / total for k, v in won.per_species.items()}
+    assert shares['O'] > shares['C'] > shares['H']
+    assert shares['H'] < 1e-2
+    # The same composition on the branch the nozzle displaced, for contrast.
+    rival = dispatch(
+        _inputs(
+            0.107 * Me,
+            0.53 * Re,
+            600.0,
+            {'CO2': 0.99, 'H2': 0.01},
+            F_xuv=1e-4,
+            a=0.2 * AU,
+            settings=settings,
+        )
+    )
+    assert rival.regime == 'hydrostatic'
+    rival_total = sum(rival.per_species.values())
+    assert rival.per_species['H'] / rival_total > 0.99
+
+
 def test_dispatched_split_names_the_element_that_leaves():
     """The dispatched split is checked by identity, not only by its sum.
 

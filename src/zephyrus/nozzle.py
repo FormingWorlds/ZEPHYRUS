@@ -207,14 +207,18 @@ def _phase_state(
     phi_ph = volume_averaged_potential(r_ph, M_p, M_star, sep)
     delta_phi = phi_l1 - phi_ph
     exponent = -delta_phi / v_th**2
-    # The saturation test is geometric, not potential-ordered: outside the
-    # lobe the Eq. (14) expansion diverges downward, so a level beyond
-    # r_lobe reports a spuriously deep Phi_ph and a large positive barrier
-    # where the physical barrier is gone. At or beyond contact the
+    # The saturation test is geometric rather than potential-ordered:
+    # outside the lobe the Eq. (14) expansion diverges downward, so a level
+    # beyond r_lobe reports a spuriously deep Phi_ph and a large positive
+    # barrier where the physical barrier is gone. At or beyond contact the
     # exponential is clamped at 1 and the rate is the lobe-filling
-    # boundary value, a lower bound on the transfer (the density at the
-    # lobe itself exceeds the launch level's).
-    saturated = r_ph >= r_lobe or exponent >= 0.0
+    # boundary value, a lower bound on the transfer, since the density at
+    # the lobe itself exceeds the launch level's. Testing the exponent as
+    # well would add nothing: the Eq. (14) potential rises monotonically
+    # from the center to the lobe at every mass ratio from 1e-7 to 1, so
+    # the barrier is strictly positive at every interior level and the
+    # exponent reaches zero only where the geometry already has.
+    saturated = r_ph >= r_lobe
     if saturated:
         exponent = 0.0
     area = 2.0 * math.pi * v_th**2 / (omega2 * math.sqrt(a_curv * (a_curv - 1.0)))
