@@ -81,6 +81,18 @@ _B1 = 2.0 * 3.0 ** (2.0 / 3.0)
 _B2 = _B1 / 4.0 - 2.0
 
 
+def _positive(name: str, value: float) -> float:
+    """Return ``value``, or raise if it is not a positive finite number.
+
+    The module is a public surface with its own reference page, so a caller
+    reaching it directly gets a message rather than a negative mass-loss
+    rate, a complex cube root, or a bare division by zero.
+    """
+    if not math.isfinite(value) or value <= 0.0:
+        raise ValueError(f'{name} must be positive and finite, got {value!r}')
+    return value
+
+
 def curvature_a(q: float) -> float:
     """Dimensionless L1 curvature A(q) of Jackson et al. (2017) Eq. (10).
 
@@ -101,6 +113,9 @@ def eggleton_lobe_radius(q: float, separation: float) -> float:
     (2017) Section 2.1, accurate to 1% for all mass ratios ``q`` (donor
     over accretor); ``separation`` is the orbital separation [m].
     """
+    if q <= 0.0 or not math.isfinite(q):
+        raise ValueError(f'q must be a positive finite mass ratio, got {q!r}')
+    _positive('separation', separation)
     q13 = q ** (1.0 / 3.0)
     return separation * 0.49 * q13**2 / (0.6 * q13**2 + math.log(1.0 + q13))
 
@@ -116,6 +131,9 @@ def l1_distance(q: float, separation: float) -> float:
     against 0.5% and 5.3% for the Hill radius itself. ``separation`` is
     the orbital separation [m].
     """
+    if q <= 0.0 or not math.isfinite(q):
+        raise ValueError(f'q must be a positive finite mass ratio, got {q!r}')
+    _positive('separation', separation)
     eps = (q / 3.0) ** (1.0 / 3.0)
     return separation * (eps - eps**2 / 3.0 - eps**3 / 9.0)
 
@@ -131,6 +149,10 @@ def volume_averaged_potential(r_v: float, M_d: float, M_a: float, separation: fl
     percent as ``r_v`` approaches the lobe radius, which the primary
     quantifies as about a factor of two in the final rate.
     """
+    _positive('r_v', r_v)
+    _positive('M_d', M_d)
+    _positive('M_a', M_a)
+    _positive('separation', separation)
     m_t = M_d + M_a
     x = r_v / separation
     bracket = (
@@ -159,6 +181,12 @@ def isothermal_column_density(
     barrier, not a claim about the structure below the anchor, which for a
     wind anchor is far hotter than the atmosphere really is there.
     """
+    _positive('r', r)
+    _positive('r_ref', r_ref)
+    _positive('M_p', M_p)
+    _positive('v_th', v_th)
+    if not math.isfinite(rho_ref) or rho_ref < 0.0:
+        raise ValueError(f'rho_ref must be non-negative and finite, got {rho_ref!r}')
     return rho_ref * math.exp((G * M_p / v_th**2) * (1.0 / r - 1.0 / r_ref))
 
 
@@ -279,6 +307,19 @@ def nozzle_candidate(
     """
     if n_phase < 1:
         raise ValueError(f'n_phase must be at least 1, got {n_phase!r}')
+    for name, value in (
+        ('M_p', M_p),
+        ('M_star', M_star),
+        ('a', a),
+        ('r_ph', r_ph),
+        ('T', T),
+        ('mu_kg', mu_kg),
+    ):
+        _positive(name, value)
+    if not math.isfinite(rho_ph) or rho_ph < 0.0:
+        raise ValueError(f'rho_ph must be non-negative and finite, got {rho_ph!r}')
+    if not math.isfinite(e) or not 0.0 <= e < 1.0:
+        raise ValueError(f'e must satisfy 0 <= e < 1, got {e!r}')
     v_th = math.sqrt(kb * T / mu_kg)
     q = M_p / M_star
     a_curv = curvature_a(q)

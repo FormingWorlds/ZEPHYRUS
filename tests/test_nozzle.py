@@ -28,6 +28,7 @@ from zephyrus.constants import G, amu, kb
 from zephyrus.nozzle import (
     curvature_a,
     eggleton_lobe_radius,
+    isothermal_column_density,
     nozzle_candidate,
     volume_averaged_potential,
 )
@@ -260,6 +261,42 @@ def test_curvature_rejects_unphysical_mass_ratio():
     ok = curvature_a(1e-5)
     assert math.isfinite(ok)
     assert 4.0 < ok <= 8.0
+
+
+def test_public_surface_rejects_unphysical_arguments():
+    """Every exported function raises on unphysical input, not silently.
+
+    The module is documented public API, so a direct caller must not get a
+    negative mass-loss rate from a negative density, a complex cube root
+    from a negative mass ratio, or a bare division by zero from a launch
+    level at the origin. Each case below returned one of those before the
+    guards existed.
+    """
+    m_p, m_s, a = 3.0 * Me, Ms, 0.05 * AU
+    ok = dict(
+        M_p=m_p, M_star=m_s, a=a, e=0.0, rho_ph=1e-6, r_ph=2.0 * Re, T=1200.0, mu_kg=2.3 * amu
+    )
+    for bad, match in (
+        (dict(rho_ph=-1.0), 'rho_ph'),
+        (dict(e=1.5), 'e must satisfy'),
+        (dict(e=-0.1), 'e must satisfy'),
+        (dict(T=-100.0), 'T'),
+        (dict(r_ph=0.0), 'r_ph'),
+        (dict(M_p=math.inf), 'M_p'),
+    ):
+        with pytest.raises(ValueError, match=match):
+            nozzle_candidate(**{**ok, **bad})
+    for bad in (0.0, -1.0, math.nan):
+        with pytest.raises(ValueError, match='mass ratio'):
+            eggleton_lobe_radius(bad, a)
+    with pytest.raises(ValueError, match='r_v'):
+        volume_averaged_potential(-1.0, m_p, m_s, a)
+    with pytest.raises(ValueError, match='r'):
+        isothermal_column_density(1e-6, 1e7, 0.0, m_p, 1e4)
+    # A valid call on the same path still returns a positive finite rate.
+    rate, _ = nozzle_candidate(**ok)
+    assert math.isfinite(rate)
+    assert rate > 0.0
 
 
 def test_orbit_average_rejects_an_empty_quadrature():
