@@ -30,4 +30,4 @@ Replacing the Eq. (14) potential with the exact numerically solved L1 potential 
 
 Published benchmark (model rates and printed coefficients) plus an exact-geometry cross-check.
 
-Date of last comparison against the source: 2026-09-01.
+Date of last comparison against the source: 2026-09-02.
