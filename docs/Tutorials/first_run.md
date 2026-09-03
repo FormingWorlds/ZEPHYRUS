@@ -67,7 +67,7 @@ Rxuv                     = Re               # XUV planetary radius              
 
 A few choices worth noting:
 
-- `epsilon = 0.15` is the conservative value adopted by Kasting & Pollack (1983) [^kp83] and used in many subsequent rocky-planet studies. The full plausible range is roughly $0.1$–$0.6$.
+- `epsilon = 0.15` is the conservative value adopted by Kasting & Pollack (1983) [^kp83] and used in many subsequent rocky-planet studies. The full plausible range is roughly 0.1 to 0.6.
 - `Rxuv = Re` sets the XUV-absorbing radius equal to the planetary radius. This is a lower bound on the mass-loss rate; allowing $R_\mathrm{XUV} > R_p$ would increase escape.
 - `tidal_contribution = False` ignores the Roche-lobe enhancement of escape. At 1 au this is a negligible correction, but for close-in planets it should be enabled.
 
@@ -85,7 +85,7 @@ Fxuv_star_SI    = Fxuv_star*ergcm2stoWm2                        # XUV flux
 
 `mors.Star` loads the full rotational and high-energy evolutionary track for a $1\,M_\odot$ star rotating at the solar rate. The X-ray and EUV luminosities are summed to give the total XUV luminosity, which is then converted to an irradiation flux at the planet's orbital distance using the inverse-square law. The final SI conversion uses the `ergcm2stoWm2` factor from `zephyrus.constants`.
 
-`Age_star`, `Lxuv_star`, and `Fxuv_star_SI` are all arrays of the same length — one entry per timestep of the MORS track.
+`Age_star`, `Lxuv_star`, and `Fxuv_star_SI` are all arrays of the same length, one entry per timestep of the MORS track.
 
 ---
 
@@ -129,7 +129,7 @@ plt.savefig('output/demo_earth_escape_vs_time_MORS.pdf', dpi=180)
 
 The right-hand axis converts the SI mass-loss rate (kg s$^{-1}$) into Earth masses per year ($M_\oplus$ yr$^{-1}$) so you can read off how much of the planet is lost per unit time in more intuitive units. The conversion uses `s2yr` and `Me`, both from the ZEPHYRUS imports.
 
-You should see a curve that peaks near $5 \times 10^5$ kg s$^{-1}$ at 1 Myr, drops by roughly a factor of 30 over the first ~30 Myr, plateaus through ~30–200 Myr, and then declines slowly to a few × 10$^3$ kg s$^{-1}$ by the end of the main sequence. On the right axis these correspond to $\sim 10^{-12}$ down to $\sim 10^{-13}\,M_\oplus$ yr$^{-1}$.
+You should see a curve that peaks near $7 \times 10^5$ kg s$^{-1}$ at 1 Myr, drops by roughly a factor of 40 over the first 30 Myr, plateaus near $1.8 \times 10^4$ kg s$^{-1}$ through roughly 30 to 200 Myr, and then declines slowly to about $5 \times 10^3$ kg s$^{-1}$ by the end of the track. On the right axis these correspond to $\sim 10^{-12}$ down to $\sim 10^{-13}\,M_\oplus$ yr$^{-1}$.
 
 ---
 
@@ -165,6 +165,7 @@ Re-running produces a curve that is roughly $(1/0.05)^2 = 400$ times higher than
 
 Things to try from here:
 
+- **Classify the regime**: everything above applies one prescription unconditionally. The [dispatcher tutorial](dispatch.md) runs the full framework instead, which decides which escape physics a state is in before it picks a rate.
 - **Sweep $\epsilon$**: loop `epsilon` over `[0.1, 0.3, 0.5, 1.0]` and plot all four curves on the same axes. 
 - **Sweep semi-major axis**: keep $\epsilon = 0.15$ fixed and try `[0.05, 0.1, 0.5, 1.0]` au. The integral of each curve over the stellar lifetime gives the total atmospheric mass lost; compare it to one Earth atmosphere ($M_\mathrm{atm,\oplus} \approx 5.15 \times 10^{18}$ kg, available as `Me_atm`).
 - **Vary $R_\mathrm{XUV}$**: try `Rxuv = 1.5 * Re` to see how an extended XUV-absorbing region amplifies the mass-loss rate. 
