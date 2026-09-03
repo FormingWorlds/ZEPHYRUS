@@ -32,11 +32,18 @@ from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 # 1. The bolometrically driven candidate is computed at every call. When
 #    the restricted Jeans parameter sits below its threshold the atmosphere
 #    is inflated enough to boil off and that candidate is the rate
-#    (Owen & Wu 2016); past the threshold the same machinery survives as a
-#    luminosity-capped residual (Gupta & Schlichting 2019) that can still
-#    win the final comparison. XUV-driven escape needs a base to launch
-#    from, and a bolometrically boiling atmosphere has not built one yet,
-#    which is why this test precedes everything (Owen & Schlichting 2024).
+#    (Owen & Wu 2016). Past the threshold the same machinery is still
+#    evaluated and reported as a luminosity-capped residual (Gupta &
+#    Schlichting 2019), but it competes in the final comparison only when
+#    the ``residual`` setting admits it. The default leaves it out: whether
+#    a bolometric wind outlives the envelope's contraction is disputed
+#    (Tang et al. 2024 find it negligible once boil-off is initialized
+#    self-consistently), and the isothermal closed forms are least reliable
+#    on contracted planets (Misener et al. 2025), so the contested rate is
+#    a reported candidate rather than a dispatched one. XUV-driven escape
+#    needs a base to launch from, and a bolometrically boiling atmosphere
+#    has not built one yet, which is why this test precedes everything
+#    (Owen & Schlichting 2024).
 # 2. The hydrodynamic candidate: the wind base is located by the
 #    configured method, the thermostat sets the wind temperature by local
 #    heating-cooling balance, and the candidate is min(EL, RR) with the
@@ -58,8 +65,8 @@ from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 #    computed: the screen renames a state and never changes its rate.
 #    Near misses raise ``near_roche``.
 # 6. The final rate is the largest of the surviving branch rate, the
-#    bolometric residual, and the tidally driven L1 nozzle rate
-#    (Jackson et al. 2017), labeled by the winner. A nozzle win labels
+#    bolometric residual where the setting admits it, and the tidally
+#    driven L1 nozzle rate (Jackson et al. 2017), labeled by the winner. A nozzle win labels
 #    ``roche_overflow`` with a real transfer rate, so that boundary is a
 #    rate crossing and the dispatched rate is continuous across it; the
 #    step 5 rename keeps its bound-flow lower-limit meaning, and
@@ -103,6 +110,7 @@ class DispatchSettings:
     fractionate: bool = True
     tidal: bool = True
     nozzle_temperature: str = 'photospheric'  # 'photospheric' | 'wind'
+    residual: str = 'off'  # 'off' | 'luminosity_capped'; the post-gate bolometric candidate
     lambda_crit: float = 20.0  # boil-off activation threshold (band 15 to 35)
     gamma_bates: float = 0.75  # Bates profile shape parameter
     kzz: float = 3.0e2  # m^2/s eddy diffusion when the profile carries none
@@ -125,6 +133,8 @@ class DispatchSettings:
             raise ValueError("T_exo_mode must be 'prescribed' or 'thermostat'")
         if self.nozzle_temperature not in ('photospheric', 'wind'):
             raise ValueError("nozzle_temperature must be 'photospheric' or 'wind'")
+        if self.residual not in ('off', 'luminosity_capped'):
+            raise ValueError("residual must be 'off' or 'luminosity_capped'")
         if not (
             self.cool_atomic
             or self.cool_co2_band
@@ -292,6 +302,14 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     diag['lambda_gate'] = lam_gate
     diag['bolometric'] = {k: v for k, v in bolo.items() if k != 'flags'}
     diag['bolometric']['rate_kg_s'] = bolo_rate
+    # Whether the candidate takes part in the final comparison on this call:
+    # always while the activation gate is open, past it only when the setting
+    # admits the residual. Reported so that a consumer reading the candidate
+    # rate beside a different verdict can tell a candidate that lost from one
+    # that was never a contender.
+    residual_admitted = st.residual == 'luminosity_capped'
+    diag['bolometric']['residual_mode'] = st.residual
+    diag['bolometric']['competes'] = bool(lam_gate < st.lambda_crit or residual_admitted)
 
     # Step 2: hydrodynamic candidate (always computed; it is cheap).
     channels = dict(
@@ -525,8 +543,13 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             per_species = dict(hs_per_element)
             winner_flags = hs_flags
             flow_radius = hsd['r_exo']
-        # Step 5: the bolometric residual stays a candidate past the gate.
-        if bolo_rate > rate:
+        # Step 5: the bolometric residual competes past the gate only when
+        # the setting admits it. Off by default. In the window just past the
+        # gate the closed-form Parker and Bondi rates have not shut off yet,
+        # so the candidate there is the interior-luminosity cap itself, the
+        # core-powered rate whose persistence is disputed, and it outruns the
+        # XUV rate at interior fluxes of about a watt per square meter.
+        if residual_admitted and bolo_rate > rate:
             branch = 'boiloff'
             rate = bolo_rate
             per_species = None

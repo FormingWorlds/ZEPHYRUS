@@ -283,17 +283,24 @@ def test_roche_screen_renames_without_changing_the_rate():
     Hill radius as the orbit widens, chosen because every other candidate
     stays subdominant across the bracket: the XUV flux is negligible and
     the nozzle candidate sits outside its applicability criterion, so the
-    rename is the only thing that changes. Bisecting in orbital distance
-    brackets the label change; the rates on either side agree to machine
-    precision and both equal the capped residual. Discrimination:
-    substituting the Bondi-capped bolometric rate at the overflow geometry,
-    which is what a rate-changing screen returns, is more than a decade
-    larger, because that form bypasses the luminosity cap.
+    rename is the only thing that changes. The residual is admitted through
+    the ``residual`` setting, since by default it is reported and does not
+    compete; what the family needs is a bound branch whose flow radius is
+    a sonic radius large enough to cross the Hill sphere, and the residual
+    is the one that has it. Bisecting in orbital distance brackets the
+    label change; the rates on either side agree to machine precision and
+    both equal the capped residual. Discrimination: substituting the
+    Bondi-capped bolometric rate at the overflow geometry, which is what a
+    rate-changing screen returns, is more than a decade larger, because
+    that form bypasses the luminosity cap.
     """
     comp = {'H2': 0.9, 'He': 0.1}
+    admitted = DispatchSettings(residual='luminosity_capped')
 
     def at(a):
-        return dispatch(_inputs(3 * Me, 2.0 * Re, 1000.0, comp, F_xuv=0.1, a=a))
+        return dispatch(
+            _inputs(3 * Me, 2.0 * Re, 1000.0, comp, F_xuv=0.1, a=a, settings=admitted)
+        )
 
     lo, hi = 0.078 * AU, 0.3 * AU
     inner = at(lo)
@@ -425,11 +432,12 @@ def test_nozzle_competes_only_inside_its_domain():
     Two refusals, one per condition. A bound CO2 planet has a nozzle rate
     below the one-proton-per-Julian-year floor, so a crossing against the
     similarly empty hydrodynamic rate decides nothing and the verdict
-    stands. A residual-driven sub-Neptune at a wide orbit has a nozzle
-    candidate above its own dispatched rate, but the isothermal sonic
-    radius sits inside the L1 distance (Jackson et al. 2017, their
-    Figure 9), so a spherical wind chokes first, the candidate reports
-    without competing, and the bolometric verdict stands.
+    stands. A residual-driven sub-Neptune at a wide orbit, with the
+    residual admitted through its setting, has a nozzle candidate above
+    its own dispatched rate, but the isothermal sonic radius sits inside
+    the L1 distance (Jackson et al. 2017, their Figure 9), so a spherical
+    wind chokes first, the candidate reports without competing, and the
+    bolometric verdict stands.
     """
     empty = dispatch(_inputs(Me, Re, 700.0, {'CO2': 1.0}, F_xuv=10.0, a=0.1 * AU))
     noz = empty.diagnostics['nozzle']
@@ -438,7 +446,15 @@ def test_nozzle_competes_only_inside_its_domain():
     assert empty.regime == 'hydrodynamic:EL'
 
     outside = dispatch(
-        _inputs(3 * Me, 2.0 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU)
+        _inputs(
+            3 * Me,
+            2.0 * Re,
+            1000.0,
+            {'H2': 0.9, 'He': 0.1},
+            F_xuv=0.1,
+            a=0.12 * AU,
+            settings=DispatchSettings(residual='luminosity_capped'),
+        )
     )
     noz_o = outside.diagnostics['nozzle']
     assert noz_o['applicable'] is False
@@ -669,6 +685,64 @@ def test_nozzle_temperature_setting_selects_and_validates():
     )
     with pytest.raises(ValueError):
         DispatchSettings(nozzle_temperature='photosphere').validate()
+
+
+@pytest.mark.physics_invariant
+def test_residual_setting_admits_the_post_gate_candidate():
+    """The bolometric residual competes past the gate only when admitted.
+
+    Past the activation gate the bolometric candidate is still evaluated
+    and reported, but by default it is not a contender: on a contracted
+    three Earth-mass hydrogen envelope at a wide orbit the luminosity-capped
+    candidate sits nearly two decades above the XUV rate, and the default
+    dispatches the XUV rate with ``competes`` false and no
+    ``bolometric_residual`` flag. Admitting it through the setting
+    dispatches the candidate under the ``boiloff`` label with that flag and
+    ``luminosity_capped`` raised, so the two modes differ by the same two
+    decades, which is the discrimination. Two invariants hold across the
+    switch: the admitted rate is never below the default one, since the
+    final comparison then ranges over a superset of the candidates, and
+    below the gate the two modes agree to machine precision, because the
+    candidate is the rate there either way. An unknown mode string is
+    rejected by the settings validator with a message naming the knob.
+    """
+    admitted = DispatchSettings(residual='luminosity_capped')
+    past = dict(comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU)
+    off = dispatch(_inputs(3 * Me, 2 * Re, 1000.0, **past))
+    on = dispatch(_inputs(3 * Me, 2 * Re, 1000.0, settings=admitted, **past))
+    assert off.diagnostics['lambda_gate'] > 20.0
+    bolo_off = off.diagnostics['bolometric']
+    assert off.regime == 'hydrodynamic:EL'
+    assert 'bolometric_residual' not in off.flags
+    assert 'luminosity_capped' not in off.flags
+    assert bolo_off['residual_mode'] == 'off'
+    assert bolo_off['competes'] is False
+    # The candidate is reported in full even though it did not compete, and
+    # it is the luminosity cap that would have won by nearly two decades.
+    assert bolo_off['rate_kg_s'] == pytest.approx(
+        bolo_off['mdot_luminosity'], rel=1e-12, abs=0.0
+    )
+    assert bolo_off['rate_kg_s'] > 10.0 * off.mdot
+    bolo_on = on.diagnostics['bolometric']
+    assert on.regime == 'boiloff'
+    assert on.flags.get('bolometric_residual') is True
+    assert on.flags.get('luminosity_capped') is True
+    assert bolo_on['residual_mode'] == 'luminosity_capped'
+    assert bolo_on['competes'] is True
+    assert on.mdot == pytest.approx(bolo_off['rate_kg_s'], rel=1e-12, abs=0.0)
+    assert on.mdot >= off.mdot
+    # Below the gate the candidate is the rate under either mode, so the
+    # setting changes nothing there and no residual flag is raised.
+    below = dict(comp={'H2': 0.9, 'He': 0.1}, F_xuv=10.0, a=0.0775 * AU)
+    b_off = dispatch(_inputs(Me, 1.5 * Re, 1000.0, **below))
+    b_on = dispatch(_inputs(Me, 1.5 * Re, 1000.0, settings=admitted, **below))
+    assert b_off.regime == 'boiloff'
+    assert b_on.regime == 'boiloff'
+    assert b_off.diagnostics['bolometric']['competes'] is True
+    assert b_on.mdot == pytest.approx(b_off.mdot, rel=1e-12, abs=0.0)
+    assert 'bolometric_residual' not in b_on.flags
+    with pytest.raises(ValueError, match='residual'):
+        DispatchSettings(residual='on').validate()
 
 
 def test_nozzle_power_diagnostic_reports_the_lift_cost():
@@ -1014,12 +1088,14 @@ def test_stale_input_and_boreas_fallback_flags(monkeypatch):
 def test_settings_option_raises_cover_every_knob():
     """Every enumerated settings knob rejects an unknown value.
 
-    The four option strings each raise with a message naming the knob, so
-    a typo in a configuration surfaces at validation rather than as a
-    silent default. The default settings validate silently.
+    Each option string raises with a message naming the knob, so a typo in
+    a configuration surfaces at validation rather than as a silent default.
+    The default settings validate silently.
     """
     with pytest.raises(ValueError, match='base_out_of_range'):
         DispatchSettings(base_out_of_range='nonsense').validate()
+    with pytest.raises(ValueError, match='residual'):
+        DispatchSettings(residual='nonsense').validate()
     with pytest.raises(ValueError, match='gate'):
         DispatchSettings(gate='nonsense').validate()
     with pytest.raises(ValueError, match='efficiency_mode'):
@@ -1116,7 +1192,12 @@ FLAG_CASES = (
     (
         'near_roche',
         dict(
-            M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.10
+            M_p=3 * Me,
+            R_p=2 * Re,
+            T_eq=1000.0,
+            comp={'H2': 0.9, 'He': 0.1},
+            F_xuv=0.1,
+            a=0.0775,
         ),
         dict(
             M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.30
@@ -1131,11 +1212,11 @@ FLAG_CASES = (
         'roche_overflow',
         dict(
             M_p=3 * Me,
-            R_p=2 * Re,
+            R_p=2.2 * Re,
             T_eq=1000.0,
             comp={'H2': 0.9, 'He': 0.1},
-            F_xuv=0.1,
-            a=0.0775,
+            F_xuv=13.4,
+            a=0.07,
         ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
     ),
@@ -1148,6 +1229,7 @@ FLAG_CASES = (
             comp={'H2': 0.9, 'He': 0.1},
             F_xuv=0.1,
             a=0.0775,
+            settings=DispatchSettings(residual='luminosity_capped'),
         ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
     ),
