@@ -34,7 +34,19 @@ from zephyrus.constants import G, kb
 #   Mdot_B = 4 pi R_B^2 c_s rho_launch exp(-G M_p / (c_s^2 R_launch)),
 #   sonic-point area with the launch-level density; the launch level is
 #   identified with the radiative-convective boundary, a documented
-#   approximation on a static profile.
+#   approximation on a static profile. The cap is evaluated at the same
+#   wind temperature as the Parker rate. Gupta & Schlichting write it at
+#   T_eq; Misener et al. (2025) recommend T_eq / 2^(1/4) for this same
+#   isothermal form, so the cap follows the correction rather than the
+#   original, and the two conventions differ by
+#   2^(-3/8) exp(Lambda_launch (2^(1/4) - 1)), with Lambda_launch the Jeans
+#   parameter at the launch level, a factor near 30 at the shutoff. The
+#   cap and the Parker rate describe one isothermal wind: at a launch
+#   level of unit optical depth the cap sits a constant factor of about
+#   e^(3/2) below the Parker rate (e^2 with the level at the sonic
+#   radius), and on a level optically thick to the supplied opacity it
+#   sits above the Parker rate and does not bind, which tau_launch
+#   reports.
 # - Luminosity cap, applied only past the activation gate:
 #   Mdot_E = L / (g R_p K) with L = 4 pi R_p^2 F_int (Gupta & Schlichting
 #   2019, MNRAS 487, 24, their Eq. 8). Capping the residual bolometric
