@@ -10,7 +10,7 @@ One call takes one planetary state and returns one verdict. The inputs are the p
 2. Otherwise the hydrodynamic candidate is assembled: the wind base is located on the profile, a thermostat sets the wind temperature, and the candidate is the smaller of the energy-limited and radiation-recombination-limited rates, with the winner naming the sub-label.
 3. The sonic-point Knudsen number decides whether that wind is collisional enough to exist. If it is, the hydrodynamic label stands and the [fractionation closure](fractionation.md) partitions the rate over species; if not, the state re-routes to the hydrostatic branch.
 4. The hydrostatic branch evaluates per-species Jeans escape on an extended upper structure. Its stability gate can send a thermally unstable exosphere back to the hydrodynamic rate.
-5. The bolometric residual stays a candidate past the activation gate, capped by the interior luminosity, and takes the rate and the label if it beats whichever branch won above. The tidally driven transfer through the L1 nozzle [^jackson17] competes last, on both sides of the gate, wherever the overflow description applies; a nozzle win labels the state `roche_overflow` and dispatches the transfer rate itself.
+5. Past the activation gate the bolometric candidate is still computed, capped by the interior luminosity, and reported as the residual. It competes for the rate and the label only when the `residual` setting admits it, and by default it does not. The tidally driven transfer through the L1 nozzle [^jackson17] competes last, on both sides of the gate, wherever the overflow description applies; a nozzle win labels the state `roche_overflow` and dispatches the transfer rate itself.
 6. Last, the Roche screen tests the active flow radius against the Hill sphere; an overflowing state is renamed `roche_overflow` and keeps the rate its own branch computed. The screen runs after both comparisons, so the radius it tests belongs to the branch that actually won.
 
 ```mermaid
@@ -26,7 +26,7 @@ flowchart TD
     Q3 -- yes --> HD
     Q3 -- no --> HS["HYDROSTATIC<br/>per-species Jeans<br/>+ diffusion supply cap"]
     BO --> QN
-    HD --> Q4{"Luminosity-capped residual<br/>larger than the branch rate?"}
+    HD --> Q4{"Residual admitted by the setting<br/>and larger than the branch rate?"}
     HS --> Q4
     Q4 -- yes --> BO2["BOIL-OFF<br/>residual takes the label"]
     Q4 -- no --> KEEP["Branch label stands"]
@@ -46,7 +46,7 @@ flowchart TD
     class BOLO,BASE,HYD,KEEP stage
 ```
 
-Every branch below is one box of that figure, and the two refinements the [model overview](model.md) leaves out of its own flowchart are the diamonds `Q3` and `Q4`: a thermally unstable exosphere returns to the wind rate, and the bolometric residual stays in the comparison past the activation gate.
+Every branch below is one box of that figure, and the two refinements the [model overview](model.md) leaves out of its own flowchart are the diamonds `Q3` and `Q4`: a thermally unstable exosphere returns to the wind rate, and the bolometric residual enters the comparison past the activation gate when the setting admits it.
 
 ## Boil-off
 
@@ -68,9 +68,9 @@ with $\rho_\mathrm{launch}$ the mass density at the launch level. Past the $\Lam
 
 $$\dot{M}_\mathrm{E} \;=\; \frac{L_\mathrm{int}}{g\,R_\mathrm{p}\,K}, \qquad L_\mathrm{int} = 4\pi R_\mathrm{p}^2 F_\mathrm{int} \tag{4}$$
 
-with $g$ the surface gravity and $K$ the tidal reduction factor of Erkaev et al. (2007) [^erkaev] evaluated at $\xi = R_\mathrm{Hill}/R_\mathrm{p}$ [^gs19]. The denominator is the work per unit mass needed to lift gas out of the potential well, which is the same quantity the energy-limited rate on the [energy-limited page](energy_limited.md) divides by, measured from the same radius: a planet close to filling its Roche lobe has a shallower barrier, so the same interior heat lifts more gas, and the two rates that compete in step 6 measure one barrier between them. Setting `tidal = False` returns $K = 1$ and the untidal form. The rate that survives the gate is therefore $\min(\dot{M}_\mathrm{P}, \dot{M}_\mathrm{B}, \dot{M}_\mathrm{E})$, and it stays a candidate: step 6 of the evaluation order compares it against the XUV-driven rate and the larger one takes both the rate and the label.
+with $g$ the surface gravity and $K$ the tidal reduction factor of Erkaev et al. (2007) [^erkaev] evaluated at $\xi = R_\mathrm{Hill}/R_\mathrm{p}$ [^gs19]. The denominator is the work per unit mass needed to lift gas out of the potential well, which is the same quantity the energy-limited rate on the [energy-limited page](energy_limited.md) divides by, measured from the same radius: a planet close to filling its Roche lobe has a shallower barrier, so the same interior heat lifts more gas, and the two rates that can compete in step 5 measure one barrier between them. Setting `tidal = False` returns $K = 1$ and the untidal form. The rate that survives the gate is therefore $\min(\dot{M}_\mathrm{P}, \dot{M}_\mathrm{B}, \dot{M}_\mathrm{E})$, reported in `diagnostics['bolometric']` on every call as the residual. Whether it also competes is the `residual` setting. Under `'luminosity_capped'` step 5 of the evaluation order compares it against the rate of the branch that won above and the larger one takes both the rate and the label; under the default `'off'` it is reported and the branch verdict stands, and `competes` in the same diagnostics group says which happened.
 
-Whether that residual lasts is disputed, and the framework declines to adjudicate. Tang et al. (2024) find core-powered mass loss ends early, once the envelope has contracted [^tang]; Gupta & Schlichting find it continues for gigayears [^gs19]. The luminosity cap is what makes the disagreement affordable: it holds the residual to the interior heat budget, which is small once the planet has cooled, so a run that keeps the branch alive and a run that switches it off differ by little. Their termination timescale is computed and reported beside the rate, never used as a gate, so the reader can see how long the branch would survive under their criterion without the code having taken a side.
+Whether that residual is physical is disputed, and the default takes the side that dispatches less. Gupta & Schlichting find that a bolometric wind fed by the cooling interior persists for gigayears at the rate of Eq. (4) [^gs19]. Tang et al. (2024) find that once boil-off is initialized self-consistently the same wind removes at most a tenth of a percent of the envelope over gigayears, and diagnose the persistent rate as an artifact of coupling the wind to the core luminosity, of a missing wind energy-loss term, and of pre-boil-off initial conditions [^tang]. The luminosity cap does not make that disagreement small here. In the window just past the gate the Parker and Bondi rates of Eqs. (2) and (3) have not shut off yet, so the residual is Eq. (4) itself: on a three Earth-mass hydrogen envelope with an interior flux of a few watts per square meter it exceeds the XUV rate by more than a decade and would strip a one percent envelope in a few hundred million years, and the closed forms shut off on their own only once the Jeans parameter passes about 30. The default therefore reports the candidate and does not dispatch it, which follows Tang et al.; a run that wants the Gupta & Schlichting reading sets `residual = 'luminosity_capped'`, and the two runs differ by the candidate rate the diagnostics print either way. Their termination timescale is computed and reported beside the rate, never used as a gate, so the reader can see how long the branch would survive under their criterion whichever setting is in force.
 
 ## The hydrodynamic wind
 

@@ -38,7 +38,7 @@ flowchart TD
     class Q1,Q2,Q3 decision
 ```
 
-The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and three refinements are omitted for clarity (a thermally unstable exosphere re-routes from the hydrostatic branch back to the wind rate, a residual bolometric rate remains in play past the boil-off gate, and the tidally driven L1 transfer rate competes as a final candidate wherever the overflow description applies, taking the overflow label with its own rate when it wins). The [escape regimes](regimes.md) page walks every step with its equations and thresholds.
+The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and three refinements are omitted for clarity (a thermally unstable exosphere re-routes from the hydrostatic branch back to the wind rate, a residual bolometric rate can be admitted past the boil-off gate by a setting, and the tidally driven L1 transfer rate competes as a final candidate wherever the overflow description applies, taking the overflow label with its own rate when it wins). The [escape regimes](regimes.md) page walks every step with its equations and thresholds.
 
 The regime boundaries are not sharp lines in nature. Each threshold carries a physical band (the collisionality threshold spans a factor of 30 across heating geometries, the boil-off threshold a factor of about two across the literature), and ZEPHYRUS reports, beside every verdict, the diagnostics needed to see how close the state sat to each boundary and what the label would have been at the band edges.
 
