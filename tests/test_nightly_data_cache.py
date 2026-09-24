@@ -125,6 +125,26 @@ def test_cache_key_material_is_the_versioned_directory_and_the_registry(monkeypa
     assert fetcher.registry == {'fs255_grid.tar.gz': f'md5:{SPADA_MD5}'}
     assert fetcher.target_dir == tmp_path / fetcher.rel_dir
 
+    # A re-pinned record moves the directory to that record.
+    manifest = _manifest(monkeypatch, tmp_path, spada_record='15729102')
+    assert mod._fetcher(tmp_path).rel_dir == 'star/tracks/spada_2013/r15729102'
+
+    # An archive dataset pins exactly one file, so a second registry line is refused.
+    registry = manifest.parent / 'star.tracks.spada_2013.registry.txt'
+    registry.write_text(registry.read_text() + 'extra.tar.gz md5:' + '1' * 32 + '\n')
+    with pytest.raises(mod.ResolutionError, match='exactly one archive file'):
+        mod._fetcher(tmp_path)
+
+    # A DOI that is not a Zenodo record raises the script's error and builds no fetcher.
+    manifest = _manifest(monkeypatch, tmp_path)
+    manifest.write_text(
+        manifest.read_text().replace('10.5281/zenodo.15729101', '10.1234/other.1')
+    )
+    fresh_root = tmp_path / 'fresh'
+    with pytest.raises(mod.ResolutionError, match='fwl-io could not read'):
+        mod._fetcher(fresh_root)
+    assert not fresh_root.exists()
+
 
 def test_cache_key_refuses_to_resolve_without_the_pins(monkeypatch, tmp_path, capsys):
     """A missing entry, manifest, registry or checksum stops the job with a diagnostic.
