@@ -28,10 +28,11 @@ never rewritten and the tree it holds cannot follow the data.
 Only the Spada entry is hashed. The Baraffe entry in the same manifest is not
 fetched by ZEPHYRUS, so a change to it must not empty the cache.
 
-``check`` verifies the restored grid is actually unpacked. The registry pins
-the archive, not the extracted members, so the check is structural rather than
-per-file: the versioned directory and the grid directory exist and the grid
-holds a plausible number of files.
+``check`` verifies the restored grid is actually unpacked, through fwl-io's own
+``check_dataset``. The registry pins the archive, not the extracted members, so
+the members are the ones fwl-io recorded in the provenance stamp when it
+unpacked the archive, checked for presence rather than by digest; a missing
+stamp counts as a missing tree.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
 partial digest would leave the key as the constant prefix alone, and a
@@ -54,11 +55,7 @@ from pathlib import Path
 KEY_PREFIX = 'fwl-data-nightly-'
 DATASET = 'Spada'
 MANIFEST_KEY = 'star.tracks.spada_2013'
-GRID_DIR = 'fs255_grid'
-# The unpacked grid holds about 1600 files across per-composition
-# subdirectories. The floor catches a partial restore; it cannot detect a
-# fully-unpacked tree that is simply out of date, which is what the key is for.
-MIN_FILES = 1000
+MAX_LISTED = 10
 
 
 class ResolutionError(RuntimeError):
@@ -183,6 +180,9 @@ def resolve_key() -> str:
 def check_restored(data_root: Path) -> tuple[int, list[str]]:
     """Report how completely the Spada grid is restored below ``data_root``.
 
+    A missing ``data_root`` is reported, not created: building the fetcher
+    would create it, and a check must leave the disk as it found it.
+
     Parameters
     ----------
     data_root : Path
@@ -191,23 +191,20 @@ def check_restored(data_root: Path) -> tuple[int, list[str]]:
     Returns
     -------
     tuple
-        The file count found under the grid directory, and a list of
-        problems; an empty list means the tree looks complete.
+        The number of extracted members present, and a list of problems (at
+        most ``MAX_LISTED`` members are named); an empty list means the tree
+        is complete.
     """
-    base = _fetcher(data_root).target_dir
-    grid = base / GRID_DIR
-    problems: list[str] = []
+    if not data_root.is_dir():
+        return 0, [f'the data root {data_root} does not exist, so nothing was restored']
+    from fwl_io import check_dataset
 
-    if not base.is_dir():
-        return 0, [f'{base} does not exist']
-    if not grid.is_dir():
-        problems.append(f'{grid} does not exist, so the grid was never unpacked')
-
-    count = sum(1 for p in grid.rglob('*') if p.is_file()) if grid.is_dir() else 0
-    if count < MIN_FILES:
-        problems.append(f'{count} files under {grid}, fewer than the {MIN_FILES} expected')
-
-    return count, problems
+    result = check_dataset(_fetcher(data_root), key=MANIFEST_KEY)
+    faults = result.faults
+    problems = [f'{f.state}: {f.path}' for f in faults[:MAX_LISTED]]
+    if len(faults) > MAX_LISTED:
+        problems.append(f'... and {len(faults) - MAX_LISTED} more')
+    return len(result.files) - len(faults), problems
 
 
 def _cmd_key(args: argparse.Namespace) -> int:
@@ -229,9 +226,6 @@ def _cmd_check(args: argparse.Namespace) -> int:
     if not given:
         raise ResolutionError('no data root to check: pass --data-root or set FWL_DATA.')
 
-    if not Path(given).is_dir():
-        # Building the fetcher creates a missing root, and a check must not.
-        raise ResolutionError(f'the data root {given} does not exist, so nothing was restored.')
     count, problems = check_restored(Path(given))
     print(f'{DATASET} grid: {count} files present')
     if problems:

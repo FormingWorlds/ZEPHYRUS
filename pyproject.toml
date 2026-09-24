@@ -39,6 +39,10 @@ changelog = "https://github.com/FormingWorlds/ZEPHYRUS/releases"
 [project.optional-dependencies]
 develop = [
   "coverage[toml]",
+  # tools/nightly_data_cache.py reads the dataset manifest fwl-mors ships
+  # (mors.data.manifest_path, 26.9.23) and fwl-io's check_dataset (26.8.31).
+  "fwl-io >= 26.8.31",
+  "fwl-mors >= 26.9.23",
   "hypothesis >= 6.0",
   "pre-commit",
   "pytest",

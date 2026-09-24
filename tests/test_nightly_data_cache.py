@@ -191,66 +191,94 @@ def test_key_command_writes_the_output_line_the_workflow_reads(monkeypatch, tmp_
     assert lines[0].split('=', 1)[1] == mod.resolve_key()
 
 
-def test_restore_check_requires_an_unpacked_grid(monkeypatch, tmp_path):
-    """Presence of the directory is not enough; the grid has to be unpacked.
+def _restored(mod, root, members):
+    """Build a tree the way fwl-io leaves one: the members plus its provenance stamp."""
+    fetcher = mod._fetcher(root)
+    for name in members:
+        path = fetcher.target_dir / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('x', encoding='utf-8')
+    # fwl-io records the members it extracted; no public call writes a stamp alone.
+    fetcher._archive_members = list(members)
+    fetcher._write_stamp()
+    return fetcher.target_dir
 
-    A version directory that exists but holds nothing, or a grid holding a
-    handful of files, is what a half-restored cache looks like, so neither may
-    pass. The grid is looked for below the versioned directory fwl-io derives
-    from the manifest, so a tree at the old unversioned path counts as absent.
+
+MEMBERS = (
+    'fs255_grid/X0p70_Z0p001_A1p000/track_a.dat',
+    'fs255_grid/X0p80_Z0p002_A1p875/track_b.dat',
+)
+
+
+def test_restore_check_passes_a_complete_tree_and_names_a_missing_member(monkeypatch, tmp_path):
+    """The check reports the members fwl-io recorded when it unpacked, and names a missing one.
+
+    The registry pins the archive, so completeness is presence of the recorded
+    members. A tree that lost one file must fail naming it, and one holding
+    only unrelated files (no stamp) or sitting at the old unversioned path
+    must not pass.
     """
     mod = _cache_module()
     _manifest(monkeypatch, tmp_path)
-    base = tmp_path / 'star' / 'tracks' / 'spada_2013' / f'r{SPADA_RECORD}'
 
-    # A smaller floor keeps the test inside the unit wall-time budget; every
-    # assertion below is expressed against the patched constant, so the
-    # count-to-floor relationship under test is unchanged.
-    monkeypatch.setattr(mod, 'MIN_FILES', 24)
-
-    # Nothing at all.
+    # Nothing at all, then unrelated files where the tree belongs.
     count, problems = mod.check_restored(tmp_path)
     assert count == 0
-    assert any('does not exist' in p for p in problems)
-    assert mod.main(['check', '--data-root', str(tmp_path)]) == 1
-
-    # Present but never unpacked.
-    base.mkdir(parents=True)
-    count, problems = mod.check_restored(tmp_path)
-    assert count == 0
-    assert any(mod.GRID_DIR in p for p in problems)
-
-    # Unpacked but short of the floor.
-    # Nested, as the real grid is: per-composition subdirectories with no
-    # files at the top level, so a walk that does not recurse counts zero.
-    grid = base / mod.GRID_DIR
-    grid.mkdir()
-    for i in range(5):
-        comp = grid / f'X0p7{i}_Z0p001_A1p000'
-        comp.mkdir()
-        (comp / 'track.dat').write_text('x', encoding='utf-8')
-    count, problems = mod.check_restored(tmp_path)
-    assert count == 5
-    assert any('fewer than' in p for p in problems)
-
+    assert any('missing' in p for p in problems)
+    target = mod._fetcher(tmp_path).target_dir
+    target.mkdir(parents=True)
+    (target / 'unrelated.dat').write_text('x', encoding='utf-8')
+    assert mod.check_restored(tmp_path)[1], 'a directory with no stamp is not a restored grid'
     assert mod.main(['check', '--data-root', str(tmp_path)]) == 1
 
     # The old unversioned location is not the grid this key describes.
-    old = tmp_path / 'stellar_evolution_tracks' / 'Spada' / mod.GRID_DIR
+    old = tmp_path / 'stellar_evolution_tracks' / 'Spada' / 'fs255_grid'
     old.mkdir(parents=True)
-    for i in range(mod.MIN_FILES):
-        (old / f'track_{i}.dat').write_text('x', encoding='utf-8')
-    assert mod.check_restored(tmp_path)[0] == 5
+    (old / 'track.dat').write_text('x', encoding='utf-8')
+    assert mod.check_restored(tmp_path)[1]
 
     # Complete.
-    for i in range(mod.MIN_FILES):
-        comp = grid / f'X0p8{i % 20}_Z0p002_A1p875'
-        comp.mkdir(exist_ok=True)
-        (comp / f'track_{i}.dat').write_text('x', encoding='utf-8')
+    (target / 'unrelated.dat').unlink()
+    _restored(mod, tmp_path, MEMBERS)
     count, problems = mod.check_restored(tmp_path)
-    assert count == mod.MIN_FILES + 5
-    assert problems == []
+    assert (count, problems) == (len(MEMBERS), [])
     assert mod.main(['check', '--data-root', str(tmp_path)]) == 0
+
+    # One recorded member gone: named, and the run fails.
+    (target / MEMBERS[1]).unlink()
+    count, problems = mod.check_restored(tmp_path)
+    assert count == len(MEMBERS) - 1
+    assert len(problems) == 1 and MEMBERS[1] in problems[0]
+    assert mod.main(['check', '--data-root', str(tmp_path)]) == 1
+
+
+def test_restore_check_lists_a_bounded_number_of_missing_members(monkeypatch, tmp_path):
+    """A tree that lost many members names a few and counts the rest."""
+    mod = _cache_module()
+    _manifest(monkeypatch, tmp_path)
+    members = [f'fs255_grid/c{i:02d}/track.dat' for i in range(mod.MAX_LISTED + 4)]
+    target = _restored(mod, tmp_path, members)
+    for name in members:
+        (target / name).unlink()
+
+    count, problems = mod.check_restored(tmp_path)
+
+    assert count == 0
+    assert len(problems) == mod.MAX_LISTED + 1
+    assert problems[-1] == '... and 4 more'
+
+
+def test_check_restored_does_not_create_a_missing_data_root(monkeypatch, tmp_path):
+    """Called directly, the check reports a missing root and leaves the disk as it was."""
+    mod = _cache_module()
+    _manifest(monkeypatch, tmp_path)
+    missing = tmp_path / 'never_restored'
+
+    count, problems = mod.check_restored(missing)
+
+    assert count == 0
+    assert len(problems) == 1 and 'does not exist' in problems[0]
+    assert not missing.exists()
 
 
 def test_check_refuses_to_run_without_a_data_root(monkeypatch):
