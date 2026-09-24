@@ -151,7 +151,7 @@ def test_cache_key_refuses_to_resolve_without_the_pins(monkeypatch, tmp_path, ca
     # The registry file is gone.
     manifest = _manifest(monkeypatch, tmp_path)
     (manifest.parent / 'star.tracks.spada_2013.registry.txt').unlink()
-    with pytest.raises(mod.ResolutionError, match='registry'):
+    with pytest.raises(mod.ResolutionError, match='declares a registry at .*does not exist'):
         mod.resolve_key()
 
     # The registry is empty, so there is no checksum to track; fwl-io refuses it.
@@ -308,3 +308,13 @@ def test_cache_script_covers_every_dataset_the_suite_downloads():
         f'the suite downloads {sorted(downloaded)} but the cache key tracks '
         f'only {mod.DATASET!r}; an untracked dataset freezes in the cache'
     )
+
+
+def test_check_does_not_create_a_missing_data_root(monkeypatch, tmp_path):
+    """Checking a root that does not exist reports it and leaves the disk as it was."""
+    mod = _cache_module()
+    _manifest(monkeypatch, tmp_path)
+    missing = tmp_path / 'never_restored'
+
+    assert mod.main(['check', '--data-root', str(missing)]) == 1
+    assert not missing.exists()

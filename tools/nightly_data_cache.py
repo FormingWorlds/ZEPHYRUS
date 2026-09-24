@@ -48,9 +48,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-# JANUS carries a script of the same name for the same actions/cache defect,
-# shaped differently because it consumes a manifest-declared dataset with a
-# registry and a versioned path. A change here is worth checking against it.
+# JANUS carries a script of the same name for the same actions/cache defect. It
+# hashes every dataset of the manifest where this one hashes only the Spada
+# entry. A change here is worth checking against it.
 KEY_PREFIX = 'fwl-data-nightly-'
 DATASET = 'Spada'
 MANIFEST_KEY = 'star.tracks.spada_2013'
@@ -114,13 +114,14 @@ def _fetcher(data_root: Path):
     -------
     fwl_io.Fetcher
         Fetcher whose ``rel_dir``, ``target_dir`` and ``registry`` describe
-        the dataset. Building it does not touch the network.
+        the dataset. Building it does not touch the network but creates
+        ``data_root`` when it is absent.
 
     Raises
     ------
     ResolutionError
-        When the manifest declares no Spada entry or its registry file is
-        missing.
+        When the manifest cannot be located or read, declares no Spada entry,
+        has no registry file for it, or fwl-io refuses the entry.
     """
     from fwl_io import create_fetcher, load_manifest
 
@@ -136,7 +137,7 @@ def _fetcher(data_root: Path):
             f'{sorted(datasets) or "no dataset"}), so this key would track nothing. '
             'Check whether the entry was renamed and update MANIFEST_KEY.'
         )
-    if ds.registry_path is None or not Path(ds.registry_path).is_file():
+    if not ds.registry_path.is_file():
         raise ResolutionError(
             f'dataset {ds.key!r} declares a registry at {ds.registry_path}, which does '
             'not exist. The checksums are half of what this key tracks, so resolving it '
@@ -228,6 +229,9 @@ def _cmd_check(args: argparse.Namespace) -> int:
     if not given:
         raise ResolutionError('no data root to check: pass --data-root or set FWL_DATA.')
 
+    if not Path(given).is_dir():
+        # Building the fetcher creates a missing root, and a check must not.
+        raise ResolutionError(f'the data root {given} does not exist, so nothing was restored.')
     count, problems = check_restored(Path(given))
     print(f'{DATASET} grid: {count} files present')
     if problems:
@@ -263,8 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         # let a traceback stand in for the diagnostic this script promises.
         print(
             f'error: resolving the {DATASET} pins through fwl-mors and fwl-io failed: '
-            f'{exc!r}. Check that the installed fwl-mors still ships the manifest this '
-            'script reads.',
+            f'{exc!r}. If either package changed its API, update this script.',
             file=sys.stderr,
         )
         return 1
