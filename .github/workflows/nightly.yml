@@ -33,20 +33,16 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[develop]"
 
-      # The key carries the Zenodo record that pins the Spada grid in the
-      # installed fwl-mors, plus the directory it unpacks into, so it moves
-      # when that grid is re-pinned. The OSF mirror is deliberately outside
-      # the digest, so mirror drift is untracked. Full rationale in the
-      # helper's module docstring.
+      # The key digests the versioned directory and the registry checksums of
+      # the Spada entry in the fwl-mors dataset manifest, so it moves when that
+      # grid is re-pinned. Full rationale in the helper's module docstring.
       - name: Resolve the data cache key
         id: cachekey
         run: python tools/nightly_data_cache.py key
 
-      # Deliberately no restore-keys. A prefix fallback would restore the
-      # previous grid into the unversioned directory mors checks for, so mors
-      # would skip the download, the check below would be skipped too because a
-      # prefix restore reports no cache hit, and the stale tree would be saved
-      # under the new key. A moved key has to miss so the grid is fetched.
+      # Deliberately no restore-keys: a prefix restore reports no cache hit, so
+      # the check below is skipped and the previous record's stale tree would
+      # be saved under the new key. A moved key has to miss and fetch.
       - uses: actions/cache@v5
         id: cache-fwl-data
         with:
