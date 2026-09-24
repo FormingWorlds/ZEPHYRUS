@@ -2,11 +2,11 @@
 
 The nightly caches the FWL data tree under a key this script resolves. A key
 that stops tracking the data does not fail anything: the nightly stays green
-and either refetches every run or, worse for ZEPHYRUS, serves a stale grid
-forever, because the Spada tracks land in an unversioned directory that
-``mors`` skips whenever it is present. These tests pin the key to the
-dataset pins in both directions, pin the workflow to the resolved key, and
-pin the restore check against a half-unpacked tree.
+and either refetches every run or serves a stale tree forever, because
+``actions/cache`` never rewrites an entry whose key it hits. These tests pin
+the key to the Spada entry of the fwl-mors dataset manifest in both
+directions, pin the workflow to the resolved key, and pin the restore check
+against a half-unpacked tree.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
@@ -22,14 +22,15 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
 REPO = Path(__file__).parents[1]
 
-# Stand-in the OSF project id is patched to, long enough that it cannot collide
-# with a pin value by accident.
-MIRROR_SENTINEL = 'osf-mirror-must-not-be-hashed'
+SPADA_RECORD = '15729101'
+SPADA_MD5 = 'f76987cf3d1da50435547f44a484a97f'
+BARAFFE_RECORD = '15729114'
 
 
 def _cache_module():
-    """Load the helper, skipping when its one dependency is absent."""
+    """Load the helper, skipping when its dependencies are absent."""
     pytest.importorskip('mors')
+    pytest.importorskip('fwl_io')
     path = REPO / 'tools' / 'nightly_data_cache.py'
     spec = importlib.util.spec_from_file_location('nightly_data_cache', path)
     module = importlib.util.module_from_spec(spec)
@@ -37,70 +38,137 @@ def _cache_module():
     return module
 
 
-def _pin(monkeypatch, *, record):
-    """Point the helper at a fabricated Spada Zenodo record."""
+def _manifest(
+    monkeypatch,
+    tmp_path,
+    *,
+    spada_record=SPADA_RECORD,
+    spada_md5=SPADA_MD5,
+    baraffe=BARAFFE_RECORD,
+):
+    """Write a fwl-mors-style manifest and point ``mors.data.manifest_path`` at it."""
     import mors.data
 
-    monkeypatch.setattr(mors.data, 'get_zenodo_record', lambda name: record, raising=True)
+    root = tmp_path / 'manifest'
+    root.mkdir(exist_ok=True)
+    manifest = root / 'mors_manifest.toml'
+    manifest.write_text(
+        '[star.tracks.baraffe_2015]\n'
+        'name = "Baraffe"\n'
+        f'zenodo = "10.5281/zenodo.{baraffe}"\n'
+        'required_by = ["mors"]\n\n'
+        '[star.tracks.spada_2013]\n'
+        'name = "Spada"\n'
+        f'zenodo = "10.5281/zenodo.{spada_record}"\n'
+        'extract = "tar"\n'
+        'required_by = ["mors"]\n',
+        encoding='utf-8',
+    )
+    (root / 'star.tracks.baraffe_2015.registry.txt').write_text(
+        'BHAC15_tracks.dat md5:4b5c14255ca845880a2e940110861df1\n', encoding='utf-8'
+    )
+    (root / 'star.tracks.spada_2013.registry.txt').write_text(
+        f'fs255_grid.tar.gz md5:{spada_md5}\n', encoding='utf-8'
+    )
+    monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=False)
+    return manifest
 
 
-def test_cache_key_moves_with_the_spada_pins_and_not_otherwise(monkeypatch):
-    """The key tracks the Zenodo record and the unpack directory, and nothing else.
+def test_cache_key_moves_with_the_spada_manifest_entry_and_not_otherwise(monkeypatch, tmp_path):
+    """The key tracks the Spada record and checksums, and nothing else in the manifest.
 
-    The grid unpacks to an unversioned directory and mors skips the download
-    whenever it exists, so a re-pin is invisible on disk. The key is the only
-    thing that can notice, which is why the record has to move it. The OSF
-    mirror is deliberately outside the digest, so mirror drift is untracked.
+    A re-pinned record or a changed archive checksum must move the key, or the
+    stale tree keeps being restored. The Baraffe entry sits in the same
+    manifest but ZEPHYRUS does not fetch it, so changing it must leave the
+    key alone.
     """
     mod = _cache_module()
 
-    _pin(monkeypatch, record='15729101')
+    _manifest(monkeypatch, tmp_path)
     baseline = mod.resolve_key()
 
-    # Re-pinning the deposit must move the key, or the stale grid is served on.
-    _pin(monkeypatch, record='15729102')
-    assert mod.resolve_key() != baseline
+    # A different record moves the key (the version directory changes name).
+    _manifest(monkeypatch, tmp_path, spada_record='15729102')
+    record_key = mod.resolve_key()
+    assert record_key != baseline
 
-    # Same pin, same key: a steady-state night has to hit its own entry.
-    _pin(monkeypatch, record='15729101')
+    # Same record, different archive checksum: the key still moves.
+    _manifest(monkeypatch, tmp_path, spada_md5='0' * 32)
+    digest_key = mod.resolve_key()
+    assert digest_key not in (baseline, record_key)
+
+    # Same pins, same key: a steady-state night has to hit its own entry.
+    _manifest(monkeypatch, tmp_path)
     assert mod.resolve_key() == baseline
 
-    # The OSF mirror id is deliberately outside the digest: it does not move
-    # when the files behind it do, so hashing it would imply coverage.
-    import mors.data
-
-    monkeypatch.setattr(mors.data, 'project_id', MIRROR_SENTINEL, raising=False)
+    # The Baraffe entry is not consumed here, so it must not move the key.
+    _manifest(monkeypatch, tmp_path, baraffe='15729199')
     assert mod.resolve_key() == baseline
-
-    # Pin the material itself. The comparison above only notices a digest that
-    # reads the patched attribute; one carrying the mirror id as a literal
-    # leaves the key at baseline and would pass.
-    assert mod._pins() == {'zenodo': '15729101', 'subdir': f'{mod.SUBDIR}/{mod.DATASET}'}
 
     # An empty digest would leave the key as the constant prefix alone, which
     # exact-hits its own entry on every run and freezes the tree silently.
-    assert baseline.startswith(mod.KEY_PREFIX)
     assert re.fullmatch(rf'{re.escape(mod.KEY_PREFIX)}[0-9a-f]{{64}}', baseline)
 
-    # The unpack directory is hashed alongside the record, so a rename of it
-    # has to move the key too. Left last: monkeypatch holds the rename in force.
-    monkeypatch.setattr(mod, 'SUBDIR', 'stellar_evolution_tracks_v2')
-    assert mod.resolve_key() != baseline
+
+def test_cache_key_material_is_the_versioned_directory_and_the_registry(monkeypatch, tmp_path):
+    """The digest is built from the directory fwl-io places the grid in and the registry.
+
+    The two-keys comparison above only proves the key moves; pin what it moves
+    with, so a digest of a constant or of the wrong dataset cannot pass.
+    """
+    mod = _cache_module()
+    _manifest(monkeypatch, tmp_path)
+
+    fetcher = mod._fetcher(tmp_path)
+
+    assert fetcher.rel_dir == f'star/tracks/spada_2013/r{SPADA_RECORD}'
+    assert fetcher.registry == {'fs255_grid.tar.gz': f'md5:{SPADA_MD5}'}
+    assert fetcher.target_dir == tmp_path / fetcher.rel_dir
 
 
-def test_cache_key_refuses_to_resolve_without_the_pins(monkeypatch, capsys):
-    """A missing record stops the job with a diagnostic rather than a bare key."""
+def test_cache_key_refuses_to_resolve_without_the_pins(monkeypatch, tmp_path, capsys):
+    """A missing entry, manifest, registry or checksum stops the job with a diagnostic.
+
+    Each is a distinct way the key could quietly track nothing, so each has
+    its own message and none may return a bare key.
+    """
     mod = _cache_module()
     import mors.data
 
-    monkeypatch.setattr(mors.data, 'get_zenodo_record', lambda name: None, raising=True)
-    with pytest.raises(mod.ResolutionError, match='no Zenodo record'):
+    # The manifest no longer declares the Spada entry.
+    manifest = _manifest(monkeypatch, tmp_path)
+    manifest.write_text(
+        '[star.tracks.baraffe_2015]\nname = "Baraffe"\nzenodo = "10.5281/zenodo.15729114"\n',
+        encoding='utf-8',
+    )
+    with pytest.raises(
+        mod.ResolutionError, match='star.tracks.spada_2013.*star.tracks.baraffe'
+    ):
         mod.resolve_key()
     assert mod.main(['key']) == 1
-    assert 'no Zenodo record' in capsys.readouterr().err
+    assert 'declares no' in capsys.readouterr().err
 
-    monkeypatch.delattr(mors.data, 'get_zenodo_record', raising=True)
-    with pytest.raises(mod.ResolutionError, match='get_zenodo_record'):
+    # The registry file is gone.
+    manifest = _manifest(monkeypatch, tmp_path)
+    (manifest.parent / 'star.tracks.spada_2013.registry.txt').unlink()
+    with pytest.raises(mod.ResolutionError, match='registry'):
+        mod.resolve_key()
+
+    # The registry is empty, so there is no checksum to track; fwl-io refuses it.
+    manifest = _manifest(monkeypatch, tmp_path)
+    (manifest.parent / 'star.tracks.spada_2013.registry.txt').write_text('', encoding='utf-8')
+    with pytest.raises(mod.ResolutionError, match='empty registry'):
+        mod.resolve_key()
+
+    # The manifest file itself is gone.
+    manifest = _manifest(monkeypatch, tmp_path)
+    manifest.unlink()
+    with pytest.raises(mod.ResolutionError, match='does not exist'):
+        mod.resolve_key()
+
+    # fwl-mors no longer exposes a manifest at all.
+    monkeypatch.delattr(mors.data, 'manifest_path', raising=True)
+    with pytest.raises(mod.ResolutionError, match='manifest_path'):
         mod.resolve_key()
 
 
@@ -112,7 +180,7 @@ def test_key_command_writes_the_output_line_the_workflow_reads(monkeypatch, tmp_
     instead of caching under the resolved key.
     """
     mod = _cache_module()
-    _pin(monkeypatch, record='15729101')
+    _manifest(monkeypatch, tmp_path)
     out = tmp_path / 'gh_output'
     monkeypatch.setenv('GITHUB_OUTPUT', str(out))
 
@@ -126,11 +194,14 @@ def test_key_command_writes_the_output_line_the_workflow_reads(monkeypatch, tmp_
 def test_restore_check_requires_an_unpacked_grid(monkeypatch, tmp_path):
     """Presence of the directory is not enough; the grid has to be unpacked.
 
-    A directory that exists but holds nothing, or still holds the archive, is
-    exactly what a half-restored cache looks like, so neither may pass.
+    A version directory that exists but holds nothing, or a grid holding a
+    handful of files, is what a half-restored cache looks like, so neither may
+    pass. The grid is looked for below the versioned directory fwl-io derives
+    from the manifest, so a tree at the old unversioned path counts as absent.
     """
     mod = _cache_module()
-    base = tmp_path / mod.SUBDIR / mod.DATASET
+    _manifest(monkeypatch, tmp_path)
+    base = tmp_path / 'star' / 'tracks' / 'spada_2013' / f'r{SPADA_RECORD}'
 
     # A smaller floor keeps the test inside the unit wall-time budget; every
     # assertion below is expressed against the patched constant, so the
@@ -162,20 +233,22 @@ def test_restore_check_requires_an_unpacked_grid(monkeypatch, tmp_path):
     assert count == 5
     assert any('fewer than' in p for p in problems)
 
-    # Populated, but the archive was left behind by an interrupted unpack.
+    assert mod.main(['check', '--data-root', str(tmp_path)]) == 1
+
+    # The old unversioned location is not the grid this key describes.
+    old = tmp_path / 'stellar_evolution_tracks' / 'Spada' / mod.GRID_DIR
+    old.mkdir(parents=True)
+    for i in range(mod.MIN_FILES):
+        (old / f'track_{i}.dat').write_text('x', encoding='utf-8')
+    assert mod.check_restored(tmp_path)[0] == 5
+
+    # Complete.
     for i in range(mod.MIN_FILES):
         comp = grid / f'X0p8{i % 20}_Z0p002_A1p875'
         comp.mkdir(exist_ok=True)
         (comp / f'track_{i}.dat').write_text('x', encoding='utf-8')
-    (base / 'fs255_grid.tar.gz').write_text('x', encoding='utf-8')
     count, problems = mod.check_restored(tmp_path)
     assert count == mod.MIN_FILES + 5
-    assert any('left unextracted' in p for p in problems)
-    assert mod.main(['check', '--data-root', str(tmp_path)]) == 1
-
-    # Complete.
-    (base / 'fs255_grid.tar.gz').unlink()
-    count, problems = mod.check_restored(tmp_path)
     assert problems == []
     assert mod.main(['check', '--data-root', str(tmp_path)]) == 0
 
@@ -208,9 +281,8 @@ def test_nightly_workflow_derives_its_key_and_declares_no_restore_prefix():
     # ANY literal, not just the one this replaced: actions/cache never rewrites
     # an entry whose key it hits, so a literal of any value freezes the tree.
     assert not re.search(rf'key:\s*{re.escape(mod.KEY_PREFIX)}\S', workflow)
-    # No restore-keys: a prefix fallback would restore the previous grid into
-    # the unversioned directory mors checks for, so mors would skip the
-    # download and the stale tree would be saved under the new key.
+    # No restore-keys: a prefix fallback would restore the previous record's
+    # tree, report no cache hit and save that stale tree under the new key.
     assert not re.search(r'^\s*restore-keys:', workflow, re.MULTILINE)
     # The check only means something on an exact hit.
     assert "if: steps.cache-fwl-data.outputs.cache-hit == 'true'" in workflow
