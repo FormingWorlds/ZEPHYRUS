@@ -166,6 +166,10 @@ src/zephyrus/_version.py
 # Verification and diagnostic artifacts (plots, raw data, plot scripts)
 output_files/
 
+# Figures the shipped examples write, which the tutorials ask readers to
+# create in the repository root
+output/
+
 # Local editor and session state (personal, not shared)
 /.claude/
 .mcp.json

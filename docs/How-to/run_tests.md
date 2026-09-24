@@ -179,6 +179,13 @@ Two gates are declared in `pyproject.toml`:
 
 Both gates sit at the 90 % ceiling. The `tools/update_coverage_threshold.py` helper (run manually) raises `fail_under` one-way toward the ceiling and never lets it drop; `ECOSYSTEM_CEILING = 90.0` caps it, and neither gate may be manually decreased. ZEPHYRUS has no compiled dependencies, so the unit and smoke tier already covers the whole package, which is why both gates are already at the ceiling. The PR gate has a pre-flight step that fetches the base branch's `pyproject.toml` and rejects any PR that drops `[tool.coverage.report].fail_under` below `min(base, 90.0)`.
 
+
+### What the gate measures, and what it does not
+
+The coverage source is the package, `source = ["zephyrus"]`, so `examples/` sits outside both gates. That is the ecosystem convention rather than an omission: PROTEUS and every sibling submodule set the source to their own package, and PROTEUS's own `examples/` holds configuration files with no Python in them at all. Adding the worked example here would move the reported number by more than ten points while measuring a script rather than the library.
+
+The example is held to account a different way. `tests/test_examples.py` drives its functions for their behaviour, and one test in it runs every Python snippet in the dispatcher tutorial in order and compares what the snippet prints against what the page quotes, character for character. That is what holds the documentation's claim that every printed number is the verbatim output of a snippet a reader can run: a coefficient change three modules away moves a number on that page, and without the test nothing notices.
+
 ## PR validation pipeline
 
 `.github/workflows/tests.yaml` runs on every push and pull request to `main`, and on manual `workflow_dispatch`. Draft PRs run only `ubuntu-latest` with Python 3.12; non-draft events run the full matrix (`ubuntu-latest`, `macos-latest` x Python 3.12). The step sequence:
@@ -195,3 +202,9 @@ Nightly (`.github/workflows/nightly.yml`) runs the full suite, uploads coverage 
 ## Canonical specification
 
 The repository-wide rules that every PROTEUS-ecosystem submodule follows are at [proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/](https://proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/).
+
+### What the gate measures, and what it does not
+
+The coverage source is the package, `source = ["zephyrus"]`, so `examples/` sits outside both gates. That is the ecosystem convention rather than an omission: PROTEUS and every sibling submodule set the source to their own package, and PROTEUS's own `examples/` holds configuration files with no Python in them at all. Adding the worked example here would move the reported number by more than ten points while measuring a script rather than the library.
+
+The example is held to account a different way. `tests/test_examples.py` drives its functions for their behaviour, and one test in it runs every Python snippet in the dispatcher tutorial in order and compares what the snippet prints against what the page quotes, character for character. That is what holds the documentation's claim that every printed number is the verbatim output of a snippet a reader can run: a coefficient change three modules away moves a number on that page, and without the test nothing notices.

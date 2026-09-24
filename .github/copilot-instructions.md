@@ -30,7 +30,7 @@ Sister modules in the ecosystem: AGNI (atmospheric radiative transfer), SOCRATES
 
 **Languages**: Python 3.12+.
 
-**Size**: 3 source files in `src/zephyrus/`.
+**Size**: 17 source files in `src/zephyrus/`.
 
 **Target Runtime**: Python 3.12+ on Linux / macOS.
 
@@ -134,13 +134,26 @@ pre-commit install -f
 
 ### Key Directories
 
-- `src/zephyrus/` - Main Python source code (flat layout, 3 files)
-  - `__init__.py` - Package version (utility)
+- `src/zephyrus/` - Main Python source code (flat layout)
+  - `__init__.py` - Package version and top-level exports (utility)
   - `constants.py` - Physical constants and unit conversions (utility)
   - `planets_parameters.py` - Star-planet system parameters (utility)
-  - `escape.py` - Energy-limited (EL) atmospheric escape, tidal correction (physics)
+  - `composition.py` - Element masses, formula parsing, atomization (utility)
+  - `escape.py` - Compatibility re-export of `EL_escape` (utility; the physics lives in `hydrodynamic.py`)
+  - `collision.py` - Giant-impact atmospheric erosion scaling law (physics)
+  - `profiles.py` - Atmosphere-profile container and escape working levels (physics)
+  - `knudsen.py` - Collision cross sections and the sonic-point Knudsen switch (physics)
+  - `diffusion.py` - Binary diffusion coefficient library with provenance (physics)
+  - `atomic_data.py` - Cooling data tables and closed-form rate coefficients (physics)
+  - `thermostat.py` - Wind-temperature thermostat (heating against cooling) (physics)
+  - `boiloff.py` - Bolometrically driven boil-off escape (physics)
+  - `hydrodynamic.py` - `EL_escape` plus the EL and radiation-recombination-limited dispatch limbs (physics)
+  - `hydrostatic.py` - Jeans escape with the diffusion-limited supply cap (physics)
+  - `fractionation.py` - Simultaneous N-species fractionation closure (physics)
+  - `diagnostics.py` - Regime diagnostics reported beside every verdict (physics)
+  - `dispatcher.py` - The escape-regime dispatcher assembling the branches (physics)
 
-- `tests/` - Test suite. Each physics source has a 1:1 test file at `tests/test_<file>.py`. Cross-cutting or coupling regression tests (e.g. `test_earth.py`) are the exception.
+- `tests/` - Test suite. Each physics source has a 1:1 test file at `tests/test_<file>.py`. Cross-cutting or coupling regression tests (e.g. `test_earth.py`) and the shipped-example tests (`test_examples.py`) are the exception.
 
 - `tools/` - Build / utility scripts
   - `check_test_quality.py` - AST linter (blocking on PRs)
@@ -168,7 +181,7 @@ pre-commit install -f
 
 ### Entry Points
 
-- **Python API**: `from zephyrus.escape import EL_escape`.
+- **Python API**: `from zephyrus.escape import EL_escape` (energy-limited rate); `from zephyrus import dispatch, EscapeInputs, DispatchSettings` (the regime dispatcher); `from zephyrus.collision import mass_loss` (giant-impact erosion).
 - **No CLI**: ZEPHYRUS is library-only; PROTEUS provides the simulator CLI that calls ZEPHYRUS.
 
 ## Testing Standards
@@ -177,7 +190,7 @@ ZEPHYRUS is scientific simulation code, so the test suite is held to physics-gra
 
 ### Structure
 
-- Tests mirror source 1:1: `src/zephyrus/<file>.py` -> `tests/test_<file>.py`. Cross-cutting or coupling regression tests (e.g. `test_earth.py`) are the exception, not the rule.
+- Tests mirror source 1:1: `src/zephyrus/<file>.py` -> `tests/test_<file>.py`. Cross-cutting or coupling regression tests (e.g. `test_earth.py`) and the shipped-example tests (`test_examples.py`, which pin the numbers the docs quote) are the exception, not the rule.
 - Framework: `pytest` exclusively in the `tests/` directory.
 
 ### Markers and the module-level marker rule

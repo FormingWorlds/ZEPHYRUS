@@ -94,18 +94,34 @@ The guard lines are mandatory whenever the test's primary assertion is a `pytest
 
 ### When required
 
-Every unit test on a **physics source** must assert at least one of the four invariants below. The physics source is:
+Every unit test on a **physics source** must assert at least one of the four invariants below. The physics sources are:
 
 ```
-src/zephyrus/escape.py
+src/zephyrus/atomic_data.py
+src/zephyrus/boiloff.py
+src/zephyrus/collision.py
+src/zephyrus/diagnostics.py
+src/zephyrus/diffusion.py
+src/zephyrus/dispatcher.py
+src/zephyrus/fractionation.py
+src/zephyrus/hydrodynamic.py
+src/zephyrus/hydrostatic.py
+src/zephyrus/knudsen.py
+src/zephyrus/profiles.py
+src/zephyrus/thermostat.py
 ```
 
-Per-source-file granularity: `escape.py` needs at least one `@pytest.mark.physics_invariant` test and at least one `@pytest.mark.reference_pinned` test in `tests/test_escape.py`. Granularity is per source file, not per directory.
+Per-source-file granularity: every physics source needs at least one `@pytest.mark.physics_invariant` test and at least one `@pytest.mark.reference_pinned` test in its companion `tests/test_<source>.py`. Granularity is per source file, not per directory.
 
 Utility sources are exempt from the physics-invariant requirement but still subject to all anti-happy-path rules:
 
 ```
-src/zephyrus/__init__.py               (version string)
+src/zephyrus/__init__.py               (version string, package exports)
+src/zephyrus/composition.py            (element masses, formula parsing)
+src/zephyrus/escape.py                 (compatibility re-export of EL_escape,
+                                        which lives in hydrodynamic.py; its
+                                        companion test file guards the released
+                                        import path and the EL physics through it)
 src/zephyrus/constants.py              (pure physical constants, no derivation)
 src/zephyrus/planets_parameters.py     (tabulated star-planet parameters)
 ```
@@ -291,6 +307,7 @@ Write the OUTCOME (what the test verifies; what the PR achieves) never the PROCE
 - Test file names mirror source 1:1: `src/zephyrus/<file>.py` -> `tests/test_<file>.py`. Documented exceptions to the 1:1 rule:
   - **Cross-cutting coupling tests** (`test_mors_coupling.py`, `test_earth.py`): regressions that span the MORS flux hand-off and the escape formula rather than a single source file. `test_mors_coupling.py` mocks the stellar-luminosity lookup so the coupling recipe runs in the fast `unit` tier without a download; `test_earth.py` performs a real MORS lookup end to end and carries the `integration` tier.
   - **Property-based companion** (`test_escape_properties.py`): the Hypothesis-driven sweeps for `escape.py`. They sit in their own module so the `pytest.importorskip('hypothesis')` gate covers only the property tests, leaving the closed-form pins and error-contract guards in `test_escape.py` running when the develop-extra dependency is absent.
+  - **Shipped examples** (`test_examples.py`): the scripts under `examples/` and the documentation pages that quote their output. The tests import an example module by path and exercise its own entry points, so a physics change that moves a documented result fails CI instead of leaving a stale number on a docs page. They carry the `smoke` tier because they run the real dispatch path, and they mock the stellar lookup, because the PR job does not have the MORS tracks. When adding an example, extend this file rather than creating a per-example test module.
 
 ---
 
