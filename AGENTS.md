@@ -4,7 +4,7 @@ ZEPHYRUS computes atmospheric escape for PROTEUS: the energy-limited mass-loss r
 
 - Tests for `src/zephyrus/<file>.py` go in `tests/test_<file>.py`; the test rules are in `tests/AGENTS.md`.
 - `escape.py` and `collision.py` are the physics sources; `constants.py` and `planets_parameters.py` are utilities.
-- The escape rate is non-negative, linear in `Fxuv`, decreasing with planet mass, and zero at `Fxuv = 0`; PROTEUS removes `rate * dt` from the atmosphere, so an inflated rate breaks its mass budget.
+- The escape rate is non-negative, linear in `Fxuv`, decreasing with planet mass, and zero at `Fxuv = 0`; PROTEUS turns the rate into the mass lost per step and caps that at a fraction of the escapable reservoir (`limit_escape_step`), so an inflated rate distorts the coupled evolution.
 - These commands decide whether a change is ready (CI runs the tests, the structure check, the test-quality lint and the agent-file check):
 
 ```bash
@@ -50,33 +50,32 @@ A module change to anything PROTEUS calls or reads (a function signature, a conf
 Rules for every contributor go in the `AGENTS.md` files, the reason for a change in its commit message and pull-request description, and the scientific validation of a module in its `docs/Validation/` pages, where the repository has them. Do not add memory, notes or decision-log files to the repository: nobody maintains them, and they go stale.
 <!-- fwl-core:end -->
 
-<!-- fwl-voice:begin sha256=a943ab6c93ddad24 -->
+<!-- fwl-voice:begin sha256=b4fe24baeef8b734 -->
 ### Commit messages and public text
 
-Commit messages, pull-request text, code comments, docstrings and test names describe the change and the current state of the code. They name no tool used to write the change and carry no tool-attribution trailer.
+Commit messages, pull-request text, code comments, docstrings, test names, test skip reasons, parametrize ids, log strings that ship with the code, and CI job and step names describe the change and the current state of the code. They name no tool used to write the change, carry no tool-attribution trailer, use no internal plan, phase or work-group labels, and use no em or en dashes (a page range in a citation is the exception).
 <!-- fwl-voice:end -->
 
 ## Environment
 
-`pip install -e ".[develop]"` and `pre-commit install -f`; there is nothing to compile. `fwl-mors` is a runtime dependency; only the integration tier (`test_earth.py`) needs its stellar data (`FWL_DATA` set, `mors download all`). The pre-commit hook runs `ruff check --fix`; run `ruff format` yourself on the files you change. `constants.py` and `planets_parameters.py` keep hand-aligned tables that `ruff format` would rewrite; leave their layout. Docs build with `zensical serve` after `pip install -e '.[docs]'`.
+`pip install -e ".[develop]"` and `pre-commit install -f`; there is nothing to compile. `fwl-mors` is a runtime dependency; only the integration tier (`test_earth.py`) needs its stellar data (`FWL_DATA` set, `mors download all`). The pre-commit hook runs `ruff check --fix`; run `ruff format` yourself on the files you change. `constants.py` and `planets_parameters.py` keep hand-aligned tables that `ruff format` would rewrite; leave their layout. Serve the docs locally with `zensical serve` after `pip install -e '.[docs]'`.
 
 ## Physics and coupling contract
 
 - Units are SI throughout: `EL_escape(tidal_contribution, a, e, Mp, Ms, epsilon, Rp, Rxuv, Fxuv, scaling=2)` takes `a`, `Rp`, `Rxuv` in m, `Mp`, `Ms` in kg, `Fxuv` in W m-2, `e` and `epsilon` dimensionless, and returns kg s-1. MORS returns `Lx`, `Leuv` in erg s-1: divide by `4 pi a**2` with `a` in cm (`a_au * au2cm`) for a flux in erg s-1 cm-2, then multiply by `ergcm2stoWm2`. The erg against W and au against m or cm conversions are where errors enter.
 - `Fxuv` arrives from PROTEUS already diluted to the planet (`src/proteus/escape/wrapper.py`, `run_zephyrus`); `EL_escape` must not apply `1 / (4 pi a**2)` again.
-- `scaling=2` (default) uses `Rp * Rxuv**2`, `scaling=3` uses `Rxuv**3`, any other value raises `ValueError`. PROTEUS passes `scaling=3` explicitly (`run_zephyrus`) and the tests pass `scaling` explicitly, so a change of the default reaches only callers that omit it; update the default named in `escape.py`'s docstring and `docs/Validation/escape.md` with it.
+- `scaling=2` (default) uses `Rp * Rxuv**2`, `scaling=3` uses `Rxuv**3`, any other value raises `ValueError`. PROTEUS passes `scaling=3` explicitly (`run_zephyrus`), and the pinned escape tests pass `scaling` explicitly, but `test_earth.py` and `test_mors_coupling.py` use the default. A change of the default updates the `EL_escape` docstring, `docs/Validation/escape.md` and `docs/Explanations/model.md`, and needs a check of those two tests.
 - Tidal branch: `ksi = Rhill / Rxuv` with `Rhill = a (1 - e) (Mp / (3 Ms))**(1/3)`, and `K_tide = (ksi - 1)**2 (2 ksi + 1) / (2 ksi**3)`. `K_tide` is in (0, 1) for `ksi > 1`, and the rate divides by it, so it diverges as `ksi` approaches 1. The source raises `ValueError` for `ksi <= 1`; every tidal path keeps that guard, and the periapsis factor `(1 - e)` stays in `Rhill`.
-- `collision.py` (Kegerreis et al. 2020, Eqn. 1) raises `ValueError` for an impact parameter outside [0, 1], a non-positive or non-finite mass, density or radius, and a negative collision speed.
+- `collision.py` (Kegerreis et al. 2020, Eqn. 1) raises `ValueError` for an impact parameter outside [0, 1], a non-positive or non-finite mass, density or radius, and a negative or non-finite collision speed.
 - Constants and conversions (`G`, `kb`, `au2m`, `au2cm`, `ergcm2stoWm2`) come from `zephyrus.constants`; `G` is SI and `G_cgs` must not enter an SI expression. `escape.py` star-imports `constants` and `planets_parameters` (ruff `F403`, `F405` ignored); new code imports names explicitly.
 
 ## Review
 
-Check each change against these points; `.github/agent-rules/code-review.md` has the detail.
+Check each change against these points and against `.github/agent-rules/code-review.md`. `.github/copilot-instructions.md` repeats this checklist for tools that read only that file; change it together with this section.
 
 - The escape rate stays non-negative for valid inputs; geometric quantities stay strictly positive before any division; `epsilon` stays in [0, 1].
 - Units at the MORS and PROTEUS boundaries; no second orbital dilution of `Fxuv`.
 - A formula change comes with an updated discrimination guard in the escape tests (wrong scaling, dropped `K_tide`, dropped `epsilon`).
-- The `ksi > 1` guard is in place before `K_tide` is used.
-- A change of the default `scaling` updates the docstring and `docs/Validation/escape.md`, which name the default.
-- No retyped constant literals; no run-time mutation of parameter objects.
+- A change of the default `scaling` updates the `EL_escape` docstring, `docs/Validation/escape.md` and `docs/Explanations/model.md`.
+- No retyped constant literals.
 - Tests follow `tests/AGENTS.md`.
