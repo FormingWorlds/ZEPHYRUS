@@ -65,6 +65,10 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: python tools/check_test_quality.py --check
 
+      - name: Check agent instruction files
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: python tools/agents/check_agents_md.py
+
       - name: Pre-flight fail_under ratchet check
         if: ${{ matrix.os == 'ubuntu-latest' }}
         env:
