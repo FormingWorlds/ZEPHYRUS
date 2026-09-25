@@ -14,7 +14,7 @@ The detail behind the Review section of `AGENTS.md`. Apply these domain checks i
 
 ## Escape in the coupled model
 
-A formula change that moves the rate (a wrong scaling exponent, a dropped `epsilon` or `K_tide`) changes the coupled evolution in PROTEUS (the step cap in `AGENTS.md`). Flag a change to the mass-loss formula that comes without an updated discrimination guard in the escape tests.
+A formula change that moves the rate (a wrong scaling exponent, a dropped `epsilon` or `K_tide`) changes the coupled evolution in PROTEUS: an inflated rate runs into the step cap named in `AGENTS.md`, and a dropped `K_tide` lowers the rate of close-in planets. Flag a change to the mass-loss formula that comes without an updated discrimination guard in the escape tests.
 
 ## Giant-impact mass loss
 
