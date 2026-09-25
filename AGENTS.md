@@ -64,7 +64,7 @@ Commit messages, pull-request text, code comments, docstrings, test names, test 
 
 - Units are SI throughout: `EL_escape(tidal_contribution, a, e, Mp, Ms, epsilon, Rp, Rxuv, Fxuv, scaling=2)` takes `a`, `Rp`, `Rxuv` in m, `Mp`, `Ms` in kg, `Fxuv` in W m-2, `e` and `epsilon` dimensionless, and returns kg s-1. MORS returns `Lx`, `Leuv` in erg s-1: divide by `4 pi a**2` with `a` in cm (`a_au * au2cm`) for a flux in erg s-1 cm-2, then multiply by `ergcm2stoWm2`. The erg against W and au against m or cm conversions are where errors enter.
 - `Fxuv` arrives from PROTEUS already diluted to the planet (`src/proteus/escape/wrapper.py`, `run_zephyrus`); `EL_escape` must not apply `1 / (4 pi a**2)` again.
-- `scaling=2` (default) uses `Rp * Rxuv**2`, `scaling=3` uses `Rxuv**3`, any other value raises `ValueError`. PROTEUS passes `scaling=3` explicitly (`run_zephyrus`), and every pinned escape test passes `scaling` explicitly, so no test fails when the default changes (`test_earth.py` uses `Rp == Rxuv`, where both branches agree). A change of the default updates the `EL_escape` docstring and every docs page that names it (`grep -rn scaling docs/`), and adds a test that pins the default.
+- `scaling=2` (default) uses `Rp * Rxuv**2`, `scaling=3` uses `Rxuv**3`, any other value raises `ValueError`. PROTEUS passes `scaling=3` explicitly (`run_zephyrus`), and no test pins the default: `test_earth.py` uses it with `Rp == Rxuv`, where both branches agree, and `test_mors_coupling.py` uses it only in a flux-ratio test. A change of the default updates the `EL_escape` docstring and every docs page that names it (`grep -rn scaling docs/`), and adds a test that pins the default.
 - Tidal branch: `ksi = Rhill / Rxuv` with `Rhill = a (1 - e) (Mp / (3 Ms))**(1/3)`, and `K_tide = (ksi - 1)**2 (2 ksi + 1) / (2 ksi**3)`. `K_tide` is in (0, 1) for `ksi > 1`, and the rate divides by it, so it diverges as `ksi` approaches 1. The source raises `ValueError` for `ksi <= 1`; every tidal path keeps that guard, and the periapsis factor `(1 - e)` stays in `Rhill`.
 - `collision.py` (Kegerreis et al. 2020, Eqn. 1) raises `ValueError` for an impact parameter outside [0, 1], a non-positive or non-finite mass, density or radius, and a negative or non-finite collision speed.
 - Constants and conversions (`G`, `kb`, `au2m`, `au2cm`, `ergcm2stoWm2`) come from `zephyrus.constants`; `G` is SI and `G_cgs` must not enter an SI expression. `escape.py` star-imports `constants` and `planets_parameters` (ruff `F403`, `F405` ignored); new code imports names explicitly.
@@ -73,7 +73,7 @@ Commit messages, pull-request text, code comments, docstrings, test names, test 
 
 Check each change against these points and against `.github/agent-rules/code-review.md`. `.github/copilot-instructions.md` repeats this checklist for tools that read only that file; change it together with this section.
 
-- The escape rate stays non-negative for valid inputs; geometric quantities stay strictly positive before any division; `epsilon` stays in [0, 1].
+- The escape rate stays non-negative for valid inputs; geometric quantities stay strictly positive before any division.
 - Units at the MORS and PROTEUS boundaries; no second orbital dilution of `Fxuv`.
 - A formula change comes with an updated discrimination guard in the escape tests (wrong scaling, dropped `K_tide`, dropped `epsilon`).
 - A change of the default `scaling` updates the `EL_escape` docstring and the docs pages that name it, and adds a test that pins the default.

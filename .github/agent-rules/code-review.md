@@ -14,7 +14,7 @@ The detail behind the Review section of `AGENTS.md`. Apply these domain checks i
 
 ## Escape in the coupled model
 
-PROTEUS multiplies the mass-loss rate by the timestep and caps the mass removed in one step at a fraction of the escapable reservoir (`limit_escape_step` in `src/proteus/escape/wrapper.py`). A formula change that inflates the rate (a wrong scaling exponent, a dropped `epsilon`) hits that cap and changes the coupled evolution; a dropped `K_tide` lowers the rate of close-in planets. Flag a change to the mass-loss formula that comes without an updated discrimination guard in the escape tests.
+A formula change that moves the rate (a wrong scaling exponent, a dropped `epsilon` or `K_tide`) changes the coupled evolution in PROTEUS (the step cap in `AGENTS.md`). Flag a change to the mass-loss formula that comes without an updated discrimination guard in the escape tests.
 
 ## Giant-impact mass loss
 
