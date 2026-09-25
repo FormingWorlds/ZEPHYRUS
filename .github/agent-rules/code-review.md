@@ -15,7 +15,7 @@ The detail behind the Review section of `AGENTS.md`. Apply these domain checks i
 
 ZEPHYRUS works in SI internally:
 
-- **`EL_escape` inputs**: `a`, `Rp`, `Rxuv` in metres; `Mp`, `Ms` in kilograms; `Fxuv` in W m-2; `e`, `epsilon` dimensionless; `scaling` an integer.
+- **`EL_escape` inputs**: `tidal_contribution` a bool; `a`, `Rp`, `Rxuv` in metres; `Mp`, `Ms` in kilograms; `Fxuv` in W m-2; `e`, `epsilon` dimensionless; `scaling` an integer.
 - **Output**: mass-loss rate in kg s-1.
 - **MORS coupling**: MORS returns stellar XUV luminosities `Lx`, `Leuv` in erg s-1. Converting to a flux at the planet requires `ergcm2stoWm2` (erg s-1 cm-2 -> W m-2) AND the orbital distance in centimetres (`a_au * au2cm`) so the `1 / (4*pi*a**2)` geometric dilution is dimensionally consistent. The erg-vs-W and au-vs-m/cm boundaries are the recurring traps.
 - **`constants.py`**: `G` is in SI (`m3 kg-1 s-2`); `G_cgs` is the cgs sibling. Verify the SI `G` is used in `EL_escape` and the cgs one never leaks into an SI expression.
@@ -30,19 +30,7 @@ When reviewing code that crosses these boundaries (a new flux calculation, a new
 - `scaling=3`: `R_cubed = Rxuv**3` (Lopez, Fortney & Miller 2012; Lopez & Fortney 2013; Lehmer & Catling 2017).
 - any other value: `ValueError`.
 
-When the default `scaling` is changed, or a new scaling branch is added, the change has fan-out across:
-
-1. Tests pinning a scaling-specific reference value (the `reference_pinned` escape test names the scaling in its docstring and pins the exact literal).
-2. Documentation pages citing the scaling-specific number (`docs/Validation/escape.md`, the model-overview page).
-3. PROTEUS-side callers that pass `scaling` explicitly or rely on the default.
-
-Required workflow for any scaling default change:
-
-1. `git grep` the `scaling` argument; update every reference value tied to it.
-2. Update the test discrimination guards (`tests/AGENTS.md`, "Discriminating values") so the test would fail loudly under the wrong-scaling regression.
-3. Update `docs/Validation/escape.md` and any page that quotes a scaling-specific number.
-
-A PR that changes the default `scaling` but does not touch the test reference values is a red flag during review.
+PROTEUS passes `scaling=3` explicitly (`run_zephyrus` in `src/proteus/escape/wrapper.py`), and the escape tests pass `scaling` explicitly, so a change of the default reaches only callers that omit the argument. With a default change, update the default named in the `EL_escape` docstring and in `docs/Validation/escape.md`. A new scaling branch needs its own pinned test and a wrong-scaling discrimination guard against the other branches.
 
 ## Tidal-correction propagation
 
@@ -67,11 +55,11 @@ PROTEUS supplies the XUV flux `Fxuv` (W m-2) at the planet, computed from the MO
 
 ### 2. Escape-mass budget consistency
 
-PROTEUS multiplies the ZEPHYRUS mass-loss rate by the timestep to remove atmospheric mass, and the coupled invariant is that the removed mass never exceeds the available atmospheric mass in a step. A regression in `EL_escape` that returns an inflated rate (wrong scaling exponent, missing `K_tide` in the denominator, dropped `epsilon`) would silently violate the PROTEUS-side budget. Flag any change to the mass-loss formula that is not accompanied by an updated discrimination guard in the escape test.
+PROTEUS multiplies the ZEPHYRUS mass-loss rate by the timestep and caps the mass removed in one step at a fraction of the escapable reservoir (`limit_escape_step`). A regression in `EL_escape` that inflates the rate (a wrong scaling exponent, a dropped `epsilon`) hits that cap and changes the coupled evolution; a dropped `K_tide` lowers the rate of close-in planets. Flag any change to the mass-loss formula that is not accompanied by an updated discrimination guard in the escape test.
 
-## Config mutability
+## Giant-impact mass loss
 
-Any dataclass or parameter object used to carry user input must not be mutated at runtime after IC. Flag any code that sets `config.X.Y = value` outside of config initialization. Use local variables instead.
+`collision.mass_loss` returns the fraction of the atmosphere lost (Kegerreis et al. 2020, Eqn. 1), clipped to [0, 1]. Keep its input guards: impact parameter in [0, 1], masses, densities and radii positive and finite, collision speed non-negative and finite.
 
 ## Cross-module constant duplication
 

@@ -1,6 +1,6 @@
 # ZEPHYRUS test instructions
 
-<!-- fwl-tests-core:begin sha256=6f307f998a9a47b8 -->
+<!-- fwl-tests-core:begin sha256=362e46b63952deda -->
 ## Test rules shared by the PROTEUS ecosystem
 
 Each test file starts with a module-level tier marker and a timeout. CI selects tests by marker, so a file without one runs in no CI job; the timeout stops a hang, it is not a target.
@@ -16,11 +16,11 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 | `integration` | several modules coupled | 300 s |
 | `slow` | full physics validation | 3600 s |
 
-Each test carries exactly one tier marker, so that the tier filters select it in the one CI job meant for it; a function marker for a second tier breaks that. Split a file whose tests need different tiers. `skip` marks a placeholder that no CI job runs.
+Each test carries exactly one tier marker, so that the tier filters select it in the one CI job meant for it; a function marker for a second tier breaks that. Split a file whose tests need different tiers. `skip` excludes a test from every CI job.
 
 Every new test covers an edge case (a boundary value, an empty input, an extreme physical parameter), exercises the error contract (a documented exception, a guard, a clamp, or the limit input of the formula), and asserts values that do not follow trivially from the implementation. A pinned value of 1 that every exponent reproduces checks nothing.
 
-`python tools/check_test_quality.py --check` fails when the count of any rule rises above `tools/test_quality_baseline.json`; the offenders it prints are the first few of that rule in the tree, not necessarily yours. The rules: a file without a tier marker, a test without a docstring, a test with one assertion or none, a weak assertion as the only one (`is None`, `is not None`, `> 0`, `len(...) > 0`, `isinstance`), `==` next to a float literal, and an optional dependency imported without `pytest.importorskip`. `bash tools/validate_test_structure.sh` runs the repository's own structure check; `tests/AGENTS.md` below says what it checks here.
+`python tools/check_test_quality.py --check` fails when the count of any rule rises above `tools/test_quality_baseline.json`; the offenders it prints are the first few of that rule in the tree, not necessarily yours. The rules: a file without a tier marker, a test without a docstring, a test with one assertion or none, a weak assertion as the only one (`is None`, `is not None`, `> 0`, `len(...) > 0`, `isinstance`), `==` next to a non-zero float literal, and an optional dependency imported without `pytest.importorskip`. `bash tools/validate_test_structure.sh` runs the repository's own structure check; `tests/AGENTS.md` below says what it checks here.
 
 Physics tests carry markers so their coverage is tracked apart from line coverage:
 - `@pytest.mark.physics_invariant` on each test function that asserts a conservation law, a bound (T > 0, fractions in [0, 1]), a monotonicity or symmetry, or a pinned value with a discrimination guard. The marker goes on the function, not the module: structural tests in the same file do not carry it.
@@ -36,7 +36,7 @@ A module-level constant read from an environment variable at import time does no
 
 ## ZEPHYRUS specifics
 
-Structure: `src/zephyrus/<file>.py` is tested in `tests/test_<file>.py`. The exceptions: `test_mors_coupling.py` (the MORS flux hand-off, MORS mocked, unit tier), `test_earth.py` (a real MORS lookup, integration tier), and the Hypothesis sweeps in `test_escape_properties.py` and `test_collision_properties.py`, kept apart so `pytest.importorskip('hypothesis')` skips only them. `bash tools/validate_test_structure.sh` checks that every test carries exactly one tier marker (module, class or function).
+Structure: `src/zephyrus/<file>.py` is tested in `tests/test_<file>.py`. The exceptions: `test_mors_coupling.py` (the MORS flux hand-off, MORS mocked, unit tier), `test_earth.py` (a real MORS lookup, integration tier), the Hypothesis sweeps in `test_escape_properties.py` and `test_collision_properties.py`, kept apart so `pytest.importorskip('hypothesis')` skips only them, and `test_nightly_data_cache.py` for `tools/nightly_data_cache.py`. `bash tools/validate_test_structure.sh` checks that every test carries exactly one tier marker (module, class or function).
 
 CI: pull requests run `pytest -m "(unit or smoke) and not skip"` with the fast coverage gate, the structure check and `check_test_quality.py --check`, which blocks here; the nightly runs all tiers.
 
@@ -51,7 +51,7 @@ Invariants for `escape.py`: the rate equals the deposited XUV power over the bin
 - Use `Rp != Rxuv`: at `Rp == Rxuv` the `scaling=2` and `scaling=3` branches give the same value, so a swapped default passes. Pin both branches and assert they differ.
 - Test the tidal branch close in (`a` about 0.02 au), where `K_tide` differs from 1 by tens of percent; at 1 au it is about 0.99 and a dropped correction passes a loose tolerance. Pin `K_tide` and use the no-tidal value as the guard.
 - Use two `Fxuv` values and assert the rate ratio equals the flux ratio; use two `Mp` values and assert the rate falls.
-- Pin the magnitude with a scale guard (for example `1e6 < rate < 1e8`) and name the unit in the comment: a reference computed with `a` in au instead of m still looks plausible.
+- Pin the magnitude with a scale guard (for example `1e6 < rate < 1e8`) and name the unit in the comment: a radius in cm instead of m moves the rate to about `1e12` and fails the band.
 
 ### Mocks, constants, seeds
 
