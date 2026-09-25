@@ -1,12 +1,7 @@
----
-description: ZEPHYRUS-specific code review criteria for the atmospheric-escape module. Applies domain expertise (energy-limited mass loss, tidal correction, XUV-flux coupling, MORS coupling, PROTEUS coupling) to all code review in this repo.
----
-
 # ZEPHYRUS Code Review Criteria
 
-When reviewing ZEPHYRUS code (either your own or via code-reviewer agents), apply these domain-specific checks in addition to standard code quality review.
+The detail behind the Review section of `AGENTS.md`. Apply these domain checks in addition to general code quality review.
 
-> **Discovery note.** ZEPHYRUS keeps its Claude-Code rule files under `.github/.claude/rules/` (not the conventional repo-root `.claude/`) so they can be tracked in git and shared across collaborators. Claude does NOT auto-discover them at this path; the repo-root `CLAUDE.md` (symlinked to `.github/copilot-instructions.md`) names this file and `zephyrus-tests.md` explicitly. **Before opening any review pass, read both this file and `zephyrus-tests.md`.**
 
 ## Physics plausibility
 
@@ -44,7 +39,7 @@ When the default `scaling` is changed, or a new scaling branch is added, the cha
 Required workflow for any scaling default change:
 
 1. `git grep` the `scaling` argument; update every reference value tied to it.
-2. Update the test discrimination guards (Section 2 rule of `zephyrus-tests.md`) so the test would fail loudly under the wrong-scaling regression.
+2. Update the test discrimination guards (`tests/AGENTS.md`, "Discriminating values") so the test would fail loudly under the wrong-scaling regression.
 3. Update `docs/Validation/escape.md` and any page that quotes a scaling-specific number.
 
 A PR that changes the default `scaling` but does not touch the test reference values is a red flag during review.
@@ -86,15 +81,3 @@ Physical constants (`G`, `kb`, `c`) and unit conversions (`au2m`, `au2cm`, `ergc
 
 `escape.py` uses `from zephyrus.constants import *` and `from zephyrus.planets_parameters import *`. This is the existing module convention; ruff's `F403` / `F405` are ignored for this repo. When reviewing a new source file, prefer explicit imports for anything new; do not extend the star-import surface without cause, and never let a star import shadow a function-local name.
 
-## Test marker discipline
-
-Every test file must begin with a module-level `pytestmark = [pytest.mark.<tier>, pytest.mark.timeout(<budget>)]` (unit/30 s, smoke/60 s, integration/300 s, slow/3600 s). Per-function markers are additive but do not replace the module-level marker; CI runs `pytest -m "(unit or smoke) and not skip"` and any file missing the tier marker ships untested.
-
-## Test quality (cross-reference)
-
-Test-content rules (anti-happy-path, discriminating-value guards, physics-invariant tiering, `physics_invariant` / `reference_pinned` certification markers, adversarial-review trigger, mocking discipline, `importorskip` + module-constant-monkeypatch traps, tidal-correction propagation, MORS-flux coupling, hypothesis seed stability) live in [`zephyrus-tests.md`](zephyrus-tests.md). When reviewing tests, apply both files: this one for marker discipline and review-pass gate, the deep-dive for the content contract.
-
-## Sister rules (cross-link)
-
-- [`.github/copilot-instructions.md`](../../copilot-instructions.md) "Testing Standards" -- high-level rules visible to all readers. Repo-root `CLAUDE.md` is a symlink to this file.
-- [`zephyrus-tests.md`](zephyrus-tests.md) -- test quality deep-dive; the canonical source for anti-happy-path patterns and the validation certification markers.
