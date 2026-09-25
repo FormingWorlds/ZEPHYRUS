@@ -36,7 +36,7 @@ A module-level constant read from an environment variable at import time does no
 
 ## ZEPHYRUS specifics
 
-Structure: `src/zephyrus/<file>.py` is tested in `tests/test_<file>.py`. The exceptions: `test_mors_coupling.py` (the MORS flux hand-off, MORS mocked, unit tier), `test_earth.py` (a real MORS lookup, integration tier), the Hypothesis sweeps in `test_escape_properties.py` and `test_collision_properties.py`, kept apart so `pytest.importorskip('hypothesis')` skips only them, and `test_nightly_data_cache.py` for `tools/nightly_data_cache.py`. `bash tools/validate_test_structure.sh` checks that every test carries exactly one tier marker (module, class or function).
+Structure: `src/zephyrus/<file>.py` is tested in `tests/test_<file>.py`. The exceptions: `test_mors_coupling.py` (the MORS flux hand-off, MORS mocked, unit tier), `test_earth.py` (a real MORS lookup, integration tier), the Hypothesis sweeps in `test_escape_properties.py` and `test_collision_properties.py`, kept apart so `pytest.importorskip('hypothesis')` skips only them, and `test_nightly_data_cache.py` for `tools/nightly_data_cache.py`. `bash tools/validate_test_structure.sh` checks that every test carries exactly one of `unit`, `smoke`, `integration`, `slow` and `skip` (module, class or function); a tier marker together with `skip` fails.
 
 CI: pull requests run `pytest -m "(unit or smoke) and not skip"` with the fast coverage gate, the structure check and `check_test_quality.py --check`, which blocks here; the nightly runs all tiers.
 
@@ -55,7 +55,7 @@ Invariants for `escape.py`: the rate equals the deposited XUV power over the bin
 
 ### Mocks, constants, seeds
 
-- Unit tests mock MORS at the narrowest scope (`patch('mors.Star')`) and return a plausible `Lx`, `Leuv` pair, not a constant; assert the derived flux against a hand-computed value. `mors` is a runtime dependency: escape tests mock it rather than skip; `test_nightly_data_cache.py` skips when `mors` or `fwl_io` is missing, because the tool it tests needs both.
+- Unit tests mock MORS at the narrowest scope (`patch('mors.Star')`) and return a plausible `Lx`, `Leuv` pair, not a constant; assert the derived flux against a hand-computed value. `mors` is a runtime dependency: a unit test that needs it mocks it (`test_mors_coupling.py`) rather than skip; `test_nightly_data_cache.py` skips when `mors` or `fwl_io` is missing, because the tool it tests needs both.
 - `hypothesis` is the one module-top optional dependency the linter knows (`OPTIONAL_DEPS`); property tests use `@settings(derandomize=True)` or a fixed `--hypothesis-seed`, because the default sequence changes between Hypothesis releases.
 - `escape.py` star-imports `G`, so a test that changes `G` patches `zephyrus.escape.G` (the use site), not only `zephyrus.constants.G`.
 - Test parameters are SI; parametrize ids name the physical scenario (Earth-like, close-in super-Earth, sub-Neptune).
