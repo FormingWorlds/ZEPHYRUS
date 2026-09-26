@@ -184,7 +184,7 @@ def _has_float_eq(node: ast.AST) -> bool:
     """
     for child in ast.walk(node):
         if isinstance(child, ast.Compare):
-            for op, right in zip(child.ops, child.comparators):
+            for op, right in zip(child.ops, child.comparators, strict=False):
                 if not isinstance(op, ast.Eq):
                     continue
                 right_val = _float_literal_value(right)

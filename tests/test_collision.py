@@ -163,7 +163,7 @@ def test_unphysical_inputs_are_rejected():
     contact speed has no physical meaning.
     """
     v = 1.0e4
-    good = dict(M_i=M_E, M_t=M_E, rho_i=RHO_E, rho_t=RHO_E, R_i=R_E, R_t=R_E)
+    good = {'M_i': M_E, 'M_t': M_E, 'rho_i': RHO_E, 'rho_t': RHO_E, 'R_i': R_E, 'R_t': R_E}
 
     for bad_b in (-0.1, 1.2):
         with pytest.raises(ValueError, match=r'\[0, 1\]'):

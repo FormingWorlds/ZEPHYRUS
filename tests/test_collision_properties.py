@@ -108,7 +108,7 @@ def test_loss_never_increases_toward_grazing_at_equal_density(m_i, m_t, rho, r_i
     """
     v_c = 2.0 * _vesc(m_t, m_i, r_t, r_i)
     losses = [mass_loss(v_c, m_i, m_t, rho, rho, r_i, r_t, b) for b in (0.0, 0.4, 0.8, 1.0)]
-    assert all(a >= z for a, z in zip(losses, losses[1:]))
+    assert all(a >= z for a, z in zip(losses, losses[1:], strict=False))
     assert losses[-1] == pytest.approx(0.0, abs=1e-15)
 
 
