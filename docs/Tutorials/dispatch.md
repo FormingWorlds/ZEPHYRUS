@@ -121,7 +121,7 @@ In a coupled run the atmosphere module supplies the profile. Standalone, `isothe
 - The top pressure, $10^{-5}$ Pa or 0.1 nanobar. The XUV wind launches near a nanobar, so a profile that stops deeper than that cannot reach its own wind base and the base clamps to the profile top instead, flagged. Setting the top below a nanobar keeps the clamp out of the way.
 - The photospheric opacity, 0.01 m² kg⁻¹ or about 0.1 cm² g⁻¹. The boil-off rate scales as its inverse, so it matters whenever the boil-off branch is in play.
 - The orbit, 0.0775 au around a solar-luminosity star, which puts the equilibrium temperature at 1000 K. Deriving $T_\mathrm{eq}$ and $F_\mathrm{bol}$ from the orbit rather than setting all three by hand keeps the state self-consistent.
-- The interior heat flux, 1 W m⁻². It sets the luminosity cap on the bolometric residual past the boil-off gate and nothing else. That residual is reported on every call and competes for the rate only when the `residual` setting admits it, so with the defaults this number reaches the diagnostics and never the rate.
+- The interior heat flux, 1 W m⁻². It sets the luminosity cap on the bolometric residual past the boil-off gate and nothing else. That residual is reported on every call and competes for the rate only when the `residual_mode` setting admits it, so with the defaults this number reaches the diagnostics and never the rate.
 
 The optional fields are worth setting even when you do not need them: `age` and `reservoirs` are what let the diagnostics tell you whether a rate is consistent with the state having survived, which is step 5.
 
@@ -252,10 +252,10 @@ At one Earth mass and 1.5 Earth radii with a hydrogen and helium envelope, $\Lam
 
 The clamp flags are expected here, and harmless: an isothermal hydrogen envelope becomes unbound before it reaches a nanobar, so the profile stops early and the wind base clamps to its top. The boil-off branch launches from the photospheric level, not the wind base, so the clamp does not touch the rate. Note what is absent: the hydrodynamic candidates were computed on this state too, and one of them raised a subcritical-sonic caution, but the dispatched rate is the bolometric one and the flags describe the branch that produced it. Flags tell you what happened; deciding whether it matters is your job, and the [troubleshooting guide](../How-to/troubleshooting.md) is a shortcut for the common cases.
 
-Push the same envelope to three Earth masses and two Earth radii. It has contracted past the activation gate, so by default the bolometric candidate is reported and does not compete, and the XUV wind takes the rate. Admit the luminosity-capped residual through the `residual` setting, and the flow of the winning branch stops being bound to the planet at all:
+Push the same envelope to three Earth masses and two Earth radii. It has contracted past the activation gate, so by default the bolometric candidate is reported and does not compete, and the XUV wind takes the rate. Admit the luminosity-capped residual through the `residual_mode` setting, and the flow of the winning branch stops being bound to the planet at all:
 
 ```python
-admitted = DispatchSettings(residual='luminosity_capped')
+admitted = DispatchSettings(residual_mode='luminosity_capped')
 puffy = dispatch(build_state('H/He', 3.0, 2.0, 0.1, settings=admitted))
 roche = puffy.diagnostics['roche']
 

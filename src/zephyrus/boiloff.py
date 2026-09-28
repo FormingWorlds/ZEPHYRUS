@@ -49,15 +49,14 @@ from zephyrus.constants import G, kb
 #   reports.
 # - Luminosity cap, applied only past the activation gate:
 #   Mdot_E = L / (g R_p K) with L = 4 pi R_p^2 F_int (Gupta & Schlichting
-#   2019, MNRAS 487, 24, their Eq. 8). Capping the residual bolometric
-#   channel by the interior luminosity sidesteps the open dispute over how
-#   long core-powered mass loss survives after boil-off (Tang et al. 2024,
-#   ApJ 976, 221, argue it is brief; Gupta & Schlichting argue it lasts).
-#   The barrier the luminosity has to lift the gas over carries the tidal
+#   2019, MNRAS 487, 24, their Eq. 8). Whether a bolometric wind persists
+#   at this rate after boil-off is disputed (Tang et al. 2024, ApJ 976,
+#   221, find it negligible), which is why the dispatcher reports it and
+#   admits it to the rate only on request. The barrier carries the tidal
 #   reduction K(xi) of Erkaev et al. (2007, A&A 472, 329, their Eq. 17),
-#   xi = R_Hill/R_p, so the cap and the energy-limited rate it competes
-#   against measure the same barrier from the same reference radius; K = 1
-#   recovers the untidal form and is what a caller with tides off gets.
+#   xi = R_Hill/R_p, the one the energy-limited rate divides by, so an
+#   admitted residual and the XUV rate it competes with measure the same
+#   barrier; K = 1 is the untidal form.
 # - Termination diagnostic: the Tang et al. (2024) Eq. (8) timescale
 #   comparison, run as a diagnostic beside the rate's own exponential
 #   shutoff, never as a gate.
@@ -110,6 +109,7 @@ def bolometric_candidate(
     lambda_gate: float,
     lambda_crit: float,
     k_tide: float = 1.0,
+    residual_mode: str = 'off',
 ) -> tuple[float, dict]:
     """The bolometrically driven candidate mass-loss rate, in kg/s.
 
@@ -144,16 +144,27 @@ def bolometric_candidate(
         only term that measures a barrier. The default of 1 is the untidal
         form; a non-positive value means the barrier has vanished and the
         cap is dropped.
+    residual_mode : str
+        ``'off'`` or ``'luminosity_capped'``: whether the candidate competes
+        for the dispatched rate past the activation gate. It changes only
+        the reported ``competes``, never the rate.
 
     Returns
     -------
     (rate, detail)
-        The candidate rate [kg/s] and a detail dict carrying the wind
-        temperature, sound speed, Bondi radius, Mach number, each cap, the
-        tidal factor the cap used, the activation state, and flags
-        (``bondi_inflated`` when the launch level sits above the Bondi
-        radius).
+        The candidate rate [kg/s], the minimum over the caps in force, and
+        a detail dict carrying the wind state, each cap, ``binding_cap``
+        (which of them set the rate), the activation state ``active``,
+        whether the candidate ``competes``, and flags (``bondi_inflated``
+        when the launch level sits above the Bondi radius).
+
+    Raises
+    ------
+    ValueError
+        If ``residual_mode`` is not a supported value.
     """
+    if residual_mode not in ('off', 'luminosity_capped'):
+        raise ValueError("residual_mode must be 'off' or 'luminosity_capped'")
     T_w = T_eq / 2.0**0.25
     mu = launch['mmw']
     c_s = math.sqrt(kb * T_w / mu)
@@ -184,16 +195,17 @@ def bolometric_candidate(
     tau_launch = kappa_photo * launch['p'] / g_launch
 
     active = lambda_gate < lambda_crit
-    caps = [mdot_parker, mdot_bondi]
+    caps = {'parker': mdot_parker, 'bondi': mdot_bondi}
     mdot_lum = None
     if not active:
         L = 4.0 * math.pi * R_p**2 * F_int
         g = G * M_p / R_p**2
         barrier = g * R_p * k_tide  # J/kg to lift gas out, tides included
         mdot_lum = L / barrier if barrier > 0.0 else math.inf
-        caps.append(mdot_lum)
-    rate = min(caps)
-    if mdot_lum is not None and rate == mdot_lum:
+        caps['luminosity'] = mdot_lum
+    binding_cap = min(caps, key=caps.get)
+    rate = caps[binding_cap]
+    if binding_cap == 'luminosity':
         # The interior luminosity is the binding term. Worth a flag rather
         # than an inference from the branch being past its gate: the cap
         # switches on at the gate, so a state that crosses the activation
@@ -211,6 +223,10 @@ def bolometric_candidate(
         mdot_luminosity=mdot_lum,
         k_tide=k_tide,
         active=active,
+        competes=active or residual_mode == 'luminosity_capped',
+        residual_mode=residual_mode,
+        binding_cap=binding_cap,
+        rate_kg_s=rate,
         R_sonic=R_B,
         tau_launch=tau_launch,
         p_launch=float(launch['p']),

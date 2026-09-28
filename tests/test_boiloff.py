@@ -134,6 +134,46 @@ def test_luminosity_cap_applies_only_past_the_gate():
     assert rate_b <= rate_a * (1 + 1e-12)
 
 
+@pytest.mark.physics_invariant
+def test_candidate_names_its_binding_cap_and_whether_it_competes():
+    """The candidate reports which cap set its rate and whether it competes.
+
+    ``binding_cap`` must name the smallest of the caps in force, so the rate
+    equals that cap and no other cap lies below it. A small interior flux
+    past the gate makes the luminosity cap bind (7.4e4 kg/s against a Parker
+    rate of 1.8e13 kg/s), and an interior flux nine decades larger releases
+    it, which discriminates a name read off the minimum from one fixed by
+    the gate state. ``competes`` follows the gate
+    while it is open and the residual mode past it, and never touches the
+    rate. An unknown mode is rejected with a message naming it.
+    """
+    M_p, R_p, T_eq = 3 * Me, 3 * Re, 1000.0
+    launch = _launch(M_p, R_p, T_eq, {'H2': 1.0})
+    names = {'parker': 'mdot_parker', 'bondi': 'mdot_bondi', 'luminosity': 'mdot_luminosity'}
+    args = (M_p, R_p, T_eq, 0.01, launch)
+    for f_int, lam in ((1.0e-3, 30.0), (1.0e6, 30.0), (1.0e-3, 10.0)):
+        rate, det = bolometric_candidate(*args, f_int, lambda_gate=lam, lambda_crit=20.0)
+        in_force = [det[k] for k in names.values() if det[k] is not None]
+        assert rate == pytest.approx(det[names[det['binding_cap']]], rel=1e-15, abs=0.0)
+        assert all(rate <= cap for cap in in_force)
+        assert det['rate_kg_s'] == rate
+    _, low = bolometric_candidate(*args, 1.0e-3, lambda_gate=30.0, lambda_crit=20.0)
+    _, high = bolometric_candidate(*args, 1.0e6, lambda_gate=30.0, lambda_crit=20.0)
+    assert low['binding_cap'] == 'luminosity'
+    assert high['binding_cap'] != 'luminosity'
+    rate_off, off = bolometric_candidate(*args, 1.0, lambda_gate=30.0, lambda_crit=20.0)
+    rate_on, on = bolometric_candidate(
+        *args, 1.0, lambda_gate=30.0, lambda_crit=20.0, residual_mode='luminosity_capped'
+    )
+    _, open_gate = bolometric_candidate(*args, 1.0, lambda_gate=10.0, lambda_crit=20.0)
+    assert off['competes'] is False
+    assert on['competes'] is True
+    assert open_gate['competes'] is True
+    assert rate_on == rate_off
+    with pytest.raises(ValueError, match='residual_mode'):
+        bolometric_candidate(*args, 1.0, 30.0, 20.0, residual_mode='on')
+
+
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
 def test_luminosity_cap_carries_the_tidal_barrier_reduction():

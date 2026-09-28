@@ -25,6 +25,7 @@ See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
 
 import math
+import re
 
 import numpy as np
 import pytest
@@ -284,7 +285,7 @@ def test_roche_screen_renames_without_changing_the_rate():
     stays subdominant across the bracket: the XUV flux is negligible and
     the nozzle candidate sits outside its applicability criterion, so the
     rename is the only thing that changes. The residual is admitted through
-    the ``residual`` setting, since by default it is reported and does not
+    the ``residual_mode`` setting, since by default it is reported and does not
     compete; what the family needs is a bound branch whose flow radius is
     a sonic radius large enough to cross the Hill sphere, and the residual
     is the one that has it. Bisecting in orbital distance brackets the
@@ -295,7 +296,7 @@ def test_roche_screen_renames_without_changing_the_rate():
     that form bypasses the luminosity cap.
     """
     comp = {'H2': 0.9, 'He': 0.1}
-    admitted = DispatchSettings(residual='luminosity_capped')
+    admitted = DispatchSettings(residual_mode='luminosity_capped')
 
     def at(a):
         return dispatch(
@@ -453,7 +454,7 @@ def test_nozzle_competes_only_inside_its_domain():
             {'H2': 0.9, 'He': 0.1},
             F_xuv=0.1,
             a=0.12 * AU,
-            settings=DispatchSettings(residual='luminosity_capped'),
+            settings=DispatchSettings(residual_mode='luminosity_capped'),
         )
     )
     noz_o = outside.diagnostics['nozzle']
@@ -706,7 +707,7 @@ def test_residual_setting_admits_the_post_gate_candidate():
     candidate is the rate there either way. An unknown mode string is
     rejected by the settings validator with a message naming the knob.
     """
-    admitted = DispatchSettings(residual='luminosity_capped')
+    admitted = DispatchSettings(residual_mode='luminosity_capped')
     past = dict(comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU)
     off = dispatch(_inputs(3 * Me, 2 * Re, 1000.0, **past))
     on = dispatch(_inputs(3 * Me, 2 * Re, 1000.0, settings=admitted, **past))
@@ -741,8 +742,29 @@ def test_residual_setting_admits_the_post_gate_candidate():
     assert b_off.diagnostics['bolometric']['competes'] is True
     assert b_on.mdot == pytest.approx(b_off.mdot, rel=1e-12, abs=0.0)
     assert 'bolometric_residual' not in b_on.flags
-    with pytest.raises(ValueError, match='residual'):
-        DispatchSettings(residual='on').validate()
+    with pytest.raises(ValueError, match='residual_mode'):
+        DispatchSettings(residual_mode='on').validate()
+
+
+def test_bolometric_diagnostics_keys_match_the_results_page():
+    """The bolometric diagnostics group carries the keys the reference lists.
+
+    The group is built by one producer and documented in one table row, and
+    the two had drifted before. Parse the key list from the row in
+    ``docs/Reference/results.md`` and compare it with the live keys on a
+    state past the gate and one below it, so a key added or dropped on either
+    side fails here.
+    """
+    from pathlib import Path
+
+    page = Path(__file__).resolve().parents[1] / 'docs' / 'Reference' / 'results.md'
+    row = next(line for line in page.read_text().splitlines() if line.startswith('| `bolometric` |'))
+    documented = set(re.findall(r'`([A-Za-z_]+)`', row.split('|')[2]))
+    assert len(documented) >= 15
+    past = dispatch(_inputs(3 * Me, 2 * Re, 1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU))
+    below = dispatch(_inputs(Me, 1.5 * Re, 1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=10.0, a=0.0775 * AU))
+    for result in (past, below):
+        assert set(result.diagnostics['bolometric']) == documented
 
 
 def test_nozzle_power_diagnostic_reports_the_lift_cost():
@@ -1094,8 +1116,8 @@ def test_settings_option_raises_cover_every_knob():
     """
     with pytest.raises(ValueError, match='base_out_of_range'):
         DispatchSettings(base_out_of_range='nonsense').validate()
-    with pytest.raises(ValueError, match='residual'):
-        DispatchSettings(residual='nonsense').validate()
+    with pytest.raises(ValueError, match='residual_mode'):
+        DispatchSettings(residual_mode='nonsense').validate()
     with pytest.raises(ValueError, match='gate'):
         DispatchSettings(gate='nonsense').validate()
     with pytest.raises(ValueError, match='efficiency_mode'):
@@ -1229,7 +1251,7 @@ FLAG_CASES = (
             comp={'H2': 0.9, 'He': 0.1},
             F_xuv=0.1,
             a=0.0775,
-            settings=DispatchSettings(residual='luminosity_capped'),
+            settings=DispatchSettings(residual_mode='luminosity_capped'),
         ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
     ),
