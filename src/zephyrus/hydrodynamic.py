@@ -32,29 +32,16 @@ from zephyrus.constants import G, ev2joule, kb, m_p
 #   equilibrium at the wind base sets the base ion density proportional to
 #   sqrt(F_XUV), and an isothermal Parker wind carries it to the sonic
 #   point with the barometric factor exp(3/2 - lambda_b), the exact
-#   isothermal value. min(EL, RR) selects RR two physically distinct ways:
-#   genuine recombination saturation, and barometric suppression at large
-#   lambda_b, where the label "recombination limited" would be a category
-#   error. The flux scaling does not separate them, since the base ion
-#   density follows sqrt(F_XUV) at every lambda_b in this chain; the
-#   barometric factor does, and it is reported beside the rate. The
-#   selection diagnostic names which candidate won, not why. Where the two
-#   candidates cross in flux is sensitive to the wind temperature: the RR
-#   chain carries it through the sound speed, the barometric exponent, and
-#   the recombination coefficient, so a thermostat-driven wind temperature
-#   can move the EL/RR crossover by an order of magnitude against the
-#   canonical fixed 1e4 K evaluation.
+#   isothermal value, reported beside the rate because it separates
+#   recombination saturation from barometric suppression.
 # - Efficiency: fixed, or the Caldiroli et al. (2022, A&A 663, A122,
 #   Appendix A.1) fit, defined against their R_p^3 geometry and therefore
 #   converted by (R_p/R_XUV)^2 before use in the Erkaev form.
 #
-# EL_escape is the released standalone entry point for the energy-limited
-# rate (scaling selection, tidal branch, and input validation in one
-# self-contained function); el_rate is the bare kernel the regime dispatch
-# assembles with its own tidal factor. The two are kept as separate code
-# paths on purpose, so the cross-implementation test between them guards
-# the scaling and tidal plumbing. zephyrus.escape re-exports EL_escape for
-# compatibility with the released import path.
+# EL_escape is the released standalone entry point; el_rate is the bare
+# kernel the dispatcher assembles with its own tidal factor. They stay
+# separate code paths so a cross-implementation test guards the plumbing.
+# zephyrus.escape re-exports EL_escape for the released import path.
 
 RHO_UNIT_CGS = 1e-3  # kg m^-3 -> g cm^-3
 FLUX_UNIT_CGS = 1e3  # W m^-2 -> erg s^-1 cm^-2
@@ -71,12 +58,9 @@ def k_tide(xi: float) -> float:
     The factor is ``(xi - 1)^2 (2 xi + 1) / (2 xi^3)``, which has a double
     root at ``xi = 1`` and rises toward 1 as ``xi`` grows. The energy-limited
     rate divides by it, so the rate diverges as the atmosphere approaches its
-    Roche lobe: the factor is 1.5e-6 at xi = 1.001 and 1.2e-2 at xi = 1.1,
-    inflating the rate 6.7e5-fold and 83-fold. At and below the root the
-    polynomial turns back upward and returns values above 1, which would
-    reduce the rate rather than raise it, so the domain is enforced rather
-    than extrapolated: a caller at xi <= 1 has a planet filling its lobe and
-    needs the overflow machinery, not this factor.
+    Roche lobe. Below the root the polynomial returns values that would
+    reduce the rate, so ``xi <= 1`` raises ``ValueError``: such a planet
+    fills its lobe and needs the overflow treatment.
     """
     if not xi > 1.0:
         raise ValueError(
@@ -147,12 +131,9 @@ def EL_escape(
         ``tidal_contribution`` is True.
     epsilon : float
         Escape efficiency factor (dimensionless). Typical literature
-        range is $0.1 < \epsilon < 0.6$, but hydrodynamic simulations
-        find the effective efficiency falls far below that band for
-        strongly bound planets: above a threshold gravitational
-        potential, $\log_{10}(G M_p K_\mathrm{tide}/R_p) \approx 12.9$
-        to $13.2$ in cgs units (erg g$^{-1}$), it drops to of order
-        $10^{-2}$ for compact hot Jupiters (Caldiroli et al. 2022).
+        range is $0.1 < \epsilon < 0.6$; for strongly bound planets
+        hydrodynamic simulations find much lower values (Caldiroli et
+        al. 2022).
     Rp : float
         Planetary radius [m]. Used as a linear factor when
         ``scaling=2``.
@@ -160,10 +141,8 @@ def EL_escape(
         Planetary radius at which the atmosphere becomes optically
         thick to XUV radiation [m]. In PROTEUS this level is placed at
         a fixed pressure, by default 20 mbar following Baumeister et
-        al. (2023); that is an optical-photosphere-type level, distinct
-        from the roughly nanobar level where the XUV heating is
-        actually deposited and the wind is launched (Lopez 2017,
-        $P_\mathrm{base} = \mu m_\mathrm{H} g / \sigma_{\nu_0}$).
+        al. (2023), distinct from the roughly nanobar wind base of
+        Lopez (2017).
     Fxuv : float
         XUV flux received by the planet from the host star, in
         W m$^{-2}$.
@@ -241,12 +220,9 @@ def EL_escape(
 
     # Tidal contribution
     if tidal_contribution:
-        # ksi is the ratio of the periapsis Hill radius to the radius the
-        # scaling selects. K_tide = (ksi-1)^2 (2 ksi + 1) / (2 ksi^3) is
-        # non-negative for all ksi > 0 with a double root at ksi = 1, so the
-        # energy-limited rate (which divides by K_tide) diverges as ksi -> 1
-        # and is only valid for ksi > 1, where the atmosphere sits inside the
-        # Roche lobe.
+        # ksi = Rhill/R on the radius the scaling selects. K_tide has a double
+        # root at ksi = 1 and the rate divides by it, so only ksi > 1, inside
+        # the Roche lobe, is valid.
         Rhill = a * (1 - e) * (Mp / (3 * Ms)) ** (1 / 3)
         ksi = Rhill / R_tide
         if ksi <= 1:
@@ -310,15 +286,10 @@ def wind_mean_masses(element_fractions: dict) -> tuple[float, float]:
     the particles, the mean mass per particle is half the mean atomic mass
     and the mean mass per ion is the mean atomic mass itself.
 
-    Two conventions to keep straight. The returned values are in atomic mass
-    units, and the call sites multiply by the proton mass where Lopez writes
-    the hydrogen atom mass; the three candidate units span 0.36 percent on
-    the sound speed, and the proton mass sits 0.04 percent from Lopez's own.
-    And Lopez's printed pairs are not both reachable: the rule makes the
-    per-ion mass exactly twice the per-particle mass, so the printed steam
-    pair (3, 6) is recovered while the printed H/He pair (0.62, 1.3) is
-    internally inconsistent by 4.6 percent, 1.3 halving to 0.65. The rule
-    follows the per-ion value and the tests pin that reading.
+    Call sites multiply by the proton mass where Lopez writes the hydrogen
+    atom mass. The rule recovers Lopez's printed steam pair (3, 6); the
+    printed H/He pair (0.62, 1.3) is internally inconsistent, and the rule
+    follows its per-ion value.
     """
     mbar = sum(x * ELEMENT_AMU[el] for el, x in element_fractions.items())
     return mbar / 2.0, mbar
@@ -363,10 +334,7 @@ def rr_chain(
     lambda_b = G * M_p / (R_base * c_s**2)
 
     # The photon energy and the cross section belong to one front and must
-    # be taken from the same one. Taking the energy from the composition and
-    # the cross section from hydrogen put a nitrogen-like wind on a section
-    # 5.3 times too small, which raised its neutral base density by that
-    # factor and understated the reported base ionization fraction.
+    # be taken from the same one.
     x_h = element_fractions.get('H', 0.0)
     hydrogen_front = x_h >= 0.5
     hnu0 = (HNU0_H_EV if hydrogen_front else HNU_I_N_EV) * ev2joule
@@ -375,9 +343,8 @@ def rr_chain(
     # Composition-weighted case B coefficient, cm^3/s -> m^3/s.
     alpha_b = sum(x * alpha_case_b(el, T_wind) for el, x in element_fractions.items()) * 1e-6
 
-    # Base ion density from photoionization-recombination balance with the
-    # neutral density at unit optical depth over a scale height substituted,
-    # so the photoionization cross section cancels:
+    # Photoionization-recombination balance with the unit-optical-depth
+    # neutral density substituted, so the cross section cancels:
     # n_+^2 = F G M / (h nu0 alpha_B c_s^2 R_base^2).
     n_plus_base = (
         math.sqrt(F_xuv * G * M_p / (hnu0 * alpha_b * c_s**2 * R_base**2)) if F_xuv > 0 else 0.0
@@ -423,15 +390,10 @@ def selection_mechanism(rr: dict, el_won: bool) -> str:
     :func:`rr_chain`, where the returned value is a floored one rather
     than a transonic wind).
 
-    Why an RR win came out small is a separate question, and this string
-    does not answer it. The quantity that does is the barometric factor
-    ``exp(3/2 - lambda_b)`` returned beside the rate: near 1 the
-    sonic-point density is the base density and the recombination-limited
-    base ionization sets the rate, while several decades below 1 the rate
-    is small mostly because the isothermal wind cannot carry material
-    from the base to the sonic point, which has nothing to do with
-    recombination. The flux scaling cannot separate the two, because the
-    base ion density follows sqrt(F_XUV) at every ``lambda_b`` here.
+    Why an RR win came out small is answered by the barometric factor
+    ``exp(3/2 - lambda_b)`` returned beside the rate, not by this string:
+    near 1 the recombination-limited base ionization sets the rate, and
+    decades below 1 the wind cannot carry material to the sonic point.
     """
     if el_won:
         return 'EL-selected'

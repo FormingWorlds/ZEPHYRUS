@@ -24,12 +24,9 @@ from zephyrus.knudsen import sigma_mixture
 #   T(zeta) = T_exo - (T_exo - T_top) exp(-gamma zeta), in the form Yelle
 #   (2024, Icarus 416, 116099, their Eq. 19) uses, anchored at the topmost
 #   supplied profile level and integrated hydrostatically in
-#   zeta = ln(p_top/p). Composition and mean mass are frozen at the anchor
-#   on the extension. Evaluating the exobase quantities on this extended,
-#   inflated structure rather than on photospheric values is essential:
-#   the exobase Jeans parameter can differ from the photospheric one by an
-#   order of magnitude, and using the latter biases rates toward false
-#   retention by up to three decades (Johnson et al. 2013, ApJL 768, L4).
+#   zeta = ln(p_top/p), with composition and mean mass frozen at the
+#   anchor. The exobase quantities are read on this inflated structure,
+#   never on photospheric values (Johnson et al. 2013, ApJL 768, L4).
 # - Exobase: the first level where the Maxwell mean free path
 #   1/(sqrt(2) sigma n) reaches the local scale height (the convention of
 #   Volkov et al. 2011), with the mixture cross section of the Knudsen
@@ -39,10 +36,8 @@ from zephyrus.knudsen import sigma_mixture
 #   Eq. 20), multiplied by the flat kinetic enhancement C(lambda) measured
 #   in direct simulation Monte Carlo runs: about 1.7 at lambda = 6 falling
 #   to about 1.4 at lambda = 15 (Volkov et al. 2011, ApJL 729, L24). Their
-#   companion bulk-velocity correction is deliberately not applied on top:
-#   the two express the same departure from equilibrium and applying both
-#   double-counts. Beyond lambda = 15 the factor is held at 1.4, a flagged
-#   extrapolation.
+#   bulk-velocity correction is not applied on top, since it expresses the
+#   same departure from equilibrium.
 # - Diffusion-limited supply: Yelle (2024) Eqs. (9)-(11) discretized on the
 #   extension: the modified mixing ratio X-tilde grows by the exponential
 #   of the integrated (1 - m-tilde/m_bar) D/(D + K) factor, with the
@@ -59,21 +54,16 @@ from zephyrus.knudsen import sigma_mixture
 #   value because the ambipolar field shares the ion's binding with the
 #   electron (Chatterjee & Pierrehumbert 2026, ApJ 998, 236, their
 #   Eq. 34); a hydrostatic exobase hotter than half the gating escape
-#   temperature is unstable (their Figure 10 criterion) and callers
-#   re-route such points to the hydrodynamic branch.
+#   temperature is unstable (their Figure 10 criterion).
 #
-# Hydrostatic heavy-element rates are lower limits: the nonthermal
-# channels (ion outflow, photochemical ejection, sputtering) that dominate
-# heavy-species loss in this regime are not modeled; the
-# ``hydrostatic_lower_limit`` flag travels with every result.
+# Hydrostatic heavy-element rates are lower limits, since nonthermal
+# channels are not modeled; ``hydrostatic_lower_limit`` travels with every
+# result.
 
 ALPHA_THERMAL = -0.25  # thermal diffusion factor (Yelle 2024, after Banks & Kockarts)
 
-# Rates below one proton mass per Julian year are numerical artifacts on any
-# planetary reservoir; species whose supply-free Jeans rate already sits below
-# that floor skip the diffusion integrals, since their harmonic-mean rate
-# could only be smaller. The constant itself is defined once, in diagnostics,
-# which is where it is reported from.
+# Species whose supply-free Jeans rate is below the rate floor skip the
+# diffusion integrals, since their harmonic-mean rate could only be smaller.
 
 
 def volkov_flat_factor(lam: float) -> float:
@@ -82,16 +72,9 @@ def volkov_flat_factor(lam: float) -> float:
     Direct simulation Monte Carlo runs exceed the Jeans flux by a factor
     1.7 near lambda = 6, falling to 1.4 by lambda = 15 (Volkov et al.
     2011); linear between, held at the endpoint values outside, where the
-    caller flags the extrapolation on either side.
-
-    The two sides are not equally safe. Above lambda = 15 the enhancement
-    is falling toward 1 and holding it at 1.4 overstates the flux by less
-    than that as the exosphere becomes more strongly bound. Below lambda = 6
-    it is rising and the Jeans picture is degrading toward hydrodynamic
-    outflow, so holding 1.7 understates it, and this is the side the branch
-    actually visits: a trace light species on a heavy background reaches
-    lambda well below 1, which is a factor of several beyond where the
-    simulations were run.
+    caller flags the extrapolation on either side. Below lambda = 6 the
+    held value likely understates the flux, and trace light species on a
+    heavy background reach that side.
     """
     if lam <= 6.0:
         return 1.7
@@ -130,21 +113,14 @@ def bates_extension(
     r0 = float(profile.r[-1])
     t_top = float(profile.T[-1])
     mu = float(profile.mmw[-1])
-    # The extension is the inflated thermosphere the exobase quantities must
-    # be read from, so it cannot be colder at the top than the level it
-    # extends from: that builds a falling temperature profile whose exobase
-    # is more strongly bound than its anchor, which inverts the construction.
-    # A prescribed exobase temperature is a stand-in for physics the branch
-    # does not solve, and in a coupled run the profile top warms over secular
-    # time and can pass it, so the temperature floors at the anchor and the
-    # call is flagged rather than raising and stopping the run.
+    # An exobase colder than the anchor would bind the exobase more strongly
+    # than its anchor, inverting the construction. Floored and flagged, not
+    # raised, since a coupled run's profile top can warm past the prescription.
     floored = T_exo < t_top
     if floored:
         T_exo = t_top
-    # Every species present at the anchor is carried, however thin. A trace
-    # light species can dominate the exospheric loss while sitting many
-    # decades below the bulk, so a lower cut on the mixing ratio would
-    # delete the rate rather than a rounding error.
+    # Every species at the anchor is carried, however thin: a trace light
+    # species can dominate the exospheric loss.
     vmr = {
         sp: float(np.asarray(v)[-1])
         for sp, v in profile.vmr.items()
@@ -239,10 +215,9 @@ def hydrostatic_rates(
     the harmonic mean could only be smaller, and the cost of the integrals
     dominates the branch on many-species profiles.
 
-    ``n_levels`` sets the quadrature resolution of the supply integrals.
-    They are first-order accurate in the log-pressure step, so the error
-    halves as the count doubles; ``hydrostatic_rates_refined`` drives that
-    refinement to a target instead of trusting one grid.
+    ``n_levels`` sets the quadrature resolution of the supply integrals,
+    which are first-order accurate in the log-pressure step;
+    ``hydrostatic_rates_refined`` refines it to a target.
 
     Returns ``(per_element, detail)``; the detail dict carries the exobase
     state, both escape temperatures, the ``dominant`` species that supplies
@@ -380,10 +355,10 @@ def hydrostatic_rates_refined(
     """Hydrostatic rates refined until the quadrature stops moving them.
 
     The supply integrals are first-order accurate in the log-pressure step,
-    so the change between a grid and its refinement estimates what is left
-    to converge, and a single fixed count says nothing about its own error.
-    The resolution doubles from ``n_levels_min`` until the relative change
-    in the bulk rate falls below ``rtol`` or ``n_levels_max`` is reached.
+    so the change between a grid and its refinement estimates the remaining
+    error. The resolution doubles from ``n_levels_min`` until the relative
+    change in the bulk rate falls below ``rtol`` or ``n_levels_max`` is
+    reached.
     The finest grid's rates are returned, never an extrapolation.
 
     The detail dict gains a ``convergence`` entry recording the levels used,

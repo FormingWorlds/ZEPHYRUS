@@ -59,12 +59,9 @@ class Profile:
         temperature is unconstrained beyond positivity. Every mixing-ratio
         array must share the level count, be finite, and be non-negative.
 
-        Finiteness is checked before the sign comparisons, because a
-        comparison against NaN is false and a NaN would otherwise pass every
-        positivity test and surface far downstream as an error naming some
-        unrelated quantity. Mixing ratios below zero by less than
-        ``VMR_NOISE_FLOOR`` are solver noise and pass; the consumers ignore
-        non-positive weights and renormalize over the rest.
+        Finiteness is checked before the sign comparisons, since a NaN passes
+        every comparison. Mixing ratios below zero by less than
+        ``VMR_NOISE_FLOOR`` are solver noise and pass.
         """
         p, r, T, mmw = map(np.asarray, (self.p, self.r, self.T, self.mmw))
         if not (len(p) == len(r) == len(T) == len(mmw)):
@@ -143,9 +140,7 @@ def isothermal_profile(
         H = kb * T * r[i] ** 2 / (G * M_p * mu)
         r[i + 1] = r[i] - H * (lnp[i + 1] - lnp[i])
         if G * M_p * mu / (kb * T * r[i + 1]) < 2.2:
-            # Stop at the last level that is still bound. Keeping the level
-            # that failed the test would put the profile's top exactly where
-            # the guard exists to exclude, and the top level is what the
+            # Stop at the last level still bound: the top level is what the
             # exobase anchor reads.
             last = i
             break
@@ -358,10 +353,8 @@ def _boreas_base_pressure(profile: Profile, M_p: float, scalars: dict | None) ->
         r_xuv = float(result['RXUV']) * 1e-2  # cm -> m
         p_xuv, covered = pressure_at_radius(profile, r_xuv)
         if not covered:
-            # The solver placed its XUV radius outside the modeled column.
-            # Reporting the clamped endpoint would make the caller's clamp
-            # test compare a value against itself, so the pressure carries
-            # the extrapolation and the caller flags the distance.
+            # Outside the modeled column, return the extrapolated pressure so
+            # the caller's clamp test can see and flag the distance.
             p_xuv = _isothermal_pressure_beyond_top(profile, M_p, r_xuv)
         return p_xuv
     except Exception:
@@ -374,9 +367,7 @@ def _isothermal_pressure_beyond_top(profile: Profile, M_p: float, r: float) -> f
     Integrating ``d ln p = -(G M mu / k T) d(1/r)`` at the top temperature
     and composition gives ``p(r) = p_top exp(-lambda_top (1 - r_top / r))``,
     which tends to ``p_top exp(-lambda_top)`` far out rather than falling
-    without bound. A constant scale height would instead extrapolate
-    exponentially in radius and put a level a few planetary radii up tens of
-    decades below anything physical.
+    without bound as a constant scale height would.
     """
     r_top = float(profile.r[-1])
     lam_top = G * M_p * float(profile.mmw[-1]) / (kb * float(profile.T[-1]) * r_top)

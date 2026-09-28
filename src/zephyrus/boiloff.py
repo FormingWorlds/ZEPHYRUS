@@ -179,14 +179,9 @@ def bolometric_candidate(
         4.0 * math.pi * R_B**2 * c_s * rho_launch * math.exp(2.0 - 2.0 * R_B / R_launch)
     )
 
-    # Optical depth of the launch level to its own opacity, in the
-    # plane-parallel form tau = kappa P / g. The Parker rate is derived from
-    # a photosphere, so this reports whether the prescribed level and the
-    # supplied opacity describe the same surface: tau far from 1 means they
-    # do not, and the rate is being evaluated off the definition it came
-    # from. Reporting only. The level is prescribed rather than solved for
-    # because the activation threshold above is calibrated at a level of its
-    # own, so solving here would put the gate and the rate on two surfaces.
+    # Plane-parallel optical depth of the launch level, reported only: tau
+    # far from 1 means the prescribed level and the opacity do not describe
+    # the photosphere the Parker rate assumes.
     g_launch = G * M_p / R_launch**2
     tau_launch = kappa_photo * launch['p'] / g_launch
 
@@ -202,11 +197,8 @@ def bolometric_candidate(
     binding_cap = min(caps, key=caps.get)
     rate = caps[binding_cap]
     if binding_cap == 'luminosity':
-        # The interior luminosity is the binding term. Worth a flag rather
-        # than an inference from the branch being past its gate: the cap
-        # switches on at the gate, so a state that crosses the activation
-        # threshold drops discontinuously (a factor 6.7e3 on a two Earth-mass
-        # hydrogen envelope) while keeping the same label.
+        # Flagged because the cap switches on at the gate, so a state crossing
+        # the threshold drops discontinuously while keeping the same label.
         flags['luminosity_capped'] = True
     return rate, dict(
         T_wind=T_w,

@@ -24,49 +24,37 @@ from zephyrus.fractionation import closure_per_species, unfractionated_split
 from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 
 # The dispatcher assembles the escape branches of this package into one
-# total prescription: every physically posed input state returns exactly
-# one regime label, one bulk mass-loss rate, per-species rates summing to
-# it, flags, and a diagnostics container. Exceptions are reserved for
+# total prescription: every physically posed input state returns one
+# regime label, one bulk mass-loss rate, per-species rates summing to it,
+# flags, and a diagnostics container. Exceptions are reserved for
 # malformed input. The fixed evaluation order:
 #
-# 1. The bolometrically driven candidate is computed at every call. Below
-#    the restricted Jeans parameter threshold the atmosphere boils off and
-#    that candidate is the rate (Owen & Wu 2016). Past it the same
-#    machinery is reported as a luminosity-capped residual (Gupta &
-#    Schlichting 2019) and competes only when ``residual_mode`` admits it,
-#    off by default because its persistence is disputed (Tang et al. 2024).
-#    The test comes first because a boiling atmosphere has not yet built
-#    the base an XUV wind launches from (Owen & Schlichting 2024).
-# 2. The hydrodynamic candidate: the wind base is located by the
-#    configured method, the thermostat sets the wind temperature by local
-#    heating-cooling balance, and the candidate is min(EL, RR) with the
-#    winner naming the sub-label.
-# 3. The sonic-point Knudsen switch decides whether that wind is
-#    collisional enough to exist. It lives on the hydrodynamic branch
-#    only, never above the boil-off test. A confirmed hydrodynamic label
-#    applies the fractionation closure; otherwise the point re-routes to
-#    the hydrostatic branch.
-# 4. The hydrostatic branch evaluates per-species Jeans escape with the
+# 1. The bolometric candidate is computed at every call. Below the
+#    restricted Jeans parameter threshold the atmosphere boils off and
+#    that candidate is the rate (Owen & Wu 2016); past it the same
+#    machinery is a luminosity-capped residual (Gupta & Schlichting 2019),
+#    competing only when ``residual_mode`` admits it, off by default since
+#    its persistence is disputed (Tang et al. 2024). The test comes first
+#    because a boiling atmosphere has not yet built the base an XUV wind
+#    launches from (Owen & Schlichting 2024).
+# 2. The hydrodynamic candidate: wind base by the configured method, wind
+#    temperature from the thermostat, rate min(EL, RR) with the winner
+#    naming the sub-label.
+# 3. The sonic-point Knudsen switch, on the hydrodynamic branch only,
+#    confirms the wind or re-routes the point to the hydrostatic branch.
+# 4. The hydrostatic branch: per-species Jeans escape with the
 #    diffusion-limited supply on the extended upper structure. Its
 #    escape-temperature gate re-routes thermally unstable exospheres back
-#    to the hydrodynamic rate; points where the neutral and plasma gate
-#    conventions disagree are flagged contested with both rates recorded.
+#    to the hydrodynamic rate and flags contested gate conventions.
 # 5. The final rate is the largest of the surviving branch rate, the
-#    bolometric residual where the setting admits it, and the tidally
-#    driven L1 nozzle rate (Jackson et al. 2017), labeled by the winner.
-#    A nozzle win labels ``roche_overflow`` with a real transfer rate, so
-#    that boundary is a rate crossing and the dispatched rate is
-#    continuous across it.
-# 6. The Roche screen tests the winning branch's flow radius (sonic
-#    radius, max(R_XUV, R_s), or exobase radius) against the periapsis
-#    Hill radius. An overflowing point is renamed ``roche_overflow`` and
-#    keeps the rate its own branch computed, a bound-flow lower limit:
-#    the screen renames a state and never changes its rate. Near misses
-#    raise ``near_roche``, and ``diagnostics['roche']['rate_branch']``
-#    says which of the two readings of the label applies.
+#    admitted bolometric residual, and the L1 nozzle rate (Jackson et al.
+#    2017), labeled by the winner.
+# 6. The Roche screen tests the winning branch's flow radius against the
+#    periapsis Hill radius and renames an overflowing state
+#    ``roche_overflow`` without changing its rate.
 #
 # Diagnostics are boxed: nothing in this module branches on anything the
-# diagnostics container carries, and the container has no off switch.
+# diagnostics container carries.
 
 REGIME_LABELS = (
     'boiloff',
@@ -135,9 +123,8 @@ class DispatchSettings:
             or self.cool_recombination
         ):
             raise ValueError('all cooling channels disabled; at least one must stay on')
-        # Numeric bounds. Outside them the closed forms leave their domains,
-        # and what a caller saw was a bare math domain error from inside the
-        # branch or, worse, a silently different regime label.
+        # Numeric bounds. Outside them the closed forms leave their domains
+        # and fail with a bare math error or a silently different label.
         for name, value in (
             ('P_photo', self.P_photo),
             ('P_base_fixed', self.P_base_fixed),
@@ -159,9 +146,6 @@ class DispatchSettings:
             raise ValueError(
                 f'efficiency is a fraction of the deposited power, got {self.efficiency!r}'
             )
-        # The sonic-point scale height of Chatterjee & Pierrehumbert Eq. (17)
-        # carries sqrt(5 - 3 gamma), which leaves the reals above the monatomic
-        # 5/3. Below 1 the polytrope is no longer a wind solution.
         if (
             self.hydrostatic_levels_min < 2
             or self.hydrostatic_levels_max < self.hydrostatic_levels_min
@@ -171,6 +155,9 @@ class DispatchSettings:
                 f'hydrostatic_levels_max, got {self.hydrostatic_levels_min!r} and '
                 f'{self.hydrostatic_levels_max!r}'
             )
+        # The sonic-point scale height of Chatterjee & Pierrehumbert Eq. (17)
+        # carries sqrt(5 - 3 gamma), which leaves the reals above the monatomic
+        # 5/3. Below 1 the polytrope is no longer a wind solution.
         if not 1.0 <= self.gamma_wind <= 5.0 / 3.0:
             raise ValueError(
                 'gamma_wind must lie in [1, 5/3], the domain of the sonic-point '
@@ -257,15 +244,9 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # branches that measure one: the energy-limited rate and the
     # luminosity cap on the bolometric residual.
     xi_ktide = r_hill / inputs.R_p
-    # The tidal factor has a double root at xi = 1 and the rates divide by it,
-    # so it inflates them steeply as the lobe closes: 83-fold at xi = 1.1 and
-    # 6.7e5-fold at xi = 1.001. At and below the root the barrier is gone and
-    # the factor is undefined, so the rates are computed without it, which is
-    # the smaller of the two readings. Such a state is already relabeled by the
-    # Roche screen below; the flag says the reduction was dropped rather than
-    # applied, and the inflation the factor is contributing is reported beside
-    # the rate at every geometry so that a rate set by the divergence rather
-    # than by the physics is visible as such.
+    # The factor has a double root at xi = 1 and the rates divide by it. At
+    # and below the root the barrier is gone, so the rates are computed
+    # without it (the smaller reading) and the Roche screen relabels the state.
     if st.tidal and xi_ktide <= 1.0:
         k_factor = 1.0
         flags['k_tide_undefined'] = True
@@ -290,11 +271,9 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         k_tide=k_factor,
         residual_mode=st.residual_mode,
     )
-    # Each candidate's warnings are held with that candidate and merged only
-    # if it wins, so the flag set always describes the dispatched rate and
-    # never a candidate that lost. Input hygiene (stale inputs, base clamps,
-    # the tidal factor, hysteresis) is a property of the state rather than of
-    # a candidate, so it merges as it is found.
+    # Candidate warnings are merged only if that candidate wins, so the flags
+    # describe the dispatched rate; input-hygiene flags describe the state
+    # and merge as they are found.
     bolo_flags = dict(bolo['flags'])
     diag['lambda_gate'] = lam_gate
     diag['bolometric'] = {k: v for k, v in bolo.items() if k != 'flags'}
@@ -306,10 +285,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         cool_o_finestructure=st.cool_o_finestructure,
         cool_recombination=st.cool_recombination,
     )
-    # The exobase temperature is resolved once and used by both the upper
-    # structure the hydrostatic branch stands on and, under the extend
-    # policy, the one the wind base is re-evaluated on. Resolving it twice
-    # built those two structures at two different temperatures.
+    # Resolved once so the hydrostatic upper structure and the extended wind
+    # base are built at the same exobase temperature.
     t_exo = _resolve_t_exo(inputs, channels)
     base, f = _resolve_wind_base(inputs, t_exo)
     flags.update(f)
@@ -317,12 +294,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     t_wind, thermo = th.solve_wind_temperature(
         inputs.T_eq, base, elements, inputs.F_xuv, **channels
     )
-    # Warnings about the hydrodynamic candidates are held aside and merged
-    # only if one of them wins the route. A warning about the wind
-    # temperature or the sonic radius describes a rate that a bolometric or
-    # hydrostatic verdict did not dispatch, and the flags dictionary is read
-    # as a warning set about the result. What the losing candidate did is
-    # still in diag['hydrodynamic'].
+    # Held aside and merged only if a hydrodynamic candidate wins; a losing
+    # candidate's record stays in diag['hydrodynamic'].
     hydro_flags: dict = {}
     if thermo.get('clamped'):
         hydro_flags['thermostat_clamped'] = thermo['clamped']
@@ -369,34 +342,15 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     )
     diag['thermostat'] = thermo
 
-    # The tidally driven L1 nozzle candidate (Jackson et al. 2017 Eq. 3),
-    # computed at every point: it joins the final comparison on both sides
-    # of the activation gate, and its power comparison is an always-on
-    # diagnostic. The temperature setting decides which state the flow is
-    # launched from: the photospheric level (the primary's own
-    # construction, a bolometrically maintained flow) or the wind base at
-    # the thermostat's wind state (the upper envelope their Figure 9
-    # explores). Both settings launch from one level with one temperature
-    # and one mean mass, which is what the Bernoulli cancellation behind
-    # the launch-level convention requires; the wind setting rebuilds the
-    # launch density from the ideal gas law at the base pressure rather
-    # than carrying the photosphere's cold density into a hot sound speed.
-    # The radius is still the profile's, so the hot structure is not
-    # solved, only its thermodynamic state, and that is a stated limit.
-    # The flow is uncapped, faithful to the primary; the lift power
-    # reported beside the interior and intercepted stellar luminosities
-    # shows where that assumption is strained.
+    # The L1 nozzle candidate (Jackson et al. 2017 Eq. 3). Either setting
+    # launches from one level with one temperature and one mean mass, which
+    # the Bernoulli invariance of the rate along an isothermal column needs.
     if st.nozzle_temperature == 'wind':
         t_nozzle = t_wind
         mu_nozzle = rr['mu_wind'] * m_p
-        # The wind's own isothermal column, anchored at the wind base. The
-        # density there is the ideal-gas value at the base pressure for the
-        # wind's temperature and mean mass, because pressure is continuous
-        # across the temperature transition and density is not. The rate is
-        # invariant along this column, so the anchor is also the launch
-        # level; ``nozzle.isothermal_column_density`` is what makes that
-        # invariance true rather than assumed, and the column is a device
-        # for placing the level, not a claim about structure below the base.
+        # Ideal-gas density at the base pressure for the wind's state, since
+        # pressure is continuous across the temperature transition and
+        # density is not.
         r_nozzle = base['r']
         rho_nozzle = base['p'] * mu_nozzle / (kb * t_nozzle)
     else:
@@ -412,12 +366,9 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         T=t_nozzle,
         mu_kg=mu_nozzle,
     )
-    # The dispatched candidate is the average duty-cycled over the arc
-    # where the overflow description applies; the unguarded average is
-    # kept beside it so the closed form stays comparable with the
-    # primary's published rates. The applicability edge is a criterion
-    # boundary like the activation gate, not a rate crossing, and the jump
-    # across it is a result to measure rather than hide.
+    # The competed rate is duty-cycled over the arc where overflow applies;
+    # the unguarded average is kept so the closed form stays comparable
+    # with the primary's published rates.
     nozzle_rate = noz['rate_applicable_kg_s']
     nozzle_applicable = noz['applicable']
     noz['rate_kg_s'] = nozzle_rate
@@ -425,10 +376,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     noz['temperature_mode'] = st.nozzle_temperature
     noz['r_launch'] = r_nozzle
     noz['rho_launch'] = rho_nozzle
-    # The power comparison: what the isothermal flow demands against what
-    # the planet has. Built from the barrier the rate applied plus the
-    # acceleration to the sonic speed, so it stays finite and meaningful
-    # at saturation, where the barrier is gone and the acceleration is not.
+    # The uncapped flow's lift power is reported against what the planet
+    # has, to show where the isothermal assumption is strained.
     noz['L_int_W'] = 4.0 * math.pi * inputs.R_p**2 * inputs.F_int
     noz['L_bol_intercepted_W'] = math.pi * inputs.R_p**2 * inputs.F_bol
     diag['nozzle'] = dict(noz)
@@ -504,9 +453,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         )
 
     # Route. ``branch`` names the physics that produced the rate and decides
-    # the split; ``label`` is what the caller reads back and the Roche screen
-    # can overwrite it. The two are the same on every state whose flow stays
-    # inside the Hill sphere.
+    # the split; ``label`` is what the caller reads, and the Roche screen
+    # may overwrite it.
     per_species = None
     if bolo['active']:
         branch = 'boiloff'
@@ -539,27 +487,16 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             per_species = None
             flow_radius = bolo['R_sonic']
             winner_flags = dict(bolo_flags, bolometric_residual=True)
-    # The nozzle candidate competes last, on both sides of the activation
-    # gate, wherever the overflow description applies: where the
-    # photosphere approaches the lobe, the tidally driven transfer through
-    # L1 outruns every bound-flow estimate, and the label boundary it
-    # creates is a rate crossing, continuous by construction. A candidate
-    # below the one-proton-per-Julian-year floor does not compete: the
-    # label here turns entirely on which of two numbers is larger, and
-    # between two numerically empty numbers that decides nothing, so it
-    # would rename the deeply bound corner on no physical content. The
-    # floor otherwise stays reported and never applied, and a geometric
-    # verdict still ignores it.
+    # The nozzle competes last, on both sides of the gate. Below the rate
+    # floor it stands down, since a label decided by comparing two
+    # numerically empty rates would rename the bound corner on no content.
     if nozzle_applicable and nozzle_rate > rate and nozzle_rate > dg.RATE_FLOOR_KG_S:
         branch = 'roche_overflow'
         rate = nozzle_rate
         per_species = None
-        # ``flow_radius`` is deliberately left as the branch that lost the
-        # rate comparison computed it. The nozzle's own flow passes the
-        # lobe by construction, so substituting the lobe radius would pin
-        # xi_flow at the fixed lobe-to-Hill ratio and throw away the one
-        # geometric fact the screen still reports on this branch. The lobe
-        # radius travels in ``diagnostics['nozzle']['r_lobe']``.
+        # ``flow_radius`` keeps the losing branch's value: the lobe radius
+        # would pin xi_flow at the fixed lobe-to-Hill ratio. The lobe radius
+        # travels in ``diagnostics['nozzle']['r_lobe']``.
         winner_flags = {}
         if noz['saturated']:
             # The photospheric potential reached the L1 value, so the rate
@@ -567,12 +504,9 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             # an interior point of it.
             winner_flags['nozzle_saturated'] = True
         if inputs.e > 0.0:
-            # The rate is a time average over the orbit, evaluated with
-            # the circular formula at each separation. Under saturation it
-            # scales as the cube of the separation, so periapsis is a
-            # lower bound there and an upper bound while the barrier is
-            # unclamped; the average is what a secular caller needs either
-            # way.
+            # A time average of the circular formula over the orbit, since
+            # periapsis bounds the rate from opposite sides with and without
+            # saturation; the average is what a secular caller needs.
             winner_flags['nozzle_orbit_averaged'] = True
         if noz['applicable_orbit_fraction'] < 1.0:
             # The overflow description holds only on an arc around
@@ -583,24 +517,13 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     flags.update(winner_flags)
     label = branch
 
-    # Step 6: the Roche screen on the active flow radius. The screen renames
-    # the state and never touches the rate. Its boundary is a rate
-    # comparison, since the branch whose flow radius gets tested is the one
-    # that won the final comparison, so reporting the winning branch's own
-    # rate keeps the dispatched rate continuous across the boundary;
-    # substituting another branch's formula would not. When the rename fires
-    # on a bound branch, the rate beside the label is the bound-flow
-    # estimate, and a lower limit on the tidal transfer only where the
-    # nozzle candidate sat outside its criterion; where it was applicable
-    # and lost, the candidate rate is below the dispatched one. When the
-    # nozzle won above, the rate is the tidally driven transfer itself
-    # and the subflag reads ``nozzle``.
+    # Step 6: the Roche screen renames the state and never touches the rate,
+    # which keeps the dispatched rate continuous across the label boundary,
+    # since the tested flow radius belongs to the branch that won the rate.
     xi_flow = r_hill / flow_radius if flow_radius > 0 else math.inf
-    # The outer extent of the atmosphere itself, modeled plus extended,
-    # which is what separates the two overflow geometries. It is reported
-    # and used for that separation, and deliberately not used to trigger
-    # the screen: what the screen asks is whether the escaping flow stays
-    # bound, and widening its trigger would move the label boundary itself.
+    # The atmosphere's outer extent separates the two overflow geometries
+    # but does not trigger the screen, which asks whether the escaping flow
+    # stays bound; triggering on it would move the label boundary.
     r_atm = max(float(inputs.profile.r[-1]), hsd['r_exo'])
     diag['roche'] = dict(
         R_hill_periapsis=r_hill,
@@ -612,23 +535,15 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         r_atmosphere=r_atm,
         rate_branch=branch,
     )
-    # The label has two routes in and one precedence rule, written once:
-    # the geometric trigger on the winning branch's flow radius, and the
-    # crossing of two rates when the nozzle candidate won above. The subflag is
-    # geometric under either route, so an atmosphere that spills reads
-    # ``dynamical`` whichever candidate carries the rate, and the
-    # mechanism question is answered by ``rate_branch`` instead.
-    # ``near_roche`` warns about the tidal inflation of a bound rate, so
-    # it is not raised once the state is already labeled.
+    # Two routes into the label, geometric or a nozzle win, with a geometric
+    # subflag under either; ``near_roche`` warns about a bound rate's tidal
+    # inflation, so it is not raised on a labeled state.
     if xi_flow <= 1.0 or xi_ktide <= 1.0 or branch == 'roche_overflow':
         label = 'roche_overflow'
         flags['roche_overflow'] = True
-        # Dynamical overflow when the atmosphere itself reaches the Roche
-        # lobe, which is the critical surface and sits about 0.70 of the
-        # way out to the Hill radius; no transonic solution when only the
-        # flow radius passes the Hill radius, which is the narrow band
-        # Owen & Jackson (2012) describe; ``neither`` when the label came
-        # from that crossing alone.
+        # Owen & Jackson (2012): dynamical when the atmosphere reaches the
+        # Roche lobe (the critical surface), no transonic solution when only
+        # the flow radius passes the Hill radius, else the rate crossing alone.
         if xi_ktide <= 1.0 or r_atm >= noz['r_lobe']:
             flags['roche_subflag'] = 'dynamical'
         elif xi_flow <= 1.0:
