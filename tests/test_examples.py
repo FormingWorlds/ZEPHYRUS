@@ -150,6 +150,20 @@ def test_dispatcher_example_boundary_bisection_brackets_a_label_change():
     assert at_kn3 < flux < at_kn0p1
 
 
+def test_dispatcher_example_reaches_the_two_extreme_labels():
+    """The example's boil-off and overflow cases return those labels.
+
+    The overflow case admits the post-gate residual, since with the default
+    settings the same state is a bound XUV wind and the example would
+    announce a label it does not produce.
+    """
+    example = _load_example()
+    with contextlib.redirect_stdout(io.StringIO()):
+        rows = example.extreme_labels()
+    assert [row['regime'] for row in rows] == ['boiloff', 'roche_overflow']
+    assert all(math.isfinite(row['mdot']) and row['mdot'] > 0.0 for row in rows)
+
+
 def test_dispatcher_example_rejects_a_malformed_state():
     """A malformed state raises, and returns nothing.
 

@@ -288,15 +288,21 @@ def report_sweep(composition: str, rows: list[dict]) -> list[tuple]:
 
 
 def extreme_labels() -> list[dict]:
-    """The boil-off and Roche-overflow labels, one call each."""
+    """The boil-off and Roche-overflow labels, one call each.
+
+    The overflow case admits the post-gate bolometric residual, whose sonic
+    radius is the flow that crosses the Hill radius; with the default
+    settings the same state is a bound XUV wind.
+    """
     print('\n=== The other two labels ===')
     out = []
+    admitted = DispatchSettings(residual_mode='luminosity_capped')
     cases = [
-        ('boil-off: an inflated hydrogen envelope', 'H/He', 1.0, 1.5, 10.0),
-        ('overflow: a puffy envelope filling its Hill sphere', 'H/He', 3.0, 2.0, 0.1),
+        ('boil-off: an inflated hydrogen envelope', 'H/He', 1.0, 1.5, 10.0, None),
+        ('overflow: a puffy envelope, residual admitted', 'H/He', 3.0, 2.0, 0.1, admitted),
     ]
-    for note, composition, m_earth, r_earth, f_xuv in cases:
-        result = dispatch(build_state(composition, m_earth, r_earth, f_xuv))
+    for note, composition, m_earth, r_earth, f_xuv, settings in cases:
+        result = dispatch(build_state(composition, m_earth, r_earth, f_xuv, settings=settings))
         diagnostics = result.diagnostics
         print(f'  {note}')
         print(
