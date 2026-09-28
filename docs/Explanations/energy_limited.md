@@ -69,4 +69,4 @@ Bulk removal is the second assumption. When the escaping particle flux drops bel
 
 [^cherubim2024]: Cherubim, C., Wordsworth, R., Hu, R., & Shkolnik, E. (2024). Strong Fractionation of Deuterium and Helium in Sub-Neptune Atmospheres along the Radius Valley. *The Astrophysical Journal, 967*(2), 139. https://doi.org/10.3847/1538-4357/ad3e77
 
-[^yoshida]: Yoshida, T., Terada, N., Ikoma, M., & Kuramoto, K. (2022). Less Effective Hydrodynamic Escape of H$_2$–H$_2$O Atmospheres on Terrestrial Planets Orbiting Pre-main-sequence M Dwarfs. *The Astrophysical Journal, 934*(2), 137. https://doi.org/10.3847/1538-4357/ac7be7
+[^yoshida]: Yoshida, T., Terada, N., Ikoma, M., & Kuramoto, K. (2022). Less Effective Hydrodynamic Escape of H$_2$-H$_2$O Atmospheres on Terrestrial Planets Orbiting Pre-main-sequence M Dwarfs. *The Astrophysical Journal, 934*(2), 137. https://doi.org/10.3847/1538-4357/ac7be7
