@@ -8,36 +8,31 @@ Two subcommands, both used by ``.github/workflows/nightly.yml``::
 
 ZEPHYRUS reaches one dataset through its ``fwl-mors`` dependency: the Spada
 stellar-evolution grid, fetched by ``mors.DownloadEvolutionTracks('Spada')``.
-That grid is pinned by a Zenodo record id with an OSF project as its mirror,
-both of which live in the installed ``mors.data``, and it unpacks to the
-unversioned directory ``stellar_evolution_tracks/Spada``.
+fwl-mors declares that grid in its shipped dataset manifest
+(``mors.data.manifest_path()``), which fwl-io reads: a Zenodo version DOI, a
+registry of checksums, and the versioned directory
+``star/tracks/spada_2013/r<record-id>`` the archive unpacks into.
 
-``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``, carrying a digest of the
-Zenodo record and the directory the grid unpacks into, so the key moves when
-the grid is re-pinned and stays put otherwise. The directory names below are a
-fixed namespace segment rather than a resolved property: nothing queries them
-from ``mors``, so a mors-side rename of the Spada unpack path has to be
-mirrored here by hand.
+``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``, carrying a digest of that
+directory and the registry checksums the manifest pins for the dataset, both
+resolved through fwl-io. The key therefore moves when the grid is re-pinned and
+stays put otherwise. The manifest key of the Spada entry below is a fixed
+namespace segment rather than a resolved property: a rename of the entry on the
+fwl-mors side has to be mirrored here by hand, and until it is, the script
+stops with a diagnostic naming the entries it found.
 
 A moving key is the whole point. ``actions/cache`` writes an entry only on an
 exact-key miss and never rewrites one it hits, so a key that never changes is
 never rewritten and the tree it holds cannot follow the data.
 
-The OSF project that mirrors the deposit is deliberately not part of the
-digest. Its id does not change when the files inside it change, so hashing
-it would imply a coverage this key does not have. Mirror drift is untracked,
-as it is for the OSF pins in the sibling JANUS module.
+Only the Spada entry is hashed. The Baraffe entry in the same manifest is not
+fetched by ZEPHYRUS, so a change to it must not empty the cache.
 
-The unversioned path is why this matters more here than for a versioned
-dataset. ``mors`` skips the download whenever the directory is present, so a
-re-pinned grid does not land beside the old one and announce itself: the
-stale tree keeps satisfying the check indefinitely. The cache key is the only
-thing that can notice.
-
-``check`` verifies the restored grid is actually unpacked. There is no
-committed registry for Spada, so the check is structural rather than
-per-file: the grid directory exists, holds a plausible number of files, and
-no archive is left behind by an interrupted unpack.
+``check`` verifies the restored grid is actually unpacked, through fwl-io's own
+``check_dataset``. The registry pins the archive, not the extracted members, so
+the members are the ones fwl-io recorded in the provenance stamp when it
+unpacked the archive, checked for presence rather than by digest; a missing
+stamp counts as a missing tree.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
 partial digest would leave the key as the constant prefix alone, and a
@@ -51,65 +46,112 @@ import argparse
 import hashlib
 import os
 import sys
+import tempfile
 from pathlib import Path
 
-# JANUS carries a script of the same name for the same actions/cache defect,
-# shaped differently because it consumes a manifest-declared dataset with a
-# registry and a versioned path. A change here is worth checking against it.
+# JANUS carries a script of the same name for the same actions/cache defect. It
+# hashes every dataset of the manifest where this one hashes only the Spada
+# entry. A change here is worth checking against it.
 KEY_PREFIX = 'fwl-data-nightly-'
 DATASET = 'Spada'
-SUBDIR = 'stellar_evolution_tracks'
-GRID_DIR = 'fs255_grid'
-# The unpacked grid holds about 1600 files across per-composition
-# subdirectories. The floor catches a partial restore; it cannot detect a
-# fully-unpacked tree that is simply out of date, which is what the key is for.
-MIN_FILES = 1000
+MANIFEST_KEY = 'star.tracks.spada_2013'
+MAX_LISTED = 10
 
 
 class ResolutionError(RuntimeError):
     """The pins that decide the cached layout could not be resolved."""
 
 
-def _pins() -> dict[str, str]:
-    """Return the Spada pins read from the installed fwl-mors.
+def _manifest_path() -> Path:
+    """Return the dataset manifest shipped inside the installed fwl-mors.
 
     Returns
     -------
-    dict
-        Mapping of pin name to value: the Zenodo record and the directory
-        the grid unpacks into.
+    Path
+        Absolute path of ``mors_manifest.toml``.
 
     Raises
     ------
     ResolutionError
-        When fwl-mors is absent, no longer exposes these pins, or reports
-        no Zenodo record for the dataset.
+        When fwl-mors or fwl-io is absent, fwl-mors exposes no manifest, or
+        the manifest file it names does not exist.
     """
     try:
+        import fwl_io  # noqa: F401
         import mors.data
     except ImportError as exc:
         raise ResolutionError(
-            'fwl-mors is not importable, so the Spada pins this key tracks cannot '
-            'be resolved. Install ZEPHYRUS with its dependencies before resolving '
-            'the cache key.'
+            f'fwl-mors and fwl-io are not both importable ({exc}), so the {DATASET} '
+            'pins this key tracks cannot be resolved. Install ZEPHYRUS with its '
+            'dependencies before resolving the cache key.'
         ) from exc
 
-    if not hasattr(mors.data, 'get_zenodo_record'):
+    if not hasattr(mors.data, 'manifest_path'):
         raise ResolutionError(
-            'the installed fwl-mors exposes no mors.data.get_zenodo_record(), so '
-            f'the {DATASET} pin is no longer where this script looks for it. Point '
-            'it at whatever now records the Zenodo deposit.'
+            'the installed fwl-mors exposes no mors.data.manifest_path(), so the '
+            f'{DATASET} pin is no longer where this script looks for it. Point it at '
+            'whatever now declares the Zenodo record and checksums.'
         )
 
-    record = mors.data.get_zenodo_record(DATASET)
-    if not record:
-        raise ResolutionError(
-            f'the installed fwl-mors reports no Zenodo record for {DATASET!r}, so '
-            'this key would track nothing. Check whether the dataset moved into '
-            'the fwl-io manifest, which would need a different key entirely.'
-        )
+    path = Path(mors.data.manifest_path())
+    if not path.is_file():
+        raise ResolutionError(f'the dataset manifest fwl-mors names does not exist: {path}')
+    return path
 
-    return {'zenodo': str(record), 'subdir': f'{SUBDIR}/{DATASET}'}
+
+def _fetcher(data_root: Path):
+    """Build the fwl-io fetcher for the Spada entry of the fwl-mors manifest.
+
+    Parameters
+    ----------
+    data_root : Path
+        Root the fetcher resolves its target directory below.
+
+    Returns
+    -------
+    fwl_io.Fetcher
+        Fetcher whose ``rel_dir``, ``target_dir`` and ``registry`` describe
+        the dataset. Building it does not touch the network but creates
+        ``data_root`` when it is absent.
+
+    Raises
+    ------
+    ResolutionError
+        When the manifest cannot be located or read, declares no Spada entry,
+        has no registry file for it, or fwl-io refuses the entry.
+    """
+    from fwl_io import create_fetcher, load_manifest
+
+    manifest = _manifest_path()
+    try:
+        datasets = {ds.key: ds for ds in load_manifest(manifest)}
+    except ValueError as exc:
+        raise ResolutionError(f'fwl-io could not read {manifest}: {exc}') from exc
+    ds = datasets.get(MANIFEST_KEY)
+    if ds is None:
+        raise ResolutionError(
+            f'{manifest} declares no {MANIFEST_KEY!r} entry (it declares '
+            f'{sorted(datasets) or "no dataset"}), so this key would track nothing. '
+            'Check whether the entry was renamed and update MANIFEST_KEY.'
+        )
+    if not ds.registry_path.is_file():
+        raise ResolutionError(
+            f'dataset {ds.key!r} declares a registry at {ds.registry_path}, which does '
+            'not exist. The checksums are half of what this key tracks, so resolving it '
+            'without them would freeze the cache.'
+        )
+    try:
+        return create_fetcher(
+            subdir=ds.subdir,
+            zenodo=ds.zenodo,
+            registry=ds.registry_path,
+            data_root=data_root,
+            extract=ds.extract,
+        )
+    except ValueError as exc:
+        # fwl-io refuses, among others, an empty registry, which would leave
+        # nothing but a directory name for the key to track.
+        raise ResolutionError(f'fwl-io rejected the {MANIFEST_KEY!r} entry: {exc}') from exc
 
 
 def resolve_key() -> str:
@@ -118,28 +160,28 @@ def resolve_key() -> str:
     Returns
     -------
     str
-        ``fwl-data-nightly-<sha256>``.
+        ``fwl-data-nightly-<sha256>``, a digest of the version directory and the
+        registry checksums of the Spada manifest entry.
 
     Raises
     ------
     ResolutionError
-        When the pins cannot be resolved, or the digest comes out empty and
-        would collapse the key to the constant ``KEY_PREFIX`` alone.
+        When the pins cannot be resolved. The digest always covers a directory
+        and at least one checksum, so it cannot collapse to ``KEY_PREFIX``.
     """
-    pins = _pins()
-    material = [f'{k}\t{pins[k]}' for k in sorted(pins)]
-    if not material:
-        raise ResolutionError(
-            f'no pin was resolved, so the key would be the constant {KEY_PREFIX!r} '
-            'alone, which exact-hits its own cache entry on every run, and the '
-            'cached tree could never be rewritten.'
-        )
+    with tempfile.TemporaryDirectory() as tmp:
+        fetcher = _fetcher(Path(tmp))
+    material = [f'dir\t{fetcher.rel_dir}']
+    material += [f'file\t{name}\t{fetcher.registry[name]}' for name in sorted(fetcher.registry)]
     digest = hashlib.sha256('\n'.join(material).encode('utf-8')).hexdigest()
     return f'{KEY_PREFIX}{digest}'
 
 
 def check_restored(data_root: Path) -> tuple[int, list[str]]:
     """Report how completely the Spada grid is restored below ``data_root``.
+
+    A missing ``data_root`` is reported, not created: building the fetcher
+    would create it, and a check must leave the disk as it found it.
 
     Parameters
     ----------
@@ -149,29 +191,20 @@ def check_restored(data_root: Path) -> tuple[int, list[str]]:
     Returns
     -------
     tuple
-        The file count found under the grid directory, and a list of
-        problems; an empty list means the tree looks complete.
+        The number of extracted members present, and a list of problems (at
+        most ``MAX_LISTED`` members are named); an empty list means the tree
+        is complete.
     """
-    base = data_root / SUBDIR / DATASET
-    grid = base / GRID_DIR
-    problems: list[str] = []
+    if not data_root.is_dir():
+        return 0, [f'the data root {data_root} does not exist, so nothing was restored']
+    from fwl_io import check_dataset
 
-    if not base.is_dir():
-        return 0, [f'{base} does not exist']
-    if not grid.is_dir():
-        problems.append(f'{grid} does not exist, so the grid was never unpacked')
-
-    count = sum(1 for p in grid.rglob('*') if p.is_file()) if grid.is_dir() else 0
-    if count < MIN_FILES:
-        problems.append(f'{count} files under {grid}, fewer than the {MIN_FILES} expected')
-
-    # mors deletes the tarball after unpacking, so one left behind means the
-    # unpack was interrupted and the tree is not what its key describes.
-    leftovers = sorted(p.name for p in base.glob('*.tar.gz'))
-    if leftovers:
-        problems.append(f'archive left unextracted: {", ".join(leftovers)}')
-
-    return count, problems
+    result = check_dataset(_fetcher(data_root), key=MANIFEST_KEY)
+    faults = result.faults
+    problems = [f'{f.state}: {f.path}' for f in faults[:MAX_LISTED]]
+    if len(faults) > MAX_LISTED:
+        problems.append(f'... and {len(faults) - MAX_LISTED} more')
+    return len(result.files) - len(faults), problems
 
 
 def _cmd_key(args: argparse.Namespace) -> int:
@@ -194,7 +227,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
         raise ResolutionError('no data root to check: pass --data-root or set FWL_DATA.')
 
     count, problems = check_restored(Path(given))
-    print(f'{SUBDIR}/{DATASET}/{GRID_DIR}: {count} files present')
+    print(f'{DATASET} grid: {count} files present')
     if problems:
         for p in problems:
             print(f'  {p}', file=sys.stderr)
@@ -224,12 +257,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f'error: {exc}', file=sys.stderr)
         return 1
     except Exception as exc:  # noqa: BLE001 -- reported, never swallowed
-        # Anything mors raises reaches here. Name it rather than let a
-        # traceback stand in for the diagnostic this script promises.
+        # Anything fwl-mors or fwl-io raises reaches here. Name it rather than
+        # let a traceback stand in for the diagnostic this script promises.
         print(
-            f'error: resolving the {DATASET} pins through fwl-mors failed: {exc!r}. '
-            'Check that the installed fwl-mors still exposes the dataset record '
-            'this script reads.',
+            f'error: resolving the {DATASET} pins through fwl-mors and fwl-io failed: '
+            f'{exc!r}. If either package changed its API, update this script.',
             file=sys.stderr,
         )
         return 1
