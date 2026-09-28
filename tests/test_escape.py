@@ -30,10 +30,8 @@ from zephyrus.planets_parameters import Me, Ms, Re
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
-# Reference geometry shared across the closed-form pins. Rxuv is chosen
-# distinct from Rp (Rxuv = 1.2 * Rp) so the scaling=2 (Rp * Rxuv**2) and
-# scaling=3 (Rxuv**3) branches give values 20% apart; a regression that
-# swaps the default scaling then fails loudly instead of silently.
+# Rxuv = 1.2 * Rp puts the scaling=2 and scaling=3 branches 20% apart; the
+# pins pass scaling explicitly, so they do not test the default.
 EPSILON = 0.15
 RP = Re
 RXUV = 1.2 * Re
