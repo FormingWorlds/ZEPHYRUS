@@ -38,8 +38,8 @@ from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 #    because a boiling atmosphere has not yet built the base an XUV wind
 #    launches from (Owen & Schlichting 2024).
 # 2. The hydrodynamic candidate: wind base by the configured method, wind
-#    temperature from the thermostat, rate min(EL, RR) with the winner
-#    naming the sub-label.
+#    temperature from the thermostat, rate min(EL, RR, PL) with the
+#    winner naming the sub-label.
 # 3. The sonic-point Knudsen switch, on the hydrodynamic branch only,
 #    confirms the wind or re-routes the point to the hydrostatic branch.
 # 4. The hydrostatic branch: per-species Jeans escape with the
@@ -604,10 +604,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     diag['fluid_check'] = dg.along_profile_fluid_check(
         inputs.profile, inputs.M_p, rr['R_s'], st.kn_crit
     )
-    # The check is on the bolometric candidate, not the dispatched rate, so
-    # its verdict does not change with whether the residual was admitted.
+    # On the closed-form wind before the luminosity cap: that cap is L/(g R_p K)
+    # and the check's cooling time is set by the same L, so testing it against
+    # itself would return K rather than a verdict on the wind.
+    wind_rate = min(bolo['mdot_parker'], bolo['mdot_bondi'])
     diag['tang_timescale'] = bl.tang_timescale_check(
-        inputs.M_p, inputs.R_p, inputs.F_int, bolo_rate, inputs.reservoirs
+        inputs.M_p, inputs.R_p, inputs.F_int, wind_rate, inputs.reservoirs
     )
     diag['self_consistency'] = dg.self_consistency_screen(inputs.reservoirs, rate, inputs.age)
     diag['rate_floor'] = dg.rate_floor_screen(rate)

@@ -773,9 +773,9 @@ def test_activation_gate_boundary_and_the_candidate_it_reports():
     The activation test is a strict inequality, so a state whose own
     ``lambda_gate`` is set as ``lambda_crit`` is past the gate: not boil-off,
     not active, and not competing under the default. The Tang timescale
-    diagnostic describes the bolometric candidate, so on a state past the
-    gate it is identical whether or not the residual is admitted, although
-    the dispatched rate differs by two decades between the two modes.
+    diagnostic reads the closed-form wind before the luminosity cap, so on a
+    luminosity-capped state past the gate it is identical whether or not the
+    residual is admitted and whether or not tides divide the cap.
     """
     comp = {'H2': 0.9, 'He': 0.1}
     envelope = {'H': 0.01 * 3 * Me * 0.75, 'He': 0.01 * 3 * Me * 0.25}
@@ -791,6 +791,13 @@ def test_activation_gate_boundary_and_the_candidate_it_reports():
     assert on.mdot > 10.0 * probe.mdot
     assert probe.diagnostics['tang_timescale']['evaluated'] is True
     assert on.diagnostics['tang_timescale'] == probe.diagnostics['tang_timescale']
+    # The check reads the closed-form wind, not the luminosity cap, so the
+    # tidal factor that divides only the cap cannot move its verdict.
+    flat = dispatch(
+        _inputs(3 * Me, 1.7 * Re, 1000.0, settings=DispatchSettings(tidal=False), **state)
+    )
+    assert probe.diagnostics['bolometric']['binding_cap'] == 'luminosity'
+    assert flat.diagnostics['tang_timescale'] == probe.diagnostics['tang_timescale']
 
 
 def test_roche_rename_keeps_the_rate_under_the_default_settings():
