@@ -243,20 +243,20 @@ Output:
 
 ```text
 boiloff 134848975815225.14
-11.10021097177663
+2.8857972759204777
 (15.0, 35.0)
 ['base_clamp_decades', 'base_clamped']
 ```
 
-At one Earth mass and 1.5 Earth radii with a hydrogen and helium envelope, $\Lambda = 11.10$, well below the threshold of 20, and the rate is $1.3 \times 10^{14}$ kg s⁻¹ at every flux in the sweep. That planet is not long-lived, which is the point: boil-off is the regime of the first few million years.
+At one Earth mass and 1.5 Earth radii with a hydrogen and helium envelope, $\Lambda = 2.89$, far below the threshold of 20. The parameter is evaluated at the launch level, the photospheric surface its threshold is calibrated on, which on an envelope this inflated sits nearly four planetary radii out, and the rate is $1.3 \times 10^{14}$ kg s⁻¹ at every flux in the sweep. That planet is not long-lived, which is the point: boil-off is the regime of the first few million years.
 
 The clamp flags are expected here, and harmless: an isothermal hydrogen envelope becomes unbound before it reaches a nanobar, so the profile stops early and the wind base clamps to its top. The boil-off branch launches from the photospheric level, not the wind base, so the clamp does not touch the rate. Note what is absent: the hydrodynamic candidates were computed on this state too, and one of them raised a subcritical-sonic caution, but the dispatched rate is the bolometric one and the flags describe the branch that produced it. Flags tell you what happened; deciding whether it matters is your job, and the [troubleshooting guide](../How-to/troubleshooting.md) is a shortcut for the common cases.
 
-Push the same envelope to three Earth masses and two Earth radii. It has contracted past the activation gate, so by default the bolometric candidate is reported and does not compete, and the XUV wind takes the rate. Admit the luminosity-capped residual through the `residual_mode` setting, and the flow of the winning branch stops being bound to the planet at all:
+Push the same envelope to three Earth masses and 1.7 Earth radii. It has contracted just past the activation gate, so by default the bolometric candidate is reported and does not compete, and the XUV wind takes the rate. Admit the residual through the `residual_mode` setting, and the flow of the winning branch stops being bound to the planet at all:
 
 ```python
 admitted = DispatchSettings(residual_mode='luminosity_capped')
-puffy = dispatch(build_state('H/He', 3.0, 2.0, 0.1, settings=admitted))
+puffy = dispatch(build_state('H/He', 3.0, 1.7, 0.1, settings=admitted))
 roche = puffy.diagnostics['roche']
 
 print(puffy.regime, puffy.mdot)
@@ -267,15 +267,15 @@ print(puffy.flags['roche_subflag'])
 Output:
 
 ```text
-roche_overflow 24622841.930601332
+roche_overflow 8968244.133873517
 189433055.79726917 167277833.86655325 0.8830445835470955
 dynamical
 ```
 
-The flow radius of the winning branch now exceeds the Hill radius, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow, and the label says so. The rate is unchanged by the label: the screen renames a state and never recomputes its rate, so what you get is whatever the winning branch produced, here the luminosity-capped bolometric residual at $2.5 \times 10^{7}$ kg s⁻¹ named in `diagnostics['roche']['rate_branch']`. Read it as a lower limit. Whether that residual is physical is the disputed question the [escape regimes](../Explanations/regimes.md) page states, which is why admitting it is a choice you make and not a default you inherit. Dispatch the same state with the defaults to see what the choice costs:
+The flow radius of the winning branch now exceeds the Hill radius, so the atmosphere spills over the gravitational boundary instead of escaping through a bound outflow, and the label says so. The rate is unchanged by the label: the screen renames a state and never recomputes its rate, so what you get is whatever the winning branch produced, here the bolometric residual at $9.0 \times 10^{6}$ kg s⁻¹ named in `diagnostics['roche']['rate_branch']`. Read it as a lower limit. Whether that residual is physical is the disputed question the [escape regimes](../Explanations/regimes.md) page states, which is why admitting it is a choice you make and not a default you inherit. Dispatch the same state with the defaults to see what the choice costs:
 
 ```python
-default = dispatch(build_state('H/He', 3.0, 2.0, 0.1))
+default = dispatch(build_state('H/He', 3.0, 1.7, 0.1))
 bolo = default.diagnostics['bolometric']
 noz = default.diagnostics['nozzle']
 
@@ -288,15 +288,15 @@ print(noz['rate_full_orbit_kg_s'], noz['R_sonic_over_R_L1'], noz['rate_kg_s'])
 Output:
 
 ```text
-hydrodynamic:EL 140144.18462008185 True
-0.828069627286013
-False luminosity 24622841.930601332
-54416919476.24317 0.9568936320693068 0.0
+hydrodynamic:EL 73002.71859264988 True
+0.817259936490472
+False parker 8968244.133873517
+674942040.3533882 0.9568936320693068 0.0
 ```
 
-The XUV wind takes the rate at $1.4 \times 10^{5}$ kg s⁻¹. Its flow radius reaches 0.83 of the Hill radius, inside the lobe, so the screen stays quiet and only `near_roche` is raised, while the candidate that would have taken the rate two decades higher still sits in `diagnostics['bolometric']` with `competes` false; `binding_cap` says the interior luminosity is what sets it. The tidally driven transfer through the inner Lagrange point is computed on every call and reports $5.4 \times 10^{10}$ kg s⁻¹ as `rate_full_orbit_kg_s`, but it competes only where the overflow description applies, and here the isothermal sonic radius sits just inside the L1 distance (`R_sonic_over_R_L1` reads 0.96), so a spherical wind chokes before the nozzle does and the candidate stands down: `rate_kg_s`, the rate the dispatcher actually competes, is zero.
+The XUV wind takes the rate at $7.3 \times 10^{4}$ kg s⁻¹. Its flow radius reaches 0.82 of the Hill radius, inside the lobe, so the screen stays quiet and of the overflow flags only `near_roche` is raised, while the candidate that would have taken the rate two decades higher still sits in `diagnostics['bolometric']` with `competes` false. `binding_cap` says the Parker rate itself sets it: this close to the gate the closed-form wind has not yet shut off below the interior-luminosity cap, which here sits higher, at $1.5 \times 10^{7}$ kg s⁻¹. The tidally driven transfer through the inner Lagrange point is computed on every call and reports $6.7 \times 10^{8}$ kg s⁻¹ as `rate_full_orbit_kg_s`, but it competes only where the overflow description applies, and here the isothermal sonic radius sits just inside the L1 distance (`R_sonic_over_R_L1` reads 0.96), so a spherical wind chokes before the nozzle does and the candidate stands down: `rate_kg_s`, the rate the dispatcher actually competes, is zero.
 
-Back on the admitted state, the subflag is the part worth reading, and it is read against the Roche lobe rather than the Hill radius, because the lobe is the critical surface and sits about 0.70 of the way out to it. This atmosphere reaches 0.96 Hill radii, which is 1.37 lobe radii, so its own extent is past the lobe and the subflag is `dynamical`. Compare `puffy.diagnostics['roche']['r_atmosphere']` against `r_lobe` in `puffy.diagnostics['nozzle']` to see it. The other value, `no_transonic`, is the narrower case where the atmosphere stays inside its lobe and only the would-be sonic surface sits outside the Hill radius, and `neither` marks a state that carries the label on the rate crossing alone. On a tightly bound heavy atmosphere the label can fire on geometry alone with no rate behind it; the [troubleshooting guide](../How-to/troubleshooting.md) walks the four cases.
+Back on the admitted state, the subflag is the part worth reading, and it is read against the Roche lobe rather than the Hill radius, because the lobe is the critical surface and sits about 0.70 of the way out to it. This atmosphere reaches 0.96 Hill radii, which is 1.36 lobe radii, so its own extent is past the lobe and the subflag is `dynamical`. Compare `puffy.diagnostics['roche']['r_atmosphere']` against `r_lobe` in `puffy.diagnostics['nozzle']` to see it. The other value, `no_transonic`, is the narrower case where the atmosphere stays inside its lobe and only the would-be sonic surface sits outside the Hill radius, and `neither` marks a state that carries the label on the rate crossing alone. On a tightly bound heavy atmosphere the label can fire on geometry alone with no rate behind it; the [troubleshooting guide](../How-to/troubleshooting.md) walks the four cases.
 
 ---
 

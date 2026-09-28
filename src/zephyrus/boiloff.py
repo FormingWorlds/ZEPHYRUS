@@ -24,29 +24,24 @@ from zephyrus.constants import G, kb
 # - Wind temperature: T_eq / 2^(1/4), the explicit recommendation of
 #   Misener et al. (2025, ApJ 980, 152) for the isothermal formulas.
 # - Activation: the restricted Jeans parameter
-#   Lambda = G M_p mu / (kB T_eq R_p) (Fossati et al. 2017, A&A 598, A90),
-#   built with the composition mean molecular mass. For isothermal gas
-#   Lambda = 2 R_B / R_p identically, so the Owen & Wu shutoff at
-#   R_p/R_B = 0.1 is Lambda = 20 for every composition; the transfer of
-#   that hydrogen-calibrated shutoff to other envelopes is an assumption
-#   the activation band (15 to 35 across the literature) makes visible.
-# - Bondi cap: Gupta & Schlichting (2020, MNRAS 493, 792, their Eq. 10),
-#   Mdot_B = 4 pi R_B^2 c_s rho_launch exp(-G M_p / (c_s^2 R_launch)),
-#   sonic-point area with the launch-level density; the launch level is
-#   identified with the radiative-convective boundary, a documented
-#   approximation on a static profile. The cap is evaluated at the same
-#   wind temperature as the Parker rate. Gupta & Schlichting write it at
-#   T_eq; Misener et al. (2025) recommend T_eq / 2^(1/4) for this same
-#   isothermal form, so the cap follows the correction rather than the
-#   original, and the two conventions differ by
-#   2^(-3/8) exp(Lambda_launch (2^(1/4) - 1)), with Lambda_launch the Jeans
-#   parameter at the launch level, a factor near 30 at the shutoff. The
-#   cap and the Parker rate describe one isothermal wind: at a launch
-#   level of unit optical depth the cap sits a constant factor of about
-#   e^(3/2) below the Parker rate (e^2 with the level at the sonic
-#   radius), and on a level optically thick to the supplied opacity it
-#   sits above the Parker rate and does not bind, which tau_launch
-#   reports.
+#   Lambda = G M_p mu / (kB T_eq r) (Fossati et al. 2017, A&A 598, A90),
+#   evaluated at the launch level r with the composition mean molecular
+#   mass there, the photospheric surface its calibration refers to. For
+#   isothermal gas Lambda = 2 R_B / r identically, so the Owen & Wu
+#   shutoff at r/R_B = 0.1 is Lambda = 20 for every composition; the
+#   transfer of that hydrogen-calibrated shutoff to other envelopes is an
+#   assumption the activation band (15 to 35 across the literature) makes
+#   visible.
+# - Bondi cap: Misener et al. (2025, their Eq. 10),
+#   Mdot_B = 4 pi R_B^2 c_s rho_launch exp(2 - 2 R_B / R_launch), the
+#   isothermal hydrostatic density carried from the launch level to the
+#   sonic point, at the wind temperature they recommend for it. The
+#   Gupta & Schlichting (2020, MNRAS 493, 792, Eq. 10) original drops the
+#   e^2 and runs at T_eq. The launch level stands in for the
+#   radiative-convective boundary. Against the Parker rate the cap is
+#   tau_launch (T_wind / T_launch) exp(1/2 - Mach^2 / 2), so it binds only
+#   on a launch level optically thin to the supplied opacity, which
+#   tau_launch reports.
 # - Luminosity cap, applied only past the activation gate:
 #   Mdot_E = L / (g R_p K) with L = 4 pi R_p^2 F_int (Gupta & Schlichting
 #   2019, MNRAS 487, 24, their Eq. 8). Whether a bolometric wind persists
@@ -67,9 +62,10 @@ LAMBDA_BAND = (15.0, 35.0)  # literature spread of the activation threshold
 def lambda_restricted(M_p: float, R_p: float, T_eq: float, mu_kg: float) -> float:
     """Restricted Jeans parameter Lambda = G M_p mu / (kB T_eq R_p).
 
-    Dimensionless; built with the composition mean molecular mass ``mu_kg``
-    [kg] at the launch level (Fossati et al. 2017). For isothermal gas this
-    equals ``2 R_B / R_p`` with the Bondi radius at ``T_eq``.
+    Dimensionless (Fossati et al. 2017). ``R_p`` [m] is the radius of the
+    level it is evaluated at and ``mu_kg`` [kg] the mean molecular mass
+    there; the dispatcher passes the launch level for both. For isothermal
+    gas this equals ``2 R_B / R_p`` with the Bondi radius at ``T_eq``.
     """
     return G * M_p * mu_kg / (kb * T_eq * R_p)
 
@@ -180,7 +176,7 @@ def bolometric_candidate(
 
     rho_launch = launch['rho']
     mdot_bondi = (
-        4.0 * math.pi * R_B**2 * c_s * rho_launch * math.exp(-G * M_p / (c_s**2 * R_launch))
+        4.0 * math.pi * R_B**2 * c_s * rho_launch * math.exp(2.0 - 2.0 * R_B / R_launch)
     )
 
     # Optical depth of the launch level to its own opacity, in the

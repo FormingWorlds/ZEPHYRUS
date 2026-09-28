@@ -204,10 +204,11 @@ class EscapeInputs:
     def validate(self) -> None:
         """Raise ``ValueError`` on a malformed physical state."""
         for name in ('M_p', 'R_p', 'M_star', 'a', 'T_eq', 'F_bol', 'F_int', 'kappa_photo'):
-            if getattr(self, name) <= 0:
-                raise ValueError(f'{name} must be positive')
-        if self.F_xuv < 0:
-            raise ValueError('F_xuv must be >= 0')
+            value = getattr(self, name)
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError(f'{name} must be positive and finite, got {value!r}')
+        if not math.isfinite(self.F_xuv) or self.F_xuv < 0:
+            raise ValueError(f'F_xuv must be finite and >= 0, got {self.F_xuv!r}')
         if not (0.0 <= self.e < 1.0):
             raise ValueError('e must be in [0, 1)')
         self.settings.validate()
@@ -274,7 +275,9 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         k_factor = 1.0
 
     # Step 1: bolometric candidate, computed at every point.
-    lam_gate = bl.lambda_restricted(inputs.M_p, inputs.R_p, inputs.T_eq, photo['mmw'])
+    # At the launch level, the photospheric surface the threshold is
+    # calibrated on; R_p is the interior radius in a coupled call.
+    lam_gate = bl.lambda_restricted(inputs.M_p, photo['r'], inputs.T_eq, photo['mmw'])
     bolo_rate, bolo = bl.bolometric_candidate(
         inputs.M_p,
         inputs.R_p,
@@ -528,12 +531,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             per_species = dict(hs_per_element)
             winner_flags = hs_flags
             flow_radius = hsd['r_exo']
-        # Step 5: the bolometric residual competes past the gate only when
-        # the setting admits it. Off by default. In the window just past the
-        # gate the closed-form Parker and Bondi rates have not shut off yet,
-        # so the candidate there is the interior-luminosity cap itself, the
-        # core-powered rate whose persistence is disputed, and it outruns the
-        # XUV rate at interior fluxes of about a watt per square meter.
+        # Step 5: past the gate the bolometric residual competes only when
+        # ``residual_mode`` admits it, since its persistence is disputed.
         if bolo['competes'] and bolo_rate > rate:
             branch = 'boiloff'
             rate = bolo_rate
@@ -679,8 +678,10 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     diag['fluid_check'] = dg.along_profile_fluid_check(
         inputs.profile, inputs.M_p, rr['R_s'], st.kn_crit
     )
+    # The check is on the bolometric candidate, not the dispatched rate, so
+    # its verdict does not change with whether the residual was admitted.
     diag['tang_timescale'] = bl.tang_timescale_check(
-        inputs.M_p, inputs.R_p, inputs.F_int, rate, inputs.reservoirs
+        inputs.M_p, inputs.R_p, inputs.F_int, bolo_rate, inputs.reservoirs
     )
     diag['self_consistency'] = dg.self_consistency_screen(inputs.reservoirs, rate, inputs.age)
     diag['rate_floor'] = dg.rate_floor_screen(rate)

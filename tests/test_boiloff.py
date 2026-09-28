@@ -134,6 +134,49 @@ def test_luminosity_cap_applies_only_past_the_gate():
     assert rate_b <= rate_a * (1 + 1e-12)
 
 
+@pytest.mark.reference_pinned
+@pytest.mark.physics_invariant
+def test_bondi_cap_is_misener_eq10_at_the_wind_temperature():
+    """The Bondi cap is Misener et al. (2025) Eq. (10) at ``T_eq / 2^(1/4)``.
+
+    Pinned against ``4 pi R_s^2 c_s rho_launch exp(2 - 2 R_s / R_launch)``
+    built from the constants at the wind temperature, on a hydrostatic
+    launch level. Discrimination: the same form at ``T_eq`` differs by
+    ``2^(-3/8) exp(Lambda_launch (2^(1/4) - 1))``, a factor near 8 here, and
+    the Gupta & Schlichting (2020) prefactor without the ``e^2`` by 7.4. The
+    ratio to the Parker rate is ``tau_launch (T_wind / T_launch)
+    exp(1/2 - Mach^2 / 2)`` on levels two decades apart in optical depth,
+    so the cap binds only on a launch level optically thin to the opacity.
+    """
+    M_p, R_p, T_eq = 3 * Me, 1.5 * Re, 1000.0
+    T_w = T_eq / 2**0.25
+    for p_launch in (20.0, 2000.0):
+        launch = _launch(M_p, R_p, T_eq, {'H2': 1.0}, p=p_launch)
+        _, det = bolometric_candidate(M_p, R_p, T_eq, 0.01, launch, 1.0, 10.0, 20.0)
+        mu, r_l = launch['mmw'], launch['r']
+        c_s = math.sqrt(kb * T_w / mu)
+        r_s = G * M_p / (2.0 * c_s**2)
+        expected = 4.0 * math.pi * r_s**2 * c_s * launch['rho'] * math.exp(2.0 - 2.0 * r_s / r_l)
+        assert det['mdot_bondi'] == pytest.approx(expected, rel=1e-12, abs=0.0)
+        c_eq = math.sqrt(kb * T_eq / mu)
+        r_eq = G * M_p / (2.0 * c_eq**2)
+        at_teq = 4.0 * math.pi * r_eq**2 * c_eq * launch['rho'] * math.exp(2.0 - 2.0 * r_eq / r_l)
+        lam_launch = G * M_p * mu / (kb * T_eq * r_l)
+        assert at_teq / expected == pytest.approx(
+            2.0**-0.375 * math.exp(lam_launch * (2.0**0.25 - 1.0)), rel=1e-12, abs=0.0
+        )
+        assert at_teq / expected > 2.0
+        ratio = det['mdot_bondi'] / det['mdot_parker']
+        predicted = det['tau_launch'] * (T_w / T_eq) * math.exp(0.5 - det['mach'] ** 2 / 2.0)
+        assert ratio == pytest.approx(predicted, rel=1e-12, abs=0.0)
+    thin = _launch(M_p, R_p, T_eq, {'H2': 1.0}, p=20.0)
+    thick = _launch(M_p, R_p, T_eq, {'H2': 1.0}, p=2000.0)
+    _, d_thin = bolometric_candidate(M_p, R_p, T_eq, 0.01, thin, 1.0, 10.0, 20.0)
+    _, d_thick = bolometric_candidate(M_p, R_p, T_eq, 0.01, thick, 1.0, 10.0, 20.0)
+    assert d_thin['tau_launch'] < 0.1 and d_thin['binding_cap'] == 'bondi'
+    assert d_thick['tau_launch'] > 1.0 and d_thick['binding_cap'] == 'parker'
+
+
 @pytest.mark.physics_invariant
 def test_candidate_names_its_binding_cap_and_whether_it_competes():
     """The candidate reports which cap set its rate and whether it competes.
@@ -257,6 +300,9 @@ def test_inflated_launch_level_clamps_with_flag():
     assert det['mach'] == pytest.approx(1.0, abs=1e-9)
     assert math.isfinite(rate)
     assert rate > 0.0
+    # The dilute hand-built level is optically thin, so the Bondi cap binds.
+    assert det['binding_cap'] == 'bondi'
+    assert rate == pytest.approx(det['mdot_bondi'], rel=1e-15, abs=0.0)
 
 
 def test_tang_timescale_diagnostic_contract():

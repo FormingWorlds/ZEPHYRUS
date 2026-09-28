@@ -300,7 +300,7 @@ def test_roche_screen_renames_without_changing_the_rate():
 
     def at(a):
         return dispatch(
-            _inputs(3 * Me, 2.0 * Re, 1000.0, comp, F_xuv=0.1, a=a, settings=admitted)
+            _inputs(3 * Me, 1.7 * Re, 1000.0, comp, F_xuv=0.1, a=a, F_int=0.05, settings=admitted)
         )
 
     lo, hi = 0.078 * AU, 0.3 * AU
@@ -709,8 +709,8 @@ def test_residual_setting_admits_the_post_gate_candidate():
     """
     admitted = DispatchSettings(residual_mode='luminosity_capped')
     past = dict(comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU)
-    off = dispatch(_inputs(3 * Me, 2 * Re, 1000.0, **past))
-    on = dispatch(_inputs(3 * Me, 2 * Re, 1000.0, settings=admitted, **past))
+    off = dispatch(_inputs(3 * Me, 1.7 * Re, 1000.0, **past))
+    on = dispatch(_inputs(3 * Me, 1.7 * Re, 1000.0, settings=admitted, **past))
     assert off.diagnostics['lambda_gate'] > 20.0
     bolo_off = off.diagnostics['bolometric']
     assert off.regime == 'hydrodynamic:EL'
@@ -740,10 +740,79 @@ def test_residual_setting_admits_the_post_gate_candidate():
     assert b_off.regime == 'boiloff'
     assert b_on.regime == 'boiloff'
     assert b_off.diagnostics['bolometric']['competes'] is True
+    assert b_on.diagnostics['bolometric']['competes'] is True
+    assert b_on.diagnostics['bolometric']['residual_mode'] == 'luminosity_capped'
     assert b_on.mdot == pytest.approx(b_off.mdot, rel=1e-12, abs=0.0)
     assert 'bolometric_residual' not in b_on.flags
     with pytest.raises(ValueError, match='residual_mode'):
         DispatchSettings(residual_mode='on').validate()
+
+
+def test_activation_gate_boundary_and_the_candidate_it_reports():
+    """At the threshold itself the gate is closed, and the check is on the candidate.
+
+    The activation test is a strict inequality, so a state whose own
+    ``lambda_gate`` is set as ``lambda_crit`` is past the gate: not boil-off,
+    not active, and not competing under the default. The Tang timescale
+    diagnostic describes the bolometric candidate, so on a state past the
+    gate it is identical whether or not the residual is admitted, although
+    the dispatched rate differs by two decades between the two modes.
+    """
+    comp = {'H2': 0.9, 'He': 0.1}
+    envelope = {'H': 0.01 * 3 * Me * 0.75, 'He': 0.01 * 3 * Me * 0.25}
+    state = dict(comp=comp, F_xuv=0.1, a=0.12 * AU, reservoirs=envelope)
+    probe = dispatch(_inputs(3 * Me, 1.7 * Re, 1000.0, **state))
+    at = DispatchSettings(lambda_crit=probe.diagnostics['lambda_gate'])
+    edge = dispatch(_inputs(3 * Me, 1.7 * Re, 1000.0, settings=at, **state))
+    assert edge.regime != 'boiloff'
+    assert edge.diagnostics['bolometric']['active'] is False
+    assert edge.diagnostics['bolometric']['competes'] is False
+    admitted = DispatchSettings(residual_mode='luminosity_capped')
+    on = dispatch(_inputs(3 * Me, 1.7 * Re, 1000.0, settings=admitted, **state))
+    assert on.mdot > 10.0 * probe.mdot
+    assert probe.diagnostics['tang_timescale']['evaluated'] is True
+    assert on.diagnostics['tang_timescale'] == probe.diagnostics['tang_timescale']
+
+
+def test_roche_rename_keeps_the_rate_under_the_default_settings():
+    """The geometric rename leaves the rate continuous with the defaults.
+
+    An inflated one Earth-mass envelope boils off with its sonic radius
+    near the Hill radius, and bisecting in orbital distance brackets the
+    point where the screen renames it. The nozzle stays outside its
+    criterion on both sides, so the rename is the only thing that changes,
+    and the rates either side agree to machine precision.
+    """
+    comp = {'H2': 0.9, 'He': 0.1}
+
+    def at(a):
+        return dispatch(_inputs(Me, 1.5 * Re, 1000.0, comp, F_xuv=10.0, a=a))
+
+    lo, hi = 0.030 * AU, 0.045 * AU
+    assert at(lo).regime == 'roche_overflow'
+    assert at(hi).regime == 'boiloff'
+    for _ in range(50):
+        mid = 0.5 * (lo + hi)
+        if at(mid).regime == 'roche_overflow':
+            lo = mid
+        else:
+            hi = mid
+    below, above = at(lo), at(hi)
+    assert below.diagnostics['nozzle']['applicable'] is False
+    assert below.diagnostics['roche']['rate_branch'] == 'boiloff'
+    assert below.mdot == pytest.approx(above.mdot, rel=1e-9, abs=0.0)
+
+
+def test_non_finite_fluxes_are_rejected():
+    """A NaN or infinite flux raises rather than silently dropping a cap.
+
+    ``min`` never selects a NaN, so a NaN interior flux would remove the
+    luminosity cap from the candidate without any error.
+    """
+    for name, bad in (('F_int', math.nan), ('F_int', math.inf), ('F_xuv', math.nan)):
+        kw = {name: bad}
+        with pytest.raises(ValueError, match=name):
+            dispatch(_inputs(3 * Me, 1.7 * Re, 1000.0, {'H2': 1.0}, **{'F_xuv': 0.1, **kw}))
 
 
 def test_bolometric_diagnostics_keys_match_the_results_page():
@@ -1215,14 +1284,14 @@ FLAG_CASES = (
         'near_roche',
         dict(
             M_p=3 * Me,
-            R_p=2 * Re,
+            R_p=1.7 * Re,
             T_eq=1000.0,
             comp={'H2': 0.9, 'He': 0.1},
             F_xuv=0.1,
             a=0.0775,
         ),
         dict(
-            M_p=3 * Me, R_p=2 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.30
+            M_p=3 * Me, R_p=1.7 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.30
         ),
     ),
     (
@@ -1246,7 +1315,7 @@ FLAG_CASES = (
         'bolometric_residual',
         dict(
             M_p=3 * Me,
-            R_p=2 * Re,
+            R_p=1.7 * Re,
             T_eq=1000.0,
             comp={'H2': 0.9, 'He': 0.1},
             F_xuv=0.1,
