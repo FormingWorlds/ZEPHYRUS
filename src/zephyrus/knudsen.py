@@ -13,38 +13,21 @@ from zephyrus.constants import kb, kb_cgs
 
 SQRT2 = math.sqrt(2.0)
 
-# Diagnostic band on the switch threshold: the transition Knudsen number is
-# heating-geometry physics, not a free parameter. Direct simulation Monte
-# Carlo runs place it near 0.1 for a sharp heating layer and near 1 for
-# distributed heating (Johnson et al. 2013, ApJL 768, L4); the upper edge
-# extends the band to 3. Printed alongside every switch verdict, never
-# configurable.
+# Diagnostic band on the switch threshold, which is heating-geometry
+# physics: near 0.1 for a sharp heating layer and near 1 for distributed
+# heating (Johnson et al. 2013, ApJL 768, L4), extended to 3. Printed
+# alongside every switch verdict, never configurable.
 KN_BAND = (0.1, 3.0)
 
-# ---------------------------------------------------------------------------
-# Rung 1: Laricchiuta et al. (2009, Eur. Phys. J. D 54, 607) phenomenological
-# collision integrals. Their Eq. (2) is a double-sigmoid fit to the reduced
-# collision integral in x = ln(kT/eps0), Eq. (3) gives the fit coefficients
-# a_i as polynomials in the pair parameter beta (coefficients below from
-# their electronic-appendix Table 3, neutral-neutral case, m = 6), and
-# Eq. (4) sets the dimensional scale sigma^2 = (x0 r_e)^2 with
-# x0 = xi1 beta^xi2 (their Table 4). The pair parameters (beta, eps0 in meV,
-# r_e in Angstrom) are their Table 5. The momentum-transfer cross section is
-# sigma_diff = pi sigma^2 Omega^(1,1)*, with the factor pi converting the
-# reduced integral to a cross section. The implementation reproduces the
-# measured room-temperature viscosities of N2, O2, CO, and CO2 to within
-# 7 percent (see the companion tests).
-#
-# Only part of this table is reachable through the mixture rule below, which
-# is a mole-fraction average of like-pair cross sections (Chatterjee &
-# Pierrehumbert Eq. 25) and therefore never asks for a cross pair. Of the
-# thirteen tabulated pairs, the six cross pairs are unreachable by
-# construction, and the four molecular like pairs are unreachable from a
-# dispatch, which feeds the switch atomized element fractions: (N, N),
-# (O, O), and (C, C) are the live rows. The rest are kept because they are
-# transcribed from the source and a pair-resolved mixture rule would want
-# them, not because anything reads them today.
-# ---------------------------------------------------------------------------
+# Laricchiuta et al. (2009, Eur. Phys. J. D 54, 607) phenomenological
+# collision integrals: their Eq. (2) double-sigmoid fit in x = ln(kT/eps0),
+# Eq. (3) coefficients a_i polynomial in the pair parameter beta (their
+# electronic-appendix Table 3, neutral-neutral case, m = 6), and Eq. (4)
+# scale sigma^2 = (x0 r_e)^2 with x0 = xi1 beta^xi2 (their Table 4); pair
+# parameters (beta, eps0 in meV, r_e in Angstrom) from their Table 5. The
+# momentum-transfer cross section is sigma_diff = pi sigma^2 Omega^(1,1)*.
+# The like-pair mixture rule below reads only (N, N), (O, O), and (C, C)
+# from a dispatch; the other rows serve direct callers.
 
 # Table 3 (neutral-neutral, m = 6): rows are (c0, c1, c2) of
 # a_i(beta) = c0 + c1 beta + c2 beta^2, for i = 1..7.
@@ -88,17 +71,11 @@ LARICCHIUTA_PAIRS = {
     ('N2', 'CO2'): (7.90, 14.772, 3.986),
 }
 
-# ---------------------------------------------------------------------------
-# Rung 2: hydrogen, which Laricchiuta et al. do not tabulate. Zahnle et al.
-# (1990, Icarus 84, 502) Eq. (30) inverts the binary diffusion parameter
-# into a collision cross section, sigma_c = (3 sqrt(pi) / (16 b11))
-# sqrt(2 k T / mu11) in cgs, with mu11 = m/2 the like-pair reduced mass.
-# The H2-H2 self-diffusion parameter b11 = 4.96e17 T^0.75 cm^-1 s^-1 is
-# recovered from the in-H2 column of Zahnle & Kasting (1986, Icarus 68, 462)
-# Table I, and the H-H value scales it by 1.91, the mean of that table's
-# printed in-H over in-H2 column ratios. The route gives sigma(H-H) =
-# 6.4e-20 m^2 at 1e4 K with a T^-0.25 dependence by construction.
-# ---------------------------------------------------------------------------
+# Hydrogen, which Laricchiuta et al. do not tabulate: Zahnle et al. (1990,
+# Icarus 84, 502) Eq. (30) inverts the diffusion parameter b11 into a cross
+# section. The H2-H2 b11 is recovered from the in-H2 column of Zahnle &
+# Kasting (1986, Icarus 68, 462) Table I, and H-H scales it by 1.91, the
+# mean of that table's in-H over in-H2 column ratios.
 _B11_H2H2 = 4.96e17  # cm^-1 s^-1 prefactor of b11 = 4.96e17 T^0.75
 _H_COLUMN_SCALE = 1.91  # ZK86 Table I in-H2 -> in-H column scaling
 _M_H2_G = 2.016 * 1.66053907e-24  # g
@@ -164,13 +141,9 @@ def sigma_zk90_hydrogen(species: str, T: float) -> float:
     return sigma_cm2 * 1e-4
 
 
-# Radius assumed for an element with no tabulated van der Waals value. It is
-# not a measurement of anything: Bondi (1964) prints no alkali, alkaline
-# earth, or transition metals, so aluminium, phosphorus, chlorine,
-# potassium, calcium, and titanium reach the geometric fallback with nothing
-# behind them. Species that fall back on it carry their own provenance
-# class, because a cross section built on this number must not be read as
-# one built on a published radius.
+# Assumed, not measured, radius for elements absent from the van der Waals
+# table (Al, P, Cl, K, Ca, Ti); species on it get their own provenance
+# class so the cross section is never read as built on a published radius.
 FALLBACK_VDW_RADIUS_A = 1.5
 
 
@@ -181,10 +154,9 @@ def sigma_geometric(species: str) -> tuple[float, bool]:
     without a tabulated radius, the largest constituent-element radius sets
     the scale. A hard sphere has no temperature dependence, so against the
     shrinking collision integrals this fallback is roughly right at room
-    temperature but overshoots by a factor of a few at 1e4 K (2.6 for
-    atomic N), which biases the Knudsen number low and the switch toward
-    hydrodynamic verdicts. The provenance class records which species sit
-    on this fallback so the bias stays visible.
+    temperature but overshoots by a factor of a few at 1e4 K, which biases
+    the Knudsen number low and the switch toward hydrodynamic verdicts. The
+    provenance class records which species sit on this fallback.
 
     Returns ``(sigma [m^2], tabulated)``, where ``tabulated`` is False when
     the radius came from ``FALLBACK_VDW_RADIUS_A`` rather than the published
@@ -243,34 +215,9 @@ def sigma_mixture(vmr: dict[str, float], T: float) -> tuple[float, dict]:
     return sig, prov
 
 
-# ---------------------------------------------------------------------------
-# The sonic-point Knudsen switch. Chatterjee & Pierrehumbert (2026,
-# ApJ 998, 236) build the sonic-point Knudsen number from the Maxwell
-# mean free path 1/(sqrt(2) sigma n) against the analytic sonic-point
-# density scale height of their Eq. (17),
-#     H_sc = (1 + gamma) r_sc / (4 + sqrt(2) sqrt(5 - 3 gamma)),
-# giving their Eq. (18)
-#     Kn_sc = (4 + sqrt(2) sqrt(5 - 3 gamma))
-#             / (sqrt(2) (1 + gamma) sigma_C n_sc r_sc).
-# A flow with Kn_sc at or below the threshold is collisional at its sonic
-# point and sustains a hydrodynamic wind; above it, the gas decouples before
-# reaching sonic conditions and escape is hydrostatic (Jeans-like). The
-# threshold's physical band is KN_BAND above.
-#
-# This is the neutral onset, and deliberately so: the cross sections above
-# are neutral-neutral collision integrals, while the wind the switch is
-# applied to can be substantially ionized (the recombination chain reports
-# its base ionization fraction, which reaches 0.86 on a heavy composition).
-# Chatterjee & Pierrehumbert make the same choice and state its cost:
-# collisionality rises with ionization, because ion-atom charge exchange and
-# atom-electron collisions carry larger cross sections, so working with the
-# neutral onset is "reasonable when advection-dominated and weakly ionized"
-# and, for characterizing rapid mass loss, "highly conservative". The
-# direction is one-sided. Including the ion channels would shorten the mean
-# free path, lower Kn_sc, and move points toward hydrodynamic verdicts, so
-# every hydrostatic call this switch makes on an ionized wind is a call the
-# fuller physics could overturn, and no hydrodynamic call is.
-# ---------------------------------------------------------------------------
+# The sonic-point Knudsen switch of Chatterjee & Pierrehumbert (2026, ApJ
+# 998, 236): the Maxwell mean free path against the analytic sonic-point
+# scale height, their Eqs. (17) and (18), on neutral cross sections.
 
 
 def mean_free_path(sigma: float, n: float) -> float:
@@ -293,6 +240,12 @@ def kn_sonic(
     composition, ``T_sc`` the temperature the cross sections are evaluated
     at [K], and ``gamma`` the polytropic index (1 for an isothermal wind).
     Returns ``(Kn_sc, sigma_C [m^2], provenance dict)``.
+
+    At or below the threshold the sonic point is collisional and the wind
+    hydrodynamic; above it escape is hydrostatic. The cross sections are
+    neutral-neutral, the source's own onset, and ion channels would lower
+    ``Kn_sc``, so a hydrostatic verdict on an ionized wind is the side
+    fuller physics could overturn.
     """
     sigma, prov = sigma_mixture(vmr, T_sc)
     kn = (4.0 + SQRT2 * math.sqrt(5.0 - 3.0 * gamma)) / (

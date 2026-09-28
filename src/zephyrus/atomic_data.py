@@ -14,19 +14,13 @@ from zephyrus.constants import h_planck
 # hc in J cm: converts a wavenumber in cm^-1 to an energy in J.
 HC_CM = h_planck * C_LIGHT * 100.0
 
-# ---------------------------------------------------------------------------
 # Three-level systems for atomic line cooling: levels 1 to 3 of each species
 # from Nakayama, Ikoma & Terada (2022, ApJ 937, 72), Appendix C Tables 2 to
 # 5. levels: (term, statistical weight g, excitation energy [cm^-1]);
 # transitions keyed (lower, upper) with 1-based indices:
 # (Einstein A [s^-1], effective collision strength at 1e4 K).
-# Two transcription notes against the printed tables: the O+ row prints the
-# neutral-O configuration and term labels next to statistical weights 4, 10,
-# and 6, which belong to the O+ ground system, so the level set is entered
-# as 4S-2D-2P with the printed weights; and the printed N 2->9 collision
-# strength is malformed in the original, but level 9 lies outside the
-# three-level subset carried here.
-# ---------------------------------------------------------------------------
+# The printed O+ row carries neutral-O term labels beside the O+ weights 4,
+# 10, and 6, so its level set is entered as 4S-2D-2P with those weights.
 THREE_LEVEL = {
     'H': {
         'levels': [('1s2S', 2, 0.0), ('2s2S', 2, 82258.96), ('2p2P', 6, 82259.17)],
@@ -82,20 +76,12 @@ THREE_LEVEL = {
     },
 }
 
-# ---------------------------------------------------------------------------
 # Radiative recombination: the Badnell (2006, ApJS 167, 334) fit,
 #   alpha_RR = A / [ sqrt(T/T0) (1 + sqrt(T/T0))^(1-B') (1 + sqrt(T/T1))^(1+B') ],
 #   B' = B + C exp(-T2/T),
-# implemented from the original Eqs. (1)-(2). The nitrogen coefficients below
-# are read off Badnell's own table, the row Z = 7, N = 6. Chatterjee &
-# Pierrehumbert (2026, ApJ 998, 236) quote the same row in their Eq. 35, but
-# their printed equation garbles the Badnell form (it renders the product as
-# a sum, repeats one exponent on both factors, and inverts the exponential to
-# exp(-T/T2)) and their T2 reads 6.379e4 against the 6.739e4 of the table, so
-# the original is the source for both the form and the numbers. The printed
-# variant disagrees by more than a factor 2 at 1e4 K (asserted in the
-# companion tests so the discrepancy stays visible).
-# ---------------------------------------------------------------------------
+# from the original Eqs. (1)-(2), with the nitrogen row Z = 7, N = 6 of
+# Badnell's table. Chatterjee & Pierrehumbert (2026, ApJ 998, 236) Eq. 35
+# misprints both the form and T2 (6.379e4 for 6.739e4); neither is used.
 # (T0, T1, T2 [K], A [cm^3/s], B, C) for nitrogen.
 BADNELL_N = (9.467e-2, 2.954e6, 6.739e4, 6.387e-10, 0.7308, 0.2440)
 
@@ -109,11 +95,9 @@ def badnell_alpha_rr(T: float, coeffs: tuple = BADNELL_N) -> float:
     return A / (s0 * (1.0 + s0) ** (1.0 - bp) * (1.0 + s1) ** (1.0 + bp))
 
 
-# Case B recombination coefficients at 1e4 K, cm^3 s^-1: hydrogen from
-# Murray-Clay et al. (2009, ApJ 693, 23, their Eq. 7); the heavies as case A
-# totals minus the ground-state partial from the AMDPP radiative
-# recombination archive, as compiled for the radiation-recombination module
-# of Malina Ovesen.
+# Case B at 1e4 K, cm^3 s^-1: H from Murray-Clay et al. (2009, ApJ 693, 23)
+# Eq. (7); heavies as AMDPP case A totals minus the ground-state partial,
+# as compiled for Malina Ovesen's radiation-recombination module.
 CASE_B_1E4K = {
     'H': 2.7e-13,
     'He': 4.37e-13 - 1.56e-13,
@@ -140,26 +124,9 @@ def alpha_case_b(element: str, T: float) -> float:
     return a0 * (T / 1.0e4) ** -0.9
 
 
-# ---------------------------------------------------------------------------
-# CO2 15 micron band cooling: Johnstone et al. (2018, A&A 617, A107),
-# Eqs. (34)-(38) with their Table 1 collider coefficients, cgs. The
-# deexcitation rates k_d = A T^B are measured only over roughly 150 to
-# 500 K, and the band's real applicability ceiling is CO2 dissociation, so
-# it acts as a base-region coolant; both limitations travel with any use.
-#
-# One documented departure from the printed source. Their detailed-balance
-# relation reads k_e = 2 k_d exp(-667/T_n), citing Castle et al. (2006), and
-# 667 is the bending-mode wavenumber in cm^-1, not a temperature: h c times
-# 667 cm^-1 is 1.325e-13 erg, which is the same 15 micron quantum they print
-# two equations earlier, and in temperature units that quantum is 959.7 K,
-# not 667 K. The printed formula has dropped the second radiation constant,
-# 1.4388 K cm. The implementation uses the quantum, so the exponential is
-# exp(-h nu / k_B T) with h nu / k_B = 959.7 K. It matters most where the
-# band matters most: the excitation rate falls by a factor 7 at 150 K and
-# 2.7 at 300 K against the printed form, and by only 3.5 percent at the wind
-# temperatures the thermostat selects, where the band is a few percent of
-# the cooling budget.
-# ---------------------------------------------------------------------------
+# CO2 15 micron band: Johnstone et al. (2018, A&A 617, A107) Eqs. (34)-(38),
+# Table 1 colliders, cgs. Their exp(-667/T_n) takes the 667 cm^-1 wavenumber
+# for a temperature; detailed balance here uses h nu / k_B = 959.7 K.
 HNU_15UM = 1.325e-13  # erg, the 15 micron quantum
 T_15UM = 959.7  # K, that quantum over the Boltzmann constant
 A10_CO2 = 0.46  # s^-1, Einstein coefficient of the bending mode
@@ -185,27 +152,18 @@ def co2_band_cooling(n_co2: float, colliders: dict, T: float, col_co2: float = 0
     Excitation rates follow from detailed balance,
     ``k_e = 2 k_d exp(-h nu / k_B T)``.
 
-    The abundances are molecular, and deliberately: this is a base-region
-    coolant. The band exists while CO2 does, and the deexcitation fits it
-    rests on were measured over roughly 150 to 500 K, so it is evaluated on
-    the molecular density of the level rather than on a dissociated or
-    ionized fraction, unlike the atomic-line and fine-structure channels
-    beside it. Above dissociation the band should be absent rather than
-    small, which this function does not enforce and the caller must not read
-    into it; at the wind temperatures the thermostat selects the band is a
-    few percent of the cooling budget, and at the 1000 to 3000 K base it is
-    most of it.
+    The abundances are molecular because this is a base-region coolant, on
+    deexcitation fits measured over roughly 150 to 500 K. Above CO2
+    dissociation the band should be absent rather than small, which this
+    function does not enforce.
     """
     sn = SIGMA_CO2_15UM * col_co2
     if sn > 2.0:
         eps = 0.7202 * sn**-0.613
     elif sn > 0.0:
-        # The thin-column branch of the fit rises through 0.5 below a column
-        # parameter of 3.4e-4 and diverges as the column vanishes, which is
-        # the fit leaving its range rather than physics: half the photons
-        # escaping is the non-LTE ceiling for this two-level band, and the
-        # tabulation the fit reproduces approaches it. Capping there also
-        # makes the zero-column case continuous with its neighbours.
+        # The fit rises through 0.5 below sn = 3.4e-4 and diverges; half the
+        # photons escaping is the non-LTE ceiling of this two-level band,
+        # and capping there keeps the zero-column case continuous.
         eps = min(0.4732 * sn**-0.0069, 0.5)
     else:
         eps = 0.5
@@ -236,14 +194,9 @@ def o_finestructure_cooling(n_o: float, T: float) -> float:
     return q63 + q147
 
 
-# ---------------------------------------------------------------------------
-# Monochromatic photoionization front constants. Hydrogen front:
-# Murray-Clay et al. (2009), sigma_nu0 = 6e-18 (h nu0 / 13.6 eV)^-3 cm^2 at
-# a representative photon energy of 20 eV. Nitrogen-like front for
-# hydrogen-poor winds: mean photon energy 33.6 eV and cross section
-# 1e-17 cm^2 (Chatterjee & Pierrehumbert 2026), with the N I ionization
-# potential from NIST.
-# ---------------------------------------------------------------------------
+# Monochromatic front constants: hydrogen after Murray-Clay et al. (2009),
+# sigma_nu0 = 6e-18 (h nu0 / 13.6 eV)^-3 cm^2 at 20 eV; the nitrogen-like
+# front of Chatterjee & Pierrehumbert (2026), N I potential from NIST.
 EV_ERG = 1.602176634e-12
 HNU0_H_EV = 20.0
 E_ION_H_EV = 13.6
@@ -252,8 +205,7 @@ HNU_I_N_EV = 33.6
 E_ION_N_EV = 14.53
 SIGMA_NU_N = 1.0e-17  # cm^2
 
-# Black (1981) Lyman-alpha cooling constants as printed by Murray-Clay et
-# al. (2009, their Eq. 6): Lambda = 7.5e-19 n_e n_H exp(-118348 K / T)
-# erg cm^3 s^-1. A cross-check constant, not a separate channel: the H
-# three-level system above carries Lyman-alpha itself.
+# Black (1981) Lyman-alpha cooling as printed by Murray-Clay et al. (2009)
+# Eq. (6), 7.5e-19 n_e n_H exp(-118348 K / T) in cgs: a cross-check
+# constant only, as the H three-level system above carries Lyman-alpha.
 LYA_BLACK = (7.5e-19, 118348.0)

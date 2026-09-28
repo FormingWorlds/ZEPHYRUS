@@ -10,15 +10,11 @@ import re
 
 from zephyrus.constants import amu
 
-# Element masses in atomic mass units. Reactive elements carry the standard
-# atomic weights (IUPAC/CIAAW). Neon and argon carry the escape-relevant
-# isotope masses (20Ne and 36Ar) rather than the terrestrial elemental
-# averages: a primordial or solar-composition inventory is dominated by those
-# isotopes, and the binary diffusion coefficients printed by Zahnle & Kasting
-# (1986, Icarus 68, 462; 2023, GeCoA 361, 228) are for them. Terrestrial Ar is
-# 40Ar-dominated (radiogenic), an 11 percent mass difference. Kr and Xe carry
-# the standard atomic weights, which sit within 0.1 and 1.1 percent of the
-# 84Kr and 130Xe isotopes those compilations tabulate.
+# Element masses in atomic mass units: the standard atomic weights
+# (IUPAC/CIAAW), except neon and argon, which carry the 20Ne and 36Ar masses
+# of a primordial or solar-composition inventory, the isotopes the binary
+# diffusion coefficients of Zahnle & Kasting (1986, Icarus 68, 462; 2023,
+# GeCoA 361, 228) are printed for.
 ELEMENT_AMU = {
     'H': 1.008,
     'He': 4.0026,
@@ -43,15 +39,11 @@ ELEMENT_AMU = {
 }
 
 # Van der Waals radii in Angstrom, from Bondi (1964, J. Phys. Chem. 68, 441),
-# Tables I and XIV as printed, except Fe: Bondi prints no transition metals,
-# so the iron radius is Alvarez (2013, Dalton Trans. 42, 8617), with published
-# values spanning roughly 2.0 to 2.44 Angstrom across compilations. The Mg
-# value is a flagged outlier of Bondi's own table (derived from the critical
-# volume and marked tentative there); Batsanov (2001) gives 2.10 to 2.27 and
-# Alvarez (2013) 2.51, so quantities scaled from the Mg radius carry a 36 to
-# 55 percent softness beyond their provenance class. Used as the last-resort
-# geometric fallback of the collision cross-section fallback order and by the
-# kinetic-diameter scaling rule of the binary-diffusion library.
+# Tables I and XIV as printed, except Fe, from Alvarez (2013, Dalton Trans.
+# 42, 8617). Mg and Fe are the soft entries: Bondi marks the Mg value
+# tentative, and published Fe radii span roughly 2.0 to 2.44 Angstrom. Used
+# by the geometric cross-section fallback and the kinetic-diameter scaling
+# of the binary-diffusion library.
 BONDI_VDW_RADIUS_A = {
     'H': 1.20,
     'He': 1.40,

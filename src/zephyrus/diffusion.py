@@ -33,12 +33,9 @@ MOLECULE_AMU = {
 }
 ALL_MASS = dict(ELEMENT_AMU, **MOLECULE_AMU)
 
-# ---------------------------------------------------------------------------
-# Kinetic diameters, pm.
-# ---------------------------------------------------------------------------
-# Printed by Zahnle & Kasting (2023, GeCoA 361, 228) in the last row of their
-# Table 2; the standard published kinetic diameters for the molecules, with
-# the atoms H and O assigned the value of the neighboring noble gas.
+# Kinetic diameters in pm, printed by Zahnle & Kasting (2023, GeCoA 361,
+# 228) in the last row of their Table 2; the atoms H and O take the value
+# of the neighboring noble gas.
 D_ZK23 = {
     'H2': 289.0,
     'He': 260.0,
@@ -53,17 +50,13 @@ D_ZK23 = {
     'D': 265.0,
     'O': 275.0,
 }
-# Kr and Xe from the same standard compilation. Consistency check: the van
-# der Waals scaling rule below independently gives 365 and 391 pm against
-# these 360 and 396, agreeing to 1.4 percent.
+# Kr and Xe: the standard published kinetic diameters.
 D_STANDARD_EXTRA = {'Kr': 360.0, 'Xe': 396.0}
 
-# Elements with no printed kinetic diameter anywhere (C, N, S, and the rock
-# formers) get one by scaling the printed atomic-O entry with the ratio of
-# Bondi (1964) van der Waals radii. Taking the atomic diameter to be the van
-# der Waals size has published precedent in exactly this application (Ito &
-# Ikoma 2021, MNRAS 502, 750, their Eq. 36). The rule is checkable: applied
-# to He, Ne, and Ar it reproduces the printed diameters to 3 percent.
+# Elements with no printed kinetic diameter (C, N, S, and the rock formers)
+# scale the atomic-O entry by the ratio of Bondi (1964) van der Waals
+# radii, taking the atomic diameter as the van der Waals size as Ito &
+# Ikoma (2021, MNRAS 502, 750) do in their Eq. (36).
 _VDW_SCALED = ('C', 'N', 'S', 'Na', 'Mg', 'Si', 'Fe')
 
 
@@ -89,23 +82,14 @@ def substitutable() -> tuple[str, ...]:
     return tuple(sorted((s for s in ALL_MASS if s in diam), key=lambda s: ALL_MASS[s]))
 
 
-# Rock-forming species carry two standing warnings that no coefficient
-# improves away: every pair involving Na, Mg, Si, or Fe is a scaling on an
-# estimated diameter (no measured coefficient exists in any compilation for
-# these pairs), and at the temperatures where rock vapor exists Na and Mg
-# ionize readily while these are neutral-gas coefficients. The Fe radius
-# spans about 20 percent across published compilations and the Mg radius is
-# a flagged outlier of Bondi's own table, so those two fallbacks are soft beyond
-# their provenance class (see the notes in composition.BONDI_VDW_RADIUS_A).
+# Every pair with Na, Mg, Si, or Fe is a scaling on an estimated diameter
+# with no measured coefficient anywhere, and Na and Mg ionize where rock
+# vapor exists; the fractionation closure flags results that use them.
 ROCK_FORMERS = ('Na', 'Mg', 'Si', 'Fe')
 
-# ---------------------------------------------------------------------------
-# Source 1: Zahnle & Kasting (2023, GeCoA 361, 228) Table 2.
-# (i, j): (b at 1000 K in cm^-1 s^-1, class, source column as printed).
-# Classes: 'M' traces to Marrero & Mason (1972) measurements; 'E' is the
-# authors' own scaling estimate from the named analog pairs. All rows carry
-# the fitted exponent 0.75.
-# ---------------------------------------------------------------------------
+# Zahnle & Kasting (2023, GeCoA 361, 228) Table 2, (i, j): (b at 1000 K in
+# cm^-1 s^-1, class, source column as printed). 'M' traces to Marrero &
+# Mason (1972) measurements; 'E' is the authors' scaling estimate.
 ZK23_EXPONENT = 0.75
 ZK23_TABLE2 = {
     ('H', 'H'): (1.3e20, 'E', 'H-H2, H2-D2, H2-Ne'),
@@ -127,10 +111,8 @@ ZK23_TABLE2 = {
     ('O', 'Ne'): (3.0e19, 'E', 'O-He, O-Ar, H2-Ne'),
     ('O', 'Ar'): (1.8e19, 'M', 'Marrero and Mason (1972)'),
     ('O', 'N2'): (2.0e19, 'E', 'CH4-N2, air-H2O, O-O2'),
-    # Printed as 4.3e20; entered as 4.3e19. The printed value sits a full
-    # decade above the H2-D2 anchor its own source column names, while
-    # 4.3e19 is consistent with it and with the neighboring D rows, so the
-    # printed exponent is treated as a typographical error.
+    # Printed as 4.3e20, a decade above the H2-D2 anchor its own source
+    # column names and the neighboring D rows; entered as 4.3e19.
     ('CO2', 'D'): (4.3e19, 'E', 'b11, H2-D2 [printed 4.3e20, misprint]'),
     ('CO2', 'He'): (3.56e19, 'M', 'Marrero and Mason (1972)'),
     ('CO2', 'Ne'): (1.62e19, 'M', 'Marrero and Mason (1972)'),
@@ -138,17 +120,9 @@ ZK23_TABLE2 = {
     ('CO2', 'N2'): (1.04e19, 'M', 'Marrero and Mason (1972)'),
 }
 
-# ---------------------------------------------------------------------------
-# Source 2: Sasaki & Nakazawa (1988, EPSL 89, 323) Table 1, which tabulates
-# f_ij = P D_ij for the noble gases against H2 and He at 100, 1000, and
-# 10000 K, based on Marrero & Mason (1972). Their Eq. (6) is D_ij = f_ij/P =
-# f_ij/(n kB T), so b = n D = f/(kB T), and reading f in SI units
-# (Pa m^2 s^-1) gives b [cm^-1 s^-1] = f/(kB T)/100. That unit reading is
-# verified, not assumed: it reproduces five in-H2 entries of Zahnle & Kasting
-# (1986) Table I (He, Ne, Ar, Kr, Xe) to between 0.02 and 3 percent, two
-# independent compilations both citing Marrero & Mason; no other unit choice
-# comes within two orders of magnitude (see the companion tests).
-# ---------------------------------------------------------------------------
+# Sasaki & Nakazawa (1988, EPSL 89, 323) Table 1, after Marrero & Mason
+# (1972): f_ij = P D_ij against H2 and He, so by their Eq. (6) b = f/(kB T),
+# with f read in Pa m^2 s^-1, the unit reading the companion tests verify.
 SN88_TABLE1 = {
     ('He', 'H2'): {100: 2.4, 1000: 1.3e2, 10000: 7.6e3},
     ('Ne', 'H2'): {100: 1.7, 1000: 9.4e1, 10000: 5.1e3},
@@ -180,11 +154,9 @@ def sn88_fit(species: str, partner: str, t_lo: float = 1000, t_hi: float = 10000
     return b_lo / t_lo**s, s
 
 
-# ---------------------------------------------------------------------------
-# Cross-check set: Zahnle & Kasting (1986, Icarus 68, 462) Table I, b = A T^s
-# in cm^-1 s^-1. Not a source of library rows; six pairs appear both here and
-# in the 2023 compilation, and their agreement bounds the transcriptions.
-# ---------------------------------------------------------------------------
+# Zahnle & Kasting (1986, Icarus 68, 462) Table I, b = A T^s in cm^-1 s^-1:
+# a cross-check set, not a source of library rows; the six pairs it shares
+# with the 2023 compilation bound the transcriptions.
 ZK86_TABLE1 = {
     ('He', 'H2'): (5.23e17, 0.75),
     ('He', 'H'): (1.04e18, 0.732),
@@ -221,13 +193,9 @@ def b_zk86(species: str, partner: str, T: float) -> float:
     return a * T**s
 
 
-# ---------------------------------------------------------------------------
-# Minor species in molecular backgrounds: fits b = A T^s in cm^-1 s^-1
-# carried as tabulated by the diffusion-limited escape branch (compiled by
-# Viesturs Strelcs); individual rows trace to the standard compilations of
-# measured binary diffusion coefficients (Marrero & Mason 1972; Zahnle &
-# Kasting 1986). Keys are unordered pairs.
-# ---------------------------------------------------------------------------
+# Minor species in molecular backgrounds, b = A T^s in cm^-1 s^-1, compiled
+# by Viesturs Strelcs for the diffusion-limited branch from Marrero & Mason
+# (1972) and Zahnle & Kasting (1986). Keys are unordered pairs.
 MOLECULAR_BACKGROUND = {
     ('H', 'O2'): (4.75e17, 0.711),
     ('H', 'O'): (5.7e17, 0.708),
@@ -254,18 +222,11 @@ MOLECULAR_BACKGROUND = {
     ('He', 'N2'): (2.94e17, 0.718),
 }
 
-# ---------------------------------------------------------------------------
 # The scaling rule and the library assembly.
-# ---------------------------------------------------------------------------
 
-# One fractional 1-sigma width per provenance class. 'measured': the 2023 and
-# 1986 compilations agree to 0.2 to 4 percent on their shared measured rows;
-# 10 percent is deliberately wider and is not a published figure.
-# 'estimated': Zahnle & Kasting (1986) demonstrate a 30 percent perturbation
-# for their estimated class and state most of their coefficients are
-# estimates. 'scaled': the same operation the 2023 authors perform, whose
-# in-sample error is of that size. 'scaled*': as 'scaled' plus an estimated
-# kinetic diameter on at least one species.
+# Fractional 1-sigma width per provenance class. 'measured' is a margin set
+# wider than the 0.2 to 4 percent the two compilations agree to, not a
+# published figure; 30 percent is the ZK86 estimated-class perturbation.
 SIGMA_CLASS = {'measured': 0.10, 'estimated': 0.30, 'scaled': 0.30, 'scaled*': 0.30}
 CLASS_OF_ZK23 = {'M': 'measured', 'E': 'estimated'}
 
@@ -446,10 +407,8 @@ def masses_g(species: list) -> np.ndarray:
     return np.array([ALL_MASS[s] for s in species]) * AMU_G
 
 
-# ---------------------------------------------------------------------------
-# The pair fallback order for arbitrary (possibly molecular) species, used by the
-# hydrostatic branch, and Blanc's law for mixtures.
-# ---------------------------------------------------------------------------
+# The pair fallback order for arbitrary, possibly molecular, species (used
+# by the hydrostatic branch), and Blanc's law for mixtures.
 
 _PAIR_CACHE: dict = {}
 
@@ -457,11 +416,13 @@ _PAIR_CACHE: dict = {}
 def b_pair(sp_i: str, sp_j: str, T: float) -> tuple[float, str]:
     """Binary diffusion parameter b = n D for one pair, in SI [m^-1 s^-1].
 
-    The fallback order, most trusted source first: the atomic library above (printed
-    rows, then the Eq. 10 scaling); the molecular-background table; as a
-    last resort, the library value of the nearest-mass covered species,
-    with the substitution recorded in the provenance string. Trailing
-    state annotations in species names are stripped.
+    The fallback order, most trusted source first: a measured Zahnle &
+    Kasting (2023) Table 2 row; the molecular-background table; the rest
+    of the atomic library (estimated Table 2 rows, the Sasaki & Nakazawa
+    rows, then the Eq. 10 scaling); as a last resort, the library value of
+    the nearest-mass covered species, with the substitution recorded in
+    the provenance string. Trailing state annotations in species names are
+    stripped.
 
     Returns ``(b [m^-1 s^-1], provenance string)``.
     """
@@ -477,13 +438,9 @@ def b_pair(sp_i: str, sp_j: str, T: float) -> tuple[float, str]:
             prov = f'ZK23 T2 [{cls}]'
             _PAIR_CACHE[key] = (b1000, ZK23_EXPONENT, prov)
             return b1000 * (T / 1000.0) ** ZK23_EXPONENT * 100.0, prov
-    # Order by provenance class, not by convenience. A measured row of the
-    # published Table 2 comes first; then the molecular-background
-    # compilation, whose rows trace to the same measured primaries; then
-    # anything estimated, which is Table 2's own 'E' rows and the Eq. (10)
-    # scaling built on a hard-sphere diameter ratio. Reaching the scaling
-    # before the compilation preempted eleven measured rows and read between
-    # 1 and 26 percent low on them.
+    # Order by provenance class: a measured Table 2 row, then the background
+    # compilation (same measured primaries), then anything estimated, so the
+    # Eq. (10) scaling never preempts a measured row.
     hit = _zk23_lookup(key)
     if hit is not None and hit[1] == 'M':
         b1000, cls, _src = hit
@@ -516,10 +473,9 @@ def b_pair(sp_i: str, sp_j: str, T: float) -> tuple[float, str]:
 
     pa, pb = _proxy(a), _proxy(b)
     if pa == pb:
-        # Two distinct species must not collapse onto one substitute, or the
-        # reduced mass of the pair stops resembling the target's. Take the
-        # next-nearest substitute instead. A genuine self-pair keeps any
-        # distinct partner, since it has no second mass to represent.
+        # Distinct species must not collapse onto one substitute, or the
+        # pair's reduced mass stops resembling the target's; a genuine
+        # self-pair takes any distinct partner, having no second mass.
         pb = _proxy(b, exclude=(pa,)) if a != b else ('O' if pa != 'O' else 'N')
     r = build_rows([pa, pb])[0]
     prov = f'proxy {a}->{pa}, {b}->{pb} [{r.provenance}]'

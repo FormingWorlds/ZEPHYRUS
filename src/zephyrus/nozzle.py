@@ -10,73 +10,43 @@ import math
 
 from zephyrus.constants import G, kb
 
-# Provenance of the branch, all closed form, from one primary:
+# Provenance of the branch, all closed form, from Jackson et al. (2017,
+# ApJ 835, 145):
 #
-# - Rate: Jackson et al. (2017, ApJ 835, 145) Eq. (3), isothermal mass
-#   transfer through the inner Lagrange point from a donor with an
-#   extended atmosphere, in the lineage of Ritter (1988, A&A 202, 93)
-#   rebuilt to hold at arbitrary mass ratio,
+# - Rate: their Eq. (3), isothermal transfer through the inner Lagrange
+#   point in the lineage of Ritter (1988, A&A 202, 93),
 #   Mdot = e^(-1/2) rho_ph exp(-(Phi_L1 - Phi_ph)/v_th^2) v_th
 #          * 2 pi v_th^2 / (Omega^2 sqrt(A (A - 1))),
 #   with v_th = sqrt(kB T / mu) the isothermal sound speed and
-#   Omega^2 = G (M_d + M_a) / a^3 the orbital frequency. The three factors
-#   are the density at L1 (a Bernoulli integral from the photosphere, their
-#   Eqs. 11 to 13, source of the e^(-1/2)), the transonic speed there, and
-#   the elliptical nozzle area around L1 (their Eqs. 8 and 9).
+#   Omega^2 = G (M_d + M_a) / a^3. The factors are the density at L1
+#   (their Eqs. 11 to 13, source of the e^(-1/2)), the transonic speed
+#   there, and the elliptical nozzle area around L1 (their Eqs. 8 and 9).
 # - Nozzle curvature: A(q) from their Eq. (10) fit,
 #   A = 4 + b1 / (b2 + q^(1/3) + q^(-1/3)), b1 = 2 * 3^(2/3),
-#   b2 = b1/4 - 2, symmetric under q to 1/q, accurate to 0.3% for all
-#   mass ratios (their Figure 2), which is the specific advance over the
-#   Ritter (1988) fits that hold only for donor-accretor ratios of roughly
-#   0.05 to 25 and fail at planetary values.
+#   b2 = b1/4 - 2, accurate to 0.3% for all mass ratios (their Figure 2).
 # - Lobe radius: the Eggleton (1983, ApJ 268, 368) fit as printed in their
-#   Section 2.1, r_R = a 0.49 q^(2/3) / (0.6 q^(2/3) + ln(1 + q^(1/3))),
-#   accurate to 1% for all q.
-# - Potentials: their Eq. (14) volume-averaged Roche potential, evaluated
-#   at the lobe radius for Phi_L1 and at the photospheric radius for
-#   Phi_ph. The expansion converges inside the lobe and not outside; at
-#   and beyond lobe contact the exponent is clamped at zero, which is the
-#   paper's own lobe-filling case (their Figure 5 solid curves), and the
-#   clamped value is a boundary value rather than a trusted rate.
-# - L1 distance: the small-mass-ratio expansion of the L1 root, checked
-#   against the exact stationary point of the corotating axial potential
-#   (see ``l1_distance``). The Hill radius is its leading order and sits
-#   0.5% outside it at planetary mass ratios, 5% at q = 1e-2.
-# - Applicability: the overflow description holds where the isothermal
-#   sonic radius R_sonic = G M_d / (2 v_th^2) lies at or beyond the L1
-#   distance, so that no spherical transonic wind fits inside the lobe and
-#   the L1 nozzle is the flow's constriction. Where the sonic radius lies
-#   inside the L1 distance the gas chokes at its own sonic surface first
-#   and the wind branches of this package are the right description.
-#   Without this criterion the nozzle area, which grows as the cube of the
-#   separation, hands a loosely bound envelope an unbounded rate at
-#   separations where the planet is nowhere near its lobe. The primary
-#   draws the comparison qualitatively, in their Section 4 and Figure 9,
-#   to ask which of the two pictures a planet belongs in; making it a gate
-#   is this module's sharpening of it and not a rule they state.
-# - Orbit average: the returned rate is the time average over the orbit,
-#   Kepler-weighted through the eccentric anomaly, and the detail dict
-#   also carries it duty-cycled over the applicable arc, which is what a
-#   dispatcher competes. A secular caller integrates over many orbital
-#   periods and needs the mass carried per unit time. Each phase is
-#   evaluated with the circular formula at its own separation; the primary
-#   has no eccentric treatment, so the quasi-static evaluation and the
-#   duty cycle are both ours. At e = 0 the average is the instantaneous
-#   rate exactly.
-# - Stated limitations carried from the primary: the flow is isothermal
-#   (their Section 3 names the neglected heating and cooling balance and
-#   calls the approximation an important limitation), the orbit
-#   circular and the rotation synchronous (an eccentric caller is averaged
-#   over its orbit as above, our convention rather than theirs, and the
-#   rotation is synchronous at no single phase of such an orbit), and the
-#   rate can overestimate the transfer where the escaping gas keeps its
-#   orbital angular momentum and disk-stellar torque balance regulates the
-#   flow instead (their Eq. 24 and Figure 6); the torque-balance rate
-#   needs the stellar tidal dissipation and is not computed here.
+#   Section 2.1, r_R = a 0.49 q^(2/3) / (0.6 q^(2/3) + ln(1 + q^(1/3))).
+# - Potentials: their Eq. (14) volume-averaged Roche potential, at the lobe
+#   radius for Phi_L1 and at the launch radius for Phi_ph. The expansion
+#   converges only inside the lobe, so at and beyond contact the exponent
+#   is clamped at zero, their lobe-filling case (Figure 5 solid curves).
+# - L1 distance: the small-mass-ratio expansion of the L1 root (see
+#   ``l1_distance``).
+# - Applicability: the nozzle is the flow's constriction where the
+#   isothermal sonic radius G M_d / (2 v_th^2) reaches the L1 distance;
+#   short of it the gas chokes at its own sonic surface first and the wind
+#   branches apply. The comparison is their Section 4 and Figure 9; making
+#   it a gate is this module's, not a rule they state.
+# - Orbit average: the rate is the Kepler-weighted time average over the
+#   orbit, each phase evaluated with the circular formula at its own
+#   separation; the primary has no eccentric treatment.
+# - Limitations carried from the primary: isothermal flow (their Section
+#   3), a circular synchronous orbit, and no disk-stellar torque balance
+#   (their Eq. 24 and Figure 6), whose regulation can make this rate an
+#   overestimate.
 #
 # The temperature is the model's dominant uncertainty by the authors' own
-# statement; which temperature enters v_th is the caller's
-# `nozzle_temperature` setting, resolved in the dispatcher.
+# statement; the caller's `nozzle_temperature` setting chooses it.
 
 _B1 = 2.0 * 3.0 ** (2.0 / 3.0)
 _B2 = _B1 / 4.0 - 2.0
@@ -126,11 +96,9 @@ def l1_distance(q: float, separation: float) -> float:
 
     The small-mass-ratio expansion of the L1 root, ``x_L1/a = eps -
     eps^2/3 - eps^3/9`` with ``eps = (q/3)^(1/3)``, which is the Hill
-    radius at leading order and falls inside it beyond that. Checked
-    against the exact stationary point of the corotating axial potential:
-    the relative error is 8e-7 at ``q = 1e-5`` and 7e-4 at ``q = 1e-2``,
-    against 0.5% and 5.3% for the Hill radius itself. ``separation`` is
-    the orbital separation [m].
+    radius at leading order and falls inside it beyond that, checked
+    against the exact stationary point of the corotating axial potential.
+    ``separation`` is the orbital separation [m].
     """
     if q <= 0.0 or not math.isfinite(q):
         raise ValueError(f'q must be a positive finite mass ratio, got {q!r}')
@@ -177,10 +145,9 @@ def isothermal_column_density(
     sound speed. This is the column the Bernoulli argument behind the
     launch-level convention assumes: along it the product
     ``rho exp(Phi / v_th^2)`` is constant, so the nozzle rate does not
-    depend on which level is called the launch level. It is a device for
-    placing that level consistently with the sound speed evaluating the
-    barrier, not a claim about the structure below the anchor, which for a
-    wind anchor is far hotter than the atmosphere really is there.
+    depend on which level is called the launch level. It places that level
+    consistently with the sound speed evaluating the barrier and makes no
+    claim about the structure below the anchor.
     """
     _positive('r', r)
     _positive('r_ref', r_ref)
@@ -208,30 +175,17 @@ def _phase_state(
     phi_ph = volume_averaged_potential(r_ph, M_p, M_star, sep)
     delta_phi = phi_l1 - phi_ph
     exponent = -delta_phi / v_th**2
-    # The saturation test is geometric rather than potential-ordered:
-    # outside the lobe the Eq. (14) expansion diverges downward, so a level
-    # beyond r_lobe reports a spuriously deep Phi_ph and a large positive
-    # barrier where the physical barrier is gone. At or beyond contact the
-    # exponential is clamped at 1 and the rate is the lobe-filling
-    # boundary value, a lower bound on the transfer, since the density at
-    # the lobe itself exceeds the launch level's. Testing the exponent as
-    # well would add nothing: the Eq. (14) potential rises monotonically
-    # from the center to the lobe at every mass ratio from 1e-7 to 1, so
-    # the barrier is strictly positive at every interior level and the
-    # exponent reaches zero only where the geometry already has.
+    # Saturation is tested on geometry, not on the barrier: outside the lobe
+    # the Eq. (14) expansion diverges downward and reports a spurious
+    # barrier. The clamped lobe-filling rate is a lower bound on transfer.
     saturated = r_ph >= r_lobe
     if saturated:
         exponent = 0.0
     area = 2.0 * math.pi * v_th**2 / (omega2 * math.sqrt(a_curv * (a_curv - 1.0)))
     rate = rho_ph * math.exp(-0.5 + exponent) * v_th * area
-    # Heat the isothermal flow demands per unit mass, which is what the
-    # radiation field has to supply for the uncapped model to hold. For a
-    # steady flow dh + d(v^2/2) + dPhi = dq, and an isothermal ideal gas
-    # has dh = 0, so integrating from a launch level at rest to the
-    # transonic point at L1 gives the barrier the rate actually applied
-    # plus v_th^2/2. Built from the applied exponent, so it is the
-    # clamped barrier at saturation and never the divergent one; the
-    # acceleration term survives there and the barrier does not.
+    # Heat per unit mass an isothermal (dh = 0) steady flow needs from rest
+    # to sonic at L1: the applied barrier plus v_th^2/2. Built from the
+    # applied exponent, so saturation never reports the divergent barrier.
     heat = max(-exponent, 0.0) * v_th**2 + 0.5 * v_th**2
     return dict(
         separation=sep,
@@ -274,41 +228,32 @@ def nozzle_candidate(
     rho_ph, r_ph : float
         Density [kg m^-3] and radius [m] of the launch level. The profile
         radius stands in for the volume-equivalent photospheric radius
-        without the primary's Appendix distortion conversion, a
-        few-percent radius convention worth about 1.6x in rate per percent
-        near lobe contact and nothing for a donor well inside its lobe.
-        The Bernoulli structure makes rho_ph exp(Phi_ph / v_th^2)
-        level-invariant along an isothermal column, so the level choice
-        largely cancels there; on a non-isothermal column it does not, and
-        the temperature is the leading sensitivity either way.
+        without the primary's Appendix distortion conversion. Along an
+        isothermal column rho_ph exp(Phi_ph / v_th^2) is level-invariant,
+        so the level choice cancels there and not on a non-isothermal one.
     T, mu_kg : float
         Temperature [K] and mean particle mass [kg] evaluating the
         isothermal sound speed and the exponential barrier.
     n_phase : int
-        Midpoint nodes in eccentric anomaly for the orbit average. The
-        quadrature converges to machine precision well below the default:
-        measured relative change 4.3e-7 from 16 to 32 nodes and 3e-14 from
-        32 to 64 at e = 0.5 on two states. At ``e = 0`` every node holds
-        the same value and the average is the instantaneous rate exactly.
+        Midpoint nodes in eccentric anomaly for the orbit average; the
+        quadrature is converged well below the default. At ``e = 0`` every
+        node holds the same value and the average is the instantaneous rate.
 
     Returns
     -------
     (rate, detail)
-        The orbit-averaged Eq. (3) rate [kg/s], unguarded, so that the
-        closed form stays directly comparable with the primary's own
-        published rates, and a detail dict. The rate a caller should
-        compete is ``detail['rate_applicable_kg_s']``, the same average
-        duty-cycled over the arc where the overflow description applies.
-        In the detail dict, Phase-independent
-        entries are the sound speed, the sonic radius, the mass ratio, and
-        the curvature; the geometry entries (lobe radius, both potentials,
-        the applied exponent, the nozzle area, ``saturated``) are reported
-        at periapsis, which is the tightest geometry of the orbit; and the
-        orbit entries are the applicable and saturated orbit fractions,
-        the periapsis and apoapsis rates, and the averaged lift power,
-        which is reported both duty-cycled (pairing with the rate a caller
-        competes) and over the full orbit (pairing with the returned
-        unguarded rate).
+        The orbit-averaged Eq. (3) rate [kg/s], unguarded so that it stays
+        comparable with the primary's published rates, and a detail dict.
+        The rate a caller should compete is
+        ``detail['rate_applicable_kg_s']``, the same average duty-cycled
+        over the arc where the overflow description applies. The detail
+        dict holds the phase-independent sound speed, sonic radius, mass
+        ratio, and curvature; the geometry (lobe radius, both potentials,
+        the applied exponent, the nozzle area, ``saturated``) at periapsis;
+        the applicable and saturated orbit fractions; the periapsis and
+        apoapsis rates; and the lift power, duty-cycled
+        (``power_lift_W``) and over the full orbit
+        (``power_lift_full_orbit_W``).
     """
     if n_phase < 1:
         raise ValueError(f'n_phase must be at least 1, got {n_phase!r}')
@@ -332,15 +277,9 @@ def nozzle_candidate(
     # where this sonic radius reaches the L1 distance (see module notes).
     r_sonic = G * M_p / (2.0 * v_th**2)
 
-    # Orbit average. A secular caller integrates over many orbital periods,
-    # so what it needs is the mass carried per unit time rather than the
-    # instantaneous rate at one phase. The corotating Roche geometry is
-    # defined for a circular synchronous donor, so each phase is evaluated
-    # with the circular formula at that separation and the result averaged
-    # in time. That quasi-static reading is this module's construction and
-    # not the primary's, which has no eccentric treatment. Time weighting
-    # is Kepler's, dt proportional to (1 - e cos E) dE, and the separation
-    # at that anomaly carries the same factor.
+    # A secular caller needs mass per unit time, so each phase takes the
+    # circular formula at its separation a (1 - e cos E), time-weighted by
+    # Kepler's dt proportional to (1 - e cos E) dE.
     w_sum = rate_sum = power_sum = duty_rate_sum = duty_power_sum = 0.0
     applicable_sum = saturated_sum = 0.0
     for i in range(n_phase):
@@ -350,15 +289,9 @@ def nozzle_candidate(
         w_sum += w
         rate_sum += w * st['rate']
         power_sum += w * st['power']
-        # The applicable arc surrounds periapsis, because the L1 distance
-        # grows with separation while the sonic radius does not. Off that
-        # arc the gas chokes at its own sonic surface first and the nozzle
-        # carries nothing, so the duty-cycled average is what a dispatcher
-        # should compete. What the duty cycle leaves out is the wind the
-        # planet drives on the rest of the orbit, which one dispatched
-        # rate cannot also carry. The returned rate is the unguarded
-        # Eq. (3) average, so the closed form stays comparable with the
-        # primary's own published rates; the gate is the caller's.
+        # Off the applicable arc, which surrounds periapsis because the L1
+        # distance grows with separation, the gas chokes at its own sonic
+        # surface first and the nozzle carries nothing.
         if r_sonic >= st['R_L1']:
             duty_rate_sum += w * st['rate']
             duty_power_sum += w * st['power']

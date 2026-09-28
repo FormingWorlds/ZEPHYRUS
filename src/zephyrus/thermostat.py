@@ -28,38 +28,30 @@ from zephyrus.atomic_data import (
 from zephyrus.constants import kb_cgs
 
 # The thermostat sets the hydrodynamic wind temperature by a local balance
-# of photoionization heating against radiative cooling, evaluated at the
-# wind-base level (all rates cgs internally):
+# of photoionization heating against radiative cooling at the wind-base
+# level (all rates cgs internally):
 #
 # - Atomic lines: three-level statistical equilibrium for H, C, C+, N, N+,
-#   O, and O+ under electron impact with cool-to-space losses, the
-#   machinery of Chatterjee & Pierrehumbert (2026, ApJ 998, 236,
-#   their Eqs. 26-30) on the Nakayama et al. (2022) level data; the H
-#   system carries Lyman-alpha.
+#   O, and O+ under electron impact, cool-to-space, after Chatterjee &
+#   Pierrehumbert (2026, ApJ 998, 236, their Eqs. 26-30) on the Nakayama
+#   et al. (2022) level data; the H system carries Lyman-alpha.
 # - The CO2 15 micron band and the atomic O fine structure (Johnstone et
-#   al. 2018; see atomic_data for their stated validity limits).
-# - Recombination cooling: the continuum part only, Q_RR = n_e n_+
-#   alpha_RR(T) (3/2) kB T (Chatterjee & Pierrehumbert 2026, Section 5.2);
-#   the exact free-bound emission integral of Tucker & Gould (1966) is not
-#   implemented and this form is the stated stand-in.
+#   al. 2018; see atomic_data for their validity limits).
+# - Recombination cooling, continuum part only, Q_RR = n_e n_+ alpha_RR(T)
+#   (3/2) kB T (Chatterjee & Pierrehumbert 2026, Section 5.2), standing in
+#   for the free-bound emission integral of Tucker & Gould (1966).
 # - Heating: monochromatic-front photoionization, Q = n_0 sigma
-#   (F_XUV / h nu) (h nu - E_ion), with the small thermal correction of
-#   order kB T_e against the excess energy dropped. The local ionization
-#   fraction comes from photoionization-recombination balance.
+#   (F_XUV / h nu) (h nu - E_ion), without the order kB T_e thermal
+#   correction; the ionization fraction comes from
+#   photoionization-recombination balance.
 #
-# The blind spot of a local balance is the temperature structure through
-# the sonic region, which no single-level evaluation captures; rates
-# computed with this wind temperature inherit that limitation.
+# A local balance misses the temperature structure through the sonic
+# region, and rates computed with this wind temperature inherit that.
 
-# Upper edge of the thermostat bracket. This is a validity ceiling, not a
-# statement that the balance has no root above it: raising the edge to 2e5 K
-# does find one, at about 1.0e5 K on a nitrogen-oxygen base, stable against
-# raising the edge further. That root is not physics. At 1e5 K the gas is
-# fully ionized, the neutral three-level coolants the balance is built from
-# are gone, and the line and ionization inventory the model does not carry
-# would dominate. Reporting the root would be a more precise answer to a
-# question the model cannot answer, so the balance stops here and says it
-# stopped. The lower edge is the equilibrium temperature.
+# Upper edge of the thermostat bracket, a validity ceiling: the balance can
+# have a root near 1e5 K above it, but there the gas is fully ionized and
+# the neutral three-level coolants it is built from are gone. The lower
+# edge is the equilibrium temperature.
 T_BRACKET_HIGH = 5.0e4  # K
 
 _ION_OF = {'C': 'C+', 'N': 'N+', 'O': 'O+'}
@@ -246,20 +238,16 @@ def solve_wind_temperature(
     root when several exist. When no root lies inside the bracket the
     temperature clamps to the nearer edge with the ``clamped`` field set
     ('low' when cooling already wins at T_eq, 'high' when heating still
-    wins at the upper edge). A high clamp is the expected outcome at dense
-    wind bases, not only an exotic corner: electron densities well above the
-    forbidden-line critical densities quench the three-level coolants
-    collisionally, the balance loses its root inside the bracket, and the
-    wind runs hot; the ``clamped`` field is the contract by which callers
-    can see that happened.
+    wins at the upper edge). A high clamp is expected at dense wind bases,
+    where electron densities above the forbidden-line critical densities
+    quench the three-level coolants collisionally and the wind runs hot.
 
-    A high clamp does not mean the balance has no root at all. It usually
-    has one above the bracket, near 1e5 K, and that root is outside the
-    model rather than inside it: the coolants are neutral three-level
-    systems and the gas there is fully ionized. So a clamped temperature is
-    the edge of the bracket and not a solution, and any quantity built on it
-    (the sound speed, the sonic radius, the recombination-limited rate, the
-    sonic-point Knudsen number) inherits that. Returns ``(T_wind, detail)``.
+    A clamped temperature is the edge of the bracket and not a solution:
+    the balance usually has a root near 1e5 K, outside the model since its
+    coolants are neutral and the gas there is fully ionized, and every
+    quantity built on the clamped value (the sound speed, the sonic radius,
+    the recombination-limited rate, the sonic-point Knudsen number)
+    inherits that. Returns ``(T_wind, detail)``.
 
     Raises
     ------

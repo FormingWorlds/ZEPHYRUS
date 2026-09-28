@@ -15,13 +15,10 @@ from zephyrus.hydrodynamic import k_tide
 from zephyrus.knudsen import mean_free_path, sigma_mixture
 from zephyrus.planets_parameters import Mjup, Rjup
 
-# Everything in this module is reporting: the quantities let a reader
-# translate a regime verdict into the criteria other escape taxonomies use,
-# and quantify how close each call sat to its boundaries. Nothing here is
-# read back by the dispatch control flow, and the container has no off
-# switch: the regime boundaries carry genuine physical uncertainty, and
-# printing the translation quantities beside every verdict is the
-# mitigation.
+# Everything in this module is reporting: quantities that translate a
+# regime verdict into other taxonomies' criteria and show how close each
+# call sat to its boundaries. Nothing here is read back by the dispatch
+# control flow, and the container has no off switch.
 
 # Murray-Clay et al. (2009) fit their numerical models with flux exponents
 # 0.6 (radiation-recombination limited) and 0.9 (energy limited); the
@@ -39,18 +36,11 @@ DAYSIDE_FACTORS = {'energy_limited': 0.26, 'recombination_limited': 0.31}
 
 # Threshold gravitational potentials, log10(-phi) in cgs (erg/g), with
 # phi = -G M_p / R_p, the convention both sources use. The Caldiroli et al.
-# (2022) band marks where the evaporation efficiency collapses. The second
-# screen separates wind-forming from hydrostatic thermospheres and is
-# Salz et al. (2016, A&A 585, L2), whose photoionization hydrodynamics
-# simulations find the energy-limited concept valid below 13.11, because
-# the radiative input is efficiently spent driving the wind, and stable
-# thermospheres above about 13.6, because the whole input is re-emitted in
-# hydrogen Lyman alpha (above roughly 1.1 R_p) and free-free emission
-# (below it). Between the two the wind weakens as the heating efficiency
-# falls. Their grid is hydrogen-dominated thermospheres of hot gas planets,
-# from super-Earth-sized to massive hot Jupiters, so the screen is out of
-# its own scope on a heavy secondary atmosphere and is reported, never
-# applied.
+# (2022) band marks where the evaporation efficiency collapses. Salz et al.
+# (2016, A&A 585, L2) find energy-limited escape valid below 13.11 and
+# hydrodynamically stable thermospheres above about 13.6; their grid is
+# hydrogen-dominated, so on a heavy secondary atmosphere the screen is out
+# of its own scope and is reported, never applied.
 CALDIROLI_THRESHOLD_LOG_PHI = (12.9, 13.2)
 SALZ_SCREEN_LOG_PHI = (13.11, 13.6)
 
@@ -195,13 +185,10 @@ def self_consistency_screen(reservoirs: dict | None, mdot: float, age: float | N
 def rate_floor_screen(mdot: float) -> dict:
     """Numerical-content screen: the rate against one proton per Julian year.
 
-    A strongly bound heavy atmosphere returns rates many decades below
-    anything with physical content, and a regime label attached to such a
-    rate is decided by the ordering of two meaningless numbers. One proton
-    crossing the surface per Julian year is the smallest rate worth
-    reading. Reporting only: the module never applies the floor, because
-    what counts as negligible belongs to the caller, and clearing the floor
-    does not make a rate matter (for that, use
+    A regime label attached to a rate below the floor is decided by the
+    ordering of two numerically empty numbers. Reporting only: the module
+    never applies the floor, because what counts as negligible belongs to
+    the caller, and clearing it does not make a rate matter (for that, use
     :func:`self_consistency_screen`).
     """
     return {'floor_kg_s': RATE_FLOOR_KG_S, 'above_floor': mdot > RATE_FLOOR_KG_S}

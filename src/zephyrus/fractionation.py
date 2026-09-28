@@ -15,41 +15,32 @@ from zephyrus.constants import G, kb_cgs
 from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g
 
 # The closure generalizes the two-species fractionation of Hunten, Pepin &
-# Walker (1987, Icarus 69, 532) to N species escaping simultaneously
-# through mutual binary diffusion, the constant-composition closure of the
-# subsonic multispecies wind system of Zahnle et al. (1990, Icarus 84,
-# 502), with active-set dropout: at a given total mass flux the heavy
-# species partition into an escaping (active) set and a retained set, and
-# the retained species exert drag without escaping. The solved system, per
-# active species j (w_j = Phi_j / X_j the species velocity scale):
+# Walker (1987, Icarus 69, 532) to N species escaping through mutual binary
+# diffusion, the constant-composition closure of the subsonic multispecies
+# wind of Zahnle et al. (1990, Icarus 84, 502), with active-set dropout:
+# retained species exert drag without escaping. Per active species j, with
+# w_j = Phi_j / X_j:
 #
 #   sum_{i active} X_i (w_i - w_j) / b_ij
 #       - w_j sum_{k retained} X_k / b_jk = m_j g0 / kT - 1/Hbar,
 #
-# plus the mass constraint sum_j m_j X_j Phi_j... i.e.
-# sum_{j active} m_j X_j w_j = phi, where Hbar is the one density scale
-# height every escaping gas shares, so 1/Hbar is the Lagrange multiplier
-# of the mass constraint and is solved for alongside the drifts. The
-# Karush-Kuhn-Tucker conditions select the active set: active species have
-# strictly positive w, and retained species satisfy the retention
-# inequality (the drift the escaping gas would impose on them does not
-# exceed their gravitational settling).
+# with the mass constraint sum_{j active} m_j X_j w_j = phi, whose Lagrange
+# multiplier is 1/Hbar, Hbar the density scale height every escaping gas
+# shares. The Karush-Kuhn-Tucker conditions select the active set: active
+# species have w > 0, and retained species satisfy the retention inequality
+# (the drift imposed on them does not exceed their gravitational settling).
 #
-# Exact reductions verified in the companion test suite: the two-species
-# limit of Hunten et al. (1987) in the form of Cherubim et al.
-# (2024, ApJ 967, 139, Eqs. 7-9); the three-species deuterium system of Gu
-# & Chen (2023, Eqs. 4, 8, 9, 12); the trace-minor relations of Odert et
-# al. (2018, Icarus 307, 327, Eq. 5) and Zahnle et al. (1990, Eqs. 35, 36,
-# 42); the non-trace three-species relations of Zahnle & Kasting (2023,
-# GeCoA 361, 228, Eqs. 19-20); the prescribed-flux partition of
-# Chassefière (1996, Icarus 124, 537, Eqs. 1, 6, 7); the universal-b
-# closed form; and the Hunten et al. (1987) Earth, Mars, and Venus
-# numerical anchors.
+# Reductions the companion tests verify: Hunten et al. (1987) two-species,
+# in the form of Cherubim et al. (2024, ApJ 967, 139, Eqs. 7-9); Gu & Chen
+# (2023, Eqs. 4, 8, 9, 12); Odert et al. (2018, Icarus 307, 327, Eq. 5) and
+# Zahnle et al. (1990, Eqs. 35, 36, 42); Zahnle & Kasting (2023, GeCoA 361,
+# 228, Eqs. 19-20); Chassefière (1996, Icarus 124, 537, Eqs. 1, 6, 7); the
+# universal-b closed form; and the Hunten et al. (1987) Earth, Mars, and
+# Venus anchors.
 #
-# Solver units are cgs (the convention of the source literature and the
-# diffusion library): phi in g cm^-2 s^-1, m in g, g0 in cm s^-2, b in
-# cm^-1 s^-1, fluxes in cm^-2 s^-1. The public per-species interface
-# converts from and to SI at the boundary.
+# Solver units are cgs: phi in g cm^-2 s^-1, m in g, g0 in cm s^-2, b in
+# cm^-1 s^-1, fluxes in cm^-2 s^-1. The per-species interface converts at
+# the SI boundary.
 
 
 def _validate_inputs(phi, X, m, T, g0, b):
@@ -74,10 +65,9 @@ def solve_fixed_active(phi, X, m, T, g0, b, active):
 
     Unknowns: ``w_j`` for j in ``active`` and the inverse ``1/Hbar`` of the
     shared density scale height. Returns ``(w_full, inv_h_bar)`` with
-    ``w = 0`` for retained species. The single-active case is solved analytically; the general
-    case with two-sided diagonal equilibration, which controls the spread
-    of roughly 25 decades the matrix entries can span between light-species
-    drag terms and heavy-species mass terms.
+    ``w = 0`` for retained species. The single-active case is solved
+    analytically, the general case with two-sided diagonal equilibration,
+    which controls the roughly 25 decades the matrix entries can span.
     """
     kT = kb_cgs * T
     act = sorted(active)
