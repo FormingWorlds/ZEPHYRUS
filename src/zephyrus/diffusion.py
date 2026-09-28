@@ -73,10 +73,11 @@ def substitutable() -> tuple[str, ...]:
     """Species eligible to stand in for an uncovered one, lightest first.
 
     Both scaling rules need a mass and a kinetic diameter, so a species can
-    only be substituted for by one that carries both. Bondi (1964) prints no
-    van der Waals radius for aluminium, potassium, calcium, or titanium and
-    the kinetic-diameter rule therefore reaches none of them, which is why
-    the substitution set is smaller than the mass table.
+    only be substituted for by one that carries both. The radius table
+    carries none for aluminium, potassium, calcium, or titanium (Bondi 1964
+    gives none for aluminium or calcium), so the kinetic-diameter rule
+    reaches none of them and the substitution set is smaller than the mass
+    table.
     """
     diam = diameters()
     return tuple(sorted((s for s in ALL_MASS if s in diam), key=lambda s: ALL_MASS[s]))

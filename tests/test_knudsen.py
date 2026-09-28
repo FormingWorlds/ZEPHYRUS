@@ -153,9 +153,8 @@ def test_fallback_order_provenance_and_geometric_bias():
     geo_h2o, tabulated_h2o = sigma_geometric('H2O')
     assert tabulated_h2o is True
     assert geo_h2o == pytest.approx(math.pi * (2.0 * 1.52e-10) ** 2, rel=1e-12, abs=0.0)
-    # Elements Bondi does not tabulate (alkali, alkaline earth, transition
-    # metals) reach the fallback on an assumed radius, and say so rather
-    # than passing for a published one.
+    # Elements the package's radius table does not carry reach the fallback
+    # on an assumed radius, and say so rather than passing for a published one.
     for assumed in ('Ti', 'K', 'Ca', 'Al', 'P', 'Cl'):
         sigma_a, tabulated_a = sigma_geometric(assumed)
         assert tabulated_a is False, assumed
