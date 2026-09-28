@@ -181,14 +181,12 @@ def test_bondi_cap_is_misener_eq10_at_the_wind_temperature():
 def test_candidate_names_its_binding_cap_and_whether_it_competes():
     """The candidate reports which cap set its rate and whether it competes.
 
-    ``binding_cap`` must name the smallest of the caps in force, so the rate
-    equals that cap and no other cap lies below it. A small interior flux
-    past the gate makes the luminosity cap bind (7.4e4 kg/s against a Parker
-    rate of 1.8e13 kg/s), and an interior flux nine decades larger releases
-    it, which discriminates a name read off the minimum from one fixed by
-    the gate state. ``competes`` follows the gate
-    while it is open and the residual mode past it, and never touches the
-    rate. An unknown mode is rejected with a message naming it.
+    ``binding_cap`` must name the smallest cap in force, so the rate equals
+    it and no other cap lies below. Past the gate a small interior flux makes
+    the luminosity cap bind and one nine decades larger releases it, which
+    separates a name read off the minimum from one fixed by the gate state.
+    ``competes`` follows the gate while it is open and the residual mode past
+    it, and never touches the rate. An unknown mode raises, naming it.
     """
     M_p, R_p, T_eq = 3 * Me, 3 * Re, 1000.0
     launch = _launch(M_p, R_p, T_eq, {'H2': 1.0})
@@ -337,15 +335,10 @@ def test_tang_timescale_diagnostic_contract():
 def test_launch_level_reports_its_own_optical_depth():
     """The launch level reports whether its opacity puts it at a photosphere.
 
-    The Parker rate is derived from a photosphere, so evaluating it at a
-    prescribed pressure only reproduces its own derivation when that
-    pressure is where the supplied opacity gives unit optical depth. The
-    plane-parallel depth tau = kappa P / g is reported so a caller can see
-    the gap on the state in front of them: it is 67 on an inflated hydrogen
-    envelope at 0.01 m^2 kg^-1 and near unity on a bound CO2 planet, which
-    is the difference the number exists to expose. It is reporting only, and
-    the level stays prescribed because the activation threshold above it is
-    calibrated at a level of its own.
+    The Parker rate assumes a launch at unit optical depth, so the
+    plane-parallel depth ``tau = kappa P / g`` of the prescribed level is
+    reported. Discrimination: it is far above unity on an inflated hydrogen
+    envelope and near unity on a bound CO2 planet. It is reporting only.
     """
     launch = _launch(Me, 1.5 * Re, 1000.0, {'H2': 0.9, 'He': 0.1})
     g_launch = G * Me / launch['r'] ** 2
@@ -375,11 +368,8 @@ def test_luminosity_cap_flags_itself_when_binding():
     """The interior-luminosity cap says when it is the term setting the rate.
 
     The cap is absent while the activation gate is open and applies once it
-    closes, so a state crossing the gate drops discontinuously while keeping
-    the same label. The flag is the marker for that: past the gate the cap is
-    usually the binding term, and the drop across the threshold is a factor
-    of thousands rather than a rounding, so a caller stepping a track through
-    the gate needs to see which term won and not infer it from the label.
+    closes, so a state crossing the gate can drop by a large factor under
+    the same label. The flag tells the caller which term set the rate.
     """
     launch = _launch(2.0 * Me, 1.5 * Re, 1000.0, {'H2': 0.9, 'He': 0.1})
     # Inside the gate: no cap exists, so it cannot be flagged.
@@ -426,19 +416,13 @@ def test_printed_activation_band_matches_its_source():
 def test_parker_rate_absolute_normalization():
     """The Parker rate's overall scale, not only its shape.
 
-    The suite pins how the rate varies (monotone in flux, shutting off past
-    the Bondi radius, capped by the Bondi and luminosity terms), and those
-    all survive a wrong prefactor. This pins the scale: at a launch level
-    sitting exactly at the Bondi radius the Mach number is 1 by construction
-    and Owen & Wu (2016, ApJ 817, 107) Eq. (9) reduces to
-    ``Mdot = 4 pi G M_p / (kappa c_s)``, evaluated here from the constants
-    rather than by calling the function, so a changed factor fails.
-
-    Order of magnitude against the source: at one Earth mass, an equilibrium
-    temperature of 1000 K, a hydrogen and helium envelope, and a photospheric
-    opacity of 0.01 m^2 kg^-1, this is 2.9e14 kg/s, which is 1.5e-3 Earth
-    masses per year, within an order of magnitude of the 1e-2 Earth masses per
-    year Owen & Wu quote for the onset of the phase on an inflated envelope.
+    The shape tests all survive a wrong prefactor, so this pins the scale.
+    With the launch level at the Bondi radius the Mach number is 1 and Owen
+    & Wu (2016, ApJ 817, 107) Eq. (9) reduces to
+    ``Mdot = 4 pi G M_p / (kappa c_s)``, evaluated from the constants rather
+    than by calling the function, so a changed factor fails. The result at
+    one Earth mass and 1000 K is within an order of magnitude of the onset
+    rate Owen & Wu quote.
     """
     m_p, t_eq, kappa = Me, 1000.0, 0.01
     mu = 2.35 * amu

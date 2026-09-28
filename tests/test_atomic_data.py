@@ -91,10 +91,8 @@ def test_badnell_fit_magnitude_slope_and_misprint_guard():
         + (1.0 + math.sqrt(T / t1)) ** expo
     )
     assert garbled / a4 > 2.0
-    # Transcription pin: the six coefficients are the Z = 7, N = 6 row of
-    # Badnell's table, not the copy in the secondary that garbles the form.
-    # T2 is the digit-transposition trap, printed 6.739e4 and once carried
-    # here as 6.379e4, so it is pinned exactly rather than through a rate.
+    # Transcription pin: the Z = 7, N = 6 row of Badnell's table. T2 is
+    # pinned exactly because 6.739e4 transposes easily to 6.379e4.
     assert (t0, t1, t2) == (9.467e-2, 2.954e6, 6.739e4)
     assert (a_fit, b_fit, c_fit) == (6.387e-10, 0.7308, 0.2440)
     transposed = (t0, t1, 6.379e4, a_fit, b_fit, c_fit)
@@ -131,11 +129,9 @@ def test_co2_band_coronal_limit_and_detailed_balance():
     (the error-contract limit).
 
     The detailed-balance exponential carries the band quantum in kelvin,
-    ``h nu / k_B = 959.7 K``, which the module derives rather than taking the
-    667 the source prints: 667 is the bending-mode wavenumber in cm^-1, and
-    ``h c`` times it is the same 1.325e-13 erg quantum the source prints two
-    equations earlier. The test pins the derived form and excludes the
-    printed one, which differs by a factor 2.7 at this temperature.
+    ``h nu / k_B = 959.7 K``, derived from the 1.325e-13 erg quantum. The
+    source's printed 667 is the wavenumber in cm^-1, and using it as a
+    temperature differs by a factor 2.7 here, which the test excludes.
     """
     T = 300.0
     n_co2, colliders = 1e6, {'O': 1e6}
@@ -198,17 +194,14 @@ def test_co2_escape_probability_respects_its_ceiling():
     """The escape probability never exceeds the non-LTE ceiling of 0.5.
 
     Half the photons escaping is the ceiling for this two-level band, and the
-    zero-column limit sits there. The thin-column branch of the fitted
-    tabulation rises through 0.5 below a column parameter of 3.4e-4 and
-    diverges as the column vanishes, which is the fit leaving its range and
-    not physics, so it is capped. Capping also makes the zero-column case
-    continuous with its neighbours, where before the probability jumped from
-    0.573 just above zero down to 0.5 at zero.
+    zero-column limit sits there. The fitted thin-column branch rises through
+    0.5 below a column parameter of 3.4e-4 and diverges, which is the fit
+    leaving its range, so it is capped and thin columns stay continuous with
+    the zero-column case and never above it.
     """
-    # Densities well above the critical one, so the band is in the LTE regime
-    # where the cooling is proportional to the escape probability. In the
-    # coronal limit it is independent of the probability by construction and
-    # this assertion would hold for any cap at all.
+    # Densities well above critical put the band in the LTE regime, where
+    # cooling scales with the escape probability; in the coronal limit any
+    # cap at all would pass.
     T, n_co2, colliders = 300.0, 1e12, {'CO2': 1e14, 'O': 1e12}
     q_zero = co2_band_cooling(n_co2, colliders, T, col_co2=0.0)
     # Thin columns are continuous with, and never above, the zero-column case.

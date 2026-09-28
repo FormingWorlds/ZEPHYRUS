@@ -204,11 +204,9 @@ def test_lopez_base_pressure_is_the_nanobar_level():
     level for 20 eV photons near a nanobar for their fiducial hot Jupiter
     (0.7 Jupiter masses, 1.4 Jupiter radii, atomic-hydrogen thermosphere),
     and Lopez (2017, MNRAS 472, 245) builds the wind-base prescription
-    ``P_base = mu g / sigma_nu0`` on the same level. Both papers quote the
-    scale, not a precise value, so the pin is the order of magnitude: the
-    computed pressure must land within a factor of a few of 1e-4 Pa (one
-    nanobar). Sign and scale guards: strictly positive and far below the
-    20 mbar photospheric level.
+    ``P_base = mu g / sigma_nu0`` on the same level. Both quote the scale,
+    so the pin is a factor of a few around 1e-4 Pa (one nanobar). Sign and
+    scale guards: strictly positive and far below the 20 mbar level.
     """
     g = G * (0.7 * Mjup) / (1.4 * Rjup) ** 2
     p_base = lopez_base_pressure(1.008 * amu, g)
@@ -344,10 +342,8 @@ def test_wind_base_level_boreas_uses_solver_radius(monkeypatch):
     lev_f, flags_f = wind_base_level(prof, 5 * Me, method='boreas', boreas_scalars=scalars)
     assert flags_f.get('base_method_fallback') == 'lopez'
 
-    # A solver radius above the modeled column must reach the clamp branch.
-    # Interpolation alone clamps silently, which would hand the caller the
-    # top pressure as though it had been solved for and leave the clamp test
-    # comparing a value against itself, so the flag could never fire.
+    # A solver radius above the modeled column must reach the clamp branch;
+    # interpolation alone clamps silently, so the flag could never fire.
     class HighMassLoss(FakeMassLoss):
         def compute_mass_loss_parameters(self, m, r, t):
             return [{'regime': 'HD', 'RXUV': 3.0 * float(prof.r[-1]) * 1e2}]
@@ -372,12 +368,9 @@ def test_validate_rejects_non_finite_and_negative_entries():
     """A non-finite or negative entry is caught here, not far downstream.
 
     A comparison against NaN is false, so a positivity test alone passes a
-    NaN through, and it then surfaces wherever the value is first combined
-    with something else, under a message naming an unrelated quantity. Every
-    array is therefore checked for finiteness before its sign. Mixing ratios
-    slightly below zero are solver noise and pass, because a chemistry solver
-    can return one where a species is absent and a coupled run must not die
-    on it; a genuinely negative mole fraction is rejected.
+    NaN through; every array is checked for finiteness before its sign.
+    Mixing ratios slightly below zero are chemistry-solver noise where a
+    species is absent and pass; a genuinely negative mole fraction raises.
     """
     n = 5
     base = dict(

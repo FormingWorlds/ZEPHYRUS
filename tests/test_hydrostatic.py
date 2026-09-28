@@ -81,17 +81,14 @@ VOLKOV_C_TABLE = {
 def test_volkov_flat_factor_against_published_correction():
     """The source's flat factor is distinct from the published Eq. (9).
 
-    Two anchors in one test, both against Volkov et al. (2011). First, the
-    test-local Eq. (9) oracle is certified against the paper: it reduces to
-    unity at zero bulk velocity, and its leading correction is linear in
-    the speed ratio with the printed c(lambda) table (tolerance 6e-4, the
-    float wobble the published table itself carries at large lambda).
-    Second, the source's ``volkov_flat_factor`` carries the measured shape
-    (1.7 at lambda = 6 to 1.4 at lambda = 15, held at the endpoints as the
-    flagged extrapolation) and falls with lambda while the certified
-    Eq. (9) correction rises with it: opposite slopes, so the two
-    corrections are different quantities and applying both to the branch
-    would double-count.
+    Two anchors against Volkov et al. (2011). The test-local Eq. (9) oracle
+    reduces to unity at zero bulk velocity and its leading correction is
+    linear in the speed ratio with the printed c(lambda) table (tolerance
+    6e-4, the precision of the published table at large lambda). The
+    source's ``volkov_flat_factor`` (1.7 at lambda = 6 to 1.4 at lambda =
+    15, held at the endpoints) falls with lambda while the Eq. (9)
+    correction rises: opposite slopes, so the two are different quantities
+    and applying both would double-count.
     """
     for lam, c_ref in VOLKOV_C_TABLE.items():
         assert c_lambda(lam) == pytest.approx(c_ref, rel=6e-4, abs=0.0), lam
@@ -158,17 +155,11 @@ def test_yelle_figure1_mars_hydrogen_flux():
 
     On their fully specified Mars model the hydrogen escape flux is
     diffusion limited above about 200 K exobase temperature, with a plateau
-    at 2.4e8 cm^-2 s^-1. The 40 percent tolerance is deliberate and its
-    direction understood: the binary H-CO2 coefficient source their
-    calculation used is not pinned in the paper, the tabulated coefficient
-    here is smaller, and this implementation sits systematically below the
-    anchor (measured plateau 1.70e8, a ratio of 0.71 against the 0.60
-    floor), so a future coefficient revision in either direction moves
-    this pin and should be re-tuned consciously rather than by widening
-    the tolerance. The transition to Jeans-limited escape below about
-    150 K shows as a collapse; the 100 K point sits on the exponential
-    edge, so it is checked as a regime (an order below the plateau), not
-    as a value.
+    at 2.4e8 cm^-2 s^-1. The 40 percent tolerance covers a known offset:
+    the paper does not pin its H-CO2 coefficient source, the tabulated one
+    here is smaller, and the plateau sits below the anchor. Below about
+    150 K the flux collapses to Jeans-limited escape; the 100 K point is on
+    the exponential edge, so it is checked as a regime, not a value.
     """
     f100, _ = _mars_h_flux(100.0)
     f200, _ = _mars_h_flux(200.0)
@@ -360,13 +351,12 @@ def test_trace_species_survive_into_the_exobase_anchor():
 def test_supply_quadrature_refines_to_its_target():
     """The supply integrals are refined until they stop moving the rate.
 
-    The integrals are first-order accurate in the log-pressure step, so the
-    change between a grid and its refinement estimates what is left to
-    converge, and one fixed count cannot report its own error. Doubling from
-    a coarse start must therefore drive the change below the target and say
-    so, the refined answer must be the finest grid's rather than an
+    The integrals are first-order in the log-pressure step, so the change
+    between a grid and its refinement estimates the remaining error.
+    Doubling from a coarse start must drive the change below the target and
+    say so, the answer must be the finest grid's rather than an
     extrapolation, and a ceiling reached without meeting the target must be
-    reported rather than passed off as converged.
+    reported as such.
     """
     prof = _co2_hydrogen_profile(0.01)
     per, det = hydrostatic_rates_refined(prof, M_MARS, 1000.0, rtol=1e-2)
@@ -396,14 +386,11 @@ def test_supply_quadrature_refines_to_its_target():
 def test_exobase_temperature_floors_at_the_profile_top():
     """A prescribed exobase temperature never builds a falling thermosphere.
 
-    The extension is the inflated structure the exobase quantities must be
-    read from, so it cannot end colder than the level it extends from: that
-    puts the exobase more strongly bound than its own anchor, inverting the
-    construction and biasing the branch toward retention. The prescribed
-    temperature is a stand-in for physics the branch does not solve, and in a
-    coupled run the profile top warms over secular time and can pass it, so
-    the value floors at the anchor and the call is flagged rather than
-    raising and stopping the run.
+    An extension colder than its anchor puts the exobase more strongly
+    bound than the anchor, inverting the construction and biasing the
+    branch toward retention. A coupled run's profile top can warm past the
+    prescribed value, so the value floors at the anchor, flagged, rather
+    than raising.
     """
     prof = _co2_hydrogen_profile(0.01)
     t_top = float(prof.T[-1])
@@ -430,15 +417,11 @@ def test_exobase_temperature_floors_at_the_profile_top():
 def test_per_element_shares_follow_the_species_that_escape():
     """The split names which element leaves, not just how much in total.
 
-    Element rates summing to the bulk rate is a weak claim: the dispatcher
-    renormalizes the split onto the bulk rate, so the sum matches by
-    construction and a permuted mapping would conserve mass while moving the
-    wrong elements out of the planet. What has to hold is the identity of the
-    shares. On a carbon dioxide host carrying one percent hydrogen, hydrogen
-    is the only species light enough to escape and carries the whole rate,
-    twenty decades above the carbon and oxygen the heavy background supplies,
-    and the CO2 that does leave splits onto carbon and oxygen in
-    stoichiometric mass proportion.
+    The split is renormalized onto the bulk rate, so a sum check passes for
+    a permuted mapping; what must hold is the identity of the shares. On a
+    CO2 host with one percent hydrogen, hydrogen carries the whole rate,
+    decades above carbon and oxygen, and the CO2 that leaves splits onto
+    carbon and oxygen in stoichiometric mass proportion.
     """
     prof = _co2_hydrogen_profile(0.01)
     per_el, det = hydrostatic_rates(prof, M_MARS, 1000.0)
@@ -471,12 +454,9 @@ def test_yelle_harmonic_mean_and_area_referral():
     diffusion-limited supply by the harmonic mean of Eq. (14),
     ``phi = phi_J phi_l / (phi_J + phi_l)``, and refers the flux from the
     exobase back to the anchor radius through the ``(r_x / r_0)^2`` factor of
-    Eq. (15). Both are invisible on a state where the two fluxes differ by
-    decades, since there the harmonic mean equals the smaller one and the
-    referral is a fixed rescaling: a plain minimum reproduces the combination
-    to one part in 1e5 on the default exobase temperature. This test therefore
-    runs at the exobase temperature where the two fluxes cross, where the
-    harmonic mean is 0.61 of the minimum and a substitution cannot hide.
+    Eq. (15). Where the fluxes differ by decades a plain minimum reproduces
+    the harmonic mean, so the test runs at the exobase temperature where the
+    two cross and the harmonic mean is well below the minimum.
     """
     prof = _co2_hydrogen_profile(0.01)
     # 130 K puts the hydrogen effusion flux within a factor 1.6 of its supply.
@@ -496,9 +476,8 @@ def test_yelle_harmonic_mean_and_area_referral():
     assert r_x > r_0
     referral = (r_x / r_0) ** 2
     assert referral > 1.05, 'the referral factor is too close to 1 to discriminate'
-    # Rebuild the effusion flux from the reported exobase quantities: the
-    # referral is the only factor between the local flux and the quoted one.
-    # The mixing ratio is the diffusively enriched one at the exobase, not the
-    # anchor value, which for a light trace species differs by decades.
+    # Rebuild the effusion flux from the reported exobase quantities; the
+    # referral is the only factor between local and quoted flux, and the
+    # mixing ratio is the diffusively enriched exobase value.
     local = d['volkov_C'] * d['w_jeans'] * d['X_tilde_exo'] * det['n_exo']
     assert phi_j == pytest.approx(referral * local, rel=1e-9, abs=0.0)

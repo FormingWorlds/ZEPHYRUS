@@ -96,9 +96,8 @@ def test_hydrogen_system_brackets_the_black_lyalpha_rate():
     Murray-Clay et al. (2009, Eq. 6) print the Black rate ``7.5e-19 n_e n_H
     exp(-118348 K / T)`` erg cm^-3 s^-1. The three-level system uses
     effective collision strengths frozen at 1e4 K and carries no cascades,
-    while the Black fit carries both, so the two agree only at order unity
-    (the measured ratio runs from about 0.5 at 1e4 K to 0.3 at 3e4 K). The
-    bracket catches transcription errors, in the constant and in the
+    while the Black fit carries both, so the two agree only at order unity.
+    The bracket catches transcription errors in the constant and in the
     exponential activation, and nothing finer.
     """
     pref, tscale = LYA_BLACK
@@ -237,10 +236,9 @@ def test_line_cooling_coronal_limit_absolute_normalization():
     ground state radiates before it is deexcited, so the cooling reduces to
     ``sum over transitions of dE k_lu n_e n_tot`` with the Maxwellian
     collisional rate coefficient ``k_lu = Upsilon (8.629e-6 / (g_l sqrt(T)))
-    exp(-dE / k_B T)``. That is evaluated here from the level data and the
-    constants rather than by calling the function, so the prefactor and the
-    statistical weights are pinned rather than only the shape. Without this
-    the whole channel could be scaled by any factor with the suite green.
+    exp(-dE / k_B T)``, evaluated here from the level data and the
+    constants rather than by calling the function. The shape tests are blind
+    to an overall factor, so this pins the prefactor and the weights.
     """
     T, n_tot = 8000.0, 1.0e6
     data = THREE_LEVEL['O']
@@ -269,15 +267,14 @@ def test_recombination_cooling_coefficient():
     The channel is ``Q = n_e n_+ alpha_B (3/2) k_B T``, and the 3/2 is the
     mean thermal energy carried off by the recombining electron. Pinned
     against a hand evaluation, since the factor is the whole content of the
-    term and doubling it doubled the channel with the suite green.
+    term; a doubled factor is excluded explicitly.
     """
     T = 1.0e4
     # The published coefficient at 1e4 K, which the term is built on.
     assert alpha_case_b('H', T) == pytest.approx(2.7e-13, rel=1e-9, abs=0.0)
-    # The balance's own term, rebuilt from the quantities it reports. The
-    # module works in cgs internally, so the number density converts from
-    # m^-3 at the boundary and the square of that conversion is where a
-    # units slip would hide.
+    # The balance's own term, rebuilt from what it reports. The module works
+    # in cgs, so the m^-3 to cm^-3 conversion enters squared, which is where
+    # a units slip would hide.
     base = _base(n_si=1.0e18, vmr={'H': 1.0})
     _r, det = balance_at(T, base, {'H': 1.0}, 1.0e2)
     n_cgs = base['n'] * 1e-6
@@ -290,11 +287,9 @@ def test_recombination_cooling_coefficient():
     assert det['parts']['recombination'] != pytest.approx(
         2.0 * expected, rel=0.01, abs=0.0
     )
-    # Quadratic in the electron density, not in the total density: doubling
-    # the gas density raises the term by less than four, because the
-    # ionization fraction falls as recombination speeds up. The identity
-    # above is what pins the coefficient; this pins that the term is built
-    # on the electron density and not on the neutral one.
+    # Quadratic in the electron density, not the total: doubling the gas
+    # density raises the term by less than four because the ionization
+    # fraction falls, which pins that the term is built on electrons.
     dense = _base(n_si=2.0e18, vmr={'H': 1.0})
     _r2, det2 = balance_at(T, dense, {'H': 1.0}, 1.0e2)
     ratio = det2['parts']['recombination'] / det['parts']['recombination']

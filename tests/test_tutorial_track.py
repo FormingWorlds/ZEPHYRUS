@@ -2,10 +2,8 @@
 
 The dispatcher tutorial closes on a track dispatched along a real MORS
 stellar history, which reads the Spada grid under ``FWL_DATA``. The unit and
-smoke tier does not download that data, so the snippet is executed here
-instead, where the nightly workflow has it: the same character-for-character
-comparison the smoke tier applies to the other eighteen output blocks, on the
-one block it cannot run.
+smoke tier does not download that data, so this block's verbatim
+comparison runs here, where the nightly workflow has it.
 
 The invariant under test:
 
@@ -37,9 +35,8 @@ def test_tutorial_stellar_track_prints_what_the_page_quotes(monkeypatch):
 
     Runs the whole page in order so the track inherits the namespace the
     earlier snippets build, then compares the track block's output against
-    the page. The smoke tier covers the other blocks; this one exists because
-    the stellar lookup needs reference data that tier does not fetch, and
-    mocking the lookup would compare against numbers the page does not quote.
+    the page. Mocking the lookup would compare against numbers the page does
+    not quote.
     """
     monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
     namespace: dict = {}

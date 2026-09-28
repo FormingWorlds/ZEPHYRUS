@@ -140,10 +140,9 @@ def test_dispatcher_example_boundary_bisection_brackets_a_label_change():
     # The boundary lies strictly inside the bracket it was given, so a
     # bisection that fell back to an endpoint fails here.
     assert 0.1 < flux < 10.0
-    # The band edges come back in threshold order, 3 first then 0.1. The
-    # stricter threshold (0.1) demands a denser sonic point, so it needs
-    # more flux to call a wind: the band is ordered, not just wide. A
-    # swapped or shared threshold would collapse this to equality.
+    # Band edges come back in threshold order, 3 then 0.1: the stricter 0.1
+    # needs a denser sonic point and so more flux. A swapped or shared
+    # threshold would collapse this to equality.
     at_kn3, at_kn0p1 = example.boundary_band('CO2')
     assert at_kn0p1 > at_kn3
     assert at_kn0p1 / at_kn3 > 1.5
@@ -219,11 +218,9 @@ def test_dispatcher_example_track_changes_regime_as_the_star_quiets():
 TUTORIAL = Path(__file__).resolve().parents[1] / 'docs' / 'Tutorials' / 'dispatch.md'
 
 
-# The one snippet that reads the real stellar evolution tracks. Executing it
-# needs the Spada grid under FWL_DATA, which the unit and smoke tier does not
-# download, so this tier runs every other block and the integration tier runs
-# the whole page. Excluding it by name rather than by whether the data happens
-# to be present keeps the two tiers checking the same thing everywhere.
+# The one snippet that reads the Spada tracks, which this tier does not
+# download; the integration tier runs the whole page. Excluding it by name,
+# not by data presence, keeps each tier checking the same thing everywhere.
 TUTORIAL_DATA_DEPENDENT = 'stellar_track('
 
 
@@ -250,21 +247,14 @@ def test_tutorial_snippets_print_what_the_page_quotes(monkeypatch):
     """Every tutorial snippet runs in order and prints its quoted output.
 
     The page states that every printed number is the verbatim output of a
-    snippet the reader can run, which is a claim about the documentation that
-    only a test can hold. The snippets share one namespace and run in the
-    order they appear, as a reader would execute them, and each quoted output
-    block must match what the preceding snippet printed, character for
-    character. This is the guard against the drift that has to be repaired by
-    hand otherwise: a coefficient change three modules away moves a number
-    here, and nothing else notices.
+    runnable snippet. The snippets share one namespace and run in page order,
+    and each quoted output block must match what the preceding snippet
+    printed, character for character, so a coefficient change anywhere in
+    the package that moves a quoted number fails here.
     """
-    # The page's first snippet imports the worked example by its path from the
-    # repository root, which is what a reader running from a clone would type.
-    # That resolves only with the root on sys.path, and whether it is there
-    # depends on how pytest was started: `python -m pytest` puts the working
-    # directory there and the console script does not, so CI and a local run
-    # disagreed. Prepending it here makes the test independent of the
-    # invocation, and monkeypatch undoes it afterwards.
+    # The first snippet imports the example by its repository-root path,
+    # which needs the root on sys.path; `python -m pytest` adds it and the
+    # console script does not, so it is prepended here and undone after.
     monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
     namespace: dict = {}
     compared = 0

@@ -4,9 +4,9 @@ Exercises the tidally driven L1 nozzle flow of Jackson et al. (2017,
 ApJ 835, 145). The physical anchors under test:
 
 - Reference pins: the four Table 2 planets whose launch level sits below
-  0.4 lobe radii, reproduced with their own input prescriptions; two lobe-filling binaries of their Table 1 landing
-  on the Figure 5 solid curve; the equal-mass curvature A(1) = 8 their
-  Section 2.1 prints.
+  0.4 lobe radii, reproduced with their own input prescriptions; two
+  lobe-filling binaries of their Table 1 landing on the Figure 5 solid
+  curve; the equal-mass curvature A(1) = 8 their Section 2.1 prints.
 - Cross-check: the Eq. (14) volume-averaged potential evaluated at the
   Eggleton lobe radius matches the exact corotating Roche potential at a
   numerically solved L1 point.
@@ -60,22 +60,17 @@ def _jackson_photosphere(M_p, R_p, T_p, mu_kg):
 def test_table2_deep_launch_planets_reproduce_published_rates():
     """Four Table 2 planets of Jackson et al. (2017) reproduce within 6%.
 
-    Their Table 2 lists twenty-one objects. The four pinned here are every
-    one whose launch level sits below 0.4 Roche lobe radii, which is where
-    the Eq. (14) potential approximation is good and the photospheric
-    radius convention is irrelevant, so the printed rates pin the whole
-    formalism (Eqs. 3, 10, 13, and 14 plus the Eggleton lobe radius).
-    Above that depth two effects the implementation does not carry take
-    over, as the accompanying validation page records, so the remaining
-    seventeen rows are outside what this pin can claim.
+    The four pinned rows of their twenty-one are every one whose launch
+    level sits below 0.4 Roche lobe radii, where the Eq. (14) potential is
+    accurate and the photospheric radius convention is irrelevant, so the
+    printed rates pin Eqs. 3, 10, 13, and 14 plus the Eggleton lobe radius.
+    The remaining rows are outside what this pin can claim (see the
+    validation page).
 
     Inputs are their Table 2 rows through their Section 3 prescriptions
-    (mu = 1 amu above 2000 K, 2 amu below). Achieved deviations run 0.4%,
-    2.1%, 3.5%, and 5.0%, rising with launch depth as expected; the 6%
-    tolerance covers those and the physical-constant conventions that an
-    exponent of order 10 to 16 amplifies, while the transcription errors
-    this pin exists to catch move the rate by factors of several to
-    decades.
+    (mu = 1 amu above 2000 K, 2 amu below). The 6% tolerance covers the
+    physical-constant conventions an exponent of order 10 to 16 amplifies,
+    while a transcription error moves the rate by factors of several.
     """
     # (Mp [MJup], Rp [RJup], Tp [K], a [au], Ms [Msun], target [kg/s], mu [amu])
     rows = [
@@ -281,8 +276,7 @@ def test_public_surface_rejects_unphysical_arguments():
     The module is documented public API, so a direct caller must not get a
     negative mass-loss rate from a negative density, a complex cube root
     from a negative mass ratio, or a bare division by zero from a launch
-    level at the origin. Each case below returned one of those before the
-    guards existed.
+    level at the origin.
     """
     m_p, m_s, a = 3.0 * Me, Ms, 0.05 * AU
     ok = dict(

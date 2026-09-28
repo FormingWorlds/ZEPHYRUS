@@ -83,13 +83,10 @@ def _inputs(M_p, R_p, T_eq, comp, F_xuv, a=0.1 * AU, e=0.0, p_surf=1e7, p_top=1e
 def _inverted_profile(M_p, R_p, T_base, T_top, comp, p_surf=1e7, p_top=1e-5, n=160):
     """Hydrostatic profile whose temperature rises with altitude.
 
-    The isothermal builder makes the profile temperature identical to
-    ``T_eq`` at every level, so no test on it can tell a profile
-    temperature from an equilibrium one, and no test on it can see the
-    launch-level cancellation fail. This integrates the same hydrostatic
-    relation on a temperature that ramps linearly in log pressure, which is
-    the shape a real upper atmosphere has and the shape that breaks the
-    isothermal Bernoulli argument.
+    On the isothermal builder the profile temperature equals ``T_eq``
+    everywhere, so no test can tell the two apart or see the launch-level
+    cancellation fail. This ramps the temperature linearly in log pressure,
+    which breaks the isothermal Bernoulli argument as a real column does.
     """
     tot = sum(comp.values())
     mu = sum(x * species_mass_amu(sp) for sp, x in comp.items()) / tot * amu
@@ -153,11 +150,9 @@ def test_totality_over_random_physical_inputs():
     """Every physically posed input returns one consistent, finite result.
 
     200 random draws across compositions, masses, radii, fluxes (including
-    exactly zero), eccentricities, and profile depths: exactly one known
-    label, a finite non-negative bulk rate, finite non-negative per-species
-    rates summing to the bulk rate, and a populated diagnostics container,
-    with no exception anywhere. This is the conservation and boundedness
-    contract of the whole dispatcher.
+    zero), eccentricities, and profile depths: one known label, a finite
+    non-negative bulk rate, per-species rates summing to it, and a populated
+    diagnostics container. This is the conservation and boundedness contract.
     """
     rng = np.random.default_rng(42)
     n_ok = 0
@@ -175,11 +170,9 @@ def test_totality_over_random_physical_inputs():
         if res.mdot > 0.0:
             assert tot == pytest.approx(res.mdot, rel=1e-6, abs=0.0)
         else:
-            # A zero bulk rate is still a conservation statement, and it is
-            # the one a relative tolerance cannot make: nothing may leave.
-            # Roughly a quarter of these draws land here, on states so
-            # strongly bound that every branch underflows, and skipping them
-            # left the split unchecked exactly where it is cheapest to break.
+            # A zero bulk rate is still a conservation statement: nothing may
+            # leave. About a quarter of the draws underflow on every branch,
+            # so skipping them would leave the split unchecked.
             assert res.mdot == 0.0
             assert tot == 0.0
             assert all(v == 0.0 for v in res.per_species.values())
@@ -262,8 +255,7 @@ def test_routing_roche_overflow_inside_the_hill_sphere():
 
     At 0.003 au the periapsis Hill radius of a 5 Earth-mass planet drops
     below its own radius: the label is ``roche_overflow`` with the
-    dynamical subflag, and the rate comes from the Bondi-capped bolometric
-    machinery at the overflow geometry (finite and non-negative).
+    dynamical subflag, and the rate is finite and non-negative.
     """
     inp = _inputs(5 * Me, 1.5 * Re, 1500.0, {'H2': 1.0}, F_xuv=100.0, a=0.003 * AU)
     res = dispatch(inp)
@@ -277,23 +269,16 @@ def test_routing_roche_overflow_inside_the_hill_sphere():
 def test_roche_screen_renames_without_changing_the_rate():
     """Crossing the overflow boundary changes the label and not the rate.
 
-    The screen's boundary is a geometric criterion on the winning branch's
-    flow radius, so the two sides of the boundary hold the same branch and
-    the dispatched rate must be continuous across it. The family here is a
-    luminosity-capped bolometric residual whose sonic radius crosses the
-    Hill radius as the orbit widens, chosen because every other candidate
-    stays subdominant across the bracket: the XUV flux is negligible and
-    the nozzle candidate sits outside its applicability criterion, so the
-    rename is the only thing that changes. The residual is admitted through
-    the ``residual_mode`` setting, since by default it is reported and does not
-    compete; what the family needs is a bound branch whose flow radius is
-    a sonic radius large enough to cross the Hill sphere, and the residual
-    is the one that has it. Bisecting in orbital distance brackets the
-    label change; the rates on either side agree to machine precision and
-    both equal the capped residual. Discrimination: substituting the
-    Bondi-capped bolometric rate at the overflow geometry, which is what a
-    rate-changing screen returns, is more than a decade larger, because
-    that form bypasses the luminosity cap.
+    The screen tests the winning branch's flow radius, so both sides of the
+    boundary hold the same branch and the rate must be continuous. The
+    family is a luminosity-capped bolometric residual (admitted through
+    ``residual_mode``) whose sonic radius crosses the Hill radius as the
+    orbit widens, with the XUV rate negligible and the nozzle inapplicable,
+    so the rename is the only change. Bisecting in orbital distance, the
+    rates on either side agree to machine precision and equal the capped
+    residual. Discrimination: the Bondi-capped rate at the overflow
+    geometry, which a rate-changing screen would return, bypasses the
+    luminosity cap and is more than a decade larger.
     """
     comp = {'H2': 0.9, 'He': 0.1}
     admitted = DispatchSettings(residual_mode='luminosity_capped')
@@ -353,11 +338,9 @@ def test_roche_subflag_separates_the_two_geometries():
     assert roche['xi_ktide'] > 1.0  # not the trivial planet-inside-its-lobe case
     assert roche['r_atmosphere'] > roche['R_hill_periapsis']
 
-    # The second subflag: an atmosphere inside its own Roche lobe whose
-    # would-be sonic surface sits outside the Hill radius, which is the
-    # narrow band Owen & Jackson (2012) describe. The comparator is the
-    # lobe rather than the Hill radius, because the lobe is the critical
-    # surface and sits about 0.70 of the way out to the Hill radius.
+    # Second subflag: inside its Roche lobe, sonic surface past the Hill
+    # radius, the narrow band of Owen & Jackson (2012). The lobe is the
+    # comparator because it, not the Hill radius, is the critical surface.
     bound = dispatch(
         _inputs(
             0.5 * Me,
@@ -601,21 +584,15 @@ def test_nozzle_orbit_average_on_eccentric_wins_only():
 def test_wind_launch_level_cancels_along_the_wind_column():
     """In wind mode the launch level cancels along the wind's own column.
 
-    The launch-level convention rests on the Bernoulli invariance of
-    ``rho exp(Phi / v_th^2)``, which holds only when the density and the
-    sound speed belong to one column. The wind setting launches from the
-    wind base at the wind's temperature, so moving the level along the
-    isothermal column through that anchor must leave the rate alone. The
-    guard matters because taking the density from the profile's own
-    (far colder) structure instead moves the rate by more than two decades
-    over the same range of levels, which is what the invariance claim
-    would otherwise be hiding.
+    The Bernoulli invariance of ``rho exp(Phi / v_th^2)`` holds only when
+    density and sound speed belong to one column. The wind setting launches
+    from the wind base at the wind's temperature, so moving the level along
+    that isothermal column must leave the rate alone. Discrimination: taking
+    the density from the profile's far colder structure moves the rate by
+    more than two decades over the same levels.
 
-    The base is placed by hand rather than by the Lopez default, which on
-    this planet puts the wind base at 1.29 lobe radii: outside the lobe
-    the exponent is clamped and the rate is the lobe-filling boundary
-    value, which is linear in the launch density and invariant along no
-    column at all.
+    The base is placed by hand because the Lopez default puts it outside the
+    lobe on this planet, where the clamped rate is invariant along no column.
     """
     state = _inputs(
         3 * Me,
@@ -633,9 +610,8 @@ def test_wind_launch_level_cancels_along_the_wind_column():
     r_ref, rho_ref, v_th = noz['r_launch'], noz['rho_launch'], noz['v_th']
     reference = noz['rate_full_orbit_kg_s']
 
-    # The discriminator is the same closed form at the wrong sound speed:
-    # the profile's own, which is what the launch state carried before the
-    # column was made consistent with the barrier.
+    # The discriminator is the same closed form at the wrong sound speed,
+    # the profile's own, which is inconsistent with the wind's column.
     v_cold = math.sqrt(kb * state.T_eq / noz['mu_kg'])
     on_column, cold_column = [], []
     for factor in (0.6, 0.8, 1.5, 2.5):
@@ -692,20 +668,15 @@ def test_nozzle_temperature_setting_selects_and_validates():
 def test_residual_setting_admits_the_post_gate_candidate():
     """The bolometric residual competes past the gate only when admitted.
 
-    Past the activation gate the bolometric candidate is still evaluated
-    and reported, but by default it is not a contender: on a contracted
-    three Earth-mass hydrogen envelope at a wide orbit the luminosity-capped
-    candidate sits nearly two decades above the XUV rate, and the default
-    dispatches the XUV rate with ``competes`` false and no
-    ``bolometric_residual`` flag. Admitting it through the setting
-    dispatches the candidate under the ``boiloff`` label with that flag and
-    ``luminosity_capped`` raised, so the two modes differ by the same two
-    decades, which is the discrimination. Two invariants hold across the
-    switch: the admitted rate is never below the default one, since the
-    final comparison then ranges over a superset of the candidates, and
-    below the gate the two modes agree to machine precision, because the
-    candidate is the rate there either way. An unknown mode string is
-    rejected by the settings validator with a message naming the knob.
+    Past the activation gate the candidate is reported but, by default,
+    does not compete: on a contracted 3 Earth-mass hydrogen envelope the
+    luminosity cap sits nearly two decades above the XUV rate, which the
+    default dispatches with ``competes`` false. Admitted, the candidate
+    dispatches as ``boiloff`` with ``bolometric_residual`` and
+    ``luminosity_capped`` raised, so the modes differ by those two decades
+    (the discrimination). Invariants: the admitted rate is never below the
+    default, since it ranges over a superset of candidates, and below the
+    gate the modes agree to machine precision. An unknown mode raises.
     """
     admitted = DispatchSettings(residual_mode='luminosity_capped')
     past = dict(comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU)
@@ -818,11 +789,9 @@ def test_non_finite_fluxes_are_rejected():
 def test_bolometric_diagnostics_keys_match_the_results_page():
     """The bolometric diagnostics group carries the keys the reference lists.
 
-    The group is built by one producer and documented in one table row, and
-    the two had drifted before. Parse the key list from the row in
-    ``docs/Reference/results.md`` and compare it with the live keys on a
-    state past the gate and one below it, so a key added or dropped on either
-    side fails here.
+    The key list parsed from the row in ``docs/Reference/results.md`` must
+    match the live keys on a state past the gate and one below it, so a key
+    added or dropped on either side fails here.
     """
     from pathlib import Path
 
@@ -861,13 +830,11 @@ def test_nozzle_power_diagnostic_reports_the_lift_cost():
 def test_diagnostics_are_boxed(monkeypatch):
     """Sabotaging every diagnostics producer changes no dispatch outcome.
 
-    The container is reporting only: no control flow reads it back. The test
-    proves it by replacing every diagnostics-side producer with a stub
-    returning garbage of the right shape and asserting the regime, the bulk
-    rate, and every per-species rate are unchanged. It runs on one state per
-    branch, each dispatching a rate of order unity or above, because a state
-    whose rate sits near the denormal floor would compare equal to anything
-    under any absolute tolerance and the assertion would not discriminate.
+    The container is reporting only: with every diagnostics-side producer
+    stubbed to return garbage of the right shape, the regime, bulk rate, and
+    per-species rates are unchanged. One state per branch, each with a rate
+    of order unity or above, since a rate near the denormal floor would
+    compare equal to anything and not discriminate.
     """
     states = {
         'hydrostatic': _inputs(
@@ -935,8 +902,7 @@ def test_base_out_of_range_extend_mode():
     decades); the extend policy evaluates the base on the extended upper
     structure instead, replacing the clamp flag with ``base_extended`` and
     placing the base at a lower pressure than the profile top. Either way
-    the diagnostics report the pressure the base method asked for before
-    any clamp, which is the only place that quantity is available.
+    the diagnostics report the pressure the base method requested.
     """
     inp_clamp = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, p_top=1e-2)
     res_clamp = dispatch(inp_clamp)
@@ -1099,10 +1065,8 @@ def test_t_exo_thermostat_mode_estimates_and_reports_itself():
 
     On the bound CO2 case the estimator returns a temperature inside the
     thermostat bracket (above the equilibrium temperature, below the upper
-    bracket edge), the diagnostics record which mode produced it, and the
-    dispatch completes with a consistent per-species sum. The mode is a
-    property of the call and not a warning about it, so it belongs in the
-    diagnostics and not in the flags dictionary.
+    bracket edge), the diagnostics (not the flags, since the mode is not a
+    warning) record which mode produced it, and the per-species sum holds.
     """
     settings = DispatchSettings(T_exo_mode='thermostat')
     res = dispatch(
@@ -1199,12 +1163,10 @@ def test_settings_option_raises_cover_every_knob():
 def test_flags_describe_the_branch_that_produced_the_rate():
     """A warning never survives onto a verdict its rate did not come from.
 
-    The flags dictionary is read as a warning set about the returned result,
-    so a caution about the wind temperature or the sonic radius must not ride
-    along on a bolometric or hydrostatic verdict, whose rate those quantities
-    did not set. The hydrodynamic candidates are always computed, because the
-    diagnostics report them at every dispatch, which is what makes the
-    scoping necessary rather than automatic.
+    A caution about the wind temperature or the sonic radius must not ride
+    along on a bolometric or hydrostatic verdict, whose rate those did not
+    set. The hydrodynamic candidates are computed at every dispatch, so the
+    scoping has to be enforced rather than falling out automatically.
     """
     hydro = dispatch(
         _inputs(Me, Re, 1000.0, {'N2': 0.8, 'O2': 0.2}, F_xuv=100.0, a=0.0775 * AU)
@@ -1236,13 +1198,10 @@ def test_flags_describe_the_branch_that_produced_the_rate():
 def test_one_exobase_temperature_per_call():
     """The base extension and the branch stand on one upper structure.
 
-    Under the extend policy the wind base is re-evaluated on a Bates
-    extension, and the hydrostatic branch stands on one too. Both must be
-    built at the same exobase temperature: resolving it twice, once from the
-    settings and once from the equilibrium temperature, gave one call two
-    thermospheres, and under the thermostat they differed by an order of
-    magnitude in temperature, which sets the base density the wind rate is
-    built from.
+    Under the extend policy the wind base sits on a Bates extension, and
+    the hydrostatic branch stands on one too; both must use the same
+    exobase temperature. The thermostat moves it well off the equilibrium
+    temperature, so a base built at ``T_eq`` instead is discriminated.
     """
     m_p, r_p, t_eq = 10 * Me, 1.8 * Re, 800.0
     # A profile whose top lies above the Lopez base, so the policy engages.
@@ -1267,18 +1226,16 @@ def test_one_exobase_temperature_per_call():
     # The thermostat must have moved off the equilibrium temperature, or the
     # test cannot tell the two resolutions apart.
     assert t_branch > 5.0 * t_eq
-    # The base sits on the same extension: between the anchor and the exobase,
-    # and nowhere near the equilibrium temperature the old path used.
+    # The base sits on the same extension: between the anchor and the
+    # exobase, and far from the equilibrium temperature.
     assert t_top < t_base <= t_branch
     assert t_base > 0.5 * t_branch
     assert t_base != pytest.approx(t_eq, rel=0.1, abs=0.0)
 
 
-# Each row is (flag, a state that must raise it, a state that must not). Every
-# warning the result can carry belongs here: a flag nothing asserts can be
-# deleted without the suite noticing, which makes it a comment rather than part
-# of the contract. The negative state is what stops a flag that fires on
-# everything from passing as discrimination.
+# Each row is (flag, a state that must raise it, a state that must not).
+# Every warning the result can carry belongs here, so none goes unasserted;
+# the negative state stops a flag that fires on everything from passing.
 FLAG_CASES = (
     (
         'near_roche',
@@ -1421,11 +1378,9 @@ FLAG_CASES = (
 def test_every_warning_flag_has_a_state_that_raises_it_and_one_that_does_not():
     """Each flag fires on a state that warrants it and stays off otherwise.
 
-    A flag no test asserts is a comment: it can be deleted and the suite stays
-    green, so nothing holds the module to raising it. Each row pins one flag
-    against a state that must raise it and a state that must not, and the
-    second half is what keeps a flag that fires on everything from passing as
-    a working warning.
+    Each row pins one flag against a state that must raise it and a state
+    that must not; the negative state keeps a flag that fires on everything
+    from passing as a working warning.
     """
     for flag, on, off in FLAG_CASES:
         res_on = dispatch(_inputs(**_flag_state(on)))
@@ -1449,12 +1404,10 @@ def test_launch_level_is_a_width_on_a_realistic_column():
     """Off an isothermal column the launch level is a width, not a cancellation.
 
     The transfer rate is invariant to the launch level only along a column
-    whose sound speed matches the density that column carries. Real
-    profiles are not isothermal, so the cancellation leaves a residual, and
-    the residual is reported rather than assumed small. The isothermal
-    control is the contrast: the same sweep on the builder every other test
-    uses moves the rate by a few percent, while a modest inversion moves it
-    by a factor.
+    whose sound speed matches its density, so a real, non-isothermal profile
+    leaves a residual that is reported. Discrimination: the same sweep moves
+    the rate by a few percent on the isothermal builder and by a factor on
+    a modest inversion.
     """
     comp = {'H2': 0.9, 'He': 0.1}
     inverted = _inverted_profile(3 * Me, 2.2 * Re, 1000.0, 1600.0, comp)
@@ -1555,11 +1508,9 @@ def test_nozzle_win_splits_by_reservoir_not_by_the_losing_branch():
 def test_dispatched_split_names_the_element_that_leaves():
     """The dispatched split is checked by identity, not only by its sum.
 
-    The dispatcher renormalizes the per-species rates onto the bulk rate, so
-    a sums-to-mdot assertion cannot fail however the shares are assigned: a
-    permuted mapping conserves total mass while moving the wrong elements out
-    of the planet, which is what the PROTEUS side debits reservoirs by. Both
-    branches that produce a split are pinned by which element dominates.
+    The per-species rates are renormalized onto the bulk rate, so a sum
+    check passes for a permuted mapping that removes the wrong elements.
+    Both branches that produce a split are pinned by which element dominates.
     """
     # Hydrostatic: only hydrogen is light enough to leave the Mars-mass host,
     # and it carries the rate by nineteen decades over the heavy background.
@@ -1588,13 +1539,12 @@ def test_dispatched_split_names_the_element_that_leaves():
 def test_caldiroli_efficiency_geometry_conversion():
     """The fitted efficiency is converted to the geometry it is used in.
 
-    Caldiroli et al. (2022) fit their efficiency against a rate written on an
+    Caldiroli et al. (2022) define their efficiency against a rate on an
     ``R_p^3`` geometry, while the dispatcher's energy-limited rate is the
-    Erkaev form on ``R_p R_XUV^2`` (``scaling=2``). Decision 12 therefore
-    converts the fitted value by ``(R_p / R_XUV)^2`` before using it. The
-    conversion is a pure geometric factor, so nothing about the rate's shape
-    reveals whether it was applied: dropping it entirely left the suite green.
-    This pins it against the two radii the same call reports.
+    Erkaev form on ``R_p R_XUV^2`` (``scaling=2``), so the fitted value must
+    be converted by ``(R_p / R_XUV)^2``. The factor is purely geometric and
+    leaves the rate's shape unchanged, so it is pinned against the two radii
+    the call reports, on a state where the factor differs from 1.
     """
     settings = DispatchSettings(efficiency_mode='caldiroli')
     inp = _inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=10.0, a=0.0775 * AU, settings=settings)
@@ -1602,10 +1552,8 @@ def test_caldiroli_efficiency_geometry_conversion():
     hy = res.diagnostics['hydrodynamic']
     raw, _flags = caldiroli_efficiency(10.0, Me, Re, hy['K_tide'])
     assert raw is not None
-    # The XUV radius is the photospheric level the settings select, which is
-    # the radius the Erkaev form cubes; it is recomputed here from the same
-    # profile rather than read back, so the test does not depend on the
-    # module reporting it.
+    # The XUV radius of the Erkaev geometry, recomputed from the profile so
+    # the test does not depend on the module reporting it.
     photo, _pf = photospheric_level(inp.profile, settings.P_photo)
     r_xuv = photo['r']
     factor = (Re / r_xuv) ** 2

@@ -49,11 +49,9 @@ ERKAEV_TABLE1 = [
     (5.9, 1.34),
 ]
 
-# Spot evaluations of the Caldiroli et al. (2022) Appendix A.1 fit across
-# its validity box at K = 1: (log10 phi [cgs], F_XUV/rho_p [cgs], eta).
-# The eta values were evaluated from the published fitting formulas at
-# transcription time, independently of this implementation, so a later
-# transcription error in either place breaks the agreement.
+# Spot evaluations of the Caldiroli et al. (2022) Appendix A.1 fit at K = 1,
+# (log10 phi [cgs], F_XUV/rho_p [cgs], eta), evaluated from the published
+# formulas independently of this implementation.
 CALDIROLI_SPOTS = [
     (12.20, 1e3, 8.8e-1),
     (12.20, 1e6, 1.5e-1),
@@ -76,10 +74,8 @@ def test_erkaev_table1_enhancement_factors():
     for xi, inv_k in ERKAEV_TABLE1:
         assert 1.0 / k_tide(xi) == pytest.approx(inv_k, rel=0.011, abs=0.0), xi
         assert 0.0 < k_tide(xi) < 1.0
-    # The factor is defined only above its double root. Below it the same
-    # polynomial turns back upward and exceeds 1, which would reduce the
-    # energy-limited rate where the tide is strongest, so the domain is
-    # enforced rather than extrapolated.
+    # Defined only above the double root: below it the polynomial exceeds 1
+    # and would cut the rate where the tide is strongest, so it raises.
     for outside in (1.0, 0.5, 0.0, -2.0):
         with pytest.raises(ValueError, match='xi > 1'):
             k_tide(outside)
@@ -127,13 +123,11 @@ def test_wind_mean_masses_against_lopez_pairs():
 
     Lopez (2017) prints (mu_wind, mu_plus) = (0.62, 1.3) for a 90/10 H/He
     wind and (3, 6) for steam (fully dissociated 2:1 H:O), in atomic mass
-    units. The rule counts electrons and singly ionizes the heavies, which
-    makes the per-ion mass exactly twice the per-particle mass, so the steam
-    pair is recovered on both entries while the H/He pair cannot be: 1.3
-    halves to 0.65, not to the printed 0.62, a 4.6 percent inconsistency in
-    the source. The rule follows the per-ion value, which is the entry both
-    printed pairs agree with, and this test pins that reading rather than
-    widening a tolerance until both fit.
+    units. The rule counts electrons and singly ionizes the heavies, so the
+    per-ion mass is exactly twice the per-particle mass: the steam pair is
+    recovered on both entries, while the H/He pair is internally
+    inconsistent in the source (1.3 halves to 0.65, not 0.62). The test pins
+    the per-ion reading rather than widening a tolerance until both fit.
     """
     mu_w, mu_i = wind_mean_masses({'H': 0.9, 'He': 0.1})
     assert mu_i == pytest.approx(1.3, rel=0.01, abs=0.0)
@@ -177,8 +171,7 @@ def test_rr_barometric_factor_separates_the_two_rr_regimes():
     material that far. A loosely bound hydrogen wind keeps a factor of
     order unity, so its rate is the recombination-limited base ionization.
     The selection string reports which candidate won and nothing more:
-    both supercritical cases read ``RR-selected``, which is what retiring
-    the old base-Jeans-parameter split means.
+    both supercritical cases read ``RR-selected``.
     """
     rr = rr_chain(10.0 * Me, 10.0, 2.0 * Re, 1.0e4, {'C': 1.0 / 3.0, 'O': 2.0 / 3.0})
     assert rr['subcritical'] is False
@@ -192,14 +185,13 @@ def test_rr_barometric_factor_separates_the_two_rr_regimes():
     rr_h = rr_chain(0.7 * Mjup, 5.0, 2.0 * Rjup, 1.0e4, {'H': 1.0})
     assert not rr_h['subcritical']
     # Loosely bound: the factor is of order unity, two decades above the
-    # heavy case, which is the separation the label used to assert.
+    # heavy case, so the factor separates the two RR readings.
     assert 2.0 < rr_h['lambda_b'] < 4.0
     assert rr_h['barometric_factor'] > 1.0e2 * rr['barometric_factor']
     assert 0.1 < rr_h['barometric_factor'] <= 1.0
 
-    # The string keeps three outcomes and no threshold: both of these are
-    # supercritical RR wins, so a split on lambda_b would have separated
-    # them and this assertion is what forbids one coming back.
+    # The string has three outcomes and no threshold: both are supercritical
+    # RR wins, so any split on lambda_b would label them differently.
     assert selection_mechanism(rr, el_won=False) == 'RR-selected'
     assert selection_mechanism(rr_h, el_won=False) == 'RR-selected'
     assert selection_mechanism(rr, el_won=True) == 'EL-selected'
@@ -274,13 +266,11 @@ def test_front_constants_come_from_one_front():
     """The photon energy and its cross section belong to the same front.
 
     The chain picks a monochromatic ionizing front by composition, and both
-    constants of that front have to follow the choice. Taking the energy from
-    the composition while leaving the cross section at hydrogen's put a
-    nitrogen-like wind on a section 5.3 times too small, so its neutral base
-    density came out 5.3 times too high and the reported base ionization
-    fraction was understated by a third. The neutral density scales as the
-    inverse of the section, which is what pins the direction here; the rate
-    is built on the ion density and is untouched either way.
+    constants of that front must follow the choice. The neutral base density
+    scales as the inverse of the section, so the hydrogen-to-nitrogen density
+    ratio must equal the section ratio of 5.3; a section left at hydrogen's
+    would make it unity. The rate is built on the ion density and is
+    untouched either way.
     """
     hydrogen = rr_chain(5 * Me, 100.0, 1.5 * Re, 1.0e4, {'H': 1.0})
     nitrogen = rr_chain(5 * Me, 100.0, 1.5 * Re, 1.0e4, {'N': 1.0})
@@ -297,8 +287,8 @@ def test_front_constants_come_from_one_front():
     # Discrimination: leaving the section at hydrogen's would make the ratio
     # unity, which the assertion above excludes.
     assert measured > 5.0
-    # The base ionization fraction is a fraction, and the heavy wind's is
-    # not the understated value the mismatched section produced.
+    # The base ionization fraction is a fraction, and the heavy wind's stays
+    # high, which a hydrogen section on this front would understate.
     for chain in (hydrogen, nitrogen):
         assert 0.0 <= chain['f_plus_base'] <= 1.0
     assert nitrogen['f_plus_base'] > 0.8

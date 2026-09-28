@@ -40,10 +40,9 @@ from zephyrus.knudsen import (
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
-# Momentum-transfer cross sections [m^2] evaluated from the transcribed
-# Laricchiuta et al. (2009) fit at transcription time and validated then
-# against the measured viscosities below. They serve as transcription
-# regression pins: a typo in any Table 3/4/5 coefficient moves them.
+# Momentum-transfer cross sections [m^2] from the Laricchiuta et al. (2009)
+# fit, validated against the measured viscosities below; a typo in any
+# Table 3/4/5 coefficient moves them.
 PINNED_SIGMA = {
     ('N', 'N'): {
         300: 2.56e-19,
@@ -79,10 +78,10 @@ MEASURED_VISCOSITY = {
 def test_laricchiuta_cross_sections_match_transcription_pins():
     """Every tabulated pair reproduces its pinned cross section at every T.
 
-    The pins were evaluated from the published fit when the coefficient
-    tables were transcribed, so any later coefficient corruption fails
-    here. The temperature trend is the physical guard: collision integrals
-    of these attractive-well pairs shrink monotonically with temperature.
+    The pins were evaluated from the published fit, so a corrupted
+    coefficient fails here. The physical guard is the temperature trend:
+    collision integrals of these attractive-well pairs shrink with
+    temperature.
     """
     for pair, vals in PINNED_SIGMA.items():
         for T, ref in vals.items():
@@ -154,10 +153,9 @@ def test_fallback_order_provenance_and_geometric_bias():
     geo_h2o, tabulated_h2o = sigma_geometric('H2O')
     assert tabulated_h2o is True
     assert geo_h2o == pytest.approx(math.pi * (2.0 * 1.52e-10) ** 2, rel=1e-12, abs=0.0)
-    # An element Bondi does not tabulate reaches the fallback on an assumed
-    # radius, and says so rather than passing for a published one. Bondi
-    # prints no alkali, alkaline earth, or transition metals, so this is
-    # every rock-forming vapour species outside the seven scaled elements.
+    # Elements Bondi does not tabulate (alkali, alkaline earth, transition
+    # metals) reach the fallback on an assumed radius, and say so rather
+    # than passing for a published one.
     for assumed in ('Ti', 'K', 'Ca', 'Al', 'P', 'Cl'):
         sigma_a, tabulated_a = sigma_geometric(assumed)
         assert tabulated_a is False, assumed
@@ -257,14 +255,11 @@ def test_sigma_mixture_normalizes_over_what_is_present():
 def test_printed_knudsen_band_matches_its_source():
     """The printed switch band is the one the literature states.
 
-    The band is not tuning freedom and not a tolerance: kinetic simulations
-    place the fluid-to-kinetic transition near 0.1 for heating deposited in a
-    sharp layer and near 1 for distributed heating (Johnson et al. 2013, ApJL
-    768, L4), and Chatterjee & Pierrehumbert (2026, ApJ 998, 236) extend the
-    upper edge to 3 where the energy limit may survive. The dispatcher prints
-    the counterfactual labels at both edges beside every verdict, so the band
-    is a reported result and its numbers are pinned here rather than being
-    free to drift.
+    Kinetic simulations place the fluid-to-kinetic transition near 0.1 for
+    heating in a sharp layer and near 1 for distributed heating (Johnson et
+    al. 2013, ApJL 768, L4), and Chatterjee & Pierrehumbert (2026, ApJ 998,
+    236) extend the upper edge to 3. The band is printed beside every
+    verdict as a reported result, so its numbers are pinned.
     """
     assert KN_BAND == (0.1, 3.0)
     lo, hi = KN_BAND
@@ -278,11 +273,9 @@ def test_sonic_scale_height_gamma_dependence():
     At gamma = 1 the closed form of Chatterjee & Pierrehumbert (2026, ApJ
     998, 236) Eq. (17), ``H_sc = (1 + gamma) r_sc / (4 + sqrt(2)
     sqrt(5 - 3 gamma))``, collapses to ``r_sc / 3`` because the numerator is
-    2 and the denominator is 6, and several wrong forms agree with it there:
-    replacing the numerator by a constant 2, or the radical by sqrt(2), both
-    give r_sc / 3 at gamma = 1 and diverge from the correct form away from it.
-    Pinning the isothermal value alone therefore pins nothing, so the form is
-    evaluated at the polytropic and monatomic values as well.
+    2 and the denominator is 6. A constant numerator of 2, or sqrt(2) for the
+    radical, also gives r_sc / 3 there, so the form is pinned at the
+    polytropic and monatomic values as well.
     """
     assert sonic_scale_height(1.0, 1.0) == pytest.approx(1.0 / 3.0, rel=1e-12, abs=0.0)
     assert sonic_scale_height(1.0, 1.4) == pytest.approx(0.4558481560, rel=1e-9, abs=0.0)

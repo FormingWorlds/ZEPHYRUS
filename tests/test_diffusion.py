@@ -219,16 +219,12 @@ def test_bmatrix_symmetry_and_error_contract():
 def test_b_pair_fallback_order_and_proxy_provenance():
     """The pair fallback order resolves each fallback and records substitutions.
 
-    The fallback order is ordered by provenance class, so a measured row wins over an
-    estimated one wherever both exist. H-CO2 is the case that separates them:
-    Table 2 carries it as an 'E' estimate scaled from named analog pairs,
-    while the molecular-background compilation carries a measured row, and
-    the measured value is 11.7 percent below the estimate. A pair Table 2
-    measures directly (H-He, class 'M') stays on Table 2. A molecular pair
-    outside Table 2 (CO-N2) resolves through the compilation; an untabulated
-    molecule (SO2) substitutes the nearest-mass covered species with the
-    substitution named in the provenance. Cached lookups return identical
-    values.
+    Sources are ordered by provenance class, so a measured row wins over an
+    estimated one. H-CO2 separates the orderings: Table 2 carries an 'E'
+    estimate and the molecular-background compilation a measured row 11.7
+    percent below it. H-He (class 'M') stays on Table 2; CO-N2 resolves
+    through the compilation; SO2 substitutes the nearest-mass covered
+    species, named in the provenance. Cached lookups return identical values.
     """
     b_si, prov = b_pair('H', 'CO2', 1000.0)
     assert prov == 'molecular-background table'
@@ -275,9 +271,8 @@ def test_b_mixture_blancs_law_limits():
 
 
 # The species and element sets a PROTEUS run can hand the escape module,
-# transcribed from ``src/proteus/utils/constants.py`` (``gas_list`` and
-# ``element_list``). Copied rather than imported: ZEPHYRUS does not depend on
-# PROTEUS, and the direction of that dependency must stay one way.
+# copied from ``proteus.utils.constants`` (``gas_list``, ``element_list``)
+# rather than imported, because ZEPHYRUS must not depend on PROTEUS.
 PROTEUS_GAS_LIST = (
     'H2O', 'CO2', 'O2', 'H2', 'CH4', 'CO', 'N2', 'NH3', 'S2', 'SO2', 'H2S',
     'He', 'Ne', 'Ar', 'Kr', 'Xe',
@@ -296,12 +291,10 @@ CHEMISTRY_EXTRAS = ('NO', 'O3', 'C2H6', 'SO', 'PH3', 'HCN', 'OH')
 def test_every_species_a_coupled_run_can_supply_has_a_coefficient():
     """No species a PROTEUS run can supply leaves the pair fallback order empty.
 
-    Four species of the vapour list and one volatile carry no kinetic
-    diameter of their own, and aluminium appears in no diffusion
-    compilation at all, so each reaches its coefficient by substitution.
-    What the fallback order guarantees is that the substitution exists, is finite,
-    and is named: an unnamed substitution would let a rock vapour silently
-    diffuse like atomic oxygen.
+    Several vapour species carry no kinetic diameter and aluminium appears
+    in no compilation, so each reaches its coefficient by substitution. The
+    substitution must exist, be finite, and be named, so that no rock vapour
+    silently diffuses like atomic oxygen.
     """
     for sp in PROTEUS_GAS_LIST + PROTEUS_ELEMENT_LIST + CHEMISTRY_EXTRAS:
         for background in ('CO2', 'H2', 'O', 'N2'):

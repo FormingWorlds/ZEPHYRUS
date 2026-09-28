@@ -196,8 +196,8 @@ def test_el_escape_tidal_correction_increases_escape():
     the denominator, the tidal rate exceeds the no-tidal rate. The enhancement
     ``1 / K_tide`` is pinned, and the no-tidal value is the discrimination
     guard: a dropped ``K_tide`` would collapse the ratio to 1, and the
-    superseded ``Rhill / Rxuv`` convention for ``scaling=2`` would give 1.60
-    instead of the pinned 1.46, so a convention regression also fails.
+    ``Rhill / Rxuv`` convention, wrong for ``scaling=2``, would give 1.60
+    instead of the pinned 1.46.
     """
     a = 0.02 * au2m  # close-in so K_tide is well below 1
     no_tidal = EL_escape(False, a, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
