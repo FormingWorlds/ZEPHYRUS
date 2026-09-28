@@ -23,12 +23,13 @@ import math
 import pytest
 
 from zephyrus.atomic_data import SIGMA_NU0_H, SIGMA_NU_N
-from zephyrus.constants import G, m_p
+from zephyrus.constants import G, ev2joule, m_p
 from zephyrus.hydrodynamic import (
     caldiroli_efficiency,
     el_rate,
     hill_radius_periapsis,
     k_tide,
+    pl_rate,
     rr_chain,
     selection_mechanism,
     wind_mean_masses,
@@ -158,7 +159,7 @@ def test_rr_subcritical_floor_semantics():
     assert rr['R_s_calc'] < 1.0 * Re
     assert rr['rho_s'] == pytest.approx(rr['rho_base'], rel=1e-12, abs=0.0)
     assert rr['barometric_factor'] == pytest.approx(1.0, rel=1e-12, abs=0.0)
-    assert selection_mechanism(rr, el_won=False) == 'RR-selected:subcritical-floor'
+    assert selection_mechanism(rr, 'RR') == 'RR-selected:subcritical-floor'
 
 
 @pytest.mark.physics_invariant
@@ -196,9 +197,10 @@ def test_rr_barometric_factor_separates_the_two_rr_regimes():
 
     # The string has three outcomes and no threshold: both are supercritical
     # RR wins, so any split on lambda_b would label them differently.
-    assert selection_mechanism(rr, el_won=False) == 'RR-selected'
-    assert selection_mechanism(rr_h, el_won=False) == 'RR-selected'
-    assert selection_mechanism(rr, el_won=True) == 'EL-selected'
+    assert selection_mechanism(rr, 'RR') == 'RR-selected'
+    assert selection_mechanism(rr_h, 'RR') == 'RR-selected'
+    assert selection_mechanism(rr, 'EL') == 'EL-selected'
+    assert selection_mechanism(rr, 'PL') == 'PL-selected'
 
 
 @pytest.mark.physics_invariant
@@ -296,3 +298,37 @@ def test_front_constants_come_from_one_front():
     for chain in (hydrogen, nitrogen):
         assert 0.0 <= chain['f_plus_base'] <= 1.0
     assert nitrogen['f_plus_base'] > 0.8
+
+
+@pytest.mark.reference_pinned
+@pytest.mark.physics_invariant
+def test_photon_limited_rate_and_its_crossover_with_el():
+    """Owen & Alvarez (2016) Eq. (10), and where it meets the energy limit.
+
+    For pure hydrogen at 20 eV per photon the rate is one hydrogen mass per
+    intercepted photon, ``pi R^2 m_H F / e_ion``, pinned against that closed
+    form. On the energy-limited rate's own disk the ratio EL/PL is
+    ``eps e_ion R_p / (G M_p K m_ion)``, free of the absorbing radius, so
+    the two cross at one efficiency; the test evaluates both kernels either
+    side of it on asymmetric inputs (a 3 Earth-mass, 1.4 Earth-radius
+    planet, K = 0.8, a disk at 1.3 R_p) so a swapped radius or a missing
+    tidal factor moves the crossover. The rate is linear in the flux and
+    independent of planet mass, and invalid inputs raise.
+    """
+    F, e_ion, m_ion = 3.7, 20.0 * ev2joule, 1.00794 * 1.66053906660e-27
+    M_p, R_p, K = 3 * Me, 1.4 * Re, 0.8
+    R_abs = 1.3 * R_p
+    pl = pl_rate(F, R_abs, e_ion, m_ion)
+    assert pl == pytest.approx(math.pi * R_abs**2 * F / e_ion * m_ion, rel=1e-15, abs=0.0)
+    assert pl_rate(2 * F, R_abs, e_ion, m_ion) == pytest.approx(2 * pl, rel=1e-15, abs=0.0)
+    eps_pl = G * M_p * K * m_ion / (e_ion * R_p)
+    for factor, el_smaller in ((0.9, True), (1.1, False)):
+        el = el_rate(factor * eps_pl, F, R_p, R_abs, M_p, K)
+        assert (el < pl) is el_smaller
+    assert el_rate(eps_pl, F, R_p, R_abs, M_p, K) == pytest.approx(pl, rel=1e-12, abs=0.0)
+    with pytest.raises(ValueError):
+        pl_rate(F, R_abs, 0.0, m_ion)
+    with pytest.raises(ValueError):
+        pl_rate(-1.0, R_abs, e_ion, m_ion)
+    with pytest.raises(ValueError):
+        selection_mechanism({'subcritical': False}, 'XX')

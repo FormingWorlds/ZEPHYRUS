@@ -7,13 +7,14 @@ Mass loss happens through two physically distinct channels, and ZEPHYRUS models 
 1. Continuous thermal escape: the steady outflow or evaporation of the upper atmosphere, driven by stellar irradiation and by the planet's own heat. This is one framework with several regimes, described below.
 2. Impact-driven erosion: the impulsive removal of atmosphere by a single giant collision during accretion, a separate channel with its own prescription (see [giant impacts](impacts.md)).
 
-## The continuous channel: one framework, five regimes
+## The continuous channel: one framework, six regimes
 
-Which physics carries the continuous loss depends on how tightly the atmosphere is bound, how strongly it is irradiated, and how collisional its outer layers are. Applying a prescription outside its regime gives rates that are wrong by orders of magnitude, so ZEPHYRUS classifies each atmospheric state before choosing a rate. Every state receives one of five regime labels:
+Which physics carries the continuous loss depends on how tightly the atmosphere is bound, how strongly it is irradiated, and how collisional its outer layers are. Applying a prescription outside its regime gives rates that are wrong by orders of magnitude, so ZEPHYRUS classifies each atmospheric state before choosing a rate. Every state receives one of six regime labels:
 
 - `boiloff`: the atmosphere is so weakly bound that it flows out on the planet's own thermal energy, before stellar XUV heating matters. Typical of young, hot, hydrogen-rich planets fresh out of the nebula.
 - `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (the energy-limited rate is the smaller of the two hydrodynamic limits here).
 - `hydrodynamic:RR`: the same fluid wind, but the rate is capped below the energy limit because radiative recombination re-emits part of the absorbed energy (the radiation-recombination-limited rate wins).
+- `hydrodynamic:PL`: the same fluid wind in a well shallow enough that each ionizing photon carries more energy than lifting one particle costs, so the rate is set by the number of photons rather than their energy (the photon-limited rate of Owen & Alvarez 2016 wins).
 - `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape), species by species, capped by how fast diffusion can resupply each species.
 - `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017) outruns every bound candidate and is dispatched as the rate, or the flow region reaches the planet's Hill sphere and the label sits on top of whichever regime produced the rate, which is then a lower limit. `diagnostics['roche']['rate_branch']` says which reading applies.
 
@@ -24,7 +25,7 @@ flowchart TD
     IN(["Planet state + atmosphere profile"]) --> Q1{"Is the atmosphere inflated<br/>beyond its sonic radius?<br/>(Jeans parameter below threshold)"}
     Q1 -- yes --> BO["BOIL-OFF<br/>bolometric wind"]
     Q1 -- no --> Q2{"Is an XUV wind collisional<br/>at its sonic point?<br/>(Knudsen number below threshold)"}
-    Q2 -- yes --> HD["HYDRODYNAMIC WIND<br/>label EL or RR,<br/>whichever rate is smaller"]
+    Q2 -- yes --> HD["HYDRODYNAMIC WIND<br/>label EL, RR, or PL,<br/>whichever rate is smallest"]
     Q2 -- no --> HS["HYDROSTATIC<br/>per-species Jeans escape"]
     BO --> Q3{"Does the flow reach<br/>the Hill sphere?"}
     HD --> Q3

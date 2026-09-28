@@ -72,6 +72,29 @@ def el_rate(eps: float, F_xuv: float, R_p: float, R_xuv: float, M_p: float, K: f
     return eps * math.pi * F_xuv * R_p * R_xuv**2 / (G * M_p * K)
 
 
+def pl_rate(F_xuv: float, R_abs: float, e_ion_J: float, m_ion_kg: float) -> float:
+    """Photon-limited rate pi R_abs^2 (F_xuv / e_ion) m_ion, in kg/s.
+
+    Owen & Alvarez (2016, ApJ 816, 34, Eq. 10) generalized from pure
+    hydrogen: at most one particle of mass ``m_ion_kg`` [kg] leaves per
+    ionizing photon of energy ``e_ion_J`` [J] intercepted by the disk of
+    radius ``R_abs`` [m]. Evaluated on the energy-limited rate's own disk,
+    the cap binds exactly when the efficiency exceeds
+    ``G M_p K m_ion / (e_ion R_p)``.
+
+    Raises
+    ------
+    ValueError
+        If ``e_ion_J`` or ``m_ion_kg`` is not positive, or ``F_xuv`` or
+        ``R_abs`` is negative.
+    """
+    if not (e_ion_J > 0.0 and m_ion_kg > 0.0):
+        raise ValueError('pl_rate needs a positive photon energy and particle mass')
+    if F_xuv < 0.0 or R_abs < 0.0:
+        raise ValueError('pl_rate needs a non-negative flux and radius')
+    return math.pi * R_abs**2 * F_xuv / e_ion_J * m_ion_kg
+
+
 def EL_escape(
     tidal_contribution: bool,
     a: float,
@@ -379,10 +402,11 @@ def rr_chain(
     )
 
 
-def selection_mechanism(rr: dict, el_won: bool) -> str:
-    """Which candidate min(EL, RR) selected; diagnostic only.
+def selection_mechanism(rr: dict, winner: str) -> str:
+    """Which candidate min(EL, RR, PL) selected; diagnostic only.
 
-    Three outcomes: the energy-limited rate won, the
+    ``winner`` is ``'EL'``, ``'RR'``, or ``'PL'``. Four outcomes: the
+    energy-limited rate won, the photon-limited cap won, the
     recombination-limited rate won, or it won with the sonic radius
     floored at the wind base (the subcritical configuration of
     :func:`rr_chain`, where the returned value is a floored one rather
@@ -393,8 +417,10 @@ def selection_mechanism(rr: dict, el_won: bool) -> str:
     near 1 the recombination-limited base ionization sets the rate, and
     decades below 1 the wind cannot carry material to the sonic point.
     """
-    if el_won:
-        return 'EL-selected'
+    if winner not in ('EL', 'RR', 'PL'):
+        raise ValueError(f"winner must be 'EL', 'RR', or 'PL', got {winner!r}")
+    if winner != 'RR':
+        return f'{winner}-selected'
     if rr['subcritical']:
         return 'RR-selected:subcritical-floor'
     return 'RR-selected'

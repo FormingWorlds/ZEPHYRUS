@@ -26,7 +26,7 @@ The closure evaluates at the XUV wind base on the atomized composition (molecule
 
 | Branch that produced the rate | Per-species split |
 |---|---|
-| `hydrodynamic:EL`, `hydrodynamic:RR` | The N-species closure at the wind base (this page); with fractionation disabled, reservoir mass fractions |
+| `hydrodynamic:EL`, `hydrodynamic:RR`, `hydrodynamic:PL` | The N-species closure at the wind base (this page); with fractionation disabled, reservoir mass fractions |
 | `boiloff` | Reservoir mass fractions (no fractionation: the flow is fast and bulk) |
 | `hydrostatic` | Natively per-species: each species carries its own Jeans flux and supply cap (see [escape regimes](regimes.md)) |
 

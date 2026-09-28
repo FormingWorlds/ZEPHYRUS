@@ -156,7 +156,7 @@ hydrodynamic:EL
 ['base_level', 'bolometric', 'closure', 'documentation', 'erkaev_tc_K', 'fluid_check', 'guo_triple', 'hydrodynamic', 'hydrostatic', 'johnson_q', 'knudsen', 'lambda_gate', 'nozzle', 'potential_screens', 'rate_floor', 'roche', 'self_consistency', 'tang_timescale', 'thermostat']
 ```
 
-Five fields, and each one guarantees something. `regime` is one of five labels. `mdot` is a non-negative bulk rate in kg s⁻¹, here $2.35 \times 10^{6}$ kg s⁻¹, or $7.4 \times 10^{13}$ kg yr⁻¹. `per_species` gives element rates that sum to `mdot` at machine precision, which is what a coupled run relies on when it debits element inventories, and which is worth asserting in your own code. `flags` records every clamp, fallback, and screen that fired; an empty dictionary means nothing needed reporting. `diagnostics` is the container of step 5.
+Five fields, and each one guarantees something. `regime` is one of six labels. `mdot` is a non-negative bulk rate in kg s⁻¹, here $2.35 \times 10^{6}$ kg s⁻¹, or $7.4 \times 10^{13}$ kg yr⁻¹. `per_species` gives element rates that sum to `mdot` at machine precision, which is what a coupled run relies on when it debits element inventories, and which is worth asserting in your own code. `flags` records every clamp, fallback, and screen that fired; an empty dictionary means nothing needed reporting. `diagnostics` is the container of step 5.
 
 Every physically posed state returns a result. Exceptions are reserved for malformed input, so a `ValueError` from `dispatch` means the state itself is wrong (a negative mass, an eccentricity of 1, a profile whose pressure does not decrease outward), not that the physics failed.
 
@@ -288,13 +288,13 @@ print(noz['rate_full_orbit_kg_s'], noz['R_sonic_over_R_L1'], noz['rate_kg_s'])
 Output:
 
 ```text
-hydrodynamic:EL 73002.71859264988 True
+hydrodynamic:PL 44230.50499473552 True
 0.817259936490472
 False parker 8968244.133873517
 674942040.3533882 0.9568936320693068 0.0
 ```
 
-The XUV wind takes the rate at $7.3 \times 10^{4}$ kg s⁻¹. Its flow radius reaches 0.82 of the Hill radius, inside the lobe, so the screen stays quiet and of the overflow flags only `near_roche` is raised, while the candidate that would have taken the rate two decades higher still sits in `diagnostics['bolometric']` with `competes` false. `binding_cap` says the Parker rate itself sets it: this close to the gate the closed-form wind has not yet shut off below the interior-luminosity cap, which here sits higher, at $1.5 \times 10^{7}$ kg s⁻¹. The tidally driven transfer through the inner Lagrange point is computed on every call and reports $6.7 \times 10^{8}$ kg s⁻¹ as `rate_full_orbit_kg_s`, but it competes only where the overflow description applies, and here the isothermal sonic radius sits just inside the L1 distance (`R_sonic_over_R_L1` reads 0.96), so a spherical wind chokes before the nozzle does and the candidate stands down: `rate_kg_s`, the rate the dispatcher actually competes, is zero.
+The XUV wind takes the rate at $4.4 \times 10^{4}$ kg s⁻¹, set by the photon count. Its flow radius reaches 0.82 of the Hill radius, inside the lobe, so the screen stays quiet and of the overflow flags only `near_roche` is raised, while the candidate that would have taken the rate two decades higher still sits in `diagnostics['bolometric']` with `competes` false. `binding_cap` says the Parker rate itself sets it: this close to the gate the closed-form wind has not yet shut off below the interior-luminosity cap, which here sits higher, at $1.5 \times 10^{7}$ kg s⁻¹. The tidally driven transfer through the inner Lagrange point is computed on every call and reports $6.7 \times 10^{8}$ kg s⁻¹ as `rate_full_orbit_kg_s`, but it competes only where the overflow description applies, and here the isothermal sonic radius sits just inside the L1 distance (`R_sonic_over_R_L1` reads 0.96), so a spherical wind chokes before the nozzle does and the candidate stands down: `rate_kg_s`, the rate the dispatcher actually competes, is zero.
 
 Back on the admitted state, the subflag is the part worth reading, and it is read against the Roche lobe rather than the Hill radius, because the lobe is the critical surface and sits about 0.70 of the way out to it. This atmosphere reaches 0.96 Hill radii, which is 1.36 lobe radii, so its own extent is past the lobe and the subflag is `dynamical`. Compare `puffy.diagnostics['roche']['r_atmosphere']` against `r_lobe` in `puffy.diagnostics['nozzle']` to see it. The other value, `no_transonic`, is the narrower case where the atmosphere stays inside its lobe and only the would-be sonic surface sits outside the Hill radius, and `neither` marks a state that carries the label on the rate crossing alone. On a tightly bound heavy atmosphere the label can fire on geometry alone with no rate behind it; the [troubleshooting guide](../How-to/troubleshooting.md) walks the four cases.
 
@@ -498,7 +498,7 @@ A 3% shift, with the lighter element enriched, which is the right size for a wel
 
 ### The efficiency
 
-Sweeping the energy-limited efficiency across its literature range moves the rate linearly and can move the sub-label:
+Sweeping the energy-limited efficiency across its literature range moves the rate linearly until a cap takes over, and can move the sub-label:
 
 ```python
 for eps in (0.1, 0.3, 0.6):
@@ -516,12 +516,12 @@ Output:
 
 ```text
 0.1 hydrodynamic:EL 2347722.550685174 2347722.550685174 11494353.468961576
-0.3 hydrodynamic:EL 7043167.652055521 7043167.652055521 11494353.468961576
-0.6 hydrodynamic:RR 11494353.468961576 14086335.304111041 11494353.468961576
+0.3 hydrodynamic:PL 6136531.331966522 7043167.652055521 11494353.468961576
+0.6 hydrodynamic:PL 6136531.331966522 14086335.304111041 11494353.468961576
 0.7908366641614278 ['caldiroli_out_of_box']
 ```
 
-At 0.6 the energy-limited candidate overtakes the recombination-limited one and the label changes without the physics of the wind changing at all: the minimum switched hands, nothing else. The fitted-efficiency option returns 0.791 for this planet with `caldiroli_out_of_box` raised, because a one Earth-mass planet sits below the gravitational potential range the fit was made on[^caldiroli]. That is the guard working. Take the flag seriously rather than the number.
+From 0.3 the photon count binds. Lifting one particle out of a one Earth-mass well costs about a quarter of an ionizing photon's energy, so above an efficiency of 0.26 (`efficiency_photon_limit` in the diagnostics) more energy per photon cannot remove more gas, and the rate stops at $6.1 \times 10^{6}$ kg s⁻¹ while the energy-limited candidate keeps growing[^owenalvarez]. The label changes without the physics of the wind changing at all: the minimum switched hands, nothing else. With `photon_limit = False` the rate would keep rising until the recombination-limited candidate took over at 0.6. The fitted-efficiency option returns 0.791 for this planet with `caldiroli_out_of_box` raised, because a one Earth-mass planet sits below the gravitational potential range the fit was made on[^caldiroli]. That is the guard working. Take the flag seriously rather than the number.
 
 ### One more, for evolutionary use
 
@@ -633,3 +633,5 @@ And the consistency screen fires in the middle of the track, not at the ends, wh
 [^yelle]: Yelle, R. V. (2024). Diffusion limited escape of hydrogen from Mars. *Icarus, 416*, 116099.
 
 [^caldiroli]: Caldiroli, A., Haardt, F., Gallo, E., Spinelli, R., Malsky, I., & Rauscher, E. (2022). Irradiation-driven escape of primordial planetary atmospheres II. Evaporation efficiency of sub-Neptunes through hot Jupiters. *Astronomy & Astrophysics, 663*, A122. https://doi.org/10.1051/0004-6361/202142763
+
+[^owenalvarez]: Owen, J. E., & Alvarez, M. A. (2016). UV Driven Evaporation of Close-in Planets: Energy-limited, Recombination-limited, and Photon-limited Flows. *The Astrophysical Journal, 816*(1), 34. https://doi.org/10.3847/0004-637X/816/1/34

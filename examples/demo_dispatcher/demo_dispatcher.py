@@ -78,6 +78,7 @@ def brand_colors() -> dict:
         'boiloff': '#E23D28',  # the one hot mark on the figure
         'hydrodynamic:EL': '#1B6FA8',
         'hydrodynamic:RR': '#4FA3D9',
+        'hydrodynamic:PL': '#0E4A73',
         'hydrostatic': '#7A8894',
         'roche_overflow': '#593E74',
         'solar': '#C8860F',
@@ -126,6 +127,7 @@ REGIME_MARKERS = {
     'boiloff': 'D',
     'hydrodynamic:EL': 'o',
     'hydrodynamic:RR': 's',
+    'hydrodynamic:PL': 'v',
     'hydrostatic': '^',
     'roche_overflow': 'X',
 }

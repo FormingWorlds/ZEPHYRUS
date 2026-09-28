@@ -19,7 +19,7 @@ from zephyrus import knudsen as kn
 from zephyrus import nozzle as nz
 from zephyrus import thermostat as th
 from zephyrus.composition import atomize, mean_particle_mass
-from zephyrus.constants import kb, m_p
+from zephyrus.constants import G, ev2joule, kb, m_p
 from zephyrus.fractionation import closure_per_species, unfractionated_split
 from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 
@@ -60,6 +60,7 @@ REGIME_LABELS = (
     'boiloff',
     'hydrodynamic:EL',
     'hydrodynamic:RR',
+    'hydrodynamic:PL',
     'hydrostatic',
     'roche_overflow',
 )
@@ -90,6 +91,7 @@ class DispatchSettings:
     cool_recombination: bool = True
     fractionate: bool = True
     tidal: bool = True
+    photon_limit: bool = True  # cap the XUV wind at one particle per photon
     nozzle_temperature: str = 'photospheric'  # 'photospheric' | 'wind'
     residual_mode: str = 'off'  # 'off' | 'luminosity_capped'
     lambda_crit: float = 20.0  # boil-off activation threshold (band 15 to 35)
@@ -314,16 +316,25 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             hydro_flags['efficiency_fallback_fixed'] = True
     mdot_el = hy.el_rate(eps, inputs.F_xuv, inputs.R_p, r_xuv, inputs.M_p, k_factor)
     mdot_rr = rr['mdot_rr']
-    el_won = mdot_el <= mdot_rr
-    mdot_hydro = min(mdot_el, mdot_rr)
-    hydro_label = 'hydrodynamic:EL' if el_won else 'hydrodynamic:RR'
+    # One particle per intercepted front photon, on the EL disk so the two
+    # share one photon budget (Owen & Alvarez 2016, Eq. 10).
+    e_ion = rr['hnu0_eV'] * ev2joule
+    m_ion = rr['mu_plus_wind'] * m_p
+    mdot_pl = hy.pl_rate(inputs.F_xuv, r_xuv, e_ion, m_ion) if st.photon_limit else math.inf
+    candidates = {'EL': mdot_el, 'RR': mdot_rr, 'PL': mdot_pl}
+    winner = min(candidates, key=candidates.get)
+    mdot_hydro = candidates[winner]
+    hydro_label = f'hydrodynamic:{winner}'
     diag['hydrodynamic'] = dict(
         mdot_el=mdot_el,
         mdot_rr=mdot_rr,
+        mdot_pl=mdot_pl,
+        photon_limit=st.photon_limit,
+        efficiency_photon_limit=G * inputs.M_p * k_factor * m_ion / (e_ion * inputs.R_p),
         efficiency=eps,
         K_tide=k_factor,
         T_wind=t_wind,
-        selection_mechanism=hy.selection_mechanism(rr, el_won),
+        selection_mechanism=hy.selection_mechanism(rr, winner),
         rr_chain={
             k: rr[k]
             for k in (

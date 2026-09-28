@@ -178,6 +178,9 @@ def test_totality_over_random_physical_inputs():
             assert all(v == 0.0 for v in res.per_species.values())
         assert isinstance(res.diagnostics, dict)
         assert 'knudsen' in res.diagnostics
+        if res.regime.startswith('hydrodynamic'):
+            # The photon count caps every XUV wind the dispatcher returns.
+            assert res.mdot <= res.diagnostics['hydrodynamic']['mdot_pl'] * (1 + 1e-12)
         seen.add(res.regime)
         n_ok += 1
     # The sweep must genuinely exercise more than one branch.
@@ -226,7 +229,7 @@ def test_routing_hydrodynamic_and_el_candidate_matches_el_escape():
     ``EL_escape`` evaluated with the same efficiency, radii, flux, and
     tidal factor (the cross-implementation pin tying the dispatcher to the
     package's public energy-limited contract). The label carries the
-    min(EL, RR) winner as its sub-label.
+    min(EL, RR, PL) winner as its sub-label.
     """
     inp = _inputs(5 * Me, 1.8 * Re, 1100.0, {'H2': 0.9, 'He': 0.1}, F_xuv=200.0, a=0.05 * AU)
     res = dispatch(inp)
@@ -237,8 +240,9 @@ def test_routing_hydrodynamic_and_el_candidate_matches_el_escape():
     r_xuv = _photo_radius(inp)
     ref = EL_escape(True, inp.a, inp.e, inp.M_p, inp.M_star, eps, inp.R_p, r_xuv, inp.F_xuv, 2)
     assert hydro['mdot_el'] == pytest.approx(ref, rel=1e-9, abs=0.0)
-    assert res.mdot == pytest.approx(min(hydro['mdot_el'], hydro['mdot_rr']), rel=1e-9, abs=0.0)
-    winner = 'EL' if hydro['mdot_el'] <= hydro['mdot_rr'] else 'RR'
+    rates = {'EL': hydro['mdot_el'], 'RR': hydro['mdot_rr'], 'PL': hydro['mdot_pl']}
+    winner = min(rates, key=rates.get)
+    assert res.mdot == pytest.approx(rates[winner], rel=1e-9, abs=0.0)
     assert res.regime == f'hydrodynamic:{winner}'
 
 
@@ -248,6 +252,48 @@ def _photo_radius(inp):
 
     lev, _ = photospheric_level(inp.profile, inp.settings.P_photo)
     return lev['r']
+
+
+def test_photon_limit_caps_the_wind_at_its_efficiency_threshold():
+    """The photon cap takes over from EL where the efficiency passes eps_PL.
+
+    On one shared disk the photon-limited and energy-limited rates cross at
+    ``eps_PL = G M_p K m_ion / (e_ion R_p)``, which the diagnostics report.
+    Bisecting the efficiency on a two Earth-mass hydrogen and helium wind
+    brackets the label change from ``hydrodynamic:EL`` to
+    ``hydrodynamic:PL`` at that value, with the dispatched rate continuous
+    across it; above it the rate stops growing with the efficiency. With
+    ``photon_limit`` off the label is never PL and the rate is min(EL, RR).
+    """
+    comp = {'H2': 0.9, 'He': 0.1}
+
+    def at(eps, **kw):
+        st = DispatchSettings(efficiency=eps, **kw)
+        return dispatch(
+            _inputs(2 * Me, 1.3 * Re, 600.0, comp, F_xuv=1.0, a=0.1 * AU, settings=st)
+        )
+
+    lo, hi = 0.01, 0.6
+    assert at(lo).regime == 'hydrodynamic:EL'
+    assert at(hi).regime == 'hydrodynamic:PL'
+    for _ in range(50):
+        mid = 0.5 * (lo + hi)
+        if at(mid).regime == 'hydrodynamic:EL':
+            lo = mid
+        else:
+            hi = mid
+    below, above = at(lo), at(hi)
+    eps_pl = below.diagnostics['hydrodynamic']['efficiency_photon_limit']
+    assert lo == pytest.approx(eps_pl, rel=1e-9, abs=0.0)
+    assert below.mdot == pytest.approx(above.mdot, rel=1e-9, abs=0.0)
+    assert at(0.6).mdot == pytest.approx(at(0.3).mdot, rel=1e-12, abs=0.0)
+    off = at(0.6, photon_limit=False)
+    hydro = off.diagnostics['hydrodynamic']
+    assert off.regime in ('hydrodynamic:EL', 'hydrodynamic:RR')
+    assert off.mdot == pytest.approx(
+        min(hydro['mdot_el'], hydro['mdot_rr']), rel=1e-12, abs=0.0
+    )
+    assert off.mdot > 1.5 * at(0.6).mdot
 
 
 def test_routing_roche_overflow_inside_the_hill_sphere():
@@ -686,7 +732,7 @@ def test_residual_setting_admits_the_post_gate_candidate():
     on = dispatch(_inputs(3 * Me, 1.7 * Re, 1000.0, settings=admitted, **past))
     assert off.diagnostics['lambda_gate'] > 20.0
     bolo_off = off.diagnostics['bolometric']
-    assert off.regime == 'hydrodynamic:EL'
+    assert off.regime.startswith('hydrodynamic')
     assert 'bolometric_residual' not in off.flags
     assert 'luminosity_capped' not in off.flags
     assert bolo_off['residual_mode'] == 'off'
