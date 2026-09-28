@@ -670,7 +670,7 @@ def test_residual_setting_admits_the_post_gate_candidate():
 
     Past the activation gate the candidate is reported but, by default,
     does not compete: on a contracted 3 Earth-mass hydrogen envelope the
-    luminosity cap sits nearly two decades above the XUV rate, which the
+    luminosity cap sits two decades above the XUV rate, which the
     default dispatches with ``competes`` false. Admitted, the candidate
     dispatches as ``boiloff`` with ``bolometric_residual`` and
     ``luminosity_capped`` raised, so the modes differ by those two decades
@@ -690,7 +690,7 @@ def test_residual_setting_admits_the_post_gate_candidate():
     assert bolo_off['residual_mode'] == 'off'
     assert bolo_off['competes'] is False
     # The candidate is reported in full even though it did not compete, and
-    # it is the luminosity cap that would have won by nearly two decades.
+    # it is the luminosity cap that would have won by two decades.
     assert bolo_off['rate_kg_s'] == pytest.approx(
         bolo_off['mdot_luminosity'], rel=1e-12, abs=0.0
     )
