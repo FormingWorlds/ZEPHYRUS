@@ -92,6 +92,7 @@ class DispatchSettings:
     fractionate: bool = True
     tidal: bool = True
     photon_limit: bool = True  # cap the XUV wind at one particle per photon
+    recombination_limit: bool = True  # admit the recombination-limited rate
     nozzle_temperature: str = 'photospheric'  # 'photospheric' | 'wind'
     residual_mode: str = 'off'  # 'off' | 'luminosity_capped'
     lambda_crit: float = 20.0  # boil-off activation threshold (band 15 to 35)
@@ -315,7 +316,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         else:
             hydro_flags['efficiency_fallback_fixed'] = True
     mdot_el = hy.el_rate(eps, inputs.F_xuv, inputs.R_p, r_xuv, inputs.M_p, k_factor)
-    mdot_rr = rr['mdot_rr']
+    # Off, the chain is still evaluated: its sonic point feeds the Knudsen switch.
+    mdot_rr = rr['mdot_rr'] if st.recombination_limit else math.inf
     # One particle per intercepted front photon, on the EL disk so the two
     # share one photon budget (Owen & Alvarez 2016, Eq. 10).
     e_ion = rr['hnu0_eV'] * ev2joule
@@ -330,6 +332,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         mdot_rr=mdot_rr,
         mdot_pl=mdot_pl,
         photon_limit=st.photon_limit,
+        recombination_limit=st.recombination_limit,
         efficiency_photon_limit=G * inputs.M_p * k_factor * m_ion / (e_ion * inputs.R_p),
         efficiency=eps,
         K_tide=k_factor,

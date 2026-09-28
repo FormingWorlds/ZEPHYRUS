@@ -296,6 +296,52 @@ def test_photon_limit_caps_the_wind_at_its_efficiency_threshold():
     assert off.mdot > 1.5 * at(0.6).mdot
 
 
+def test_recombination_limit_removes_the_rr_candidate_only():
+    """With ``recombination_limit`` off the wind is min(EL, PL), and nothing else moves.
+
+    A one Earth-mass carbon dioxide atmosphere under 1e4 W m^-2 is
+    recombination-limited by default, at a quarter of its energy-limited
+    rate. Switching the candidate off returns that energy-limited rate and
+    label, while the sonic-point Knudsen number, which the chain still
+    supplies, is unchanged. On a five Earth-mass hydrogen and helium wind
+    that is photon-limited, removing RR leaves the verdict alone and
+    removing both caps returns the energy-limited rate.
+    """
+    co2 = dict(comp={'CO2': 1.0}, F_xuv=1.0e4, a=0.05 * AU)
+    on = dispatch(_inputs(Me, Re, 1000.0, **co2))
+    off = dispatch(
+        _inputs(Me, Re, 1000.0, settings=DispatchSettings(recombination_limit=False), **co2)
+    )
+    assert on.regime == 'hydrodynamic:RR'
+    assert off.regime == 'hydrodynamic:EL'
+    assert off.mdot == pytest.approx(
+        on.diagnostics['hydrodynamic']['mdot_el'], rel=1e-12, abs=0.0
+    )
+    assert off.mdot > 3.0 * on.mdot
+    assert off.diagnostics['hydrodynamic']['mdot_rr'] == math.inf
+    assert off.diagnostics['knudsen']['kn_sc'] == on.diagnostics['knudsen']['kn_sc']
+    hhe = dict(comp={'H2': 0.9, 'He': 0.1}, F_xuv=1.0e4, a=0.05 * AU)
+    pl = dispatch(_inputs(5 * Me, 1.8 * Re, 1100.0, **hhe))
+    no_rr = dispatch(
+        _inputs(
+            5 * Me,
+            1.8 * Re,
+            1100.0,
+            settings=DispatchSettings(recombination_limit=False),
+            **hhe,
+        )
+    )
+    neither = DispatchSettings(recombination_limit=False, photon_limit=False)
+    bare = dispatch(_inputs(5 * Me, 1.8 * Re, 1100.0, settings=neither, **hhe))
+    assert pl.regime == 'hydrodynamic:PL'
+    assert no_rr.regime == 'hydrodynamic:PL'
+    assert no_rr.mdot == pytest.approx(pl.mdot, rel=1e-12, abs=0.0)
+    assert bare.regime == 'hydrodynamic:EL'
+    assert bare.mdot == pytest.approx(
+        pl.diagnostics['hydrodynamic']['mdot_el'], rel=1e-12, abs=0.0
+    )
+
+
 def test_routing_roche_overflow_inside_the_hill_sphere():
     """A planet whose Hill sphere sits inside its radius overflows, flagged.
 
