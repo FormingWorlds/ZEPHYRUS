@@ -284,9 +284,7 @@ def test_recombination_cooling_coefficient():
     # Discrimination: the 3/2 is the mean energy carried off per
     # recombination and is the whole content of the coefficient, so the same
     # term with a 3 instead is a different number by exactly a factor two.
-    assert det['parts']['recombination'] != pytest.approx(
-        2.0 * expected, rel=0.01, abs=0.0
-    )
+    assert det['parts']['recombination'] != pytest.approx(2.0 * expected, rel=0.01, abs=0.0)
     # Quadratic in the electron density, not the total: doubling the gas
     # density raises the term by less than four because the ionization
     # fraction falls, which pins that the term is built on electrons.

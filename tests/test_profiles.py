@@ -216,7 +216,9 @@ def test_lopez_base_pressure_is_the_nanobar_level():
     # Scale guard: eighty decades of headroom is a unit slip, five is right.
     assert p_base < 2000.0 * 1e-4
     # Linearity in gravity: doubling g doubles the base pressure.
-    assert lopez_base_pressure(1.008 * amu, 2 * g) == pytest.approx(2 * p_base, rel=1e-12, abs=0.0)
+    assert lopez_base_pressure(1.008 * amu, 2 * g) == pytest.approx(
+        2 * p_base, rel=1e-12, abs=0.0
+    )
     # The proton-mass convention differs from the atomic-weight convention
     # by under a percent; both stay inside the pinned band.
     assert lopez_base_pressure(m_p, g) == pytest.approx(p_base, rel=0.01, abs=0.0)
@@ -357,9 +359,7 @@ def test_wind_base_level_boreas_uses_solver_radius(monkeypatch):
     # The extrapolation is the isothermal solution, which saturates rather
     # than falling without bound: the reported distance cannot exceed the
     # top-level Jeans parameter in decades.
-    lam_top = (
-        G * 5 * Me * float(prof.mmw[-1]) / (kb * float(prof.T[-1]) * float(prof.r[-1]))
-    )
+    lam_top = G * 5 * Me * float(prof.mmw[-1]) / (kb * float(prof.T[-1]) * float(prof.r[-1]))
     assert flags_h['base_clamp_decades'] <= lam_top / math.log(10.0) + 1e-9
 
 
@@ -394,12 +394,8 @@ def test_validate_rejects_non_finite_and_negative_entries():
     with pytest.raises(ValueError, match='non-finite'):
         Profile(**{**base, 'vmr': {'CO2': np.array([1.0, 1.0, np.nan, 1.0, 1.0])}}).validate()
     with pytest.raises(ValueError, match='negative beyond solver noise'):
-        Profile(
-            **{**base, 'vmr': {'CO2': np.full(n, 1.5), 'H2': np.full(n, -0.5)}}
-        ).validate()
+        Profile(**{**base, 'vmr': {'CO2': np.full(n, 1.5), 'H2': np.full(n, -0.5)}}).validate()
     with pytest.raises(ValueError, match='at least one species'):
         Profile(**{**base, 'vmr': {'CO2': np.zeros(n), 'H2': np.zeros(n)}}).validate()
     # Solver noise passes, and the consumers ignore it.
-    Profile(
-        **{**base, 'vmr': {'CO2': np.full(n, 1.0), 'H2': np.full(n, -1e-16)}}
-    ).validate()
+    Profile(**{**base, 'vmr': {'CO2': np.full(n, 1.0), 'H2': np.full(n, -1e-16)}}).validate()

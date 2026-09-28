@@ -123,8 +123,8 @@ def test_erkaev_critical_temperature_normalization():
     assert erkaev_tc(Mjup, Rjup, 3.0 * Rjup, 2.5 * Rjup) == pytest.approx(0.0, abs=0.0)
     # Mass scaling is linear: twice the mass doubles the barrier.
     assert erkaev_tc(2 * Mjup, Rjup, 1.0 * Rjup, 1e3 * Rjup) == pytest.approx(
-        2 * t_far, rel=1e-2
-    , abs=0.0)
+        2 * t_far, rel=1e-2, abs=0.0
+    )
 
 
 def test_along_profile_fluid_check_reports_truncation():
@@ -219,8 +219,12 @@ def test_documentation_constants_are_complete():
     """
     assert MURRAY_CLAY_EXPONENTS['RR_numerical'] == pytest.approx(0.6, rel=1e-12, abs=0.0)
     assert MURRAY_CLAY_EXPONENTS['EL_numerical'] == pytest.approx(0.9, rel=1e-12, abs=0.0)
-    assert MURRAY_CLAY_EXPONENTS['RR_analytic_inherited'] == pytest.approx(0.5, rel=1e-12, abs=0.0)
-    assert MURRAY_CLAY_EXPONENTS['EL_analytic_inherited'] == pytest.approx(1.0, rel=1e-12, abs=0.0)
+    assert MURRAY_CLAY_EXPONENTS['RR_analytic_inherited'] == pytest.approx(
+        0.5, rel=1e-12, abs=0.0
+    )
+    assert MURRAY_CLAY_EXPONENTS['EL_analytic_inherited'] == pytest.approx(
+        1.0, rel=1e-12, abs=0.0
+    )
     assert DAYSIDE_FACTORS['energy_limited'] == pytest.approx(0.26, rel=1e-12, abs=0.0)
     assert DAYSIDE_FACTORS['recombination_limited'] == pytest.approx(0.31, rel=1e-12, abs=0.0)
     # The reduction factors are genuine reductions.

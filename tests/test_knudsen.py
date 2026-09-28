@@ -181,7 +181,9 @@ def test_kn_sonic_equals_mfp_over_scale_height():
     vmr = {'N': 1.0}
     n, r, T = 1e14, 1e7, 8000.0
     kn, sigma, prov = kn_sonic(n, r, vmr, T, gamma=1.0)
-    assert kn == pytest.approx(mean_free_path(sigma, n) / sonic_scale_height(r, 1.0), rel=1e-12, abs=0.0)
+    assert kn == pytest.approx(
+        mean_free_path(sigma, n) / sonic_scale_height(r, 1.0), rel=1e-12, abs=0.0
+    )
     assert prov == {'N': 'laricchiuta'}
     # Rarefied edge: eight decades less dense means eight decades larger Kn.
     kn_thin, _, _ = kn_sonic(n * 1e-8, r, vmr, T)

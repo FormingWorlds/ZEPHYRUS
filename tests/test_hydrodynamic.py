@@ -175,12 +175,16 @@ def test_rr_barometric_factor_separates_the_two_rr_regimes():
     """
     rr = rr_chain(10.0 * Me, 10.0, 2.0 * Re, 1.0e4, {'C': 1.0 / 3.0, 'O': 2.0 / 3.0})
     assert rr['subcritical'] is False
-    assert rr['barometric_factor'] == pytest.approx(math.exp(1.5 - rr['lambda_b']), rel=1e-12, abs=0.0)
+    assert rr['barometric_factor'] == pytest.approx(
+        math.exp(1.5 - rr['lambda_b']), rel=1e-12, abs=0.0
+    )
     # Strongly bound: several decades of suppression, so the sonic-point
     # density is far below the base density.
     assert rr['lambda_b'] > 4.0
     assert rr['barometric_factor'] < 1.0e-2
-    assert rr['rho_s'] == pytest.approx(rr['rho_base'] * rr['barometric_factor'], rel=1e-12, abs=0.0)
+    assert rr['rho_s'] == pytest.approx(
+        rr['rho_base'] * rr['barometric_factor'], rel=1e-12, abs=0.0
+    )
 
     rr_h = rr_chain(0.7 * Mjup, 5.0, 2.0 * Rjup, 1.0e4, {'H': 1.0})
     assert not rr_h['subcritical']

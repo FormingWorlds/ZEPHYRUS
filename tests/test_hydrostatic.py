@@ -186,7 +186,9 @@ def test_escape_temperature_identities_and_gate():
     _per, det = hydrostatic_rates(prof, M_MARS, 300.0)
     m = det['m_bar']
     r = det['r_exo']
-    assert det['T_esc_neutral'] == pytest.approx(G * M_MARS * m / (2 * kb * r), rel=1e-12, abs=0.0)
+    assert det['T_esc_neutral'] == pytest.approx(
+        G * M_MARS * m / (2 * kb * r), rel=1e-12, abs=0.0
+    )
     assert det['T_esc_plasma'] == pytest.approx(det['T_esc_neutral'] / 2.0, rel=1e-12, abs=0.0)
     det2 = dict(det, T_esc_neutral=500.0, T_esc_plasma=250.0)
     # Gate thresholds: neutral at 250 K, plasma at 125 K exobase temperature.
@@ -220,8 +222,8 @@ def test_element_mapping_conserves_mass_and_dominant_bypass():
     # The CO2 mass rate splits onto C and O in stoichiometric proportion.
     rate_co2 = det['per_species_rate']['CO2']
     assert per_el['C'] + per_el['O'] + per_el['H'] == pytest.approx(
-        rate_co2 + det['per_species_rate']['H'], rel=1e-9
-    , abs=0.0)
+        rate_co2 + det['per_species_rate']['H'], rel=1e-9, abs=0.0
+    )
 
 
 def test_extension_truncates_when_unbound_and_flags():

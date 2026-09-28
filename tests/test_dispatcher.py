@@ -285,7 +285,9 @@ def test_roche_screen_renames_without_changing_the_rate():
 
     def at(a):
         return dispatch(
-            _inputs(3 * Me, 1.7 * Re, 1000.0, comp, F_xuv=0.1, a=a, F_int=0.05, settings=admitted)
+            _inputs(
+                3 * Me, 1.7 * Re, 1000.0, comp, F_xuv=0.1, a=a, F_int=0.05, settings=admitted
+            )
         )
 
     lo, hi = 0.078 * AU, 0.3 * AU
@@ -796,11 +798,17 @@ def test_bolometric_diagnostics_keys_match_the_results_page():
     from pathlib import Path
 
     page = Path(__file__).resolve().parents[1] / 'docs' / 'Reference' / 'results.md'
-    row = next(line for line in page.read_text().splitlines() if line.startswith('| `bolometric` |'))
+    row = next(
+        line for line in page.read_text().splitlines() if line.startswith('| `bolometric` |')
+    )
     documented = set(re.findall(r'`([A-Za-z_]+)`', row.split('|')[2]))
     assert len(documented) >= 15
-    past = dispatch(_inputs(3 * Me, 2 * Re, 1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU))
-    below = dispatch(_inputs(Me, 1.5 * Re, 1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=10.0, a=0.0775 * AU))
+    past = dispatch(
+        _inputs(3 * Me, 2 * Re, 1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.12 * AU)
+    )
+    below = dispatch(
+        _inputs(Me, 1.5 * Re, 1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=10.0, a=0.0775 * AU)
+    )
     for result in (past, below):
         assert set(result.diagnostics['bolometric']) == documented
 
@@ -1248,7 +1256,12 @@ FLAG_CASES = (
             a=0.0775,
         ),
         dict(
-            M_p=3 * Me, R_p=1.7 * Re, T_eq=1000.0, comp={'H2': 0.9, 'He': 0.1}, F_xuv=0.1, a=0.30
+            M_p=3 * Me,
+            R_p=1.7 * Re,
+            T_eq=1000.0,
+            comp={'H2': 0.9, 'He': 0.1},
+            F_xuv=0.1,
+            a=0.30,
         ),
     ),
     (

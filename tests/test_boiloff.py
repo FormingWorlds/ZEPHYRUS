@@ -156,11 +156,15 @@ def test_bondi_cap_is_misener_eq10_at_the_wind_temperature():
         mu, r_l = launch['mmw'], launch['r']
         c_s = math.sqrt(kb * T_w / mu)
         r_s = G * M_p / (2.0 * c_s**2)
-        expected = 4.0 * math.pi * r_s**2 * c_s * launch['rho'] * math.exp(2.0 - 2.0 * r_s / r_l)
+        expected = (
+            4.0 * math.pi * r_s**2 * c_s * launch['rho'] * math.exp(2.0 - 2.0 * r_s / r_l)
+        )
         assert det['mdot_bondi'] == pytest.approx(expected, rel=1e-12, abs=0.0)
         c_eq = math.sqrt(kb * T_eq / mu)
         r_eq = G * M_p / (2.0 * c_eq**2)
-        at_teq = 4.0 * math.pi * r_eq**2 * c_eq * launch['rho'] * math.exp(2.0 - 2.0 * r_eq / r_l)
+        at_teq = (
+            4.0 * math.pi * r_eq**2 * c_eq * launch['rho'] * math.exp(2.0 - 2.0 * r_eq / r_l)
+        )
         lam_launch = G * M_p * mu / (kb * T_eq * r_l)
         assert at_teq / expected == pytest.approx(
             2.0**-0.375 * math.exp(lam_launch * (2.0**0.25 - 1.0)), rel=1e-12, abs=0.0
@@ -240,13 +244,15 @@ def test_luminosity_cap_carries_the_tidal_barrier_reduction():
     assert det_flat['k_tide'] == pytest.approx(1.0)
     assert det_tidal['mdot_luminosity'] > det_flat['mdot_luminosity']
     assert det_tidal['mdot_luminosity'] / det_flat['mdot_luminosity'] == pytest.approx(
-        1.92, rel=0.01
-    , abs=0.0)
+        1.92, rel=0.01, abs=0.0
+    )
     # K = 1 is the untidal form, and the cap still bounds the rate.
     _rate_one, det_one = bolometric_candidate(
         *args, lambda_gate=30.0, lambda_crit=20.0, k_tide=1.0
     )
-    assert det_one['mdot_luminosity'] == pytest.approx(det_flat['mdot_luminosity'], rel=1e-12, abs=0.0)
+    assert det_one['mdot_luminosity'] == pytest.approx(
+        det_flat['mdot_luminosity'], rel=1e-12, abs=0.0
+    )
     assert _rate_tidal <= det_tidal['mdot_luminosity'] * (1 + 1e-12)
 
 
@@ -346,9 +352,7 @@ def test_launch_level_reports_its_own_optical_depth():
         Me, 1.5 * Re, 1000.0, 0.01, launch, 1.0, 5.0, 20.0, k_tide=1.0
     )
     # The identity, not a re-derivation: pressure and gravity at the level.
-    assert det['tau_launch'] == pytest.approx(
-        0.01 * launch['p'] / g_launch, rel=1e-12, abs=0.0
-    )
+    assert det['tau_launch'] == pytest.approx(0.01 * launch['p'] / g_launch, rel=1e-12, abs=0.0)
     assert det['p_launch'] == pytest.approx(float(launch['p']), rel=1e-12, abs=0.0)
     # This level is nowhere near its own photosphere at this opacity, which
     # is the finding the diagnostic makes visible rather than hiding.

@@ -63,9 +63,7 @@ def k_tide(xi: float) -> float:
     fills its lobe and needs the overflow treatment.
     """
     if not xi > 1.0:
-        raise ValueError(
-            f'k_tide is defined for xi > 1 and has a double root at 1, got {xi!r}'
-        )
+        raise ValueError(f'k_tide is defined for xi > 1 and has a double root at 1, got {xi!r}')
     return 1.0 - 3.0 / (2.0 * xi) + 1.0 / (2.0 * xi**3)
 
 

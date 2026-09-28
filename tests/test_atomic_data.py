@@ -112,7 +112,9 @@ def test_case_b_coefficients_and_temperature_scaling():
     for el in ('H', 'He', 'C', 'N', 'O'):
         ratio = alpha_case_b(el, 2.0e4) / alpha_case_b(el, 1.0e4)
         assert ratio == pytest.approx(2.0**-0.9, rel=1e-12, abs=0.0)
-    assert alpha_case_b('Xe', 8000.0) == pytest.approx(alpha_case_b('O', 8000.0), rel=1e-12, abs=0.0)
+    assert alpha_case_b('Xe', 8000.0) == pytest.approx(
+        alpha_case_b('O', 8000.0), rel=1e-12, abs=0.0
+    )
     # Scale guard: all case B values live in the 1e-13 decade at 1e4 K.
     for el in ('He', 'C', 'N', 'O'):
         assert 5e-14 < alpha_case_b(el, 1.0e4) < 5e-13

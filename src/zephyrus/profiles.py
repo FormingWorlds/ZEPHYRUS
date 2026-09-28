@@ -84,7 +84,9 @@ class Profile:
             if np.any(arr < -VMR_NOISE_FLOOR):
                 raise ValueError(f'vmr[{sp}] is negative beyond solver noise')
         if self.vmr:
-            total = sum(np.clip(np.asarray(x, dtype=float), 0.0, None) for x in self.vmr.values())
+            total = sum(
+                np.clip(np.asarray(x, dtype=float), 0.0, None) for x in self.vmr.values()
+            )
             if np.any(np.asarray(total) <= 0.0):
                 raise ValueError('every level needs at least one species present')
 
