@@ -1,9 +1,10 @@
 # ZEPHYRUS agent instructions
 
-ZEPHYRUS computes atmospheric escape for PROTEUS: the energy-limited mass-loss rate driven by stellar XUV irradiation (`escape.py`, `EL_escape`) and the fraction of the atmosphere lost in a giant impact (`collision.py`, `mass_loss`, clipped to [0, 1]). Before a first edit:
+ZEPHYRUS computes atmospheric escape for PROTEUS: the energy-limited mass-loss rate driven by stellar XUV irradiation (`EL_escape`, defined in `hydrodynamic.py` and re-exported by `escape.py`, the released import path), the escape-regime dispatcher (`dispatcher.py`, `dispatch`), which returns one regime label, one bulk rate, per-species rates summing to it, flags, and a diagnostics container for a planetary state, and the fraction of the atmosphere lost in a giant impact (`collision.py`, `mass_loss`, clipped to [0, 1]). Before a first edit:
 
 - Tests for `src/zephyrus/<file>.py` go in `tests/test_<file>.py`; the test rules are in `tests/AGENTS.md`.
-- `escape.py` and `collision.py` are the physics sources; `constants.py` and `planets_parameters.py` are utilities.
+- The physics sources are the files in `PHYSICS_SOURCES` of `tools/check_test_quality.py` (the dispatcher, its branches, their data and diagnostics, and `collision.py`); `__init__.py`, `composition.py`, `escape.py`, `constants.py`, and `planets_parameters.py` are utilities.
+- The dispatcher's diagnostics container is reporting only: no line of the dispatch control flow reads it, and a test replaces every producer with garbage to check that the verdict does not move. Keep it that way.
 - The escape rate is non-negative, linear in `Fxuv`, decreasing with planet mass, and zero at `Fxuv = 0`; PROTEUS turns the rate into the mass lost per step and caps that at a fraction of the escapable reservoir (`limit_escape_step`), so an inflated rate distorts the coupled evolution.
 - These commands decide whether a change is ready (CI runs the tests, the structure check, the test-quality lint and the agent-file check):
 
@@ -64,10 +65,10 @@ Commit messages, pull-request text, code comments, docstrings, test names, test 
 
 - Units are SI throughout: `EL_escape(tidal_contribution, a, e, Mp, Ms, epsilon, Rp, Rxuv, Fxuv, scaling=2)` takes `a`, `Rp`, `Rxuv` in m, `Mp`, `Ms` in kg, `Fxuv` in W m-2, `e` and `epsilon` dimensionless, and returns kg s-1. MORS returns `Lx`, `Leuv` in erg s-1: divide by `4 pi a**2` with `a` in cm (`a_au * au2cm`) for a flux in erg s-1 cm-2, then multiply by `ergcm2stoWm2`. The erg against W and au against m or cm conversions are where errors enter.
 - `Fxuv` arrives from PROTEUS already diluted to the planet (`src/proteus/escape/wrapper.py`, `run_zephyrus`); `EL_escape` must not apply `1 / (4 pi a**2)` again.
-- `scaling=2` (default) uses `Rp * Rxuv**2`, `scaling=3` uses `Rxuv**3`, any other value raises `ValueError`. PROTEUS passes `scaling=3` explicitly (`run_zephyrus`), and no test pins the default: `test_earth.py` uses it with `Rp == Rxuv`, where both branches agree, and `test_mors_coupling.py` uses it only in a flux-ratio test. A change of the default updates the `EL_escape` docstring and every docs page that names it (`grep -rn scaling docs/`), and adds a test that pins the default.
-- Tidal branch: `ksi = Rhill / Rxuv` with `Rhill = a (1 - e) (Mp / (3 Ms))**(1/3)`, and `K_tide = (ksi - 1)**2 (2 ksi + 1) / (2 ksi**3)`. `K_tide` is in (0, 1) for `ksi > 1`, and the rate divides by it, so it diverges as `ksi` approaches 1. The source raises `ValueError` for `ksi <= 1`; every tidal path keeps that guard, and the periapsis factor `(1 - e)` stays in `Rhill`.
+- `scaling=2` (default) uses `Rp * Rxuv**2`, `scaling=3` uses `Rxuv**3`, any other value raises `ValueError`. The tidal `ksi` is measured from the radius that appears linearly in that product: `Rp` for `scaling=2`, `Rxuv` for `scaling=3`. PROTEUS passes `scaling=3` explicitly (`run_zephyrus`), and no test pins the default: `test_earth.py` uses it with `Rp == Rxuv`, where both branches agree, and `test_mors_coupling.py` uses it only in a flux-ratio test. A change of the default updates the `EL_escape` docstring and every docs page that names it (`grep -rn scaling docs/`), and adds a test that pins the default.
+- Tidal branch: `ksi = Rhill / R` with `R` the radius `scaling` selects (above) and `Rhill = a (1 - e) (Mp / (3 Ms))**(1/3)`, and `K_tide = (ksi - 1)**2 (2 ksi + 1) / (2 ksi**3)`. `K_tide` is in (0, 1) for `ksi > 1`, and the rate divides by it, so it diverges as `ksi` approaches 1. The source raises `ValueError` for `ksi <= 1`; every tidal path keeps that guard, and the periapsis factor `(1 - e)` stays in `Rhill`.
 - `collision.py` (Kegerreis et al. 2020, Eqn. 1) raises `ValueError` for an impact parameter outside [0, 1], a non-positive or non-finite mass, density or radius, and a negative or non-finite collision speed.
-- Constants and conversions (`G`, `kb`, `au2m`, `au2cm`, `ergcm2stoWm2`) come from `zephyrus.constants`; `G` is SI and `G_cgs` must not enter an SI expression. `escape.py` star-imports `constants` and `planets_parameters` (ruff `F403`, `F405` ignored); new code imports names explicitly.
+- Constants and conversions (`G`, `kb`, `au2m`, `au2cm`, `ergcm2stoWm2`) come from `zephyrus.constants`; `G` is SI and `G_cgs` must not enter an SI expression. `escape.py` star-imports `constants` and `planets_parameters` (ruff `F403`, `F405` ignored) so the names callers bound from it keep working; new code imports names explicitly.
 
 ## Review
 
@@ -78,4 +79,5 @@ Check each change against these points and against `.github/agent-rules/code-rev
 - A formula change comes with an updated discrimination guard in the escape tests (wrong scaling, dropped `K_tide`, dropped `epsilon`).
 - A change of the default `scaling` updates the `EL_escape` docstring and the docs pages that name it, and adds a test that pins the default.
 - No retyped constant literals.
+- A dispatcher change keeps every physically posed input returning one label with a finite, non-negative rate and per-species rates summing to it, and updates the result reference (`docs/Reference/results.md`) for any flag or diagnostics key it adds or removes; a test holds the bolometric group's key set to that page.
 - Tests follow `tests/AGENTS.md`.

@@ -15,7 +15,7 @@ Named after Zephyrus, the Greek god of the west wind and a messenger of spring. 
 
 ## Escape model
 
-Energy-limited (EL) escape: the deposited XUV power divided by the gravitational binding energy of the escaping gas, with an optional tidal enhancement `K_tide`. The XUV cross section scales as `Rp * Rxuv**2` (default) or `Rxuv**3`, and the tidal factor applies only outside the Roche lobe (`R_Hill / R_XUV > 1`).
+Energy-limited (EL) escape: the deposited XUV power divided by the gravitational binding energy of the escaping gas, with an optional tidal enhancement `K_tide`. The XUV cross section scales as `Rp * Rxuv**2` (default) or `Rxuv**3`, and the tidal factor applies only outside the Roche lobe, measured from whichever radius the scaling selects: `R_Hill / Rp > 1` for the default `Rp * Rxuv**2` form and `R_Hill / Rxuv > 1` for `Rxuv**3`.
 
 ## Documentation
 

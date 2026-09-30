@@ -15,6 +15,10 @@ Here is the quickest path to getting started:
    Learn the basic usage patterns and common configurations. <br>
    → [Using ZEPHYRUS](Tutorials/first_run.md)
 
+3. **Classify the escape regime**  
+   Dispatch a planetary state to the physics that governs its mass loss. <br>
+   → [Dispatching a regime](Tutorials/dispatch.md)
+
 ---
 
 ## What do you want to do?
@@ -29,6 +33,14 @@ Here is the quickest path to getting started:
 -   :material-rocket-launch: **Run ZEPHYRUS**
 
     [Go to tutorial](Tutorials/first_run.md)
+
+-   :material-compass-outline: **Classify a regime**
+
+    [Go to the dispatcher tutorial](Tutorials/dispatch.md)
+
+-   :material-stethoscope: **Troubleshoot a verdict**
+
+    [Go to the troubleshooting guide](How-to/troubleshooting.md)
 
 -   :material-library: **Understand the model**
 

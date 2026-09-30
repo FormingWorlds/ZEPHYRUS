@@ -1,0 +1,426 @@
+"""
+!!! info "`hydrodynamic.py`"
+    Hydrodynamic escape: energy-limited and radiation-recombination-limited
+    rates, and the selection between them.<br>
+    Authors: Emma Postolec, Harrison Nicholls, Malina Ovesen, Mara Attia
+"""
+
+from __future__ import annotations
+
+import math
+
+from zephyrus.atomic_data import (
+    HNU0_H_EV,
+    HNU_I_N_EV,
+    SIGMA_NU0_H,
+    SIGMA_NU_N,
+    alpha_case_b,
+)
+from zephyrus.composition import ELEMENT_AMU
+from zephyrus.constants import G, ev2joule, kb, m_p
+
+# The branch computes both hydrodynamic limits and takes their minimum:
+#
+# - Energy limited (EL): Erkaev et al. (2007, A&A 472, 329, their Eq. 21),
+#   Mdot = eps pi F_XUV R_p R_XUV^2 / (G M_p K(xi)), with the tidal factor
+#   K(xi) of their Eq. (17) at xi = R_Hill/R_p and the periapsis Hill
+#   radius. The factor pi encodes full-surface redistribution of the
+#   intercepted power.
+# - Radiation-recombination limited (RR): the analytic chain of Murray-Clay
+#   et al. (2009, ApJ 693, 23, Section 3.2) in the form derived by Malina
+#   Ovesen from Lopez (2017, MNRAS 472, 245, Eqs. 4-6): ionization
+#   equilibrium at the wind base sets the base ion density proportional to
+#   sqrt(F_XUV), and an isothermal Parker wind carries it to the sonic
+#   point with the barometric factor exp(3/2 - lambda_b), the exact
+#   isothermal value, reported beside the rate because it separates
+#   recombination saturation from barometric suppression.
+# - Efficiency: fixed, or the Caldiroli et al. (2022, A&A 663, A122,
+#   Appendix A.1) fit, defined against their R_p^3 geometry and therefore
+#   converted by (R_p/R_XUV)^2 before use in the Erkaev form.
+#
+# EL_escape is the released standalone entry point; el_rate is the bare
+# kernel the dispatcher assembles with its own tidal factor. They stay
+# separate code paths so a cross-implementation test guards the plumbing.
+# zephyrus.escape re-exports EL_escape for the released import path.
+
+RHO_UNIT_CGS = 1e-3  # kg m^-3 -> g cm^-3
+FLUX_UNIT_CGS = 1e3  # W m^-2 -> erg s^-1 cm^-2
+
+
+def hill_radius_periapsis(M_p: float, M_star: float, a: float, e: float) -> float:
+    """Periapsis Hill radius a (1 - e) (M_p / 3 M_star)^(1/3), in m."""
+    return a * (1.0 - e) * (M_p / (3.0 * M_star)) ** (1.0 / 3.0)
+
+
+def k_tide(xi: float) -> float:
+    """Erkaev et al. (2007) Eq. (17) tidal factor, for xi > 1.
+
+    The factor is ``(xi - 1)^2 (2 xi + 1) / (2 xi^3)``, which has a double
+    root at ``xi = 1`` and rises toward 1 as ``xi`` grows. The energy-limited
+    rate divides by it, so the rate diverges as the atmosphere approaches its
+    Roche lobe. Below the root the polynomial returns values that would
+    reduce the rate, so ``xi <= 1`` raises ``ValueError``: such a planet
+    fills its lobe and needs the overflow treatment.
+    """
+    if not xi > 1.0:
+        raise ValueError(f'k_tide is defined for xi > 1 and has a double root at 1, got {xi!r}')
+    return 1.0 - 3.0 / (2.0 * xi) + 1.0 / (2.0 * xi**3)
+
+
+def el_rate(eps: float, F_xuv: float, R_p: float, R_xuv: float, M_p: float, K: float) -> float:
+    """Energy-limited rate eps pi F R_p R_xuv^2 / (G M_p K), in kg/s."""
+    return eps * math.pi * F_xuv * R_p * R_xuv**2 / (G * M_p * K)
+
+
+def pl_rate(F_xuv: float, R_abs: float, e_ion_J: float, m_ion_kg: float) -> float:
+    """Photon-limited rate pi R_abs^2 (F_xuv / e_ion) m_ion, in kg/s.
+
+    Owen & Alvarez (2016, ApJ 816, 34, Eq. 10) generalized from pure
+    hydrogen: at most one particle of mass ``m_ion_kg`` [kg] leaves per
+    ionizing photon of energy ``e_ion_J`` [J] intercepted by the disk of
+    radius ``R_abs`` [m]. Evaluated on the energy-limited rate's own disk,
+    the cap binds exactly when the efficiency exceeds
+    ``G M_p K m_ion / (e_ion R_p)``.
+
+    Raises
+    ------
+    ValueError
+        If ``e_ion_J`` or ``m_ion_kg`` is not positive, or ``F_xuv`` or
+        ``R_abs`` is negative.
+    """
+    if not (e_ion_J > 0.0 and m_ion_kg > 0.0):
+        raise ValueError('pl_rate needs a positive photon energy and particle mass')
+    if F_xuv < 0.0 or R_abs < 0.0:
+        raise ValueError('pl_rate needs a non-negative flux and radius')
+    return math.pi * R_abs**2 * F_xuv / e_ion_J * m_ion_kg
+
+
+def EL_escape(
+    tidal_contribution: bool,
+    a: float,
+    e: float,
+    Mp: float,
+    Ms: float,
+    epsilon: float,
+    Rp: float,
+    Rxuv: float,
+    Fxuv: float,
+    scaling: int = 2,
+):
+    r"""
+    Compute the mass-loss rate for Energy-Limited (EL) atmospheric escape.
+
+    The mass-loss rate is given by
+
+    $$
+    \dot{M}_\mathrm{EL} = \frac{\epsilon\,\pi\,R^3\,F_\mathrm{XUV}}
+                               {G\,M_p\,K_\mathrm{tide}}
+    $$
+
+    where $R^3$ is either $R_p R_\mathrm{XUV}^2$ or $R_\mathrm{XUV}^3$
+    depending on ``scaling``, and $K_\mathrm{tide}$ is the tidal
+    correction factor of Erkaev et al. (2007) when ``tidal_contribution``
+    is True, else 1.
+
+    Parameters
+    ----------
+    tidal_contribution : bool
+        If True, include the tidal correction factor $K_\mathrm{tide}$
+        (Erkaev et al. 2007). Its argument is
+        $\xi \equiv R_\mathrm{Hill}/R$, where $R$ is the radius that
+        appears linearly in the $R^3$ term selected by ``scaling``: $R_p$
+        for ``scaling=2`` (the convention of Erkaev et al. 2007, whose
+        own $\xi$ is the Roche-lobe distance over the planetary radius)
+        and $R_\mathrm{XUV}$ for ``scaling=3`` (the single-radius form,
+        where $R_\mathrm{XUV}$ is the only radius in the problem). The
+        factor is valid for $\xi > 1$, where $0 < K_\mathrm{tide} < 1$
+        and the correction enhances escape; it rises monotonically
+        toward 1 as $\xi \to \infty$. A ``ValueError`` is raised for
+        $\xi \le 1$, where the atmosphere reaches the Roche lobe and the
+        energy-limited approximation no longer applies. If False,
+        $K_\mathrm{tide} = 1$ (no tidal effects).
+    a : float
+        Planetary semi-major axis [m]. Only used when
+        ``tidal_contribution`` is True.
+    e : float
+        Orbital eccentricity (dimensionless). Only used when
+        ``tidal_contribution`` is True.
+    Mp : float
+        Planetary mass [kg].
+    Ms : float
+        Stellar mass [kg]. Only used when
+        ``tidal_contribution`` is True.
+    epsilon : float
+        Escape efficiency factor (dimensionless). Typical literature
+        range is $0.1 < \epsilon < 0.6$; for strongly bound planets
+        hydrodynamic simulations find much lower values (Caldiroli et
+        al. 2022).
+    Rp : float
+        Planetary radius [m]. Used as a linear factor when
+        ``scaling=2``.
+    Rxuv : float
+        Planetary radius at which the atmosphere becomes optically
+        thick to XUV radiation [m]. In PROTEUS this level is placed at
+        a fixed pressure, by default 20 mbar following Baumeister et
+        al. (2023), distinct from the roughly nanobar wind base of
+        Lopez (2017).
+    Fxuv : float
+        XUV flux received by the planet from the host star, in
+        W m$^{-2}$.
+    scaling : int, optional
+        Planet radius scaling exponent. ``2`` (default) uses
+        $R_p R_\mathrm{XUV}^2$; ``3`` uses $R_\mathrm{XUV}^3$. Any other
+        value raises ``ValueError``.
+
+    Returns
+    -------
+    escape_EL : float
+        Mass-loss rate for energy-limited escape, in kg s$^{-1}$.
+
+    Raises
+    ------
+    ValueError
+        If ``scaling`` is not ``2`` or ``3``, or if
+        ``tidal_contribution`` is True and $\xi \le 1$ (the atmosphere
+        reaches the Roche lobe, outside the energy-limited regime),
+        with $\xi$ built on the radius selected by ``scaling``.
+
+    References
+    ----------
+    The default radius scaling (``scaling=2``, ``Rp * Rxuv**2``) is the
+    energy-limited XUV cross-section form of Watson et al. (1981) and
+    Lammer et al. (2003), Equation 6, written as a mass-loss rate by
+    Erkaev et al. (2007), Equation 21. The alternative radius scaling
+    (``scaling=3``, ``Rxuv**3``) is the single-radius simplification of
+    Lopez, Fortney & Miller (2012), Equation 2, Lopez & Fortney (2013),
+    Equation 1, and Lehmer & Catling (2017), Equation 1. The tidal
+    reduction factor ``K_tide`` is Erkaev et al. (2007), Equation 17.
+
+    1. Watson, A. J., Donahue, T. M., & Walker, J. C. G. (1981).
+       The dynamics of a rapidly escaping atmosphere: applications to
+       the evolution of Earth and Venus. *Icarus*, 48(2), 150-166.
+    2. Lammer, H., Selsis, F., Ribas, I., et al. (2003). Atmospheric
+       loss of exoplanets resulting from stellar X-ray and
+       extreme-ultraviolet heating. *ApJ*, 598(2), L121-L124.
+    3. Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007).
+       Roche lobe effects on the atmospheric loss from "Hot Jupiters".
+       *A&A*, 472(1), 329-334.
+    4. Lopez, E. D., Fortney, J. J., & Miller, N. (2012).
+       How thermal evolution and mass-loss sculpt populations of
+       super-Earths and sub-Neptunes. *ApJ*, 761(1), 59.
+    5. Lopez, E. D., & Fortney, J. J. (2013). The role of core mass
+       in controlling evaporation: the Kepler radius distribution and
+       the Kepler-36 density dichotomy. *ApJ*, 776(1), 2.
+    6. Lehmer, O. R., & Catling, D. C. (2017). Rocky worlds
+       limited to ~1.8 Earth radii by atmospheric escape during a
+       star's extreme UV saturation. *ApJ*, 845(2), 130.
+    7. Lopez, E. D. (2017). Born dry in the photoevaporation desert:
+       Kepler's ultra-short-period planets formed water-poor.
+       *MNRAS*, 472(1), 245-253.
+    8. Baumeister, P., Tosi, N., Brachmann, C., Grenfell, J. L., &
+       Noack, L. (2023). Redox state and interior structure control on
+       the long-term habitability of stagnant-lid planets.
+       *A&A*, 675, A122.
+    9. Caldiroli, A., Haardt, F., Gallo, E., Spinelli, R., Malsky, I.,
+       & Rauscher, E. (2022). Irradiation-driven escape of primordial
+       planetary atmospheres II. Evaporation efficiency of sub-Neptunes
+       through hot Jupiters. *A&A*, 663, A122.
+    """
+    # Radius term, and the radius the tidal factor is measured from: the
+    # one that appears linearly in R^3, since that is the radius the
+    # potential barrier in the denominator refers to.
+    match scaling:
+        case 2:
+            R_cubed = Rp * Rxuv**2
+            R_tide = Rp
+        case 3:
+            R_cubed = Rxuv**3
+            R_tide = Rxuv
+        case _:
+            raise ValueError(f'Invalid radius exponent: {scaling}')
+
+    # Tidal contribution
+    if tidal_contribution:
+        # ksi = Rhill/R on the radius the scaling selects. K_tide has a double
+        # root at ksi = 1 and the rate divides by it, so only ksi > 1, inside
+        # the Roche lobe, is valid.
+        Rhill = a * (1 - e) * (Mp / (3 * Ms)) ** (1 / 3)
+        ksi = Rhill / R_tide
+        if ksi <= 1:
+            raise ValueError(
+                'Tidal energy-limited escape requires the periapsis Hill '
+                'radius to exceed the escape-level radius '
+                f'(ksi = Rhill/R > 1); got ksi = {ksi:.4g}. At ksi <= 1 the '
+                'atmosphere reaches the Roche lobe and the energy-limited '
+                'approximation no longer applies.'
+            )
+        K_tide = 1 - (3 / (2 * ksi)) + (1 / (2 * (ksi**3)))
+    else:
+        K_tide = 1
+
+    # Mass-loss rate for EL escape
+    escape_EL = (epsilon * math.pi * R_cubed * Fxuv) / (G * Mp * K_tide)
+
+    return escape_EL
+
+
+def caldiroli_efficiency(F_xuv: float, M_p: float, R_p: float, K: float) -> tuple:
+    """Evaporation-efficiency fit of Caldiroli et al. (2022, Appendix A.1).
+
+    Their fit is a function of the tidally corrected gravitational
+    potential ``phi = K G M_p / R_p`` and the flux-to-density ratio
+    ``F_XUV / rho_p``, both in cgs internally. It returns the efficiency
+    defined against their ``R_p^3`` rate geometry; the caller converts by
+    ``(R_p / R_XUV)^2`` before using it in the Erkaev form. Below their
+    validity bound ``F_XUV / rho_p = 1e2`` (cgs) the fitting formulas turn
+    complex, so that region is rejected here: the return is ``(None,
+    flags)`` with ``caldiroli_below_flux_bound`` set and the caller falls
+    back to the fixed efficiency. Outside their fitted box the value is
+    still returned, flagged ``caldiroli_out_of_box``.
+    """
+    flags = {}
+    rho_p = M_p / (4.0 / 3.0 * math.pi * R_p**3)
+    f_cgs = F_xuv * FLUX_UNIT_CGS
+    rho_cgs = rho_p * RHO_UNIT_CGS
+    f2 = (f_cgs / rho_cgs) / 1e2
+    if f2 < 1.0:
+        flags['caldiroli_below_flux_bound'] = True
+        return None, flags
+    phi_red = K * (G * M_p / R_p) * 1e4  # erg/g
+    if not (10**12.17 <= phi_red <= 10**13.29) or f2 > 1e4:
+        flags['caldiroli_out_of_box'] = True
+    lf2 = math.log10(f2)
+    a_coef = 1.682 * lf2**0.2802 - 5.488 if lf2 > 0 else -5.488
+    alpha = 0.02489 * f2**-0.0860 - 0.01007 * f2**-0.9543
+    eta0 = -0.03973 * lf2**2.173 - 0.01359 if lf2 > 0 else -0.01359
+    beta = -0.01799 * f2**0.1723 - 3.3875 * f2**0.0140
+    sigma = 1.0 / (1.0 + (phi_red / 10**13.22) ** beta)
+    log_eta = a_coef * phi_red**alpha * sigma + eta0 * (1.0 - sigma)
+    return 10**log_eta, flags
+
+
+def wind_mean_masses(element_fractions: dict) -> tuple[float, float]:
+    """(mu_wind, mu_plus) of an ionized wind, in atomic mass units.
+
+    Generalizes the mean-mass pairs of Lopez (2017): with hydrogen fully
+    ionized, heavier atoms singly ionized, and the electrons counted among
+    the particles, the mean mass per particle is half the mean atomic mass
+    and the mean mass per ion is the mean atomic mass itself.
+
+    Call sites multiply by the proton mass where Lopez writes the hydrogen
+    atom mass. The rule recovers Lopez's printed steam pair (3, 6); the
+    printed H/He pair (0.62, 1.3) is internally inconsistent, and the rule
+    follows its per-ion value.
+    """
+    mbar = sum(x * ELEMENT_AMU[el] for el, x in element_fractions.items())
+    return mbar / 2.0, mbar
+
+
+def rr_chain(
+    M_p: float, F_xuv: float, R_base: float, T_wind: float, element_fractions: dict
+) -> dict:
+    """The radiation-recombination-limited chain at the wind base.
+
+    Evaluates the Murray-Clay et al. (2009) analytic chain at wind
+    temperature ``T_wind`` for the atomized base composition: sound speed
+    and sonic radius ``R_s = G M_p / (2 c_s^2)``, the base Jeans parameter
+    ``lambda_b``, the base ion density from photoionization-recombination
+    balance (proportional to ``sqrt(F_xuv)``), the barometric factor
+    ``exp(3/2 - lambda_b)`` to the sonic point, and the rate
+    ``4 pi rho_s c_s R_s^2``.
+
+    When the computed sonic radius falls below the base (a subcritical
+    configuration), the sonic radius is floored at the base and the density
+    there is the base density (the barometric factor is not applied below
+    the base); the ``subcritical`` flag reports it and the caller carries
+    it on the result.
+
+    The ionizing front follows the composition: the 20 eV hydrogen front
+    for winds with an atomized hydrogen fraction of one half or more, the
+    33.6 eV nitrogen-like front otherwise, and the photoionization cross
+    section follows the same front rather than staying at hydrogen's. The
+    composition recombination coefficient is the mole-fraction-weighted case
+    B set with its documented temperature scaling.
+
+    Returns a dict with ``c_s``, ``R_s``, ``R_s_calc``, ``lambda_b``,
+    ``rho_base``, ``rho_s``, ``n_plus_base``, ``n_0_base``,
+    ``f_plus_base``, ``mdot_rr`` [kg/s], ``subcritical``,
+    ``barometric_factor``, ``mu_wind``, ``mu_plus_wind``, ``hnu0_eV``.
+    """
+    mu_wind, mu_plus = wind_mean_masses(element_fractions)
+    c_s = math.sqrt(kb * T_wind / (mu_wind * m_p))
+    r_s_calc = G * M_p / (2.0 * c_s**2)
+    subcritical = r_s_calc < R_base
+    r_s = max(r_s_calc, R_base)
+    lambda_b = G * M_p / (R_base * c_s**2)
+
+    # The photon energy and the cross section belong to one front and must
+    # be taken from the same one.
+    x_h = element_fractions.get('H', 0.0)
+    hydrogen_front = x_h >= 0.5
+    hnu0 = (HNU0_H_EV if hydrogen_front else HNU_I_N_EV) * ev2joule
+    sigma_nu0 = (SIGMA_NU0_H if hydrogen_front else SIGMA_NU_N) * 1e-4  # cm^2 -> m^2
+
+    # Composition-weighted case B coefficient, cm^3/s -> m^3/s.
+    alpha_b = sum(x * alpha_case_b(el, T_wind) for el, x in element_fractions.items()) * 1e-6
+
+    # Photoionization-recombination balance with the unit-optical-depth
+    # neutral density substituted, so the cross section cancels:
+    # n_+^2 = F G M / (h nu0 alpha_B c_s^2 R_base^2).
+    n_plus_base = (
+        math.sqrt(F_xuv * G * M_p / (hnu0 * alpha_b * c_s**2 * R_base**2)) if F_xuv > 0 else 0.0
+    )
+    rho_base = n_plus_base * mu_plus * m_p
+    # Neutral base density from unit optical depth over a scale height:
+    # n_0 = G M / (sigma_nu0 c_s^2 R_base^2).
+    n_0_base = G * M_p / (sigma_nu0 * c_s**2 * R_base**2)
+    f_plus = n_plus_base / (n_plus_base + n_0_base) if (n_plus_base + n_0_base) > 0 else 0.0
+
+    if subcritical:
+        baro = 1.0
+        rho_s = rho_base
+    else:
+        baro = math.exp(1.5 - lambda_b)
+        rho_s = rho_base * baro
+    mdot_rr = 4.0 * math.pi * rho_s * c_s * r_s**2
+    return dict(
+        c_s=c_s,
+        R_s=r_s,
+        R_s_calc=r_s_calc,
+        lambda_b=lambda_b,
+        rho_base=rho_base,
+        rho_s=rho_s,
+        n_plus_base=n_plus_base,
+        n_0_base=n_0_base,
+        f_plus_base=f_plus,
+        mdot_rr=mdot_rr,
+        subcritical=subcritical,
+        barometric_factor=baro,
+        mu_wind=mu_wind,
+        mu_plus_wind=mu_plus,
+        hnu0_eV=hnu0 / ev2joule,
+    )
+
+
+def selection_mechanism(rr: dict, winner: str) -> str:
+    """Which candidate min(EL, RR, PL) selected; diagnostic only.
+
+    ``winner`` is ``'EL'``, ``'RR'``, or ``'PL'``. Four outcomes: the
+    energy-limited rate won, the photon-limited cap won, the
+    recombination-limited rate won, or it won with the sonic radius
+    floored at the wind base (the subcritical configuration of
+    :func:`rr_chain`, where the returned value is a floored one rather
+    than a transonic wind).
+
+    Why an RR win came out small is answered by the barometric factor
+    ``exp(3/2 - lambda_b)`` returned beside the rate, not by this string:
+    near 1 the recombination-limited base ionization sets the rate, and
+    decades below 1 the wind cannot carry material to the sonic point.
+    """
+    if winner not in ('EL', 'RR', 'PL'):
+        raise ValueError(f"winner must be 'EL', 'RR', or 'PL', got {winner!r}")
+    if winner != 'RR':
+        return f'{winner}-selected'
+    if rr['subcritical']:
+        return 'RR-selected:subcritical-floor'
+    return 'RR-selected'

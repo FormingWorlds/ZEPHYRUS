@@ -36,15 +36,17 @@ A module-level constant read from an environment variable at import time does no
 
 ## ZEPHYRUS specifics
 
-Structure: `src/zephyrus/<file>.py` is tested in `tests/test_<file>.py`. The exceptions: `test_mors_coupling.py` (the MORS flux hand-off, MORS mocked, unit tier), `test_earth.py` (a real MORS lookup, integration tier), the Hypothesis sweeps in `test_escape_properties.py` and `test_collision_properties.py`, kept apart so `pytest.importorskip('hypothesis')` skips only them, and `test_nightly_data_cache.py` for `tools/nightly_data_cache.py`. `bash tools/validate_test_structure.sh` checks that every test carries exactly one of `unit`, `smoke`, `integration`, `slow` and `skip` (module, class or function); a tier marker together with `skip` fails.
+Structure: `src/zephyrus/<file>.py` is tested in `tests/test_<file>.py`. The exceptions: `test_mors_coupling.py` (the MORS flux hand-off, MORS mocked, unit tier), `test_earth.py` (a real MORS lookup, integration tier), the Hypothesis sweeps in `test_escape_properties.py` and `test_collision_properties.py`, kept apart so `pytest.importorskip('hypothesis')` skips only them, the randomized closure ensembles in `test_fractionation_ensembles.py` (smoke tier, seconds rather than milliseconds), `test_examples.py` for the scripts under `examples/` and the documentation numbers they print (smoke tier; add a new example there rather than in its own module), `test_tutorial_track.py` for the one tutorial block that needs the real stellar tracks (integration tier), and `test_nightly_data_cache.py` for `tools/nightly_data_cache.py`. `bash tools/validate_test_structure.sh` checks that every test carries exactly one of `unit`, `smoke`, `integration`, `slow` and `skip` (module, class or function); a tier marker together with `skip` fails.
 
 CI: pull requests run `pytest -m "(unit or smoke) and not skip"` with the fast coverage gate, the structure check and `check_test_quality.py --check`, which blocks here; the nightly runs all tiers.
 
 ### Physics sources and invariants
 
-`escape.py` and `collision.py` are the physics sources (`PHYSICS_SOURCES` in `tools/check_test_quality.py`); each has `physics_invariant` and `reference_pinned` tests and a page in `docs/Validation/`. `python tools/check_test_quality.py --reference-pinned-status` lists physics sources without a pinned test.
+The physics sources are listed in `PHYSICS_SOURCES` in `tools/check_test_quality.py`: `collision.py` and the dispatcher's modules; each has `physics_invariant` and `reference_pinned` tests and a page in `docs/Validation/`. `escape.py` is a utility since `EL_escape` moved to `hydrodynamic.py`, and `tests/test_escape.py` guards the released import path and the energy-limited physics through it. `python tools/check_test_quality.py --reference-pinned-status` lists physics sources without a pinned test.
 
-Invariants for `escape.py`: the rate equals the deposited XUV power over the binding energy per unit mass, up to the geometric and efficiency factors; the rate is non-negative, linear in `Fxuv`, decreasing with `Mp` and zero at `Fxuv = 0`; the rate with the tidal correction exceeds the rate without it for a close-in orbit; `K_tide` is in (0, 1) for `ksi > 1`, and `ksi <= 1` raises `ValueError`.
+Invariants for `EL_escape`: the rate equals the deposited XUV power over the binding energy per unit mass, up to the geometric and efficiency factors; the rate is non-negative, linear in `Fxuv`, decreasing with `Mp` and zero at `Fxuv = 0`; the rate with the tidal correction exceeds the rate without it for a close-in orbit; `K_tide` is in (0, 1) for `ksi > 1`, and `ksi <= 1` raises `ValueError`.
+
+Invariants for `dispatch`: every physically posed input returns one label from `REGIME_LABELS`, a finite non-negative bulk rate, and per-species rates summing to it (the totality sweep in `test_dispatcher.py`); the Roche screen renames a state without changing its rate; the diagnostics container never feeds control flow; the XUV wind never exceeds its photon-limited cap. The rate jumps at the criterion boundaries (the activation gate, the Knudsen switch, the nozzle applicability edge), so a test asserts continuity only across the rate crossings (the Roche rename, the photon-limited crossover, a nozzle win).
 
 ### Discriminating values
 
@@ -57,7 +59,7 @@ Invariants for `escape.py`: the rate equals the deposited XUV power over the bin
 
 - Unit tests mock MORS at the narrowest scope (`patch('mors.Star')`) and return a plausible `Lx`, `Leuv` pair, not a constant; assert the derived flux against a hand-computed value. `mors` is a runtime dependency: a unit test that needs it mocks it (`test_mors_coupling.py`) rather than skip; `test_nightly_data_cache.py` skips when `mors` or `fwl_io` is missing, because the tool it tests needs both.
 - `hypothesis` is the one module-top optional dependency the linter knows (`OPTIONAL_DEPS`); property tests use `@settings(derandomize=True)` or a fixed `--hypothesis-seed`, because the default sequence changes between Hypothesis releases.
-- `escape.py` star-imports `G`, so a test that changes `G` patches `zephyrus.escape.G` (the use site), not only `zephyrus.constants.G`.
+- `EL_escape` reads `G` in `zephyrus.hydrodynamic`, so a test that changes `G` patches `zephyrus.hydrodynamic.G` (the use site), not only `zephyrus.constants.G`.
 - Test parameters are SI; parametrize ids name the physical scenario (Earth-like, close-in super-Earth, sub-Neptune).
 
 ### Docstrings and names
