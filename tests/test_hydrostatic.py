@@ -39,7 +39,7 @@ from zephyrus.profiles import Profile
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
-M_MARS = 6.4171e23  # kg (IAU nominal)
+M_MARS = 6.4171e23  # kg, adopted value
 R_MARS = 3.3895e6  # m
 
 

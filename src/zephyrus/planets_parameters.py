@@ -23,7 +23,7 @@ age_earth         = 4.543e9            # Age of the Earth                      [
 e_earth           = 0.017              # Earth eccentricity                    [dimensionless]
 a_earth           = 1                  # Earth semi-major axis                 [au]
 
-# Jupiter parameters (IAU 2015 nominal values, Resolution B3)
+# Jupiter: radius is the IAU 2015 Resolution B3 nominal value; the mass is an adopted value
 Rjup              = 7.1492e7           # Jupiter equatorial radius             [m]
 Mjup              = 1.8982e27          # Jupiter mass                          [kg]
 

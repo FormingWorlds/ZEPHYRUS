@@ -118,9 +118,10 @@ def test_toi561b_planet_scaled_from_earth_values():
 
 
 def test_jupiter_nominal_values_recover_gas_giant_density():
-    """Jupiter mass and radius are the IAU nominal values with a giant density.
+    """Jupiter's mass and radius give a gas-giant density.
 
-    ``Mjup`` and ``Rjup`` are the IAU 2015 Resolution B3 nominal values. The
+    ``Rjup`` is the IAU 2015 Resolution B3 nominal equatorial radius and
+    ``Mjup`` an adopted mass. The
     mean density they imply, about ``1.24 g cm-3``, is the discrimination
     guard: a cm-vs-m slip in the radius moves it by six decades, and swapping
     in the Earth values moves it above ``5 g cm-3``. The mass ratio to Earth

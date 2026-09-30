@@ -61,7 +61,7 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 
 ### Jupiter
 
-From the IAU 2015 nominal values (Prša et al. 2016 [^prsa]).
+The radius is the IAU 2015 nominal equatorial radius (Prša et al. 2016 [^prsa]); the mass is an adopted value, not a nominal constant.
 
 | Name | Symbol | Value | Units |
 |---|---|---|---|

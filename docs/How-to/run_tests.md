@@ -203,12 +203,6 @@ Nightly (`.github/workflows/nightly.yml`) runs the full suite, uploads coverage 
 
 The repository-wide rules that every PROTEUS-ecosystem submodule follows are at [proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/](https://proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/).
 
-### What the gate measures, and what it does not
-
-The coverage source is the package, `source = ["zephyrus"]`, so `examples/` sits outside both gates. That is the ecosystem convention rather than an omission: PROTEUS and every sibling submodule set the source to their own package, and PROTEUS's own `examples/` holds configuration files with no Python in them at all. Adding the worked example here would move the reported number by more than ten points while measuring a script rather than the library.
-
-The example is held to account a different way. `tests/test_examples.py` drives its functions for their behaviour, and one test in it runs every Python snippet in the dispatcher tutorial in order and compares what the snippet prints against what the page quotes, character for character. That is what holds the documentation's claim that every printed number is the verbatim output of a snippet a reader can run: a coefficient change three modules away moves a number on that page, and without the test nothing notices.
-
 ---
 
 [^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
