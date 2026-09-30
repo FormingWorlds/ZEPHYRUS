@@ -11,12 +11,12 @@ Mass loss happens through two physically distinct channels, and ZEPHYRUS models 
 
 Which physics carries the continuous loss depends on how tightly the atmosphere is bound, how strongly it is irradiated, and how collisional its outer layers are. Applying a prescription outside its regime gives rates that are wrong by orders of magnitude, so ZEPHYRUS classifies each atmospheric state before choosing a rate. Every state receives one of six regime labels:
 
-- `boiloff`: the atmosphere is so weakly bound that it flows out on the planet's own thermal energy, before stellar XUV heating matters. Typical of young, hot, hydrogen-rich planets fresh out of the nebula.
-- `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (the energy-limited rate is the smaller of the two hydrodynamic limits here).
-- `hydrodynamic:RR`: the same fluid wind, but the rate is capped below the energy limit because radiative recombination re-emits part of the absorbed energy (the radiation-recombination-limited rate wins).
-- `hydrodynamic:PL`: the same fluid wind in a well shallow enough that the heating share of each ionizing photon's energy exceeds the work to lift one particle out, so the rate is set by the number of photons rather than their energy (the photon-limited rate of Owen & Alvarez 2016 wins).
-- `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape), species by species, capped by how fast diffusion can resupply each species.
-- `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017) outruns every bound candidate and is dispatched as the rate, or the flow region reaches the planet's Hill sphere and the label sits on top of whichever regime produced the rate, which is then a lower limit. `diagnostics['roche']['rate_branch']` says which reading applies.
+- `boiloff`: the atmosphere is so weakly bound that it flows out on the planet's own thermal energy, before stellar XUV heating matters. Typical of young, hot, hydrogen-rich planets fresh out of the nebula. The rate is the isothermal Parker wind of Owen & Wu (2016) [^owenwu] at the wind temperature of Misener et al. (2025) [^misener], and the state is recognized by the restricted Jeans parameter of Fossati et al. (2017) [^fossati].
+- `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (Watson et al. 1981 [^watson], in the tidally corrected form of Erkaev et al. 2007 [^erkaev]); the energy-limited rate is the smallest of the three hydrodynamic limits here.
+- `hydrodynamic:RR`: the same fluid wind, but the rate is capped below the energy limit because radiative recombination re-emits part of the absorbed energy (the radiation-recombination-limited rate of Murray-Clay et al. 2009 [^mc09] wins).
+- `hydrodynamic:PL`: the same fluid wind in a well shallow enough that the heating share of each ionizing photon's energy exceeds the work to lift one particle out, so the rate is set by the number of photons rather than their energy (the photon-limited rate of Owen & Alvarez 2016 [^owenalvarez] wins).
+- `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape, with the kinetic enhancement of Volkov et al. 2011 [^volkovb]), species by species, capped by how fast diffusion can resupply each species (Yelle 2024 [^yelle]). Whether the wind is collisional enough to exist is decided by the sonic-point Knudsen number of Chatterjee & Pierrehumbert (2026) [^cp26].
+- `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017 [^jackson17]) outruns every bound candidate and is dispatched as the rate, or the flow region reaches the planet's Hill sphere and the label sits on top of whichever regime produced the rate, which is then a lower limit (the overflow geometries of Owen & Jackson 2012 [^oj12]). `diagnostics['roche']['rate_branch']` says which reading applies.
 
 The classification logic reduces to three questions, asked in a fixed order:
 
@@ -45,7 +45,7 @@ The regime boundaries are not sharp lines in nature. Each threshold carries a ph
 
 ## The default prescription and the full framework
 
-The energy-limited (EL) rate is the default prescription: it is what PROTEUS consumes at each time step today, through the released entry point `zephyrus.escape.EL_escape`, and the [energy-limited escape](energy_limited.md) page defines it in full. It is not an independent channel: within the framework it is one of the two hydrodynamic limits, valid when the atmosphere sustains a collisional XUV-driven wind, which is the regime that dominates the loss during the first 10 to 100 million years of a close-in planet's life.
+The energy-limited (EL) rate is the default prescription: it is what PROTEUS consumes at each time step today, through the released entry point `zephyrus.escape.EL_escape`, and the [energy-limited escape](energy_limited.md) page defines it in full. It is not an independent channel: within the framework it is one of the three hydrodynamic limits, valid when the atmosphere sustains a collisional XUV-driven wind, which is the regime that dominates the loss during the first 10 to 100 million years of a close-in planet's life.
 
 The full classification framework is available as the standalone entry point `zephyrus.dispatch`, which takes one planetary state (scalars plus an atmosphere profile) and returns the regime label, the bulk rate, per-species rates that sum to it, flags, and the diagnostics container. Its coupling into PROTEUS is planned as a follow-up to the current energy-limited wiring; until then, coupled runs use the EL default and standalone studies can use either entry point.
 
@@ -68,6 +68,30 @@ A giant collision removes part of the target's atmosphere in a single event, on 
 - [Parameter reference](../Reference/parameters.md), [dispatch results](../Reference/results.md), and [API reference](../Reference/api/index.md).
 
 ---
+
+[^owenwu]: Owen, J. E., & Wu, Y. (2016). Atmospheres of low-mass planets: the "boil-off". *The Astrophysical Journal, 817*(2), 107.
+
+[^misener]: Misener, W., et al. (2025). Blowin' in the Nonisothermal Wind: Core-powered Mass Loss with Hydrodynamic Radiative Transfer. *The Astrophysical Journal, 980*(1), 152.
+
+[^fossati]: Fossati, L., et al. (2017). Aeronomical constraints to the minimum mass and maximum radius of hot low-mass planets. *Astronomy & Astrophysics, 598*, A90.
+
+[^watson]: Watson, A. J., Donahue, T. M., & Walker, J. C. G. (1981). The dynamics of a rapidly escaping atmosphere: applications to the evolution of Earth and Venus. *Icarus, 48*(2), 150–166. https://doi.org/10.1016/0019-1035(81)90101-9
+
+[^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
+
+[^mc09]: Murray-Clay, R. A., Chiang, E. I., & Murray, N. (2009). Atmospheric Escape From Hot Jupiters. *The Astrophysical Journal, 693*(1), 23–42. https://doi.org/10.1088/0004-637X/693/1/23
+
+[^owenalvarez]: Owen, J. E., & Alvarez, M. A. (2016). UV Driven Evaporation of Close-in Planets: Energy-limited, Recombination-limited, and Photon-limited Flows. *The Astrophysical Journal, 816*(1), 34. https://doi.org/10.3847/0004-637X/816/1/34
+
+[^volkovb]: Volkov, A. N., Tucker, O. J., Erwin, J. T., & Johnson, R. E. (2011). Kinetic simulations of thermal escape from a single component atmosphere. *Physics of Fluids, 23*(6), 066601. https://doi.org/10.1063/1.3592253
+
+[^yelle]: Yelle, R. V. (2024). Diffusion limited escape of hydrogen from Mars. *Icarus, 416*, 116099.
+
+[^cp26]: Chatterjee, R. D., & Pierrehumbert, R. T. (2026). Novel Physics of Escaping Secondary Atmospheres May Shape the Cosmic Shoreline. *The Astrophysical Journal, 998*(2), 236. https://doi.org/10.3847/1538-4357/ae2ffa
+
+[^jackson17]: Jackson, B., Arras, P., Penev, K., Peacock, S., & Marchant, P. (2017). A new model of Roche lobe overflow for short-period gaseous planets and binary stars. *The Astrophysical Journal, 835*(2), 145. https://doi.org/10.3847/1538-4357/835/2/145
+
+[^oj12]: Owen, J. E., & Jackson, A. P. (2012). Planetary evaporation by UV and X-ray radiation: basic hydrodynamics. *Monthly Notices of the Royal Astronomical Society, 425*(4), 2931. https://doi.org/10.1111/j.1365-2966.2012.21481.x
 
 [^attia]: Attia, M., & Lichtenberg, T. (2026). Atmospheric escape fractionates secondary but not primary atmospheres. *arXiv e-prints*, arXiv:2608.30106. https://doi.org/10.48550/arXiv.2608.30106
 
