@@ -243,14 +243,45 @@ def _tutorial_blocks(skip_data_dependent=True):
         yield index, code, expected
 
 
+_FLOAT = re.compile(r'-?\d+\.\d+(?:[eE][-+]?\d+)?|-?\d+[eE][-+]?\d+')
+
+
+def _same_output(printed, quoted, rel=1e-12):
+    """Whether printed output matches the quoted text up to float rounding.
+
+    Text between numbers must match exactly; each float may differ by
+    ``rel``, far above the last-place differences between platforms'
+    floating-point libraries and far below any change a coefficient makes.
+    """
+    if _FLOAT.sub('#', printed) != _FLOAT.sub('#', quoted):
+        return False
+    pairs = zip(_FLOAT.findall(printed), _FLOAT.findall(quoted), strict=True)
+    return all(math.isclose(float(a), float(b), rel_tol=rel, abs_tol=0.0) for a, b in pairs)
+
+
+def test_output_comparison_allows_only_float_rounding():
+    """The tutorial comparison accepts a last-place difference and nothing more.
+
+    A one-unit change in the sixteenth significant digit (the macOS and Linux
+    difference that motivated it) passes; a relative change of 1e-9, a changed
+    label, and a dropped number each fail.
+    """
+    page = "hydrodynamic:EL 660971.2983440236 {'C': 1.5e-3}"
+    assert _same_output("hydrodynamic:EL 660971.2983440235 {'C': 1.5e-3}", page)
+    assert not _same_output("hydrodynamic:EL 660971.2989 {'C': 1.5e-3}", page)
+    assert not _same_output("hydrodynamic:RR 660971.2983440236 {'C': 1.5e-3}", page)
+    assert not _same_output("hydrodynamic:EL 660971.2983440236 {'C': }", page)
+
+
 def test_tutorial_snippets_print_what_the_page_quotes(monkeypatch):
     """Every tutorial snippet runs in order and prints its quoted output.
 
     The page states that every printed number is the verbatim output of a
     runnable snippet. The snippets share one namespace and run in page order,
     and each quoted output block must match what the preceding snippet
-    printed, character for character, so a coefficient change anywhere in
-    the package that moves a quoted number fails here.
+    printed: text exactly, floats to a relative 1e-12, so a coefficient change
+    anywhere in the package that moves a quoted number fails here while a
+    last-place difference between platforms does not.
     """
     # The first snippet imports the example by its repository-root path,
     # which needs the root on sys.path; `python -m pytest` adds it and the
@@ -267,7 +298,7 @@ def test_tutorial_snippets_print_what_the_page_quotes(monkeypatch):
         printed = buffer.getvalue().rstrip('\n')
         if quoted is None:
             continue
-        assert printed == quoted, (
+        assert _same_output(printed, quoted), (
             f'tutorial block {index} prints something other than the page quotes:\n'
             f'--- page ---\n{quoted}\n--- code ---\n{printed}'
         )

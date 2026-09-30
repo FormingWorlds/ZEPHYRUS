@@ -184,7 +184,7 @@ Both gates sit at the 90 % ceiling. The `tools/update_coverage_threshold.py` hel
 
 The coverage source is the package, `source = ["zephyrus"]`, so `examples/` sits outside both gates. That is the ecosystem convention rather than an omission: PROTEUS and every sibling submodule set the source to their own package, and PROTEUS's own `examples/` holds configuration files with no Python in them at all. Adding the worked example here would move the reported number by more than ten points while measuring a script rather than the library.
 
-The example is held to account a different way. `tests/test_examples.py` drives its functions for their behaviour, and one test in it runs every Python snippet in the dispatcher tutorial in order and compares what the snippet prints against what the page quotes, character for character. That is what holds the documentation's claim that every printed number is the verbatim output of a snippet a reader can run: a coefficient change three modules away moves a number on that page, and without the test nothing notices.
+The example is held to account a different way. `tests/test_examples.py` drives its functions for their behaviour, and one test in it runs every Python snippet in the dispatcher tutorial in order and compares what the snippet prints against what the page quotes: the text exactly, and every float to a relative 1e-12, which absorbs last-place differences between platforms' floating-point libraries and nothing a physics change could produce. That is what holds the documentation's claim that every printed number is the verbatim output of a snippet a reader can run: a coefficient change three modules away moves a number on that page, and without the test nothing notices.
 
 ## PR validation pipeline
 

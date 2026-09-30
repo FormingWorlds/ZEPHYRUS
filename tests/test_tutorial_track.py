@@ -25,7 +25,7 @@ import pytest
 
 # The tests directory is not a package, so pytest puts it on the path and
 # a sibling module imports by its bare name.
-from test_examples import TUTORIAL_DATA_DEPENDENT, _tutorial_blocks
+from test_examples import TUTORIAL_DATA_DEPENDENT, _same_output, _tutorial_blocks
 
 pytestmark = [pytest.mark.integration, pytest.mark.timeout(300)]
 
@@ -48,7 +48,7 @@ def test_tutorial_stellar_track_prints_what_the_page_quotes(monkeypatch):
         if quoted is None or TUTORIAL_DATA_DEPENDENT not in code:
             continue
         printed = buffer.getvalue().rstrip('\n')
-        assert printed == quoted, (
+        assert _same_output(printed, quoted), (
             f'tutorial block {index} prints something other than the page quotes:\n'
             f'--- page ---\n{quoted}\n--- code ---\n{printed}'
         )
