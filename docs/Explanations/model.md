@@ -49,7 +49,7 @@ The energy-limited (EL) rate is the default prescription: it is what PROTEUS con
 
 The full classification framework is available as the standalone entry point `zephyrus.dispatch`, which takes one planetary state (scalars plus an atmosphere profile) and returns the regime label, the bulk rate, per-species rates that sum to it, flags, and the diagnostics container. Its coupling into PROTEUS is planned as a follow-up to the current energy-limited wiring; until then, coupled runs use the EL default and standalone studies can use either entry point.
 
-Whichever regime sets the bulk rate, the loss is also partitioned over chemical species. Confirmed hydrodynamic winds fractionate: heavy species lag the outflow through diffusive drag and can drop out of it entirely, which the N-species closure of the [fractionation](fractionation.md) page resolves (Attia & Lichtenberg 2026, in prep. [^attia]). The other regimes split the rate by reservoir mass fractions, and the hydrostatic regime is natively per-species.
+Whichever regime sets the bulk rate, the loss is also partitioned over chemical species. Confirmed hydrodynamic winds fractionate: heavy species lag the outflow through diffusive drag and can drop out of it entirely, which the N-species closure of the [fractionation](fractionation.md) page resolves (Attia & Lichtenberg 2026 [^attia]). The other regimes split the rate by reservoir mass fractions, and the hydrostatic regime is natively per-species.
 
 ## The impact channel
 
@@ -69,6 +69,6 @@ A giant collision removes part of the target's atmosphere in a single event, on 
 
 ---
 
-[^attia]: Attia, M., & Lichtenberg, T. (2026). In preparation.
+[^attia]: Attia, M., & Lichtenberg, T. (2026). Atmospheric escape fractionates secondary but not primary atmospheres. *arXiv e-prints*, arXiv:2608.30106. https://doi.org/10.48550/arXiv.2608.30106
 
 [^kegerreis]: Kegerreis, J. A., Eke, V. R., Catling, D. C., Massey, R. J., Teodoro, L. F. A., & Zahnle, K. J. (2020). Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density. *The Astrophysical Journal Letters, 901*(2), L31. https://doi.org/10.3847/2041-8213/abb5fb
