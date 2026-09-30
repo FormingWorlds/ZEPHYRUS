@@ -90,6 +90,7 @@ PHYSICS_SOURCES = {
     'hydrodynamic.py',
     'hydrostatic.py',
     'knudsen.py',
+    'nozzle.py',
     'profiles.py',
     'thermostat.py',
 }
