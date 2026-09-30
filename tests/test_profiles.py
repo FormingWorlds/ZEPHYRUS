@@ -371,6 +371,8 @@ def test_validate_rejects_non_finite_and_negative_entries():
     NaN through; every array is checked for finiteness before its sign.
     Mixing ratios slightly below zero are chemistry-solver noise where a
     species is absent and pass; a genuinely negative mole fraction raises.
+    A radius at or below zero raises even when the radii increase, since
+    every consumer divides by r or r squared.
     """
     n = 5
     base = dict(
@@ -388,6 +390,7 @@ def test_validate_rejects_non_finite_and_negative_entries():
         ('mmw', np.array([7.3e-26] * 2 + [np.nan] + [7.3e-26] * 2), 'mmw carries a non-finite'),
         ('p', np.array([1e7, 1e3, np.nan, 1e-1, 1e-5]), 'p carries a non-finite'),
         ('r', np.array([6.4e6, 6.8e6, np.inf, 7.6e6, 8.0e6]), 'r carries a non-finite'),
+        ('r', np.array([-1.0e6, 0.0, 1.0e6, 2.0e6, 3.0e6]), 'p, r, T, mmw must be positive'),
     ):
         with pytest.raises(ValueError, match=match):
             Profile(**{**base, field: bad}).validate()

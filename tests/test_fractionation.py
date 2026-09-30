@@ -47,9 +47,11 @@ AMU_G = 1.66053907e-24  # g
 def test_input_validation_error_contract():
     """Malformed solver inputs raise; a valid call on the same path returns.
 
-    Negative flux, mole fractions off unit sum, non-positive masses, and an
-    asymmetric coefficient matrix are not physically posed inputs and must
-    raise ``ValueError`` rather than return a partial solution.
+    Negative flux, mole fractions off unit sum, non-positive masses, an
+    asymmetric coefficient matrix, and non-finite scalars or arrays are not
+    physically posed inputs and must raise ``ValueError`` rather than return
+    a partial solution; a NaN passes every sign comparison, so finiteness is
+    checked first.
     """
     m = np.array([1.0, 16.0]) * AMU_G
     X = np.array([0.8, 0.2])
@@ -63,6 +65,15 @@ def test_input_validation_error_contract():
     b_asym = np.array([[np.inf, 1e19], [2e19, np.inf]])
     with pytest.raises(ValueError, match='symmetric'):
         solve_closure(1e-10, X, m, 400.0, 980.0, b_asym)
+    for args in (
+        (np.nan, X, m, 400.0, 980.0),
+        (1e-10, np.array([0.8, np.nan]), m, 400.0, 980.0),
+        (1e-10, X, np.array([1.0, np.inf]) * AMU_G, 400.0, 980.0),
+        (1e-10, X, m, np.nan, 980.0),
+        (1e-10, X, m, 400.0, np.inf),
+    ):
+        with pytest.raises(ValueError, match='finite'):
+            solve_closure(*args, b)
     flux = solve_closure(1e-10, X, m, 400.0, 980.0, b)
     assert np.all(flux >= 0.0)
 

@@ -46,6 +46,10 @@ from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g
 def _validate_inputs(phi, X, m, T, g0, b):
     X, m, b = np.asarray(X, float), np.asarray(m, float), np.asarray(b, float)
     n = len(X)
+    if not all(np.isfinite(v) for v in (phi, T, g0)) or not (
+        np.all(np.isfinite(X)) and np.all(np.isfinite(m))
+    ):
+        raise ValueError('phi, X, m, T, g0 must be finite')
     if phi < 0:
         raise ValueError('phi must be >= 0')
     if np.any(X < 0) or abs(X.sum() - 1.0) > 1e-6:

@@ -73,8 +73,8 @@ class Profile:
                 raise ValueError(f'{name} carries a non-finite value')
         if not (np.all(np.diff(p) < 0) and np.all(np.diff(r) > 0)):
             raise ValueError('p must decrease and r increase strictly with index')
-        if np.any(p <= 0) or np.any(T <= 0) or np.any(mmw <= 0):
-            raise ValueError('p, T, mmw must be positive')
+        if np.any(p <= 0) or np.any(r <= 0) or np.any(T <= 0) or np.any(mmw <= 0):
+            raise ValueError('p, r, T, mmw must be positive')
         for sp, x in self.vmr.items():
             arr = np.asarray(x, dtype=float)
             if len(arr) != len(p):
