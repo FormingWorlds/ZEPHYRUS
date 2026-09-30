@@ -523,6 +523,33 @@ Output:
 
 From 0.3 the photon count binds. Lifting one particle out of a one Earth-mass well costs about a quarter of an ionizing photon's energy, so above an efficiency of 0.26 (`efficiency_photon_limit` in the diagnostics) more energy per photon cannot remove more gas, and the rate stops at $6.1 \times 10^{6}$ kg s⁻¹ while the energy-limited candidate keeps growing[^owenalvarez]. The label changes without the physics of the wind changing at all: the minimum switched hands, nothing else. With `photon_limit = False` the rate would keep rising until the recombination-limited candidate took over at 0.6. The fitted-efficiency option returns 0.791 for this planet with `caldiroli_out_of_box` raised, because a one Earth-mass planet sits below the gravitational potential range the fit was made on[^caldiroli]. That is the guard working. Take the flag seriously rather than the number.
 
+### Three limits on one wind
+
+The wind rate is the smallest of three limits, and each responds to a different quantity. The energy-limited and photon-limited rates are both linear in the XUV flux, so which of the two is smaller depends only on the efficiency, against the threshold `efficiency_photon_limit` above which a photon's heating share outweighs the work to lift one particle. The recombination-limited rate grows more slowly with flux, so it takes over when the flux is high. The one Earth-mass carbon dioxide planet of the efficiency sweep shows all three:
+
+```python
+for eps in (0.1, 0.3):
+    for f_xuv in (10.0, 1e3):
+        out = dispatch(build_state('CO2', 1.0, 1.0, f_xuv,
+                                   settings=DispatchSettings(efficiency=eps)))
+        hy = out.diagnostics['hydrodynamic']
+        print(eps, f_xuv, out.regime, hy['mdot_el'], hy['mdot_rr'], hy['mdot_pl'])
+print(hy['efficiency_photon_limit'], hy['selection_mechanism'],
+      hy['rr_chain']['barometric_factor'])
+```
+
+Output:
+
+```text
+0.1 10.0 hydrodynamic:EL 2347722.550685174 11494353.468961576 6136531.331966522
+0.1 1000.0 hydrodynamic:RR 234772255.0685174 179061996.4805105 613653133.1966523
+0.3 10.0 hydrodynamic:PL 7043167.652055521 11494353.468961576 6136531.331966522
+0.3 1000.0 hydrodynamic:RR 704316765.2055521 179061996.4805105 613653133.1966523
+0.2613823055955057 RR-selected 0.01746566961540077
+```
+
+At 10 W m⁻² and the default efficiency the energy-limited rate is the smallest, at $2.3 \times 10^{6}$ kg s⁻¹. Raise the efficiency to 0.3, past the threshold of 0.26, and the energy-limited rate overtakes the photon count, so the label becomes `hydrodynamic:PL` at $6.1 \times 10^{6}$ kg s⁻¹, the same at any higher efficiency. A hundredfold rise in flux multiplies both of those by a hundred but the recombination-limited rate only by about 16, since recombination returns part of the absorbed energy, so at $10^{3}$ W m⁻² the recombination-limited rate wins at either efficiency, at $1.8 \times 10^{8}$ kg s⁻¹, and the efficiency no longer matters. The last line says how to read that win: `RR-selected` is a transonic wind, not the floored subcritical case, and a barometric factor of 0.017 says only 1.7 percent of the wind-base density survives to the sonic point, so here the rate is set more by the wind's struggle to reach the sonic point than by recombination saturation at the base (the [escape regimes](../Explanations/regimes.md) page separates the two readings). A hydrogen planet does not show all three limits as cleanly: a wind near $10^{4}$ K on a well shallow enough for the photon count to bind has its sonic point inside the wind base, so its recombination-limited wins are the floored value. `photon_limit = False` and `recombination_limit = False` remove the two caps, which is how the rates compare against a code that carries only the energy limit.
+
 ### One more, for evolutionary use
 
 Supply the previous label and a hysteresis window opens around the threshold, so a time-stepping track cannot chatter between branches on numerical noise:

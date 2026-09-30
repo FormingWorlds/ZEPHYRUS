@@ -273,6 +273,6 @@ def test_tutorial_snippets_print_what_the_page_quotes(monkeypatch):
         )
         compared += 1
     # Guard against the extraction silently finding nothing, which would make
-    # the assertions above vacuous. Nineteen of the twenty output blocks are
+    # the assertions above vacuous. Twenty of the twenty-one output blocks are
     # comparable here; the stellar track is the integration tier's.
-    assert compared >= 19, f'only {compared} tutorial output blocks were compared'
+    assert compared >= 20, f'only {compared} tutorial output blocks were compared'
