@@ -19,9 +19,10 @@ python tools/agents/check_agents_md.py
 - `Fxuv` from PROTEUS is already diluted to the planet; `EL_escape` does not divide by `4 pi a**2` again.
 - The escape rate stays non-negative, linear in `Fxuv` and decreasing with `Mp`; geometric quantities are positive before a division.
 - The tidal branch keeps the `ksi > 1` guard before `K_tide` is used, and the `(1 - e)` periapsis factor in `Rhill`.
-- PROTEUS passes `scaling=3`; no test pins the default (`test_earth.py` uses it with `Rp == Rxuv`, where both branches agree; `test_mors_coupling.py` only in a flux ratio). A change of the default updates the `EL_escape` docstring and every docs page that names it, and adds a test that pins it.
+- The tidal `ksi` is measured from `Rp` under `scaling=2` and from `Rxuv` under `scaling=3`. PROTEUS passes `scaling=3`; no test pins the default (`test_earth.py` uses it with `Rp == Rxuv`, where both branches agree; `test_mors_coupling.py` only in a flux ratio). A change of the default updates the `EL_escape` docstring and every docs page that names it, and adds a test that pins it.
 - `collision.mass_loss` keeps its input guards (impact parameter in [0, 1]; masses, densities and radii positive and finite; collision speed non-negative and finite) and returns a fraction in [0, 1].
 - Constants come from `zephyrus.constants`; `G_cgs` never enters an SI expression.
+- A dispatcher change keeps one label, a finite non-negative rate, and per-species rates summing to it for every physically posed input, never lets control flow read the diagnostics container, and updates `docs/Reference/results.md` for any flag or diagnostics key it adds or removes.
 - Tests: `src/zephyrus/<file>.py` is tested in `tests/test_<file>.py`; each file has `pytestmark = [pytest.mark.<tier>, pytest.mark.timeout(<s>)]`; each test has a docstring, at least 2 assertions, an edge case and the error path; floats are compared with a tolerance; a test that asserts a physical invariant carries `physics_invariant`, a test against a published or analytical value also carries `reference_pinned`, and pinned values have sign, scale and wrong-formula guards.
 - Commit messages, pull-request text, comments, test names and CI job names describe the change: no tool attribution, no internal plan labels, no em or en dashes; an inline comment block has at most 4 lines.
 

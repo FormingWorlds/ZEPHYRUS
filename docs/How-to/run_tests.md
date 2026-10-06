@@ -73,9 +73,9 @@ Tests that pin behaviour against an external anchor are tagged `@pytest.mark.ref
 
 | Source | Anchor | Test |
 |---|---|---|
-| `escape.py` | Erkaev et al. (2007), A&A 472:329, Eq. 21: closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
-| `escape.py` | Lehmer & Catling (2017), ApJ 845:130, Eq. 1: closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
-| `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Eq. 1: closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
+| `escape.py` | Erkaev et al. (2007) [^erkaev], A&A 472:329, Eq. 21: closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
+| `escape.py` | Lehmer & Catling (2017) [^lehmer], ApJ 845:130, Eq. 1: closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
+| `collision.py` | Kegerreis et al. (2020) [^kegerreis], ApJL 901:L31, Eq. 1: closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
 | `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Tables 1 and 2: simulated loss fractions of the SPH suite | `tests/test_collision.py::test_scaling_law_reproduces_kegerreis_table2_simulations` |
 
 The marker is not the same thing as physical correctness: a reference-pinned test certifies that this implementation reproduces that anchor; it does not certify that the anchor is the right physics for every planetary regime.
@@ -179,6 +179,13 @@ Two gates are declared in `pyproject.toml`:
 
 Both gates sit at the 90 % ceiling. The `tools/update_coverage_threshold.py` helper (run manually) raises `fail_under` one-way toward the ceiling and never lets it drop; `ECOSYSTEM_CEILING = 90.0` caps it, and neither gate may be manually decreased. ZEPHYRUS has no compiled dependencies, so the unit and smoke tier already covers the whole package, which is why both gates are already at the ceiling. The PR gate has a pre-flight step that fetches the base branch's `pyproject.toml` and rejects any PR that drops `[tool.coverage.report].fail_under` below `min(base, 90.0)`.
 
+
+### What the gate measures, and what it does not
+
+The coverage source is the package, `source = ["zephyrus"]`, so `examples/` sits outside both gates. That is the ecosystem convention rather than an omission: PROTEUS and every sibling submodule set the source to their own package, and PROTEUS's own `examples/` holds configuration files with no Python in them at all. Adding the worked example here would move the reported number by more than ten points while measuring a script rather than the library.
+
+The example is held to account a different way. `tests/test_examples.py` drives its functions for their behaviour, and one test in it runs every Python snippet in the dispatcher tutorial in order and compares what the snippet prints against what the page quotes: the text exactly, and every float to a relative 1e-12, which absorbs last-place differences between platforms' floating-point libraries and nothing a physics change could produce. That is what holds the documentation's claim that every printed number is the verbatim output of a snippet a reader can run: a coefficient change three modules away moves a number on that page, and without the test nothing notices.
+
 ## PR validation pipeline
 
 `.github/workflows/tests.yaml` runs on every push and pull request to `main`, and on manual `workflow_dispatch`. Draft PRs run only `ubuntu-latest` with Python 3.12; non-draft events run the full matrix (`ubuntu-latest`, `macos-latest` x Python 3.12). The step sequence:
@@ -195,3 +202,11 @@ Nightly (`.github/workflows/nightly.yml`) runs the full suite, uploads coverage 
 ## Canonical specification
 
 The repository-wide rules that every PROTEUS-ecosystem submodule follows are at [proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/](https://proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/).
+
+---
+
+[^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
+
+[^lehmer]: Lehmer, O. R., & Catling, D. C. (2017). Rocky worlds limited to 1.8 Earth radii by atmospheric escape during a star's extreme UV saturation. *The Astrophysical Journal, 845*(2), 130.
+
+[^kegerreis]: Kegerreis, J. A., Eke, V. R., Catling, D. C., Massey, R. J., Teodoro, L. F. A., & Zahnle, K. J. (2020). Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density. *The Astrophysical Journal Letters, 901*(2), L31. https://doi.org/10.3847/2041-8213/abb5fb
