@@ -151,12 +151,12 @@ def test_cache_key_material_is_the_versioned_directory_and_the_registry(monkeypa
 def test_cache_key_is_the_same_with_and_without_a_mirror_pin(monkeypatch, tmp_path):
     """A DataverseNL pin on the Spada entry does not change the key.
 
-    The mirror serves the files of the Zenodo record, so a manifest with a pin, or
-    with another pin, restores the same cached tree as one without.
+    fwl-io checks every file against the registry, whichever source serves it, so a
+    manifest with a pin, or with another pin, restores the same cached tree.
     """
+    mod = _cache_module()
     from fwl_io import load_manifest
 
-    mod = _cache_module()
     _manifest(monkeypatch, tmp_path)
     baseline = mod.resolve_key()
     manifest = _manifest(monkeypatch, tmp_path, spada_mirror='WEMRPG')
