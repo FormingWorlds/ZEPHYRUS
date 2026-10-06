@@ -39,8 +39,9 @@ changelog = "https://github.com/FormingWorlds/ZEPHYRUS/releases"
 [project.optional-dependencies]
 develop = [
   "coverage[toml]",
-  # tools/nightly_data_cache.py reads fwl-io's check_dataset (26.8.31) and the
-  # fwl-mors manifest, which pins the DataverseNL fallback of the track download.
+  # tools/nightly_data_cache.py reads fwl-io's check_dataset (26.8.31). The fwl-mors
+  # floor serves the track download of the nightly tests: its manifest pins the
+  # DataverseNL fallback.
   "fwl-io >= 26.8.31",
   "fwl-mors >= 26.10.6",
   "hypothesis >= 6.0",
