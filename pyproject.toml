@@ -25,7 +25,7 @@ classifiers = [
 keywords = ["exoplanet", "escape"]
 requires-python = '>=3.12'
 dependencies = [
-  'fwl-mors>=26.10.6',
+  'fwl-mors>=24.11.18',
   'matplotlib',
   'numpy'
 ]
@@ -39,8 +39,10 @@ changelog = "https://github.com/FormingWorlds/ZEPHYRUS/releases"
 [project.optional-dependencies]
 develop = [
   "coverage[toml]",
-  # tools/nightly_data_cache.py reads fwl-io's check_dataset (26.8.31).
+  # tools/nightly_data_cache.py reads fwl-io's check_dataset (26.8.31) and the
+  # manifest fwl-mors ships; 26.10.6 pins its DataverseNL fallback for the tracks.
   "fwl-io >= 26.8.31",
+  "fwl-mors >= 26.10.6",
   "hypothesis >= 6.0",
   "pre-commit",
   "pytest",

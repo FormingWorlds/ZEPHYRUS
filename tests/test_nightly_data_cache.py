@@ -154,10 +154,14 @@ def test_cache_key_is_the_same_with_and_without_a_mirror_pin(monkeypatch, tmp_pa
     The mirror serves the files of the Zenodo record, so a manifest with a pin, or
     with another pin, restores the same cached tree as one without.
     """
+    from fwl_io import load_manifest
+
     mod = _cache_module()
     _manifest(monkeypatch, tmp_path)
     baseline = mod.resolve_key()
-    _manifest(monkeypatch, tmp_path, spada_mirror='WEMRPG')
+    manifest = _manifest(monkeypatch, tmp_path, spada_mirror='WEMRPG')
+    pinned = {ds.key: ds for ds in load_manifest(manifest)}[mod.MANIFEST_KEY]
+    assert pinned.dataverse == '10.34894/WEMRPG'
     assert mod.resolve_key() == baseline
     _manifest(monkeypatch, tmp_path, spada_mirror='ABC123')
     assert mod.resolve_key() == baseline
