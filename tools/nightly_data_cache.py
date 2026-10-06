@@ -25,6 +25,10 @@ A moving key is the whole point. ``actions/cache`` writes an entry only on an
 exact-key miss and never rewrites one it hits, so a key that never changes is
 never rewritten and the tree it holds cannot follow the data.
 
+The DataverseNL mirror pin of the entry is not passed to the fetcher: this tool
+never downloads, and fwl-io checks a download against its registry digest (for
+the Spada archive, the archive digest), whichever source serves it.
+
 Only the Spada entry is hashed. The Baraffe entry in the same manifest is not
 fetched by ZEPHYRUS, so a change to it must not empty the cache.
 

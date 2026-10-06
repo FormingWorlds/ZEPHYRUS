@@ -45,6 +45,7 @@ def _manifest(
     spada_record=SPADA_RECORD,
     spada_md5=SPADA_MD5,
     baraffe=BARAFFE_RECORD,
+    spada_mirror=None,
 ):
     """Write a fwl-mors-style manifest and point ``mors.data.manifest_path`` at it."""
     import mors.data
@@ -60,7 +61,8 @@ def _manifest(
         '[star.tracks.spada_2013]\n'
         'name = "Spada"\n'
         f'zenodo = "10.5281/zenodo.{spada_record}"\n'
-        'extract = "tar"\n'
+        + (f'dataverse = "10.34894/{spada_mirror}"\n' if spada_mirror else '')
+        + 'extract = "tar"\n'
         'required_by = ["mors"]\n',
         encoding='utf-8',
     )
@@ -144,6 +146,21 @@ def test_cache_key_material_is_the_versioned_directory_and_the_registry(monkeypa
     with pytest.raises(mod.ResolutionError, match='fwl-io could not read'):
         mod._fetcher(fresh_root)
     assert not fresh_root.exists()
+
+
+def test_cache_key_is_the_same_with_and_without_a_mirror_pin(monkeypatch, tmp_path):
+    """A DataverseNL pin on the Spada entry does not change the key."""
+    mod = _cache_module()
+    from fwl_io import load_manifest
+
+    _manifest(monkeypatch, tmp_path)
+    baseline = mod.resolve_key()
+    manifest = _manifest(monkeypatch, tmp_path, spada_mirror='WEMRPG')
+    pinned = {ds.key: ds for ds in load_manifest(manifest)}[mod.MANIFEST_KEY]
+    assert pinned.dataverse == '10.34894/WEMRPG'
+    assert mod.resolve_key() == baseline
+    _manifest(monkeypatch, tmp_path, spada_mirror='ABC123')
+    assert mod.resolve_key() == baseline
 
 
 def test_cache_key_refuses_to_resolve_without_the_pins(monkeypatch, tmp_path, capsys):
