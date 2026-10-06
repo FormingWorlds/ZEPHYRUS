@@ -45,6 +45,7 @@ def _manifest(
     spada_record=SPADA_RECORD,
     spada_md5=SPADA_MD5,
     baraffe=BARAFFE_RECORD,
+    spada_mirror='WEMRPG',
 ):
     """Write a fwl-mors-style manifest and point ``mors.data.manifest_path`` at it."""
     import mors.data
@@ -60,6 +61,7 @@ def _manifest(
         '[star.tracks.spada_2013]\n'
         'name = "Spada"\n'
         f'zenodo = "10.5281/zenodo.{spada_record}"\n'
+        f'dataverse = "10.34894/{spada_mirror}"\n'
         'extract = "tar"\n'
         'required_by = ["mors"]\n',
         encoding='utf-8',
@@ -144,6 +146,25 @@ def test_cache_key_material_is_the_versioned_directory_and_the_registry(monkeypa
     with pytest.raises(mod.ResolutionError, match='fwl-io could not read'):
         mod._fetcher(fresh_root)
     assert not fresh_root.exists()
+
+
+def test_fetcher_gets_the_mirror_pin_and_the_key_ignores_it(monkeypatch, tmp_path):
+    """The Spada DataverseNL pin reaches fwl-io, and a new mirror pin leaves the key put,
+    since the mirror serves the same registry files."""
+    import fwl_io
+
+    mod = _cache_module()
+    _manifest(monkeypatch, tmp_path)
+    baseline = mod.resolve_key()
+    seen = {}
+    real = fwl_io.create_fetcher
+    monkeypatch.setattr(fwl_io, 'create_fetcher', lambda **kw: seen.update(kw) or real(**kw))
+    mod._fetcher(tmp_path)
+    assert seen['dataverse'] == '10.34894/WEMRPG'
+    assert seen['zenodo'] == f'10.5281/zenodo.{SPADA_RECORD}'
+
+    _manifest(monkeypatch, tmp_path, spada_mirror='ABC123')
+    assert mod.resolve_key() == baseline
 
 
 def test_cache_key_refuses_to_resolve_without_the_pins(monkeypatch, tmp_path, capsys):

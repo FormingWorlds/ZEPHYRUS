@@ -10,13 +10,15 @@ ZEPHYRUS reaches one dataset through its ``fwl-mors`` dependency: the Spada
 stellar-evolution grid, fetched by ``mors.DownloadEvolutionTracks('Spada')``.
 fwl-mors declares that grid in its shipped dataset manifest
 (``mors.data.manifest_path()``), which fwl-io reads: a Zenodo version DOI, a
-registry of checksums, and the versioned directory
-``star/tracks/spada_2013/r<record-id>`` the archive unpacks into.
+registry of checksums, the versioned directory
+``star/tracks/spada_2013/r<record-id>`` the archive unpacks into, and the
+DataverseNL mirror fwl-io falls back to.
 
 ``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``, carrying a digest of that
 directory and the registry checksums the manifest pins for the dataset, both
 resolved through fwl-io. The key therefore moves when the grid is re-pinned and
-stays put otherwise. The manifest key of the Spada entry below is a fixed
+stays put otherwise; a new mirror pin serves the same files, so it does not move
+the key. The manifest key of the Spada entry below is a fixed
 namespace segment rather than a resolved property: a rename of the entry on the
 fwl-mors side has to be mirrored here by hand, and until it is, the script
 stops with a diagnostic naming the entries it found.
@@ -144,6 +146,7 @@ def _fetcher(data_root: Path):
         return create_fetcher(
             subdir=ds.subdir,
             zenodo=ds.zenodo,
+            dataverse=ds.dataverse,
             registry=ds.registry_path,
             data_root=data_root,
             extract=ds.extract,
