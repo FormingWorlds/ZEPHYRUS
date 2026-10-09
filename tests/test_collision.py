@@ -313,9 +313,10 @@ def test_roche2026_oracle_reproduction():
     """Verify _roche2026_fit matches the 12 oracle rows within tolerance.
 
     Tests against 12 reference rows from Roche et al. (2026),
-    arXiv:2610.06077, Zenodo doi:10.5281/zenodo.23192423. In Set B, the
-    impactor masses follow nominal gamma, producing a 1.02e-4 residual
-    between published columns and fit output.
+    arXiv:2610.06077, Zenodo doi:10.5281/zenodo.23192423. In rows with target
+    masses from 0.35 to 4.98 M_E (Set B), the impactor masses follow nominal
+    gamma, producing a 1.02e-4 residual in loss fraction against published
+    X_atm_calc, while Q'_R matches to 7e-16.
     """
     rows = _get_roche2026_oracle_rows()
     assert len(rows) == 12
@@ -787,11 +788,13 @@ def test_roche2026_m_earth_sensitivity(monkeypatch):
 @pytest.mark.physics_invariant
 @pytest.mark.reference_pinned
 def test_roche2026_oracle_set_a_impact_loss():
-    """Verify all 8 Set A rows through public impact_loss against published column.
+    """Verify 8 reference rows on 1 M_E targets through public impact_loss.
 
-    Impact speed v_c_kms in the reference table has 2 decimal digits, producing
-    up to a 1.01e-4 residual in Q'_R and loss fraction against X_atm_calc.
-    Row 1 triggers the 'X_FF_zero_energy' flag from its zero-energy far-field term.
+    Evaluates 1 M_E target impacts (f_atm in [0.01, 0.20]) against published
+    X_atm_calc. The reference impact speed v_c_kms has 2 decimal digits,
+    producing up to a 1.01e-4 residual in loss fraction through v_c / v_esc,
+    while Q'_R matches to 7e-16. The reference impact with gamma = 0.5,
+    f_atm = 0.0100, b = 0.7 triggers the 'X_FF_zero_energy' flag.
     All rows match within the 2e-4 tolerance.
     """
     rows = _get_roche2026_oracle_rows()
@@ -820,12 +823,14 @@ def test_roche2026_oracle_set_a_impact_loss():
 @pytest.mark.physics_invariant
 @pytest.mark.reference_pinned
 def test_roche2026_oracle_set_b_impact_loss():
-    """Verify all 4 Set B rows through public impact_loss within 2e-4 tolerance.
+    """Verify 4 reference rows on 0.35 to 4.98 M_E targets through impact_loss.
 
+    Evaluates impacts on targets from 0.35 to 4.98 M_E (f_atm around 0.05).
     Impactor masses follow nominal gamma rather than exact mass ratio in the
-    published table, producing up to a 1.02e-4 residual in Q'_R.
-    Row 0 triggers the 'X_FF_zero_energy' flag from its zero-energy far-field term.
-    All rows match within the 2e-4 tolerance.
+    published table, producing up to a 1.02e-4 residual in loss fraction
+    against X_atm_calc, while Q'_R matches to 7e-16. The reference impact
+    with M_t = 0.35 M_E, gamma = 0.4, f_atm = 0.0500, b = 0 triggers the
+    'X_FF_zero_energy' flag. All rows match within the 2e-4 tolerance.
     """
     rows = _get_roche2026_oracle_rows()
     set_b = [r for r in rows if r['set'] == 'B']
@@ -1238,7 +1243,7 @@ def test_roche2026_broadcast_shape():
 
 @pytest.mark.physics_invariant
 def test_roche2026_raw_fnf_greater_than_one():
-    """Verify raw f_NF > 1 inside fitted box clamps to 1.0."""
+    """Verify raw f_NF > 1 clamps to 1.0 (input R_ratio 1.474 is outside fitted range)."""
     b = 0.1625
     mt = 1.22 * Me
     fa = 0.1086
@@ -1353,14 +1358,13 @@ def test_roche2026_grazing_psi4_negative():
     assert xff_direct == pytest.approx(xff_zero, abs=1e-15)
 
 
-@pytest.mark.physics_invariant
-@pytest.mark.reference_pinned
 def test_roche2026_table_d1_moon_forming_scenarios():
     """Verify Table D1 Moon-forming impact scenarios at f_atm = 1e-4.
 
-    Pins atmospheric erosion fractions against published scenario inputs
-    from Roche et al. (2026), Table D1 and Sect. 4.3, evaluated with radii
-    scaling as M^(1/4) * Re and contact speeds v_c = ratio * v_esc.
+    Regression pin for atmospheric erosion fractions against values computed
+    by this code for the published scenario parameters of Roche et al. (2026),
+    Table D1 and Sect. 4.3, evaluated with radii scaling as M^(1/4) * Re and
+    contact speeds v_c = ratio * v_esc.
     """
     scenarios = {
         'CA01': (0.907, 0.1121, 0.7, 1.0, 0.208),

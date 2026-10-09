@@ -62,7 +62,10 @@ ROCHE2026_FITTED_RANGE: types.MappingProxyType[str, tuple[float, float]] = (
 
 Calibrated parameter ranges from Roche et al. (2026): Section 4.1 (p. 7)
 for f_atm, M_t_earth, gamma, b, and v_ratio; Section 3.2 (p. 5) and the
-authors' fitting data (scaling_law.csv) for R_ratio ([0.001, 1.015]).
+authors' fitting data (scaling_law.csv) for R_ratio ([0.001, 1.015]). The
+loss coefficients (k, s) were fitted on impact simulations with
+R_ratio >= 0.498 only; the 0.001 lower bound comes from the separate
+unimpacted f_NF suite.
 
 Keys:
 - ``f_atm``: initial envelope mass fraction [dimensionless]
@@ -231,7 +234,7 @@ def _roche2026_fit(
     """
     p = _ROCHE2026_PARAMS
 
-    # Near-field envelope fraction zeta_i terms (Roche et al. 2026, Eq. 7, general form)
+    # Near-field envelope fraction zeta_i terms (Roche et al. (2026), Eq. 7, general form)
     def _calc_zeta(i: int) -> Any:
         return (
             p[f'q{i}1']
@@ -244,13 +247,13 @@ def _roche2026_fit(
 
     z1, z2, z3, z4 = (_calc_zeta(i) for i in (1, 2, 3, 4))
 
-    # Near-field atmospheric mass fraction f_NF (Roche et al. 2026, Eq. 6)
+    # Near-field atmospheric mass fraction f_NF (Roche et al. (2026), Eq. 6)
     with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
         f_nf = z4 / (1.0 + p['zeta6'] * np.exp(z3 * (R_ratio - z2))) ** z1 + p['zeta5']
         f_nf = np.clip(f_nf, 0.0, 1.0)
     f_ff = 1.0 - f_nf
 
-    # Near-field loss function xi_i (Roche et al. 2026, Eq. 8, Eq. 9, general form)
+    # Near-field loss function xi_i (Roche et al. (2026), Eq. 8, Eq. 9, general form)
     def _calc_xi_i(i: int, v_rel: Any) -> Any:
         return (
             p[f'k{i}1']
@@ -267,7 +270,7 @@ def _roche2026_fit(
 
     x_nf = np.clip(_calc_xi(v_c_v_esc), np.maximum(0.0, _calc_xi(1.0)), f_nf)
 
-    # Far-field loss function psi_i (Roche et al. 2026, Eq. 10, Eq. 11, general form)
+    # Far-field loss function psi_i (Roche et al. (2026), Eq. 10, Eq. 11, general form)
     def _calc_psi_i(i: int) -> Any:
         return (
             p[f's{i}1']
@@ -518,7 +521,7 @@ def specific_impact_energy(
         Impactor mass [kg].
     M_t_tot : float
         Target mass including its atmosphere ($M_\mathrm{t}^\mathrm{tot}$ in
-        Roche et al. 2026, Eq. 1 and $Q'_\mathrm{R}$) [kg].
+        Roche et al. (2026), Eq. 1 and $Q'_\mathrm{R}$) [kg].
     R_i : float
         Impactor refractory radius [m].
     R_t : float
