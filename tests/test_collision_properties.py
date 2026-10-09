@@ -3,18 +3,10 @@
 Companion to ``tests/test_collision.py`` holding the Hypothesis-driven
 property checks, in a separate module so the ``importorskip`` keeps the
 closed-form pins running when Hypothesis is absent (for example under a
-``pip install --no-deps`` image). The physical invariants swept here:
+``pip install --no-deps`` image). The physical invariant swept here:
 
 - Boundedness: the loss fraction stays in [0, 1] and finite across the
   physically valid mass, radius, density, speed, and angle ranges.
-- Monotonicity: at fixed geometry the loss never decreases with contact
-  speed and never increases with impact parameter.
-- Reduction: at equal bulk densities the density-weighted interacting
-  mass of Eqn. B1 equals the interacting volume of Eqn. B2 exactly.
-- Roche invariants: total loss bounded in [0, 1] up to gamma = 0.999 and
-  v_c / v_esc = 30 across independent bulk densities from 0.5 to 2 Earth;
-  continuous at grazing b = 1; velocity floor active below v_esc; zero
-  atmosphere fraction returns zero loss.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
@@ -27,7 +19,6 @@ from zephyrus.constants import G
 from zephyrus.planets_parameters import Me
 
 # Skip if hypothesis is unavailable; closed-form pins and error-contract
-
 # guards live in tests/test_collision.py and run unconditionally.
 hyp = pytest.importorskip('hypothesis')
 given = hyp.given

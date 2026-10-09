@@ -51,7 +51,7 @@ $$X_\mathrm{NF} \;=\; f_\mathrm{NF} \left(\xi_1 - \xi_2\, (b + \xi_3)^2\right) \
 
 with a velocity floor at $v_\mathrm{c} / v_\mathrm{esc} = 1.0$, clamped to $[\max(0, X_\mathrm{NF}(v_\mathrm{c} = v_\mathrm{esc})), f_\mathrm{NF}]$.
 
-Each coefficient vector ($\boldsymbol{\zeta}$, $\boldsymbol{\xi}$, $\boldsymbol{\psi}$) is evaluated as a polynomial function of impact parameter $b$, envelope mass fraction $f_\mathrm{atm}$, refractory target mass $M_\mathrm{t}^\mathrm{r} / M_\oplus$, and refractory impactor mass fraction $\gamma \equiv M_\mathrm{i}^\mathrm{r} / (M_\mathrm{i}^\mathrm{r} + M_\mathrm{t}^\mathrm{r})$:
+Each coefficient vector ($\boldsymbol{\zeta}$, $\boldsymbol{\xi}$, $\boldsymbol{\psi}$) is evaluated as an empirical function combining power-law, polynomial, and logarithmic dependencies on impact parameter $b$, envelope mass fraction $f_\mathrm{atm}$, refractory target mass $M_\mathrm{t}^\mathrm{r} / M_\oplus$, and refractory impactor mass fraction $\gamma \equiv M_\mathrm{i}^\mathrm{r} / (M_\mathrm{i}^\mathrm{r} + M_\mathrm{t}^\mathrm{r})$:
 
 $$\zeta_i \;=\; q_{i1} + q_{i2}\, b + q_{i3}\, b^{q_{i4}} + q_{i5}\, f_\mathrm{atm} + q_{i6}\, f_\mathrm{atm}^2 + q_{i7}\left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus}\right)^{q_{i8}} \tag{R7}$$
 
@@ -90,8 +90,8 @@ with $l \equiv R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r} - (R_\mathrm{t}
 | $M_\mathrm{t}^\mathrm{tot}$ | Total target mass | kg | Includes envelope mass |
 | $M_\mathrm{t}^\mathrm{r}, M_\mathrm{i}^\mathrm{r}$ | Refractory target and impactor masses | kg | Core plus mantle mass, excluding atmosphere |
 | $M_\oplus$ | Earth mass constant | kg | $5.9722 \times 10^{24}$ kg (`zephyrus.planets_parameters.Me`) |
-| $R_\mathrm{t}^\mathrm{r}, R_\mathrm{i}^\mathrm{r}$ | Refractory radii | m | Radius at base of atmosphere |
-| $v_\mathrm{c}$ | Contact velocity | $\mathrm{m\,s^{-1}}$ | Speed at moment of contact |
+| $R_\mathrm{t}^\mathrm{r}, R_\mathrm{i}^\mathrm{r}$ | Refractory radii | m | Radius at base of atmosphere (mantle contact surface; explicitly distinct from inner core-mantle boundary contact) |
+| $v_\mathrm{c}$ | Contact velocity | $\mathrm{m\,s^{-1}}$ | Speed at moment of first surface mantle contact |
 | $v_\mathrm{esc}$ | Mutual escape speed | $\mathrm{m\,s^{-1}}$ | Calculated from total target mass and refractory impactor mass |
 | $b$ | Dimensionless impact parameter | - | $\sin\beta \in [0, 1]$ |
 | $\gamma$ | Impactor mass fraction | - | $M_\mathrm{i}^\mathrm{r} / (M_\mathrm{i}^\mathrm{r} + M_\mathrm{t}^\mathrm{r})$ |
@@ -103,7 +103,7 @@ with $l \equiv R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r} - (R_\mathrm{t}
 
 The scaling coefficients comprise 61 numbers (Roche et al. 2026, pp. 5-6):
 
-- The 23 near-field mass coefficients ($q_{ij}$, $\zeta_5$, $\zeta_6$) are fitted to a separate suite of initialised SPH planets without impacts ($R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \in [0.001, 1.0]$, $M_\mathrm{t}^\mathrm{r} \in [0.01, 5.0]\,M_\oplus$, $f_\mathrm{atm} \in [0.01, 0.2]$).
+- The 23 near-field mass coefficients ($q_{ij}$, $\zeta_5$, $\zeta_6$) are fitted to a separate suite of initialised SPH planets without impacts ($R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \in [0.001, 1.015]$, $M_\mathrm{t}^\mathrm{r} \in [0.01, 5.0]\,M_\oplus$, $f_\mathrm{atm} \in [0.01, 0.2]$).
 - The 38 loss coefficients ($k_{ij}$, $s_{ij}$) are fitted to 300 new impact simulations (with a single target mass of about 1 $M_\oplus$, and $f_\mathrm{atm} \in \{0.01, 0.1, 0.2\}$) and the $f_\mathrm{atm} = 0.05$ simulations of Roche et al. (2025) [^roche2025], which span multiple target masses. Away from 1 $M_\oplus$, the impact data cover only $f_\mathrm{atm} = 0.05$.
 
 All 61 values are transcribed at full precision from the published dataset [^roche2026]. Terms fixed in Table C1-C3 ($q_{37} = q_{48} = 1$ and other unlisted parameters fixed to 0) are held in internal constants.
@@ -116,26 +116,26 @@ The simulation suite constrains the law over the following parameter space:
 - Atmosphere mass fraction: $f_\mathrm{atm} \in [0.01, 0.2]$
 - Impactor mass fraction: $\gamma \in [0.1, 0.5]$
 - Impact parameter: $b \in [0.0, 0.9]$
-- Radius ratio: $R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \in [0.001, 1.0]$ (Roche et al. 2026, Sect. 3.2, p. 5, from the suite of initialised SPH planets)
+- Radius ratio: $R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \in [0.001, 1.015]$ (Roche et al. 2026, Sect. 3.2, p. 5, from the suite of initialised SPH planets unioned with Set B of the benchmark dataset)
 - Contact velocity: $v_\mathrm{c} \in [1.0, 3.0]\,v_\mathrm{esc}$
 
 To support planetary evolution and accretion calculations where conditions cross these empirical boundaries, `zephyrus.collision.impact_loss` applies a structured evaluation policy:
 
-1. Diagnostic range flags. When inputs fall outside the calibrated range with a 1% relative tolerance ($f_\mathrm{atm} \notin [0.01, 0.2]$, $M_\mathrm{t}^\mathrm{r} \notin [0.35, 5.0]\,M_\oplus$, $\gamma \notin [0.1, 0.5]$, $b > 0.9$, $R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \notin [0.001, 1.0]$, or $v_\mathrm{c} / v_\mathrm{esc} > 3.0$), the loss fraction is computed and the out-of-range parameter names are recorded in `ImpactLossResult.flags` (`'f_atm'`, `'M_t_earth'`, `'gamma'`, `'b'`, `'R_ratio'`, `'v_ratio'`). Speeds below the escape speed ($v_\mathrm{c} < v_\mathrm{esc}$) are governed by the velocity floor and are not flagged. An airless target ($f_\mathrm{atm} = 0$) returns no flags.
-2. Stability clamping. Outside empirical stability limits, arguments to the empirical fit are evaluated at the nearest bound ($f_\mathrm{atm} \in [10^{-6}, 0.4]$, $M_\mathrm{t}^\mathrm{r} \in [10^{-3}, 10]\,M_\oplus$, $\gamma \ge 10^{-3}$) to prevent unphysical numerical divergence. Applied bounds are recorded in `diagnostics['clamped']`. Physical quantities ($v_\mathrm{esc}$, $v_\mathrm{c} / v_\mathrm{esc}$, $Q'_\mathrm{R}$, $\gamma$) and the far-field mass ratio use the physical input masses and radii.
+1. Diagnostic range flags. When inputs fall outside the calibrated range with a 1% relative tolerance ($f_\mathrm{atm} \notin [0.01, 0.2]$, $M_\mathrm{t}^\mathrm{r} \notin [0.35, 5.0]\,M_\oplus$, $\gamma \notin [0.1, 0.5]$, $b > 0.9$, $R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \notin [0.001, 1.015]$, or $v_\mathrm{c} / v_\mathrm{esc} > 3.0$), the loss fraction is computed and the out-of-range parameter names are recorded in `ImpactLossResult.flags` (`'f_atm'`, `'M_t_earth'`, `'gamma'`, `'b'`, `'R_ratio'`, `'v_ratio'`). Speeds below the escape speed ($v_\mathrm{c} < v_\mathrm{esc}$) are governed by the velocity floor and are not flagged. An airless target ($f_\mathrm{atm} = 0$) returns no flags.
+2. Stability clamping. Clamps guard the mathematical domain of the empirical functions (such as logarithmic arguments and non-integer powers) against non-physical inputs or extreme numerical divergence, rather than representing physical simulation boundaries. Arguments to the empirical fit are evaluated at the nearest bound ($f_\mathrm{atm} \in [10^{-6}, 0.4]$, $M_\mathrm{t}^\mathrm{r} \in [10^{-3}, 10]\,M_\oplus$, $\gamma \ge 10^{-3}$). The lower bound $\gamma \ge 10^{-3}$ prevents divergence of the $\log_{10}(\gamma)$ terms in Eq. R9; physically, $10^{-3}$ corresponds to the minimum mass ratio resolved in SPH simulations with $\sim 10^5$ to $10^6$ particles. Applied bounds are recorded in `diagnostics['clamped']`. Physical quantities ($v_\mathrm{esc}$, $v_\mathrm{c} / v_\mathrm{esc}$, $Q'_\mathrm{R}$, $\gamma$) and the far-field mass ratio use the physical input masses and radii.
 3. Zero atmosphere. When $f_\mathrm{atm} = 0.0$, the function returns $X = 0.0$ immediately.
-4. Grazing collisions. The scaling law is calibrated for impact parameters $b \in [0.0, 0.9]$. For grazing collisions at $b = 1$, the formulation evaluates continuously to $X \approx 0.0315$ for the Earth-mass benchmark case ($M_\mathrm{t}^\mathrm{r} = 1.0\,M_\oplus$, $\gamma = 0.3$, $f_\mathrm{atm} = 0.01$, $v_\mathrm{c} / v_\mathrm{esc} = 1.5$), while oblique collisions with $b > 0.9$ trigger the `'b'` diagnostic flag.
+4. Grazing collisions. The scaling law is calibrated for impact parameters $b \in [0.0, 0.9]$ (their simulations extended up to $b = 0.909$); evaluating for $b \in (0.9, 1.0]$ relies on the fit's smooth extrapolation to the $b = 1$ analytic anchor where $X_\mathrm{FF} = 0$. For grazing collisions at $b = 1$, the formulation evaluates continuously to $X \approx 0.0315$ for the Earth-mass benchmark case ($M_\mathrm{t}^\mathrm{r} = 1.0\,M_\oplus$, $\gamma = 0.3$, $f_\mathrm{atm} = 0.01$, $v_\mathrm{c} / v_\mathrm{esc} = 1.5$), while collisions with $b > 0.9$ trigger the `'b'` diagnostic flag.
 
 ### Physical caveats
 
-The paper states that the simulations do not model several physical processes (Sect. 4.1, p. 7): rotation, atmosphere composition (all H2-He, with the Hubbard & MacFarlane 1980 [^hubbard1980] equation of state, not an ideal gas), temperature, oceans, miscible envelopes, and thermally driven loss after the impact (the simulations follow the first tens of hours after the impact, p. 7).
+Neither scaling law accounts for pre-impact planetary rotation, surface liquid water oceans, or non-chondritic core fractions. The paper explicitly states that the simulations do not model several physical processes (Sect. 4.1, p. 7): target rotation, diverse atmospheric compositions (all runs used H2-He envelopes governed by the Hubbard & MacFarlane 1980 [^hubbard1980] equation of state rather than an ideal gas), thermal evolution, oceans, miscible envelopes, and thermally driven loss following the impact (the hydrodynamic simulations track only the first tens of hours after the event, p. 7).
 
 ## Fitted data of each law
 
 Both laws evaluate empirical fits and extrapolate outside their calibration data:
 
 - The `kegerreis2020` law was fitted on simulations with thin atmospheres of order 1% of planet mass, target masses of roughly 0.3 to 3 $M_\oplus$, impactor masses down to about 0.05 $M_\oplus$, bulk densities from about half to double Earth's, and contact speeds of 1 to 3 $v_\mathrm{esc}$.
-- The `roche2026` law was fitted on simulations with envelope mass fractions $f_\mathrm{atm} \in [0.01, 0.2]$, target refractory masses $M_\mathrm{t}^\mathrm{r} \in [0.35, 5.0]\,M_\oplus$, impactor mass fractions $\gamma \in [0.1, 0.5]$, impact parameters $b \in [0.0, 0.9]$, radius ratios $R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \in [0.001, 1.0]$, and contact speeds $v_\mathrm{c} \in [1.0, 3.0]\,v_\mathrm{esc}$. Roche et al. (2026) find that less massive atmospheres are easier to remove.
+- The `roche2026` law was fitted on simulations with envelope mass fractions $f_\mathrm{atm} \in [0.01, 0.2]$, target refractory masses $M_\mathrm{t}^\mathrm{r} \in [0.35, 5.0]\,M_\oplus$, impactor mass fractions $\gamma \in [0.1, 0.5]$, impact parameters $b \in [0.0, 0.9]$, radius ratios $R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \in [0.001, 1.015]$, and contact speeds $v_\mathrm{c} \in [1.0, 3.0]\,v_\mathrm{esc}$. Roche et al. (2026) find that less massive atmospheres are easier to remove.
 
 ---
 
