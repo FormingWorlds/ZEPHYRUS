@@ -19,7 +19,6 @@ import pytest
 from zephyrus.collision import (
     _ROCHE2026_COEFFICIENTS,
     _ROCHE2026_TABLE_C_CONSTANTS,
-    ROCHE2026_COEFFICIENTS,
     _roche2026_fit,
     mass_loss,
 )
@@ -234,7 +233,7 @@ def test_scaling_law_reproduces_kegerreis_table2_simulations():
 
 
 # 12 oracle rows from Roche et al. (2026), arXiv:2610.06077,
-# Zenodo doi:10.5281/zenodo.23192423, Table C and authors' scaling_law.csv.
+# Zenodo doi:10.5281/zenodo.23192423 (authors' scaling_law.csv and impacts file).
 _ROCHE2026_ORACLE_CSV = """set,f_atm,M_t_r_earth,M_i_r_earth,M_t_tot_earth,R_t_r_earth,R_i_r_earth,R_ratio,b,gamma,v_c_kms,v_c_v_esc,Q_R_prime_MJkg,f_NF_calc,X_NF_calc,X_FF_calc,X_atm_calc,X_atm_data
 A,0.0100205171612713,0.9970246031043678,0.24927721643800169,1.007116430580397,1.0173459965204401,0.67502812051147343,0.66351872698199699,0.29999999999999999,0.20000000000000001,19.27,2,28.541887209782693,0.250519976769084,0.250519976769084,0.3116934236236179,0.56221340039270196,0.61917971501489433
 A,0.0100205171612713,0.9970246031043678,0.99691090161648799,1.007116430580397,1.0173459965204401,1.0188975090364123,1.0015250588504592,0.69999999999999996,0.5,22.190000000000001,2,21.77022600953692,0.24891987161603879,0.24891987161603879,0.18184828108652931,0.43076815270256807,0.39370144669541107
@@ -249,72 +248,6 @@ B,0.049968172845281197,1.9931581262969305,0.49828953157423261,,,,0.6771533250148
 B,0.050028123964488198,4.9830138432695898,4.9830138432695898,,,,1.0120861984241254,0.29999999999999999,0.5,,1.5,101.63755183729236,0.47484704644023168,0.30125581504975818,0.069771494411668994,0.3710273094614272,0.43950189716330318
 B,0.050028123964488198,4.9830138432695898,2.135577361401253,,,,0.80908953470156231,0.90000000000000002,0.29999999999999999,,1.5,3.6938912385513007,0.16266222125253191,0.058404634425177702,0,0.058404634425177702,0.072038965041878802"""
 
-# Table C 4-digit coefficients from Roche et al. (2026), Table C1-C3.
-# Used as a discrimination mutant in test_roche2026_discrimination_guards.
-_TABLE_C_4DIGIT: dict[str, float] = {
-    'q11': -0.00114,
-    'q12': 0.000585,
-    'q13': 0.000423,
-    'q14': 2.0,
-    'q15': -0.000168,
-    'q21': -2.990,
-    'q22': -4.341,
-    'q31': 3.680,
-    'q32': -3.905,
-    'q33': 1.881,
-    'q34': 2.0,
-    'q35': 2.329,
-    'q36': -6.797,
-    'q38': -0.04118,
-    'q41': 161.1,
-    'q42': -7.690,
-    'q43': 7.577,
-    'q44': 1.031,
-    'q45': 1.034,
-    'q46': -2.356,
-    'q47': -0.001288,
-    'zeta5': -161.0,
-    'zeta6': 8.286e-08,
-    'k11': -535.7,
-    'k12': 843.4,
-    'k13': -847.1,
-    'k14': 494.2,
-    'k15': 0.00027,
-    'k16': -0.01872,
-    'k17': -0.3845,
-    'k21': 0.002909,
-    'k22': 0.001348,
-    'k23': -0.001355,
-    'k24': -0.002975,
-    'k25': 0.00027,
-    'k31': 4811.0,
-    'k32': -0.03641,
-    'k33': -0.2382,
-    'k34': -4021.0,
-    'k35': 0.00027,
-    's11': 1020.0,
-    's12': 9.295,
-    's13': -0.1117,
-    's14': -1030.0,
-    's15': 0.000033,
-    's16': -0.05019,
-    's21': -3.894,
-    's22': -1.102,
-    's23': -0.000473,
-    's24': 4.993,
-    's25': 0.000581,
-    's26': 0.003429,
-    's31': -3208.0,
-    's32': 3209.0,
-    's33': 0.000388,
-    's41': -322.5,
-    's42': -1.923,
-    's43': 1.415,
-    's44': 322.9,
-    's45': 0.00018,
-    's46': -0.132,
-}
-
 
 def _get_roche2026_oracle_rows() -> list[dict[str, str]]:
     """Parse the embedded 12 oracle rows from Roche et al. (2026)."""
@@ -324,7 +257,6 @@ def _get_roche2026_oracle_rows() -> list[dict[str, str]]:
 def test_roche2026_coefficients_count_and_constants():
     """Verify count of 61 fitted coefficients and exact Table C constants."""
     assert len(_ROCHE2026_COEFFICIENTS) == 61
-    assert len(ROCHE2026_COEFFICIENTS) == 61
 
     # Verify all 61 fitted coefficients are present, float, and non-zero.
     for _name, val in _ROCHE2026_COEFFICIENTS.items():
@@ -408,23 +340,6 @@ def test_roche2026_oracle_reproduction():
     assert np.all(abs(fnf_v - np.array([float(r['f_NF_calc']) for r in rows])) <= 1e-12)
     assert np.all(abs(xnf_v - np.array([float(r['X_NF_calc']) for r in rows])) <= 1e-12)
 
-    # Kwargs alias check.
-    _, _, _, xat_k = _roche2026_fit(
-        b=0.3,
-        gamma=0.2,
-        v_c_v_esc=2.0,
-        M_t_earth=1.0,
-        M_i_earth=0.25,
-        Q_R_prime_MJ=28.5,
-        f_atm=0.01,
-        R_ratio=0.66,
-        v_ratio=2.0,
-        M_t_r_earth=1.0,
-        M_i_r_earth=0.25,
-        Q_R_prime_MJkg=28.5,
-    )
-    assert 0.0 <= xat_k <= 1.0
-
 
 @pytest.mark.physics_invariant
 @pytest.mark.reference_pinned
@@ -485,92 +400,29 @@ def test_roche2026_mutual_escape_speed_calculation():
 
 
 @pytest.mark.physics_invariant
-def test_roche2026_discrimination_guards():
-    """Verify each intentional mutant shifts X_atm by > 100x tolerance."""
-    rows = _get_roche2026_oracle_rows()
-    r0 = rows[0]
-    r2 = rows[2]
-    r6 = rows[6]
-
-    # Guard 1: printed Eq. 6 exponent form vs code form.
-    _, _, _, x_nom0 = _roche2026_fit(
-        float(r0['b']),
-        float(r0['gamma']),
-        float(r0['v_c_v_esc']),
-        float(r0['M_t_r_earth']),
-        float(r0['M_i_r_earth']),
-        float(r0['Q_R_prime_MJkg']),
-        float(r0['f_atm']),
-        float(r0['R_ratio']),
-        eq6='code',
-    )
-    _, _, _, x_mut0 = _roche2026_fit(
-        float(r0['b']),
-        float(r0['gamma']),
-        float(r0['v_c_v_esc']),
-        float(r0['M_t_r_earth']),
-        float(r0['M_i_r_earth']),
-        float(r0['Q_R_prime_MJkg']),
-        float(r0['f_atm']),
-        float(r0['R_ratio']),
-        eq6='print',
-    )
-    shift_eq6 = abs(x_mut0 - x_nom0)
-    assert shift_eq6 > 100.0 * 1e-10
-
-    # Guard 2: printed Eq. 10 mass ratio form vs code form.
-    _, _, _, x_nom6 = _roche2026_fit(
-        float(r6['b']),
-        float(r6['gamma']),
-        float(r6['v_c_v_esc']),
-        float(r6['M_t_r_earth']),
-        float(r6['M_i_r_earth']),
-        float(r6['Q_R_prime_MJkg']),
-        float(r6['f_atm']),
-        float(r6['R_ratio']),
-        ffmass='refr',
-    )
-    _, _, _, x_mut6 = _roche2026_fit(
-        float(r6['b']),
-        float(r6['gamma']),
-        float(r6['v_c_v_esc']),
-        float(r6['M_t_r_earth']),
-        float(r6['M_i_r_earth']),
-        float(r6['Q_R_prime_MJkg']),
-        float(r6['f_atm']),
-        float(r6['R_ratio']),
-        ffmass='tot',
-    )
-    shift_eq10 = abs(x_mut6 - x_nom6)
-    assert shift_eq10 > 100.0 * 1e-10
-
-    # Guard 3: Table C 4-digit coefficients vs full precision.
-    _, _, _, x_nom2 = _roche2026_fit(
-        float(r2['b']),
-        float(r2['gamma']),
-        float(r2['v_c_v_esc']),
-        float(r2['M_t_r_earth']),
-        float(r2['M_i_r_earth']),
-        float(r2['Q_R_prime_MJkg']),
-        float(r2['f_atm']),
-        float(r2['R_ratio']),
-    )
-    _, _, _, x_mut2 = _roche2026_fit(
-        float(r2['b']),
-        float(r2['gamma']),
-        float(r2['v_c_v_esc']),
-        float(r2['M_t_r_earth']),
-        float(r2['M_i_r_earth']),
-        float(r2['Q_R_prime_MJkg']),
-        float(r2['f_atm']),
-        float(r2['R_ratio']),
-        coefficients=_TABLE_C_4DIGIT,
-    )
-    shift_tabc = abs(x_mut2 - x_nom2)
-    assert shift_tabc > 100.0 * 1e-10
-
-    # Guard 4: Near-field velocity floor at v_c < v_esc.
-    _, _, _, x_floor = _roche2026_fit(0.3, 0.2, 0.5, 1.0, 0.25, 5.0, 0.05, 0.67, vfloor=True)
-    _, _, _, x_nofloor = _roche2026_fit(0.3, 0.2, 0.5, 1.0, 0.25, 5.0, 0.05, 0.67, vfloor=False)
-    shift_floor = abs(x_floor - x_nofloor)
-    assert shift_floor > 100.0 * 1e-10
+def test_roche2026_velocity_floor_property():
+    """Verify near-field loss floor holds at impact velocity below escape velocity."""
+    rows = _get_roche2026_oracle_rows()[:2]
+    assert len(rows) == 2
+    for r in rows:
+        _, xnf_floor, _, _ = _roche2026_fit(
+            float(r['b']),
+            float(r['gamma']),
+            0.5,
+            float(r['M_t_r_earth']),
+            float(r['M_i_r_earth']),
+            float(r['Q_R_prime_MJkg']),
+            float(r['f_atm']),
+            float(r['R_ratio']),
+        )
+        _, xnf_unity, _, _ = _roche2026_fit(
+            float(r['b']),
+            float(r['gamma']),
+            1.0,
+            float(r['M_t_r_earth']),
+            float(r['M_i_r_earth']),
+            float(r['Q_R_prime_MJkg']),
+            float(r['f_atm']),
+            float(r['R_ratio']),
+        )
+        assert xnf_floor == pytest.approx(xnf_unity, rel=1e-12, abs=1e-12)

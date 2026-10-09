@@ -103,14 +103,10 @@ _ROCHE2026_TABLE_C_CONSTANTS: dict[str, float] = {
     's36': 0.0,
 }
 
-ROCHE2026_COEFFICIENTS = _ROCHE2026_COEFFICIENTS
-ROCHE2026_TABLE_C_CONSTANTS = _ROCHE2026_TABLE_C_CONSTANTS
-
-# Expose individual parameter names as module-level constants.
-for _param_name, _param_val in _ROCHE2026_COEFFICIENTS.items():
-    globals()[_param_name] = _param_val
-for _param_name, _param_val in _ROCHE2026_TABLE_C_CONSTANTS.items():
-    globals()[_param_name] = _param_val
+_ROCHE2026_PARAMS: dict[str, float] = {
+    **_ROCHE2026_COEFFICIENTS,
+    **_ROCHE2026_TABLE_C_CONSTANTS,
+}
 
 
 def _roche2026_fit(
@@ -122,12 +118,6 @@ def _roche2026_fit(
     Q_R_prime_MJ: float | np.ndarray,
     f_atm: float | np.ndarray,
     R_ratio: float | np.ndarray,
-    *,
-    eq6: str = 'code',
-    ffmass: str = 'refr',
-    vfloor: bool = True,
-    coefficients: dict[str, float] | None = None,
-    **kwargs: Any,
 ) -> tuple[Any, Any, Any, Any]:
     r"""Evaluate the Roche et al. (2026) giant impact atmospheric mass loss model.
 
@@ -153,18 +143,6 @@ def _roche2026_fit(
         Target atmospheric mass fraction $(M_t^{\text{tot}} - M_t^r) / M_t^{\text{tot}}$.
     R_ratio : float or numpy.ndarray
         Refractory radius ratio $R_i^r / R_t^r$.
-    eq6 : str, default 'code'
-        Near-field mass fraction exponent formulation. 'code' uses
-        $\zeta_3 (R - \zeta_2)$, 'print' uses $\zeta_3 R - \zeta_2$.
-    ffmass : str, default 'refr'
-        Mass ratio formulation in the far-field term. 'refr' uses $M_i^r / M_t^r$,
-        'tot' uses $M_i^r / M_t^{\text{tot}}$.
-    vfloor : bool, default True
-        Whether to enforce the near-field velocity floor at $v_c = v_{\text{esc}}$.
-    coefficients : dict of str to float, optional
-        Fitted coefficients dictionary. Defaults to `_ROCHE2026_COEFFICIENTS`.
-    **kwargs : Any
-        Keyword aliases for inputs (`v_ratio`, `M_t_r_earth`, `M_i_r_earth`, `Q_R_prime_MJkg`).
 
     Returns
     -------
@@ -179,102 +157,70 @@ def _roche2026_fit(
 
     References
     ----------
-    1. Roche M.J., Stewart S.T., Carter P.J., Leinhardt Z.M. (2026).
-       arXiv:2610.06077; Zenodo doi:10.5281/zenodo.23192423.
+    1. Roche M.J., Lock S.J., Carter P.J., Leinhardt Z.M. (2026).
+       Giant impacts preferentially remove low-mass atmospheres:
+       a generalised scaling law for impact-driven atmospheric loss.
+       arXiv:2610.06077 (accepted, ApJL); Zenodo doi:10.5281/zenodo.23192423.
     """
-    if 'v_ratio' in kwargs:
-        v_c_v_esc = kwargs['v_ratio']
-    if 'M_t_r_earth' in kwargs:
-        M_t_earth = kwargs['M_t_r_earth']
-    if 'M_i_r_earth' in kwargs:
-        M_i_earth = kwargs['M_i_r_earth']
-    if 'Q_R_prime_MJkg' in kwargs:
-        Q_R_prime_MJ = kwargs['Q_R_prime_MJkg']
+    p = _ROCHE2026_PARAMS
 
-    c = _ROCHE2026_COEFFICIENTS if coefficients is None else coefficients
+    # Near-field envelope fraction zeta_i terms (Eq. 7, general form)
+    def _calc_zeta(i: int) -> Any:
+        return (
+            p[f'q{i}1']
+            + p[f'q{i}2'] * b
+            + p[f'q{i}3'] * b ** p[f'q{i}4']
+            + p[f'q{i}5'] * f_atm
+            + p[f'q{i}6'] * f_atm**2
+            + p[f'q{i}7'] * M_t_earth ** p[f'q{i}8']
+        )
 
-    # Near-field envelope fraction zeta_i terms (Eq. 7)
-    z1 = c['q11'] + c['q12'] * b + c['q13'] * b ** c['q14'] + c['q15'] * f_atm
-    z2 = c['q21'] + c['q22'] * b
-    z3 = (
-        c['q31']
-        + c['q32'] * b
-        + c['q33'] * b ** c['q34']
-        + c['q35'] * f_atm
-        + c['q36'] * f_atm**2
-        + M_t_earth ** c['q38']
-    )
-    z4 = (
-        c['q41']
-        + c['q42'] * b
-        + c['q43'] * b ** c['q44']
-        + c['q45'] * f_atm
-        + c['q46'] * f_atm**2
-        + c['q47'] * M_t_earth
-    )
+    z1 = _calc_zeta(1)
+    z2 = _calc_zeta(2)
+    z3 = _calc_zeta(3)
+    z4 = _calc_zeta(4)
 
     # Near-field atmospheric mass fraction f_NF (Eq. 6)
-    if eq6 == 'code':
-        f_nf = z4 / (1.0 + c['zeta6'] * np.exp(z3 * (R_ratio - z2))) ** z1 + c['zeta5']
-    else:
-        f_nf = z4 / (1.0 + c['zeta6'] * np.exp(z3 * R_ratio - z2)) ** z1 + c['zeta5']
+    f_nf = z4 / (1.0 + p['zeta6'] * np.exp(z3 * (R_ratio - z2))) ** z1 + p['zeta5']
     f_nf = np.clip(f_nf, 0.0, 1.0)
     f_ff = 1.0 - f_nf
 
-    # Near-field loss function xi_i (Eq. 8, Eq. 9)
+    # Near-field loss function xi_i (Eq. 8, Eq. 9, general form)
+    def _calc_xi_i(i: int, v_rel: Any) -> Any:
+        return (
+            p[f'k{i}1']
+            + p[f'k{i}2'] * gamma
+            + p[f'k{i}3'] * (gamma + 0.05) ** 2
+            + p[f'k{i}4'] * v_rel ** p[f'k{i}5']
+            + p[f'k{i}6'] * (M_t_earth + 1.0)
+            + p[f'k{i}7'] * np.log10(f_atm)
+        )
+
     def _calc_xi(v_rel: Any) -> Any:
-        x1 = (
-            c['k11']
-            + c['k12'] * gamma
-            + c['k13'] * (gamma + 0.05) ** 2
-            + c['k14'] * v_rel ** c['k15']
-            + c['k16'] * (M_t_earth + 1.0)
-            + c['k17'] * np.log10(f_atm)
-        )
-        x2 = (
-            c['k21']
-            + c['k22'] * gamma
-            + c['k23'] * (gamma + 0.05) ** 2
-            + c['k24'] * v_rel ** c['k25']
-        )
-        x3 = (
-            c['k31']
-            + c['k32'] * gamma
-            + c['k33'] * (gamma + 0.05) ** 2
-            + c['k34'] * v_rel ** c['k35']
-        )
+        x1 = _calc_xi_i(1, v_rel)
+        x2 = _calc_xi_i(2, v_rel)
+        x3 = _calc_xi_i(3, v_rel)
         return f_nf * (x1 - x2 * (b + x3) ** 2)
 
     x_nf = _calc_xi(v_c_v_esc)
-    lo = np.maximum(0.0, _calc_xi(1.0)) if vfloor else 0.0
+    lo = np.maximum(0.0, _calc_xi(1.0))
     x_nf = np.clip(x_nf, lo, f_nf)
 
-    # Far-field loss function psi_i (Eq. 10, Eq. 11)
-    p1 = (
-        c['s11']
-        + c['s12'] * (gamma + 0.05) ** c['s13']
-        + c['s14'] * (M_t_earth + 0.05) ** c['s15']
-        + c['s16'] * np.log10(f_atm)
-    )
-    p2 = (
-        c['s21']
-        + c['s22'] * (gamma + 0.05) ** c['s23']
-        + c['s24'] * (M_t_earth + 0.05) ** c['s25']
-        + c['s26'] * np.log10(f_atm)
-    )
-    p3 = c['s31'] + c['s32'] * (gamma + 0.05) ** c['s33']
-    p4 = (
-        c['s41']
-        + c['s42'] * (gamma + 0.05) ** c['s43']
-        + c['s44'] * (M_t_earth + 0.05) ** c['s45']
-        + c['s46'] * np.log10(f_atm)
-    )
+    # Far-field loss function psi_i (Eq. 10, Eq. 11, general form)
+    def _calc_psi_i(i: int) -> Any:
+        return (
+            p[f's{i}1']
+            + p[f's{i}2'] * (gamma + 0.05) ** p[f's{i}3']
+            + p[f's{i}4'] * (M_t_earth + 0.05) ** p[f's{i}5']
+            + p[f's{i}6'] * np.log10(f_atm)
+        )
 
-    if ffmass == 'refr':
-        m_ratio = M_i_earth / M_t_earth
-    else:
-        m_ratio = M_i_earth / (M_t_earth / (1.0 - f_atm))
+    p1 = _calc_psi_i(1)
+    p2 = _calc_psi_i(2)
+    p3 = _calc_psi_i(3)
+    p4 = _calc_psi_i(4)
 
+    m_ratio = M_i_earth / M_t_earth
     x_ff = np.clip(
         f_ff * (p1 * np.exp(-p2 * (Q_R_prime_MJ * (1.0 + m_ratio) * (1.0 - b) ** p4)) + p3),
         0.0,
