@@ -27,7 +27,8 @@ class ImpactLossResult:
     flags : tuple of str
         Out-of-range or clamped parameter names.
     diagnostics : dict
-        Diagnostic quantities computed during evaluation.
+        Diagnostic quantities computed during evaluation. For 'roche2026',
+        diagnostics['Q_R_prime'] is given in MJ/kg.
     """
 
     law: str
@@ -439,7 +440,18 @@ def mutual_escape_speed(
     -------
     float
         Mutual escape speed $\sqrt{2 G (M_1 + M_2) / (R_1 + R_2)}$ [m/s].
+
+    Raises
+    ------
+    ValueError
+        If radii sum is not strictly positive or masses/radii are not finite.
     """
+    if R_1 + R_2 <= 0.0 or not np.isfinite(R_1 + R_2):
+        raise ValueError(
+            f'Sum of radii must be strictly positive and finite, got {R_1 + R_2!r}'
+        )
+    if M_1 + M_2 < 0.0 or not np.isfinite(M_1 + M_2):
+        raise ValueError(f'Sum of masses must be non-negative and finite, got {M_1 + M_2!r}')
     return float(np.sqrt(2.0 * G * (M_1 + M_2) / (R_1 + R_2)))
 
 
@@ -474,6 +486,12 @@ def specific_impact_energy(
     float
         Modified specific impact energy $Q'_R$ [MJ/kg].
 
+    Raises
+    ------
+    ValueError
+        If b is outside [0, 1], if masses or radii are not strictly positive
+        and finite, or if v_c is negative or not finite.
+
     References
     ----------
     1. Roche, M. J., Lock, S. J., Dou, J., Carter, P. J., Leinhardt, Z. M.,
@@ -484,6 +502,14 @@ def specific_impact_energy(
        gravity-dominated bodies. I. Outcome regimes and scaling laws",
        ApJ 745, 79, doi:10.1088/0004-637X/745/1/79.
     """
+    if not (0.0 <= b <= 1.0) or not np.isfinite(b):
+        raise ValueError(f'Impact parameter b must be in [0, 1], got {b!r}')
+    for name, val in (('M_i', M_i), ('M_t', M_t), ('R_i', R_i), ('R_t', R_t)):
+        if not (val > 0.0 and np.isfinite(val)):
+            raise ValueError(f'{name} must be strictly positive and finite, got {val!r}')
+    if not (v_c >= 0.0 and np.isfinite(v_c)):
+        raise ValueError(f'Collision speed v_c must be non-negative and finite, got {v_c!r}')
+
     impact_param = (R_t + R_i) * b
     if impact_param + R_i <= R_t:
         alpha = 1.0

@@ -339,6 +339,28 @@ def test_roche2026_oracle_reproduction():
     )
     assert np.all(abs(fnf_v - np.array([float(r['f_NF_calc']) for r in rows])) <= 1e-12)
     assert np.all(abs(xnf_v - np.array([float(r['X_NF_calc']) for r in rows])) <= 1e-12)
+    tol_xff_arr = np.array([1e-10 if r['set'] == 'A' else 1e-3 for r in rows])
+    tol_xat_arr = np.array([1e-10 if r['set'] == 'A' else 1e-3 for r in rows])
+    assert np.all(abs(xff_v - np.array([float(r['X_FF_calc']) for r in rows])) <= tol_xff_arr)
+    assert np.all(abs(xat_v - np.array([float(r['X_atm_calc']) for r in rows])) <= tol_xat_arr)
+
+    # Public API entry point verification on reference oracle row 1.
+    r0 = rows[0]
+    res0 = impact_loss(
+        'roche2026',
+        v_c=float(r0['v_c_kms']) * 1e3,
+        M_i=float(r0['M_i_r_earth']) * M_E,
+        M_t=float(r0['M_t_r_earth']) * M_E,
+        R_i=float(r0['R_i_r_earth']) * R_E,
+        R_t=float(r0['R_t_r_earth']) * R_E,
+        b=float(r0['b']),
+        f_atm=float(r0['f_atm']),
+    )
+    assert res0.fraction == pytest.approx(float(r0['X_atm_calc']), abs=2e-5)
+    assert res0.flags == ()
+    assert res0.diagnostics['f_NF'] == pytest.approx(float(r0['f_NF_calc']), abs=1e-10)
+    assert res0.diagnostics['X_NF'] == pytest.approx(float(r0['X_NF_calc']), abs=1e-4)
+    assert res0.diagnostics['X_FF'] == pytest.approx(float(r0['X_FF_calc']), abs=1e-4)
 
 
 @pytest.mark.physics_invariant
@@ -384,6 +406,38 @@ def test_roche2026_mutual_escape_speed_calculation():
         mt_r = float(r['M_t_r_earth']) * M_E
         v_esc_wrong = mutual_escape_speed(mt_r, mi, rt, ri)
         assert abs(v_esc_wrong / v_expected - 1.0) > 1e-3
+
+
+def test_mutual_escape_speed_validation():
+    """Verify error raises on invalid radius or mass inputs."""
+    with pytest.raises(ValueError, match='Sum of radii'):
+        mutual_escape_speed(1e24, 1e24, 0.0, 0.0)
+    with pytest.raises(ValueError, match='Sum of radii'):
+        mutual_escape_speed(1e24, 1e24, -1e6, -1e6)
+    with pytest.raises(ValueError, match='Sum of masses'):
+        mutual_escape_speed(-2e24, 1e24, 1e6, 1e6)
+    with pytest.raises(ValueError, match='Sum of radii'):
+        mutual_escape_speed(1e24, 1e24, np.nan, 1e6)
+
+
+def test_specific_impact_energy_validation_and_limits():
+    """Verify error raises on invalid inputs and geometric limits."""
+    with pytest.raises(ValueError, match='Impact parameter b'):
+        specific_impact_energy(1e4, 1e24, 1e24, 1e6, 1e6, -0.1)
+    with pytest.raises(ValueError, match='Impact parameter b'):
+        specific_impact_energy(1e4, 1e24, 1e24, 1e6, 1e6, 1.1)
+    with pytest.raises(ValueError, match='M_i must be strictly positive'):
+        specific_impact_energy(1e4, 0.0, 1e24, 1e6, 1e6, 0.5)
+    with pytest.raises(ValueError, match='Collision speed v_c'):
+        specific_impact_energy(-1.0, 1e24, 1e24, 1e6, 1e6, 0.5)
+
+    # Complete capture branch (impact_param + R_i <= R_t)
+    qr_headon = specific_impact_energy(1e4, 1e23, 1e25, 1e6, 1e7, 0.0)
+    assert qr_headon > 0.0
+
+    # Grazing miss branch (impact_param >= R_t + R_i)
+    qr_miss = specific_impact_energy(1e4, 1e24, 1e24, 1e6, 1e6, 1.0)
+    assert qr_miss == pytest.approx(0.0, abs=1e-15)
 
 
 @pytest.mark.physics_invariant

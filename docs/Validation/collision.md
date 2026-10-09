@@ -33,16 +33,16 @@ The Table 2 pins reproduce the paper's own SPH results to 4% in the fast grazing
 `collision.mass_loss_roche2026` and `collision.impact_loss` return the fractional atmospheric mass loss from:
 
 ```
-X_atm = f_NF * X_NF + (1 - f_NF) * X_FF
+X_atm = X_NF + X_FF
 ```
 
-where `f_NF` is the near-field envelope mass fraction, `X_NF` is the near-field erosion fraction with a velocity floor at `v_c/v_esc = 1.0`, and `X_FF` is the far-field ground-shock erosion fraction scaling with `Q'_R / Q''_R`.
+where `f_NF` is the near-field envelope mass fraction, `X_NF` is the near-field erosion fraction with a velocity floor at `v_c/v_esc = 1.0`, and `X_FF` is the far-field ground-shock erosion fraction scaling with modified specific impact energy $Q'_\mathrm{R}$ (in $\mathrm{MJ\,kg^{-1}}$).
 
 The 12 reference oracle rows are drawn from the authors' published SPH simulation dataset (Zenodo doi:10.5281/zenodo.23192423). In Set A (eight impacts onto 1 Earth mass targets with 1% to 20% atmospheres), the evaluated law matches the benchmark to 3.1e-13 in $X_\mathrm{FF}$ and $X_\mathrm{atm}$, and to 5.6e-17 in $f_\mathrm{NF}$ and $X_\mathrm{NF}$. In Set B (four impacts onto planets from 0.35 to 4.98 Earth masses), the maximum difference is 1.02e-4, below the 1e-3 benchmark tolerance.
 
 The mutual escape speed $v_\mathrm{esc}$ in the Roche scaling framework adopts the total mass of target and impactor, $M_\mathrm{t}^\mathrm{tot} + M_\mathrm{i}^\mathrm{tot}$, divided by the sum of refractory radii $R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r}$. Using only refractory masses shifts $v_\mathrm{esc}$ and fails the tolerance guard with relative error exceeding 1e-3 for substantial envelopes.
 
-For grazing collisions where $b \ge 1.0$, the geometry factor $(1 - b)^{p_4}$ in $Q''_R$ is evaluated continuously so that $X_\mathrm{atm}$ approaches 0.031470 without numerical divergence or division by zero.
+For grazing collisions where $b \ge 1.0$, the geometry factor $(1 - b)^{p_4}$ in the far-field exponential is evaluated continuously so that $X_\mathrm{atm}$ approaches 0.031470 without numerical divergence or division by zero.
 
 ## Anchor type
 

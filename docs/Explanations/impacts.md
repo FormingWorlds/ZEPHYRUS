@@ -33,55 +33,51 @@ The Kegerreis et al. (2020) law is constrained by simulations spanning target ma
 
 ## The Roche et al. (2026) law
 
-Roche et al. (2026) [^roche2026] generalize atmospheric erosion scaling to account explicitly for envelope mass fraction $f_\mathrm{atm} \equiv M_\mathrm{atm} / M_\mathrm{t}^\mathrm{tot}$. The scaling law de-convolves atmospheric loss into near-field erosion ($X_\mathrm{NF}$, driven by ejecta plumes and atmospheric shock expansion near the impact site) and far-field erosion ($X_\mathrm{FF}$, driven by shock acceleration propagating through the planetary mantle):
+Roche et al. (2026) [^roche2026] generalize atmospheric erosion scaling to account explicitly for envelope mass fraction $f_\mathrm{atm} \equiv M_\mathrm{atm} / M_\mathrm{t}^\mathrm{tot}$. The scaling law de-convolves atmospheric loss into near-field erosion ($X_\mathrm{NF}$, driven by ejecta plumes and shock expansion near the impact site) and far-field erosion ($X_\mathrm{FF}$, driven by shock acceleration propagating through the planetary mantle):
 
-$$X_\mathrm{atm} \;=\; f_\mathrm{NF}\, X_\mathrm{NF} + (1 - f_\mathrm{NF})\, X_\mathrm{FF} \tag{4}$$
+$$X_\mathrm{atm} \;=\; X_\mathrm{NF} + X_\mathrm{FF} \tag{4}$$
 
-where $X_\mathrm{atm}$ is clamped to $[0, 1]$. The fraction of the atmosphere located in the near-field region, $f_\mathrm{NF}$, is parameterized by a logistic sigmoid:
+where $X_\mathrm{atm}$ is clamped to $[0, 1]$. The fraction of the atmosphere located in the near-field region, $f_\mathrm{NF}$, is parameterized by a generalized logistic function:
 
-$$f_\mathrm{NF} \;=\; \frac{1}{1 + \exp\!\left(-\left(\zeta_1 + \zeta_2\,\gamma^{\zeta_3} + \zeta_4\left(\frac{v_\mathrm{c}}{v_\mathrm{esc}}\right)^{\zeta_5} + \zeta_6\left(\frac{R_\mathrm{i}^\mathrm{r}}{R_\mathrm{t}^\mathrm{r}}\right)\right)\right)} \tag{5}$$
+$$f_\mathrm{NF} \;=\; \frac{\zeta_4}{\left(1 + \zeta_6 \exp\!\left(\zeta_3 \left(\frac{R_\mathrm{i}^\mathrm{r}}{R_\mathrm{t}^\mathrm{r}} - \zeta_2\right)\right)\right)^{\zeta_1}} + \zeta_5 \tag{5}$$
 
-where $\gamma \equiv M_\mathrm{i}^\mathrm{tot} / M_\mathrm{t}^\mathrm{tot}$ is the impactor-to-target mass ratio, and $R_\mathrm{t}^\mathrm{r}$ and $R_\mathrm{i}^\mathrm{r}$ are the refractory (atmosphere-free) core-plus-mantle radii.
+clamped to $[0, 1]$, and the far-field envelope fraction is $f_\mathrm{FF} = 1 - f_\mathrm{NF}$. Here $R_\mathrm{t}^\mathrm{r}$ and $R_\mathrm{i}^\mathrm{r}$ are the refractory (atmosphere-free) core-plus-mantle radii.
 
-Near-field loss efficiency $X_\mathrm{NF}$ is described by:
+Near-field loss $X_\mathrm{NF}$ is described by:
 
-$$X_\mathrm{NF} \;=\; \xi_1 + \xi_2\, b^{\xi_3} + \xi_4\, \gamma^{\xi_5} + \xi_6 \left(\frac{v_\mathrm{c}}{v_\mathrm{esc}}\right)^{\xi_7} \tag{6}$$
+$$X_\mathrm{NF} \;=\; f_\mathrm{NF} \left(\xi_1 - \xi_2\, (b + \xi_3)^2\right) \tag{6}$$
 
-where the velocity ratio is subject to a physical near-field floor: when $v_\mathrm{c} / v_\mathrm{esc} < 1.0$, the velocity factor evaluates at $v_\mathrm{c} / v_\mathrm{esc} = 1.0$.
+with a velocity floor at $v_\mathrm{c} / v_\mathrm{esc} = 1.0$, clamped to $[\max(0, X_\mathrm{NF}(v_\mathrm{c} = v_\mathrm{esc})), f_\mathrm{NF}]$.
 
-Each coefficient vector ($\boldsymbol{\zeta}$, $\boldsymbol{\xi}$, $\boldsymbol{\psi}$) is evaluated as a polynomial function of impact parameter $b$, envelope mass fraction $f_\mathrm{atm}$, and refractory target mass $M_\mathrm{t}^\mathrm{r} / M_\oplus$:
+Each coefficient vector ($\boldsymbol{\zeta}$, $\boldsymbol{\xi}$, $\boldsymbol{\psi}$) is evaluated as a polynomial function of impact parameter $b$, envelope mass fraction $f_\mathrm{atm}$, refractory target mass $M_\mathrm{t}^\mathrm{r} / M_\oplus$, and impactor mass fraction $\gamma \equiv M_\mathrm{i} / (M_\mathrm{i} + M_\mathrm{t})$:
 
 $$\zeta_i \;=\; q_{i1} + q_{i2}\, b + q_{i3}\, b^{q_{i4}} + q_{i5}\, f_\mathrm{atm} + q_{i6}\, f_\mathrm{atm}^2 + q_{i7}\left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus}\right)^{q_{i8}} \tag{7}$$
 
-$$\xi_i \;=\; k_{i1} + k_{i2}\, b + k_{i3}\, b^{k_{i4}} + k_{i5}\, f_\mathrm{atm} + k_{i6}\, f_\mathrm{atm}^2 + k_{i7}\left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus}\right)^{k_{i8}} \tag{8}$$
+$$\xi_i \;=\; k_{i1} + k_{i2}\, \gamma + k_{i3}\, (\gamma + 0.05)^2 + k_{i4} \left(\frac{v_\mathrm{c}}{v_\mathrm{esc}}\right)^{k_{i5}} + k_{i6} \left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus} + 1.0\right) + k_{i7} \log_{10}(f_\mathrm{atm}) \tag{8}$$
 
-$$\psi_i \;=\; s_{i1} + s_{i2}\, b + s_{i3}\, b^{s_{i4}} + s_{i5}\, f_\mathrm{atm} + s_{i6}\, f_\mathrm{atm}^2 + s_{i7}\left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus}\right)^{s_{i8}} \tag{9}$$
+$$\psi_i \;=\; s_{i1} + s_{i2}\, (\gamma + 0.05)^{s_{i3}} + s_{i4} \left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus} + 0.05\right)^{s_{i5}} + s_{i6} \log_{10}(f_\mathrm{atm}) \tag{9}$$
 
-The far-field loss efficiency $X_\mathrm{FF}$ accounts for ground-shock transmission and scales with the modified specific impact energy $Q'_\mathrm{R}$:
+The far-field loss $X_\mathrm{FF}$ accounts for ground-shock transmission and scales with the modified specific impact energy $Q'_\mathrm{R}$:
 
-$$X_\mathrm{FF} \;=\; \psi_1 + \psi_2\, b^{\psi_3} + \psi_4\, (\gamma + 0.05)^{\psi_5} + \psi_6 \left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus} + 0.05\right)^{\psi_7} + \psi_8 \left(\frac{Q'_\mathrm{R}}{Q''_\mathrm{R}}\right)^{\psi_9} \tag{10}$$
+$$X_\mathrm{FF} \;=\; f_\mathrm{FF} \left(\psi_1 \exp\!\left(-\psi_2\, Q'_\mathrm{R} \left(1 + \frac{M_\mathrm{i}^\mathrm{r}}{M_\mathrm{t}^\mathrm{r}}\right) (1 - b)^{\psi_4}\right) + \psi_3\right) \tag{10}$$
 
-The energy denominator $Q''_\mathrm{R}$ normalizes the shock energy:
-
-$$\frac{Q''_\mathrm{R}}{\mathrm{MJ\,kg^{-1}}} \;=\; p_1 \left(1 + p_2 \left(\frac{M_\mathrm{t}^\mathrm{tot}}{M_\oplus}\right)^{p_3}\right) \left(1 + Q'_\mathrm{R}\,(1 + m_\mathrm{ratio})\,(1 - b)^{p_4}\right)^{p_5} \tag{11}$$
-
-where $m_\mathrm{ratio} \equiv M_\mathrm{i}^\mathrm{tot} / M_\mathrm{t}^\mathrm{tot}$. For grazing trajectories ($b \ge 1.0$), the geometry factor evaluates continuously to zero ($(1 - b)^{p_4} \to 0$).
+clamped to $[0, f_\mathrm{FF}]$, with $Q'_\mathrm{R}$ expressed in $\mathrm{MJ\,kg^{-1}}$.
 
 ### Impact energy and escape speed definitions
 
 The mutual escape speed at contact uses total planetary masses and refractory radii:
 
-$$v_\mathrm{esc} \;=\; \sqrt{\frac{2\,G\,(M_\mathrm{t}^\mathrm{tot} + M_\mathrm{i}^\mathrm{tot})}{R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r}}} \tag{12}$$
+$$v_\mathrm{esc} \;=\; \sqrt{\frac{2\,G\,(M_\mathrm{t}^\mathrm{tot} + M_\mathrm{i}^\mathrm{tot})}{R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r}}} \tag{11}$$
 
 The modified specific impact energy $Q'_\mathrm{R}$ follows the interacting-mass formulation of Leinhardt & Stewart (2012) [^leinhardt2012] and Roche et al. (2025) [^roche2025]:
 
-$$Q'_\mathrm{R} \;=\; \frac{1}{2}\,\frac{M_\mathrm{i}^\mathrm{tot}\, M_\mathrm{t}^\mathrm{tot}}{(M_\mathrm{i}^\mathrm{tot} + M_\mathrm{t}^\mathrm{tot})^2}\,\frac{M_\mathrm{i,interact}}{M_\mathrm{i}^\mathrm{tot}}\, v_\mathrm{c}^2 \tag{13}$$
+$$Q'_\mathrm{R} \;=\; \frac{\mu_\alpha}{\mu}\, Q_\mathrm{R}, \qquad Q_\mathrm{R} \;=\; \frac{\mu\, v_\mathrm{c}^2}{2\,(M_\mathrm{i}^\mathrm{r} + M_\mathrm{t}^\mathrm{tot})} \tag{12}$$
 
-For head-on and small-angle collisions ($b < b_\mathrm{crit} \equiv (R_\mathrm{t}^\mathrm{r} - R_\mathrm{i}^\mathrm{r}) / (R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r})$), the entire impactor enters the interacting volume so $M_\mathrm{i,interact} = M_\mathrm{i}^\mathrm{tot}$. For oblique impacts ($b \ge b_\mathrm{crit}$), the intersecting mass is calculated from the spherical cap intersection:
+where $\mu \equiv M_\mathrm{i}^\mathrm{r} M_\mathrm{t}^\mathrm{tot} / (M_\mathrm{i}^\mathrm{r} + M_\mathrm{t}^\mathrm{tot})$ and $\mu_\alpha \equiv \alpha M_\mathrm{i}^\mathrm{r} M_\mathrm{t}^\mathrm{tot} / (\alpha M_\mathrm{i}^\mathrm{r} + M_\mathrm{t}^\mathrm{tot})$. Here $\alpha$ is the interacting mass fraction of the impactor:
 
-$$\frac{M_\mathrm{i,interact}}{M_\mathrm{i}^\mathrm{tot}} \;=\; \frac{3 R_\mathrm{i}^\mathrm{r} l^2 - l^3}{4\,(R_\mathrm{i}^\mathrm{r})^3}, \qquad l \equiv (R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r})(1 - b) \tag{14}$$
+$$\alpha \;=\; \frac{3 R_\mathrm{i}^\mathrm{r} l^2 - l^3}{4\,(R_\mathrm{i}^\mathrm{r})^3} \tag{13}$$
 
-When bodies pass without physical contact ($b \ge 1.0$), $M_\mathrm{i,interact} = 0$ and $Q'_\mathrm{R} = 0$. In Eq. (11), $Q'_\mathrm{R}$ enters in units of $\mathrm{MJ\,kg^{-1}}$ ($10^{-6}\,\mathrm{J\,kg^{-1}}$).
+with $l \equiv R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r} - (R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r}) b$ if $(R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r}) b + R_\mathrm{i}^\mathrm{r} > R_\mathrm{t}^\mathrm{r}$, and $\alpha = 1$ when the impactor is completely intercepted.
 
 ### Symbols and units
 
@@ -94,9 +90,9 @@ When bodies pass without physical contact ($b \ge 1.0$), $M_\mathrm{i,interact} 
 | $v_\mathrm{c}$ | Contact velocity | $\mathrm{m\,s^{-1}}$ | Speed at moment of contact |
 | $v_\mathrm{esc}$ | Mutual escape speed | $\mathrm{m\,s^{-1}}$ | Calculated from total masses and refractory radii |
 | $b$ | Dimensionless impact parameter | - | $\sin\beta \in [0, 1]$ |
-| $\gamma$ | Mass ratio | - | $M_\mathrm{i}^\mathrm{tot} / M_\mathrm{t}^\mathrm{tot}$ |
+| $\gamma$ | Impactor mass fraction | - | $M_\mathrm{i} / (M_\mathrm{i} + M_\mathrm{t})$ |
 | $f_\mathrm{atm}$ | Target atmosphere mass fraction | - | $M_\mathrm{atm} / M_\mathrm{t}^\mathrm{tot}$ |
-| $Q'_\mathrm{R}$ | Modified specific impact energy | $\mathrm{J\,kg^{-1}}$ | Converted to $\mathrm{MJ\,kg^{-1}}$ in Eq. (11) |
+| $Q'_\mathrm{R}$ | Modified specific impact energy | $\mathrm{MJ\,kg^{-1}}$ | Interacting impact energy per unit total mass |
 | $X_\mathrm{atm}$ | Atmospheric loss fraction | - | Fractional loss bounded in $[0, 1]$ |
 
 ### Coefficient origin
@@ -109,7 +105,7 @@ The simulation suite constrains the law over the following parameter space:
 
 - Target refractory mass: $M_\mathrm{t}^\mathrm{r} \in [0.35, 5.0]\,M_\oplus$
 - Atmosphere mass fraction: $f_\mathrm{atm} \in [0.01, 0.2]$
-- Mass ratio: $\gamma \in [0.05, 0.5]$
+- Impactor mass fraction: $\gamma \in [0.1, 0.5]$
 - Impact parameter: $b \in [0.0, 0.9]$
 - Contact velocity: $v_\mathrm{c} \in [1.0, 3.0]\,v_\mathrm{esc}$
 
@@ -118,7 +114,7 @@ To support planetary evolution and accretion calculations where conditions cross
 1. Diagnostic range flags. When inputs fall outside the calibrated range ($f_\mathrm{atm} \notin [0.01, 0.2]$, $M_\mathrm{t}^\mathrm{r} \notin [0.35, 5.0]\,M_\oplus$, $\gamma \notin [0.1, 0.5]$, $b > 0.9$, or $v_\mathrm{c} / v_\mathrm{esc} > 3.0$), the loss fraction is computed and the out-of-range parameter names are recorded in `ImpactLossResult.flags` (`'f_atm'`, `'M_t_earth'`, `'gamma'`, `'b'`, `'v_ratio'`).
 2. Stability clamping. Outside empirical stability limits, arguments to the empirical fit are evaluated at the nearest bound ($f_\mathrm{atm} \in [10^{-6}, 0.4]$, $M_\mathrm{t}^\mathrm{r} \in [10^{-3}, 10]\,M_\oplus$, $\gamma \ge 10^{-3}$) to prevent unphysical numerical divergence. Applied bounds are recorded in `diagnostics['clamped']`. Physical quantities ($v_\mathrm{esc}$, $v_\mathrm{c} / v_\mathrm{esc}$, $Q'_\mathrm{R}$, $\gamma$) and the far-field mass ratio use the physical input masses and radii.
 3. Zero atmosphere. When $f_\mathrm{atm} = 0.0$, the function returns $X = 0.0$ immediately.
-4. Grazing continuity. For grazing collisions ($b \ge 1.0$), the mathematical formulation evaluates continuously to $X \approx 0.0315$ without singularity or divergence.
+4. Grazing collisions. The scaling law is calibrated for impact parameters $b \in [0.0, 0.9]$. For grazing collisions where $b \ge 1.0$, the formulation evaluates continuously to $X \approx 0.0315$ for the Earth-mass benchmark case, while oblique collisions with $b > 0.9$ trigger the `'b'` diagnostic flag.
 
 ### Physical caveats
 
