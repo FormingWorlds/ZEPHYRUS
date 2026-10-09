@@ -77,11 +77,11 @@ Tests that pin behaviour against an external anchor are tagged `@pytest.mark.ref
 | `escape.py` | Lehmer & Catling (2017), ApJ 845:130, Eq. 1: closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
 | `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Eq. 1: closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
 | `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Tables 1 and 2: simulated loss fractions of the SPH suite | `tests/test_collision.py::test_scaling_law_reproduces_kegerreis_table2_simulations` |
-| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqns. 4-11, Table C1-C3: 12 reference oracle rows from `scaling_law.csv` | `tests/test_collision.py::test_roche2026_oracle_reproduction` |
-| `collision.py` | Roche et al. (2025), PSJ 6, 149, Eqns. 13-18: modified specific impact energy $Q'_\mathrm{R}$ | `tests/test_collision.py::test_roche2026_specific_impact_energy_calculation` |
-| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqn. 1: mutual escape speed $v_\mathrm{esc}$ using total target mass | `tests/test_collision.py::test_roche2026_mutual_escape_speed_calculation` |
-| `collision.py` | Roche et al. (2026), Zenodo doi:10.5281/zenodo.23192423: near-field velocity floor at $v_\mathrm{c} \le v_\mathrm{esc}$ | `tests/test_collision.py::test_roche2026_velocity_floor_property` |
-| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqn. 10: continuous evaluation at grazing parameter $b \to 1$ | `tests/test_collision.py::test_roche2026_grazing_continuity_and_value` |
+| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqs. 4-11, Table C1-C3: 12 reference oracle rows from `scaling_law.csv` | `tests/test_collision.py::test_roche2026_oracle_reproduction` |
+| `collision.py` | Roche et al. (2025), PSJ 6, 149, Eqs. 13-18: modified specific impact energy $Q'_\mathrm{R}$ | `tests/test_collision.py::test_roche2026_specific_impact_energy_calculation` |
+| `collision.py` | Roche et al. (2026), Eq. 1: mutual escape speed $v_\mathrm{esc}$ using total target mass | `tests/test_collision.py::test_roche2026_mutual_escape_speed_calculation` |
+
+Self-consistency checks for the Roche scaling law (such as the velocity floor property `test_roche2026_velocity_floor_property` and grazing continuity `test_roche2026_grazing_continuity_and_value`) test implementation invariants rather than pinning external reference values; they carry `@pytest.mark.physics_invariant`.
 
 The marker is not the same thing as physical correctness: a reference-pinned test certifies that this implementation reproduces that anchor; it does not certify that the anchor is the right physics for every planetary regime.
 
