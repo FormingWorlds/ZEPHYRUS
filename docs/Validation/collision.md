@@ -42,7 +42,7 @@ The 12 reference oracle rows are drawn from the authors' published dataset (Zeno
 
 The mutual escape speed $v_\mathrm{esc}$ in the Roche scaling framework adopts the total target mass and refractory impactor mass, $M_\mathrm{t}^\mathrm{tot} + M_\mathrm{i}^\mathrm{r}$, divided by the sum of refractory radii $R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r}$. Using only refractory masses shifts $v_\mathrm{esc}$ and fails the tolerance guard with relative error exceeding 1e-3 for substantial envelopes.
 
-For grazing collisions ($b \ge 0.9$), $X_\mathrm{FF} = 0$ so the loss fraction is given solely by the near-field $X_\mathrm{NF}$ term. At $b = 1.0$, $Q'_\mathrm{R} = 0$ and the geometry factor $(1 - b)^{\psi_4}$ evaluates safely to 0 even when $\psi_4 < 0$; this gives continuous evaluation ($X_\mathrm{atm} \approx 0.031470$) without division by zero.
+In the grazing test case ($M_\mathrm{t}^\mathrm{r} = 1\,M_\oplus$, $\gamma = 0.3$, $f_\mathrm{atm} = 0.01$, $v_\mathrm{c}/v_\mathrm{esc} = 1.5$), $X_\mathrm{FF} = 0$ for $b \ge 0.9$, so the loss fraction is given solely by the near-field $X_\mathrm{NF}$ term. At $b = 1.0$, $Q'_\mathrm{R} = 0$ and the geometry factor $(1 - b)^{\psi_4}$ evaluates safely to 0 even when $\psi_4 < 0$; this gives continuous evaluation ($X_\mathrm{atm} \approx 0.031470$) without division by zero.
 
 ## Anchor type
 
