@@ -35,6 +35,11 @@ class ImpactLossResult:
     flags: tuple[str, ...]
     diagnostics: dict[str, Any]
 
+    @property
+    def loss_fraction(self) -> float:
+        """Alias for fraction."""
+        return self.fraction
+
 
 # Fitted coefficients for the Roche et al. (2026) giant impact model.
 # Source: Roche et al. (2026), arXiv:2610.06077; Zenodo doi:10.5281/zenodo.23192423.
@@ -263,6 +268,29 @@ def _roche2026_fit(
     return f_nf, x_nf, x_ff, x_atm
 
 
+def _interacting_mass_fraction_kegerreis(
+    R_t: float,
+    R_i: float,
+    rho_t: float,
+    rho_i: float,
+    b: float,
+) -> float:
+    """Fractional interacting mass f_M (Kegerreis et al. 2020, Eqn. B1).
+
+    Density-weighted spherical caps of common height d, clamped to [0, 1]
+    because the linearised caps can leave the interval outside the fitted
+    geometry. At equal bulk densities this reduces exactly to the
+    interacting volume f_V of their Eqn. B2.
+    """
+    d = (R_t + R_i) * (1.0 - b)
+    v_t_cap = np.pi / 3.0 * d**2 * (3.0 * R_t - d)
+    v_i_cap = np.pi / 3.0 * d**2 * (3.0 * R_i - d)
+    v_t_full = 4.0 / 3.0 * np.pi * R_t**3
+    v_i_full = 4.0 / 3.0 * np.pi * R_i**3
+    f_m = (rho_t * v_t_cap + rho_i * v_i_cap) / (rho_t * v_t_full + rho_i * v_i_full)
+    return float(np.clip(f_m, 0.0, 1.0))
+
+
 def mass_loss(
     v_c: float,
     M_i: float,
@@ -363,14 +391,11 @@ def mass_loss(
     v_esc = mutual_escape_speed(M_t, M_i, R_t, R_i)
 
     # Fractional interacting mass f_M (Kegerreis et al. 2020, Eqn. B1):
-    # density-weighted spherical caps clamped to [0, 1].
-    d = (R_t + R_i) * (1.0 - b)
-    v_t_cap = np.pi / 3.0 * d**2 * (3.0 * R_t - d)
-    v_i_cap = np.pi / 3.0 * d**2 * (3.0 * R_i - d)
-    v_t_full = 4.0 / 3.0 * np.pi * R_t**3
-    v_i_full = 4.0 / 3.0 * np.pi * R_i**3
-    f_m = (rho_t * v_t_cap + rho_i * v_i_cap) / (rho_t * v_t_full + rho_i * v_i_full)
-    f_m = min(max(f_m, 0.0), 1.0)
+    # density-weighted spherical caps of common height d, clamped to [0, 1]
+    # because the linearised caps can leave the interval outside the fitted
+    # geometry. At equal bulk densities this reduces exactly to the
+    # interacting volume f_V of their Eqn. B2.
+    f_m = _interacting_mass_fraction_kegerreis(R_t, R_i, rho_t, rho_i, b)
 
     m_tot = M_i + M_t
     bracket = (v_c / v_esc) ** 2 * (M_i / m_tot) ** 0.5 * (rho_i / rho_t) ** 0.5 * f_m
@@ -425,7 +450,8 @@ def specific_impact_energy(
     M_i : float
         Impactor mass [kg].
     M_t : float
-        Target mass [kg].
+        Target mass including its atmosphere ($M_\mathrm{t}^\mathrm{tot}$ in
+        Roche et al. 2026, Eq. 1 and $Q'_\mathrm{R}$) [kg].
     R_i : float
         Impactor refractory radius [m].
     R_t : float
@@ -440,9 +466,13 @@ def specific_impact_energy(
 
     References
     ----------
-    1. Leinhardt Z.M., Stewart S.T. (2012). Collisions between gravity-dominated
-       bodies. I. Accretion and disruption regimes. ApJ 745, 79.
-    2. Roche M.J., Lock S.J., Carter P.J., Leinhardt Z.M. (2025). ApJL.
+    1. Roche, M. J., Lock, S. J., Dou, J., Carter, P. J., Leinhardt, Z. M.,
+       & Kegerreis, J. A. (2025), "Atmospheric loss during giant impacts:
+       mechanisms and scaling of near- and far-field loss", accepted to PSJ,
+       arXiv:2505.04343, Eqns. 13 to 18.
+    2. Leinhardt, Z. M., & Stewart, S. T. (2012), "Collisions between
+       gravity-dominated bodies. I. Outcome regimes and scaling laws",
+       ApJ 745, 79, doi:10.1088/0004-637X/745/1/79.
     """
     impact_param = (R_t + R_i) * b
     if impact_param + R_i <= R_t:
@@ -539,18 +569,15 @@ def _eval_roche2026(
     if b > 0.9:
         flags.append('b')
 
-    m_t_kg = m_t_eval * M_earth
-    m_i_kg = m_t_kg * (gamma_eval / (1.0 - gamma_eval))
-    m_t_tot = m_t_kg / (1.0 - f_atm_eval)
-
-    v_esc = mutual_escape_speed(m_t_tot, m_i_kg, R_t, R_i)
+    m_t_tot = M_t / (1.0 - f_atm)
+    v_esc = mutual_escape_speed(m_t_tot, M_i, R_t, R_i)
     v_ratio = v_c / v_esc if v_esc > 0.0 else 0.0
-    q_r_prime = specific_impact_energy(v_c, m_i_kg, m_t_tot, R_i, R_t, b)
+    q_r_prime = specific_impact_energy(v_c, M_i, m_t_tot, R_i, R_t, b)
 
     if v_ratio > 3.0:
         flags.append('v_ratio')
 
-    m_i_eval = m_t_eval * (gamma_eval / (1.0 - gamma_eval))
+    m_i_eval = m_t_eval * (M_i / M_t)
 
     f_nf, x_nf, x_ff, x_atm = _roche2026_fit(
         b=b,
@@ -682,19 +709,13 @@ def impact_loss(
         v_esc = mutual_escape_speed(M_t, M_i, R_t, R_i)
         v_ratio = v_c / v_esc if v_esc > 0.0 else 0.0
         gamma = M_i / (M_t + M_i)
-        d = (R_t + R_i) * (1.0 - b)
-        v_t_cap = np.pi / 3.0 * d**2 * (3.0 * R_t - d)
-        v_i_cap = np.pi / 3.0 * d**2 * (3.0 * R_i - d)
-        v_t_full = 4.0 / 3.0 * np.pi * R_t**3
-        v_i_full = 4.0 / 3.0 * np.pi * R_i**3
-        f_m = (rho_t * v_t_cap + rho_i * v_i_cap) / (rho_t * v_t_full + rho_i * v_i_full)
-        f_m_clamped = min(max(f_m, 0.0), 1.0)
+        f_m = _interacting_mass_fraction_kegerreis(R_t, R_i, rho_t, rho_i, b)
         diag = {
             'v_esc': float(v_esc),
             'v_ratio': float(v_ratio),
             'gamma': float(gamma),
             'mass_ratio': float(M_i / M_t),
-            'f_M': float(f_m_clamped),
+            'f_M': float(f_m),
         }
         return ImpactLossResult(law=law, fraction=frac, flags=(), diagnostics=diag)
 

@@ -21,10 +21,8 @@ import pytest
 from zephyrus.collision import mass_loss, mass_loss_roche2026, mutual_escape_speed
 from zephyrus.constants import G, M_earth
 
-# hypothesis is a develop-extra dependency; skip this whole module if it is
-# unavailable rather than failing collection. The closed-form pins and the
-# error-contract guards live in tests/test_collision.py and run
-# unconditionally.
+# Skip if hypothesis is unavailable; closed-form pins and error-contract
+# guards live in tests/test_collision.py and run unconditionally.
 hyp = pytest.importorskip('hypothesis')
 given = hyp.given
 settings = hyp.settings
@@ -32,10 +30,8 @@ st = hyp.strategies
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
-# Strategy bounds: masses from large asteroids to super-Earths, radii and
-# densities spanning icy to iron bodies, speeds from rest to twice the
-# paper's fitted ceiling so the cap branch is exercised, and the full
-# head-on to grazing angle range.
+# Strategy bounds: masses from asteroids to super-Earths, icy to iron bodies,
+# speeds up to 2x the fitted ceiling, and full impact angle range.
 _MASS = st.floats(min_value=1e22, max_value=2e25)
 _RADIUS = st.floats(min_value=1e6, max_value=2e7)
 _RHO = st.floats(min_value=900.0, max_value=13000.0)

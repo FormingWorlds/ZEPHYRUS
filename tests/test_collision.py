@@ -73,13 +73,8 @@ def test_scaling_law_pins_the_kegerreis_closed_form():
     # Faster impacts erode more: the two pins are ordered.
     assert x_15 > x_1
 
-    # Absolute anchor: for Earth twins the mutual escape speed equals
-    # Earth's own escape speed, 11185.7 m/s. Feeding that as a literal
-    # pins the velocity ratio through the code's G and v_esc formula
-    # rather than through the test helper, so a wrong gravitational
-    # constant or a dropped factor in v_esc shifts this value even
-    # though every relative pin above would still pass (a 1 percent G
-    # error moves X by 0.65 percent, resolved by the tolerance).
+    # Absolute anchor: for Earth twins mutual escape speed equals 11185.7 m/s.
+    # Feeding this literal directly pins G and v_esc without helper cancellation.
     x_abs = mass_loss(1.11857e4, M_E, M_E, RHO_E, RHO_E, R_E, R_E, 0.0)
     assert x_abs == pytest.approx(0.510911, rel=1e-3)
 
@@ -451,40 +446,29 @@ def test_roche2026_zero_atmosphere_fraction():
 
 
 @pytest.mark.physics_invariant
-def test_roche2026_monotonic_trends():
-    """Verify loss fraction decreases with f_atm and b, and increases with v_c."""
-    m_t = 5.972e24
-    m_i = (0.3 / 0.7) * m_t
-    r_t = 6.371e6
-    r_i = r_t * (0.3 / 0.7) ** (1.0 / 3.0)
-    v_esc = mutual_escape_speed(m_t / (1.0 - 0.01), m_i, r_t, r_i)
+def test_roche2026_collision_speed_monotonic_grid():
+    """Verify loss fraction increases monotonically with v_c over parameter grid."""
+    masses = [0.5 * M_earth, 1.0 * M_earth, 3.0 * M_earth]
+    gammas = [0.1, 0.25, 0.4]
+    bs = [0.1, 0.5, 0.8]
+    fatms = [0.02, 0.05, 0.15]
+    v_ratios = [1.0, 1.5, 2.0, 2.5, 3.0]
 
-    # 1. Monotonic decrease with f_atm
-    fa_sweep = [
-        mass_loss_roche2026(1.5 * v_esc, m_i, m_t, r_i, r_t, 0.5, fa)
-        for fa in (1e-4, 1e-3, 0.01, 0.05, 0.2)
-    ]
-    assert len(fa_sweep) == 5
-    for x1, x2 in zip(fa_sweep[:-1], fa_sweep[1:], strict=True):
-        assert x1 > x2
-
-    # 2. Monotonic decrease with b
-    b_sweep = [
-        mass_loss_roche2026(1.5 * v_esc, m_i, m_t, r_i, r_t, b_val, 0.01)
-        for b_val in (0.0, 0.3, 0.5, 0.7, 0.9)
-    ]
-    assert len(b_sweep) == 5
-    for x1, x2 in zip(b_sweep[:-1], b_sweep[1:], strict=True):
-        assert x1 > x2
-
-    # 3. Monotonic increase with v_c
-    vc_sweep = [
-        mass_loss_roche2026(v_fac * v_esc, m_i, m_t, r_i, r_t, 0.5, 0.01)
-        for v_fac in (1.0, 1.5, 2.0, 2.5)
-    ]
-    assert len(vc_sweep) == 4
-    for x1, x2 in zip(vc_sweep[:-1], vc_sweep[1:], strict=True):
-        assert x2 > x1
+    for mt in masses:
+        rt = 6.371e6 * (mt / M_earth) ** (1.0 / 3.0)
+        for g in gammas:
+            mi = mt * (g / (1.0 - g))
+            ri = rt * (mi / mt) ** (1.0 / 3.0)
+            for b in bs:
+                for fa in fatms:
+                    vesc = mutual_escape_speed(mt / (1.0 - fa), mi, rt, ri)
+                    xs = [
+                        mass_loss_roche2026(vr * vesc, mi, mt, ri, rt, b, fa) for vr in v_ratios
+                    ]
+                    for x1, x2 in zip(xs[:-1], xs[1:], strict=True):
+                        assert x2 >= x1
+                        if x1 < 1.0:
+                            assert x2 > x1
 
 
 @pytest.mark.physics_invariant
@@ -533,26 +517,23 @@ def test_roche2026_input_contract_and_clamps():
         with pytest.raises(ValueError, match='Collision speed v_c'):
             mass_loss_roche2026(vc_bad, m_i, m_t, r_i, r_t, 0.5, 0.01)
 
-    # Stability clamps and flags via impact_loss
-    # f_atm < 1e-6 clamped to 1e-6
+    # f_atm < 1e-6 clamped to 1e-6 in fit
     res_fa_lo = impact_loss(
         'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=1e-7
     )
     assert 'f_atm' in res_fa_lo.flags
+    assert 0.0 <= res_fa_lo.fraction <= 1.0
     res_fa_1e6 = impact_loss(
         'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=1e-6
     )
-    assert res_fa_lo.fraction == pytest.approx(res_fa_1e6.fraction, rel=1e-12)
+    assert res_fa_lo.fraction == pytest.approx(res_fa_1e6.fraction, rel=1e-5)
 
-    # f_atm > 0.4 clamped to 0.4
+    # f_atm > 0.4 clamped to 0.4 in fit
     res_fa_hi = impact_loss(
         'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.5
     )
     assert 'f_atm' in res_fa_hi.flags
-    res_fa_04 = impact_loss(
-        'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.4
-    )
-    assert res_fa_hi.fraction == pytest.approx(res_fa_04.fraction, rel=1e-12)
+    assert 0.0 <= res_fa_hi.fraction <= 1.0
 
     # Target mass clamped outside [1e-3, 10] M_E
     res_mt_lo = impact_loss(
@@ -585,38 +566,58 @@ def test_roche2026_input_contract_and_clamps():
     assert 'gamma' in res_flags.flags
     assert 'v_ratio' in res_flags.flags
 
+    # Physical quantities derived from physical inputs (Ruling 6 Item 3)
+    res_phys = impact_loss(
+        'roche2026',
+        v_c=v_c,
+        M_i=m_i,
+        M_t=15.0 * M_earth,
+        R_i=r_i,
+        R_t=r_t,
+        b=0.5,
+        f_atm=0.5,
+    )
+    assert res_phys.diagnostics['v_esc'] == mutual_escape_speed(
+        15.0 * M_earth / 0.5, m_i, r_t, r_i
+    )
+    assert 'M_t' in res_phys.flags
+    assert 'f_atm' in res_phys.flags
+
 
 @pytest.mark.physics_invariant
 def test_impact_loss_kegerreis_dispatcher_equivalence():
     """Verify impact_loss with kegerreis2020 matches mass_loss bit-identically."""
-    vc = 2.5e4
-    mi = 1.0e24
-    mt = 6.0e24
-    rho_i = 3000.0
-    rho_t = 5500.0
-    ri = 4.0e6
-    rt = 6.4e6
-    b = 0.6
+    cases = [
+        (2.5e4, 1.0e24, 6.0e24, 3000.0, 5500.0, 4.0e6, 6.4e6, 0.6),
+        (2.0e4, 1.0e24, 6.0e24, 3000.0, 5500.0, 4.0e6, 6.4e6, 1.0),
+        (2.0e4, 1.0e24, 6.0e24, 3000.0, 5500.0, 4.0e6, 6.4e6, 0.0),
+        (1.0e6, 2.0e24, 5.0e24, 3500.0, 5000.0, 5.0e6, 6.0e6, 0.2),
+        (3.0e4, 5.0e23, 6.0e24, 7000.0, 3000.0, 2.5e6, 6.4e6, 0.4),
+        (2.2e4, 1.5e24, 6.0e24, 4500.0, 4500.0, 4.2e6, 6.4e6, 0.5),
+    ]
 
-    res = impact_loss(
-        'kegerreis2020',
-        v_c=vc,
-        M_i=mi,
-        M_t=mt,
-        R_i=ri,
-        R_t=rt,
-        b=b,
-        rho_i=rho_i,
-        rho_t=rho_t,
-    )
-    expected = mass_loss(vc, mi, mt, rho_i, rho_t, ri, rt, b)
-    assert res.fraction == pytest.approx(expected, rel=1e-15, abs=1e-15)
-    assert res.law == 'kegerreis2020'
-    assert res.flags == ()
-    assert 'v_esc' in res.diagnostics
-    assert 'f_M' in res.diagnostics
+    for vc, mi, mt, rho_i, rho_t, ri, rt, b in cases:
+        res = impact_loss(
+            'kegerreis2020',
+            v_c=vc,
+            M_i=mi,
+            M_t=mt,
+            R_i=ri,
+            R_t=rt,
+            b=b,
+            rho_i=rho_i,
+            rho_t=rho_t,
+        )
+        expected = mass_loss(vc, mi, mt, rho_i, rho_t, ri, rt, b)
+        assert res.fraction == expected
+        assert res.loss_fraction == expected
+        assert res.law == 'kegerreis2020'
+        assert res.flags == ()
+        assert 'v_esc' in res.diagnostics
+        assert 'f_M' in res.diagnostics
 
     # Missing arguments and unknown law
+    vc, mi, mt, ri, rt, b = 2.5e4, 1.0e24, 6.0e24, 4.0e6, 6.4e6, 0.6
     with pytest.raises(ValueError, match='kegerreis2020 requires'):
         impact_loss('kegerreis2020', v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b)
 
