@@ -20,9 +20,13 @@ from zephyrus.collision import (
     _ROCHE2026_COEFFICIENTS,
     _ROCHE2026_TABLE_C_CONSTANTS,
     _roche2026_fit,
+    impact_loss,
     mass_loss,
+    mass_loss_roche2026,
+    mutual_escape_speed,
+    specific_impact_energy,
 )
-from zephyrus.constants import G
+from zephyrus.constants import G, M_earth
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
@@ -348,7 +352,6 @@ def test_roche2026_specific_impact_energy_calculation():
     rows = [r for r in _get_roche2026_oracle_rows() if r['set'] == 'A']
     assert len(rows) == 8
 
-    # Q'_R calculation per Leinhardt & Stewart (2012) and Roche et al. (2025).
     for r in rows:
         rt = float(r['R_t_r_earth']) * R_E
         ri = float(r['R_i_r_earth']) * R_E
@@ -357,18 +360,7 @@ def test_roche2026_specific_impact_energy_calculation():
         b = float(r['b'])
         vc = float(r['v_c_kms']) * 1e3
 
-        impact_param = (rt + ri) * b
-        if impact_param + ri <= rt:
-            alpha = 1.0
-        else:
-            interact_len = rt + ri - impact_param
-            alpha = (3.0 * ri * interact_len**2 - interact_len**3) / (4.0 * ri**3)
-
-        m_tot = mt + mi
-        mu = mt * mi / m_tot
-        mu_alpha = alpha * mt * mi / (alpha * mi + mt)
-        q_r = mu * vc**2 / (2.0 * m_tot)
-        q_r_prime = (mu_alpha / mu) * q_r / 1e6
+        q_r_prime = specific_impact_energy(vc, mi, mt, ri, rt, b)
         expected_qr = float(r['Q_R_prime_MJkg'])
         assert abs(q_r_prime / expected_qr - 1.0) <= 1e-12
 
@@ -380,7 +372,6 @@ def test_roche2026_mutual_escape_speed_calculation():
     rows = [r for r in _get_roche2026_oracle_rows() if r['set'] == 'A']
     assert len(rows) == 8
 
-    # Mutual escape speed calculation per Roche et al. (2026) Eq. 1.
     for r in rows:
         rt = float(r['R_t_r_earth']) * R_E
         ri = float(r['R_i_r_earth']) * R_E
@@ -389,13 +380,13 @@ def test_roche2026_mutual_escape_speed_calculation():
         vc = float(r['v_c_kms']) * 1e3
         vc_ratio = float(r['v_c_v_esc'])
 
-        v_esc = np.sqrt(2.0 * G * (mt_tot + mi) / (rt + ri))
+        v_esc = mutual_escape_speed(mt_tot, mi, rt, ri)
         v_expected = vc / vc_ratio
         assert abs(v_esc / v_expected - 1.0) <= 1e-3
 
         # Discrimination guard: M_t^r gives 2 to 10 percent error (> 1e-3).
         mt_r = float(r['M_t_r_earth']) * M_E
-        v_esc_wrong = np.sqrt(2.0 * G * (mt_r + mi) / (rt + ri))
+        v_esc_wrong = mutual_escape_speed(mt_r, mi, rt, ri)
         assert abs(v_esc_wrong / v_expected - 1.0) > 1e-3
 
 
@@ -426,3 +417,233 @@ def test_roche2026_velocity_floor_property():
             float(r['R_ratio']),
         )
         assert xnf_floor == pytest.approx(xnf_unity, rel=1e-12, abs=1e-12)
+
+
+@pytest.mark.physics_invariant
+def test_roche2026_zero_atmosphere_fraction():
+    """Verify f_atm = 0 returns exactly zero loss fraction without evaluation."""
+    x = mass_loss_roche2026(
+        v_c=2.0e4,
+        M_i=1.0e24,
+        M_t=5.972e24,
+        R_i=3.0e6,
+        R_t=6.371e6,
+        b=0.5,
+        f_atm=0.0,
+    )
+    assert x == 0.0
+
+    res = impact_loss(
+        'roche2026',
+        v_c=2.0e4,
+        M_i=1.0e24,
+        M_t=5.972e24,
+        R_i=3.0e6,
+        R_t=6.371e6,
+        b=0.5,
+        f_atm=0.0,
+    )
+    assert res.fraction == 0.0
+    assert len(res.flags) == 0
+    assert res.diagnostics['f_NF'] == 0.0
+    assert res.diagnostics['X_NF'] == 0.0
+    assert res.diagnostics['X_FF'] == 0.0
+
+
+@pytest.mark.physics_invariant
+def test_roche2026_monotonic_trends():
+    """Verify loss fraction decreases with f_atm and b, and increases with v_c."""
+    m_t = 5.972e24
+    m_i = (0.3 / 0.7) * m_t
+    r_t = 6.371e6
+    r_i = r_t * (0.3 / 0.7) ** (1.0 / 3.0)
+    v_esc = mutual_escape_speed(m_t / (1.0 - 0.01), m_i, r_t, r_i)
+
+    # 1. Monotonic decrease with f_atm
+    fa_sweep = [
+        mass_loss_roche2026(1.5 * v_esc, m_i, m_t, r_i, r_t, 0.5, fa)
+        for fa in (1e-4, 1e-3, 0.01, 0.05, 0.2)
+    ]
+    assert len(fa_sweep) == 5
+    for x1, x2 in zip(fa_sweep[:-1], fa_sweep[1:], strict=True):
+        assert x1 > x2
+
+    # 2. Monotonic decrease with b
+    b_sweep = [
+        mass_loss_roche2026(1.5 * v_esc, m_i, m_t, r_i, r_t, b_val, 0.01)
+        for b_val in (0.0, 0.3, 0.5, 0.7, 0.9)
+    ]
+    assert len(b_sweep) == 5
+    for x1, x2 in zip(b_sweep[:-1], b_sweep[1:], strict=True):
+        assert x1 > x2
+
+    # 3. Monotonic increase with v_c
+    vc_sweep = [
+        mass_loss_roche2026(v_fac * v_esc, m_i, m_t, r_i, r_t, 0.5, 0.01)
+        for v_fac in (1.0, 1.5, 2.0, 2.5)
+    ]
+    assert len(vc_sweep) == 4
+    for x1, x2 in zip(vc_sweep[:-1], vc_sweep[1:], strict=True):
+        assert x2 > x1
+
+
+@pytest.mark.physics_invariant
+@pytest.mark.reference_pinned
+def test_roche2026_grazing_continuity_and_value():
+    """Verify finite non-zero loss and continuity at grazing impact b -> 1."""
+    m_t = 5.972e24
+    m_i = (0.3 / 0.7) * m_t
+    r_t = 6.371e6
+    r_i = r_t * (0.3 / 0.7) ** (1.0 / 3.0)
+    v_esc = mutual_escape_speed(m_t / (1.0 - 0.01), m_i, r_t, r_i)
+
+    x_near = mass_loss_roche2026(1.5 * v_esc, m_i, m_t, r_i, r_t, 0.999999, 0.01)
+    x_one = mass_loss_roche2026(1.5 * v_esc, m_i, m_t, r_i, r_t, 1.0, 0.01)
+
+    assert np.isfinite(x_near)
+    assert np.isfinite(x_one)
+    assert x_near == pytest.approx(0.03147, rel=1e-3)
+    assert x_one == pytest.approx(0.03147, rel=1e-3)
+    assert x_one == pytest.approx(x_near, rel=1e-4)
+
+
+@pytest.mark.physics_invariant
+def test_roche2026_input_contract_and_clamps():
+    """Verify input domain validation, stability clamps, and diagnostic flags."""
+    m_t = 5.972e24
+    m_i = 1.0e24
+    r_t = 6.371e6
+    r_i = 3.0e6
+    v_c = 2.0e4
+
+    # Domain errors
+    for b_bad in (-0.1, 1.1, np.nan):
+        with pytest.raises(ValueError, match='Impact parameter b'):
+            mass_loss_roche2026(v_c, m_i, m_t, r_i, r_t, b_bad, 0.01)
+
+    for m_bad in (0.0, -1.0, np.nan, np.inf):
+        with pytest.raises(ValueError, match='M_t must be strictly positive'):
+            mass_loss_roche2026(v_c, m_i, m_bad, r_i, r_t, 0.5, 0.01)
+
+    for fa_bad in (-0.01, 1.0, 1.5, np.nan):
+        with pytest.raises(ValueError, match='f_atm must be in'):
+            mass_loss_roche2026(v_c, m_i, m_t, r_i, r_t, 0.5, fa_bad)
+
+    for vc_bad in (-10.0, np.nan, np.inf):
+        with pytest.raises(ValueError, match='Collision speed v_c'):
+            mass_loss_roche2026(vc_bad, m_i, m_t, r_i, r_t, 0.5, 0.01)
+
+    # Stability clamps and flags via impact_loss
+    # f_atm < 1e-6 clamped to 1e-6
+    res_fa_lo = impact_loss(
+        'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=1e-7
+    )
+    assert 'f_atm' in res_fa_lo.flags
+    res_fa_1e6 = impact_loss(
+        'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=1e-6
+    )
+    assert res_fa_lo.fraction == pytest.approx(res_fa_1e6.fraction, rel=1e-12)
+
+    # f_atm > 0.4 clamped to 0.4
+    res_fa_hi = impact_loss(
+        'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.5
+    )
+    assert 'f_atm' in res_fa_hi.flags
+    res_fa_04 = impact_loss(
+        'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.4
+    )
+    assert res_fa_hi.fraction == pytest.approx(res_fa_04.fraction, rel=1e-12)
+
+    # Target mass clamped outside [1e-3, 10] M_E
+    res_mt_lo = impact_loss(
+        'roche2026', v_c=v_c, M_i=m_i, M_t=1e-4 * M_earth, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
+    )
+    assert 'M_t' in res_mt_lo.flags
+    res_mt_hi = impact_loss(
+        'roche2026', v_c=v_c, M_i=m_i, M_t=15.0 * M_earth, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
+    )
+    assert 'M_t' in res_mt_hi.flags
+
+    # Impactor mass ratio clamped below 1e-3
+    res_gamma_lo = impact_loss(
+        'roche2026', v_c=v_c, M_i=1e-4 * m_t, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
+    )
+    assert 'gamma' in res_gamma_lo.flags
+
+    # Flags for out-of-fitted-range conditions (b > 0.9, gamma > 0.5, v_ratio > 3)
+    res_flags = impact_loss(
+        'roche2026',
+        v_c=4.0 * mutual_escape_speed(m_t / 0.99, 2.0 * m_t, r_t, r_i),
+        M_i=2.0 * m_t,
+        M_t=m_t,
+        R_i=r_i,
+        R_t=r_t,
+        b=0.95,
+        f_atm=0.01,
+    )
+    assert 'b' in res_flags.flags
+    assert 'gamma' in res_flags.flags
+    assert 'v_ratio' in res_flags.flags
+
+
+@pytest.mark.physics_invariant
+def test_impact_loss_kegerreis_dispatcher_equivalence():
+    """Verify impact_loss with kegerreis2020 matches mass_loss bit-identically."""
+    vc = 2.5e4
+    mi = 1.0e24
+    mt = 6.0e24
+    rho_i = 3000.0
+    rho_t = 5500.0
+    ri = 4.0e6
+    rt = 6.4e6
+    b = 0.6
+
+    res = impact_loss(
+        'kegerreis2020',
+        v_c=vc,
+        M_i=mi,
+        M_t=mt,
+        R_i=ri,
+        R_t=rt,
+        b=b,
+        rho_i=rho_i,
+        rho_t=rho_t,
+    )
+    expected = mass_loss(vc, mi, mt, rho_i, rho_t, ri, rt, b)
+    assert res.fraction == pytest.approx(expected, rel=1e-15, abs=1e-15)
+    assert res.law == 'kegerreis2020'
+    assert res.flags == ()
+    assert 'v_esc' in res.diagnostics
+    assert 'f_M' in res.diagnostics
+
+    # Missing arguments and unknown law
+    with pytest.raises(ValueError, match='kegerreis2020 requires'):
+        impact_loss('kegerreis2020', v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b)
+
+    with pytest.raises(ValueError, match='roche2026 requires f_atm'):
+        impact_loss('roche2026', v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b)
+
+    with pytest.raises(ValueError, match='Unknown scaling law'):
+        impact_loss('unknown_law', v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b)
+
+
+@pytest.mark.physics_invariant
+def test_roche2026_m_earth_sensitivity():
+    """Verify mass scaling sensitivity between 5.972e24 and 5.9724e24 is below 1e-5."""
+    rows = _get_roche2026_oracle_rows()
+    r = rows[1]
+    b = float(r['b'])
+    g = float(r['gamma'])
+    vc = float(r['v_c_v_esc'])
+    mt = float(r['M_t_r_earth'])
+    mi = float(r['M_i_r_earth'])
+    qr = float(r['Q_R_prime_MJkg'])
+    fa = float(r['f_atm'])
+    rr = float(r['R_ratio'])
+
+    _, _, _, x_nom = _roche2026_fit(b, g, vc, mt, mi, qr, fa, rr)
+    factor = 5.972e24 / 5.9724e24
+    _, _, _, x_alt = _roche2026_fit(b, g, vc, mt * factor, mi * factor, qr, fa, rr)
+    diff = abs(x_alt - x_nom)
+    assert diff < 1.0e-5
+    assert abs(x_nom - float(r['X_atm_calc'])) <= 1e-10

@@ -18,8 +18,8 @@ See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 import numpy as np
 import pytest
 
-from zephyrus.collision import mass_loss
-from zephyrus.constants import G
+from zephyrus.collision import mass_loss, mass_loss_roche2026, mutual_escape_speed
+from zephyrus.constants import G, M_earth
 
 # hypothesis is a develop-extra dependency; skip this whole module if it is
 # unavailable rather than failing collection. The closed-form pins and the
@@ -144,3 +144,26 @@ def test_equal_densities_match_the_interacting_volume_form(m_t, q, rho, r_i, r_t
     x_expected = 0.64 * bracket**0.65
     assert x_expected < 1.0  # the mass-ratio bound keeps the law sub-cap
     assert x == pytest.approx(x_expected, rel=1e-12, abs=1e-15)
+
+
+@pytest.mark.physics_invariant
+@given(
+    mt_factor=st.floats(min_value=1e-3, max_value=10.0),
+    gamma=st.floats(min_value=1e-3, max_value=0.5),
+    f_atm=st.floats(min_value=1e-6, max_value=0.4),
+    b=st.floats(min_value=0.0, max_value=1.0),
+    vfac=st.floats(min_value=0.5, max_value=4.0),
+)
+@settings(max_examples=100, deadline=None, derandomize=True)
+def test_roche2026_loss_fraction_bounded_over_stability_range(mt_factor, gamma, f_atm, b, vfac):
+    """Verify loss fraction is finite and bounded in [0, 1] across the stability range."""
+    m_t = mt_factor * M_earth
+    m_i = m_t * (gamma / (1.0 - gamma))
+    r_t = 6.371e6 * (mt_factor ** (1.0 / 3.0))
+    r_i = r_t * ((m_i / m_t) ** (1.0 / 3.0))
+    v_esc = mutual_escape_speed(m_t / (1.0 - f_atm), m_i, r_t, r_i)
+    v_c = vfac * v_esc
+
+    x = mass_loss_roche2026(v_c, m_i, m_t, r_i, r_t, b, f_atm)
+    assert np.isfinite(x)
+    assert 0.0 <= x <= 1.0
