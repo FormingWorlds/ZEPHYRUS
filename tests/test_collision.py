@@ -248,9 +248,7 @@ def test_scaling_law_reproduces_kegerreis_table2_simulations():
 
 
 # 12 oracle rows from Roche et al. (2026), arXiv:2610.06077,
-# Zenodo doi:10.5281/zenodo.23192423 (authors' scaling_law.csv and impacts file).
-# Note for Set B: the impactor masses come from the nominal gamma, which
-# explains the 1.02e-4 residual between published columns and fit output.
+# Zenodo doi:10.5281/zenodo.23192423 (scaling_law.csv and impacts files).
 _ROCHE2026_ORACLE_CSV = """set,f_atm,M_t_r_earth,M_i_r_earth,M_t_tot_earth,R_t_r_earth,R_i_r_earth,R_ratio,b,gamma,v_c_kms,v_c_v_esc,Q_R_prime_MJkg,f_NF_calc,X_NF_calc,X_FF_calc,X_atm_calc,X_atm_data
 A,0.0100205171612713,0.9970246031043678,0.24927721643800169,1.007116430580397,1.0173459965204401,0.67502812051147343,0.66351872698199699,0.29999999999999999,0.20000000000000001,19.27,2,28.541887209782693,0.250519976769084,0.250519976769084,0.3116934236236179,0.56221340039270196,0.61917971501489433
 A,0.0100205171612713,0.9970246031043678,0.99691090161648799,1.007116430580397,1.0173459965204401,1.0188975090364123,1.0015250588504592,0.69999999999999996,0.5,22.190000000000001,2,21.77022600953692,0.24891987161603879,0.24891987161603879,0.18184828108652931,0.43076815270256807,0.39370144669541107
@@ -312,7 +310,9 @@ def test_roche2026_oracle_reproduction():
     """Verify _roche2026_fit matches the 12 oracle rows within tolerance.
 
     Tests against 12 reference rows from Roche et al. (2026),
-    arXiv:2610.06077, Zenodo doi:10.5281/zenodo.23192423.
+    arXiv:2610.06077, Zenodo doi:10.5281/zenodo.23192423. In Set B, the
+    impactor masses follow nominal gamma, producing a 1.02e-4 residual
+    between published columns and fit output.
     """
     rows = _get_roche2026_oracle_rows()
     assert len(rows) == 12

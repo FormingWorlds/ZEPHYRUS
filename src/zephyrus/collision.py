@@ -45,9 +45,8 @@ class ImpactLossResult:
 
 
 # Calibrated parameter ranges for the Roche et al. (2026) scaling law:
-# Section 4.1 (p. 7) for f_atm, M_t_earth, gamma, b, and v_ratio;
-# Section 3.2 (p. 5) and the authors' fitting data (scaling_law.csv) for R_ratio
-# (union of initialized SPH planet suite [0.001, 1.0] and impact suite [0.498, 1.015]).
+# Section 4.1 (p. 7) for impact parameters; Section 3.2 (p. 5) and author
+# fitting data (scaling_law.csv) for R_ratio ([0.001, 1.015]).
 ROCHE2026_FITTED_RANGE: types.MappingProxyType[str, tuple[float, float]] = (
     types.MappingProxyType(
         {
@@ -61,6 +60,10 @@ ROCHE2026_FITTED_RANGE: types.MappingProxyType[str, tuple[float, float]] = (
     )
 )
 """Empirical parameter domain for the Roche et al. (2026) scaling law.
+
+Calibrated parameter ranges from Roche et al. (2026): Section 4.1 (p. 7)
+for f_atm, M_t_earth, gamma, b, and v_ratio; Section 3.2 (p. 5) and the
+authors' fitting data (scaling_law.csv) for R_ratio ([0.001, 1.015]).
 
 Keys:
 - ``f_atm``: initial envelope mass fraction [dimensionless]
