@@ -668,8 +668,9 @@ def _eval_roche2026(
         for name, (f_lo, f_hi) in ROCHE2026_FITTED_RANGE.items()
         if diag[name] < (0.0 if name == 'v_ratio' else f_lo) * (1.0 - tol)
         or diag[name] > f_hi * (1.0 + tol)
+        or name in clamped
     ]
-    if diag['v_ratio'] < 0.99:
+    if diag['v_ratio'] < 1.0 - _ROCHE2026_RANGE_RTOL:
         flags.append('v_sub_escape')
 
     f_nf, x_nf, x_ff, x_atm = _roche2026_fit(
@@ -736,10 +737,15 @@ def mass_loss_roche2026(
 
     Notes
     -----
-    Stability clamps apply to inputs outside the numerical stability bounds.
-    This function returns only the loss fraction and does not report
-    diagnostic flags; use ``impact_loss`` if validity flags or diagnostics
-    are needed. Inputs are scalar; arrays are not supported.
+    ZEPHYRUS subtracts the zero-energy value max(0, psi_1 + psi_3) from the
+    authors' far-field fit (a ZEPHYRUS choice that departs from the authors'
+    fit). Target mass M_t is the refractory core-plus-mantle mass; mutual
+    escape speed v_esc and specific impact energy Q'_R evaluate with total
+    target mass M_t / (1 - f_atm). Stability clamps apply to inputs outside
+    the numerical stability bounds. This function returns only the loss
+    fraction; use ``impact_loss`` if validity flags or diagnostics are needed.
+    Arguments not used by this law are ignored. Inputs are scalar; arrays
+    are not supported.
 
     References
     ----------
@@ -804,9 +810,14 @@ def impact_loss(
 
     Notes
     -----
-    Arguments that the selected scaling law does not use are ignored (e.g.
-    bulk densities for 'roche2026', or f_atm for 'kegerreis2020'). An airless
-    target (f_atm = 0) returns no diagnostic flags.
+    For 'roche2026', ZEPHYRUS subtracts the zero-energy value max(0, psi_1 + psi_3)
+    from the authors' far-field fit (a ZEPHYRUS choice that departs from the
+    authors' fit). Target mass M_t is the refractory mass, while mutual escape
+    speed v_esc and specific impact energy Q'_R evaluate with total target mass
+    M_t / (1 - f_atm). Arguments not used by the selected scaling law are
+    ignored (e.g. bulk densities for 'roche2026', or f_atm for 'kegerreis2020').
+    An airless target (f_atm = 0) returns no diagnostic flags. Inputs are scalar;
+    arrays are not supported.
     """
     if law == 'kegerreis2020':
         if rho_i is None or rho_t is None:
