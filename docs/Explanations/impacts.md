@@ -47,7 +47,7 @@ clamped to $[0, 1]$, and the far-field envelope fraction is $f_\mathrm{FF} = 1 -
 
 Near-field loss $X_\mathrm{NF}$ is described by:
 
-$$X_\mathrm{NF} \;=\; f_\mathrm{NF} \left(\xi_1 - \xi_2\, (b + \xi_3)^2\right) \tag{10}$$
+$$X_\mathrm{NF} \;=\; f_\mathrm{NF} \left(\xi_1 - \xi_2\, (b + \xi_3)^2\right) \tag{8}$$
 
 with a velocity floor at $v_\mathrm{c} / v_\mathrm{esc} = 1.0$, clamped to $[\max(0, X_\mathrm{NF}(v_\mathrm{c} = v_\mathrm{esc})), f_\mathrm{NF}]$.
 
@@ -55,13 +55,13 @@ Each coefficient vector ($\boldsymbol{\zeta}$, $\boldsymbol{\xi}$, $\boldsymbol{
 
 $$\zeta_i \;=\; q_{i1} + q_{i2}\, b + q_{i3}\, b^{q_{i4}} + q_{i5}\, f_\mathrm{atm} + q_{i6}\, f_\mathrm{atm}^2 + q_{i7}\left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus}\right)^{q_{i8}} \tag{7}$$
 
-$$\xi_i \;=\; k_{i1} + k_{i2}\, \gamma + k_{i3}\, (\gamma + 0.05)^2 + k_{i4} \left(\frac{v_\mathrm{c}}{v_\mathrm{esc}}\right)^{k_{i5}} + k_{i6} \left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus} + 1.0\right) + k_{i7} \log_{10}(f_\mathrm{atm}) \tag{11}$$
+$$\xi_i \;=\; k_{i1} + k_{i2}\, \gamma + k_{i3}\, (\gamma + 0.05)^2 + k_{i4} \left(\frac{v_\mathrm{c}}{v_\mathrm{esc}}\right)^{k_{i5}} + k_{i6} \left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus} + 1.0\right) + k_{i7} \log_{10}(f_\mathrm{atm}) \tag{9}$$
 
-$$\psi_i \;=\; s_{i1} + s_{i2}\, (\gamma + 0.05)^{s_{i3}} + s_{i4} \left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus} + 0.05\right)^{s_{i5}} + s_{i6} \log_{10}(f_\mathrm{atm}) \tag{9}$$
+$$\psi_i \;=\; s_{i1} + s_{i2}\, (\gamma + 0.05)^{s_{i3}} + s_{i4} \left(\frac{M_\mathrm{t}^\mathrm{r}}{M_\oplus} + 0.05\right)^{s_{i5}} + s_{i6} \log_{10}(f_\mathrm{atm}) \tag{11}$$
 
 The far-field loss $X_\mathrm{FF}$ accounts for ground motion and scales with the modified specific impact energy $Q'_\mathrm{R}$:
 
-$$X_\mathrm{FF} \;=\; f_\mathrm{FF} \left(\psi_1 \exp\!\left(-\psi_2\, Q'_\mathrm{R} \left(1 + \frac{M_\mathrm{i}^\mathrm{r}}{M_\mathrm{t}^\mathrm{r}}\right) (1 - b)^{\psi_4}\right) + \psi_3\right) \tag{8}$$
+$$X_\mathrm{FF} \;=\; f_\mathrm{FF} \left(\psi_1 \exp\!\left(-\psi_2\, Q'_\mathrm{R} \left(1 + \frac{M_\mathrm{i}^\mathrm{r}}{M_\mathrm{t}^\mathrm{r}}\right) (1 - b)^{\psi_4}\right) + \psi_3\right) \tag{10}$$
 
 clamped to $[0, f_\mathrm{FF}]$, with $Q'_\mathrm{R}$ expressed in $\mathrm{MJ\,kg^{-1}}$.
 
@@ -141,4 +141,4 @@ Both laws evaluate empirical fits and extrapolate outside their calibration data
 
 [^leinhardt2012]: Leinhardt, Z. M., & Stewart, S. T. (2012). Collisions between gravity-dominated bodies. I. Outcome regimes and scaling laws. *The Astrophysical Journal, 745*(1), 79. https://doi.org/10.1088/0004-637X/745/1/79
 
-[^hubbard1980]: Hubbard, W. B., & MacFarlane, J. J. (1980). Theoretical Predictions of Detailed Vapor Ingestion and Composition in Giant Planets. *Journal of Geophysical Research, 85*(B1), 225–234. https://doi.org/10.1029/JB085iB01p00225
+[^hubbard1980]: Hubbard, W. B., & MacFarlane, J. J. (1980). Structure and evolution of Uranus and Neptune. *Journal of Geophysical Research: Solid Earth, 85*(B1), 225-234. https://doi.org/10.1029/JB085iB01p00225
