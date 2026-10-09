@@ -11,6 +11,10 @@ closed-form pins running when Hypothesis is absent (for example under a
   speed and never increases with impact parameter.
 - Reduction: at equal bulk densities the density-weighted interacting
   mass of Eqn. B1 equals the interacting volume of Eqn. B2 exactly.
+- Roche invariants: total loss bounded in [0, 1] up to gamma = 0.999 and
+  v_c / v_esc = 30 across independent bulk densities from 0.5 to 2 Earth;
+  continuous at grazing b = 1; velocity floor active below v_esc; zero
+  atmosphere fraction returns zero loss.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
@@ -19,9 +23,11 @@ import numpy as np
 import pytest
 
 from zephyrus.collision import mass_loss, mass_loss_roche2026, mutual_escape_speed
-from zephyrus.constants import G, M_earth
+from zephyrus.constants import G
+from zephyrus.planets_parameters import Me
 
 # Skip if hypothesis is unavailable; closed-form pins and error-contract
+
 # guards live in tests/test_collision.py and run unconditionally.
 hyp = pytest.importorskip('hypothesis')
 given = hyp.given
@@ -145,19 +151,26 @@ def test_equal_densities_match_the_interacting_volume_form(m_t, q, rho, r_i, r_t
 @pytest.mark.physics_invariant
 @given(
     mt_factor=st.floats(min_value=1e-3, max_value=10.0),
-    gamma=st.floats(min_value=1e-3, max_value=0.5),
+    gamma=st.floats(min_value=1e-3, max_value=0.999),
     f_atm=st.floats(min_value=1e-6, max_value=0.4),
     b=st.floats(min_value=0.0, max_value=1.0),
-    vfac=st.floats(min_value=0.5, max_value=4.0),
+    vfac=st.floats(min_value=0.0, max_value=30.0),
+    rho_t_fac=st.floats(min_value=0.5, max_value=2.0),
+    rho_i_fac=st.floats(min_value=0.5, max_value=2.0),
 )
 @settings(max_examples=100, deadline=None, derandomize=True)
-def test_roche2026_loss_fraction_bounded_over_stability_range(mt_factor, gamma, f_atm, b, vfac):
-    """Verify loss fraction is finite and bounded in [0, 1] across the stability range."""
-    m_t = mt_factor * M_earth
+def test_roche2026_loss_fraction_bounded_over_stability_range(
+    mt_factor, gamma, f_atm, b, vfac, rho_t_fac, rho_i_fac
+):
+    """Verify loss fraction is finite and bounded in [0, 1] across extended domain."""
+    rho_earth = 5515.0
+    rho_t = rho_t_fac * rho_earth
+    rho_i = rho_i_fac * rho_earth
+    m_t = mt_factor * Me
     m_i = m_t * (gamma / (1.0 - gamma))
-    r_t = 6.371e6 * (mt_factor ** (1.0 / 3.0))
-    r_i = r_t * ((m_i / m_t) ** (1.0 / 3.0))
-    v_esc = mutual_escape_speed(m_t / (1.0 - f_atm), m_i, r_t, r_i)
+    r_t = (m_t / (4.0 / 3.0 * np.pi * rho_t)) ** (1.0 / 3.0)
+    r_i = (m_i / (4.0 / 3.0 * np.pi * rho_i)) ** (1.0 / 3.0)
+    v_esc = float(mutual_escape_speed(m_t / (1.0 - f_atm), m_i, r_t, r_i))
     v_c = vfac * v_esc
 
     x = mass_loss_roche2026(v_c, m_i, m_t, r_i, r_t, b, f_atm)

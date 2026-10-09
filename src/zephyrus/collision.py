@@ -11,7 +11,8 @@ from typing import Any
 
 import numpy as np
 
-from zephyrus.constants import G, M_earth
+from zephyrus.constants import G
+from zephyrus.planets_parameters import Me
 
 
 @dataclass
@@ -25,21 +26,21 @@ class ImpactLossResult:
     fraction : float
         Fraction of the target atmosphere lost, in [0, 1].
     flags : tuple of str
-        Out-of-range or clamped parameter names.
-    diagnostics : dict
-        Diagnostic quantities computed during evaluation. For 'roche2026',
-        diagnostics['Q_R_prime'] is given in MJ/kg.
+        Names of parameters that fall outside the calibrated range.
+        Empty when all parameters lie within range. Active stability
+        clamps are recorded in diagnostics['clamped'].
+    diagnostics : dict of str to Any
+        Diagnostic quantities computed during evaluation.
+        For 'kegerreis2020': 'v_esc', 'v_ratio', 'gamma', 'mass_ratio', 'f_M'.
+        For 'roche2026': 'f_atm', 'M_t_earth', 'gamma', 'b', 'R_ratio',
+        'v_ratio', 'v_esc', 'Q_R_prime' (in MJ/kg), 'clamped', 'f_NF',
+        'X_NF', 'X_FF'.
     """
 
     law: str
     fraction: float
     flags: tuple[str, ...]
     diagnostics: dict[str, Any]
-
-    @property
-    def loss_fraction(self) -> float:
-        """Alias for fraction."""
-        return self.fraction
 
 
 # Calibrated parameter ranges for the Roche et al. (2026) scaling law (Sect. 4.1, p. 7).
@@ -48,7 +49,18 @@ ROCHE2026_FITTED_RANGE: dict[str, tuple[float, float]] = {
     'M_t_earth': (0.35, 5.0),
     'gamma': (0.1, 0.5),
     'b': (0.0, 0.9),
+    'R_ratio': (0.001, 1.0),
     'v_ratio': (1.0, 3.0),
+}
+
+# Relative tolerance on fitted boundary flags (Ruling 12 Item 4).
+_ROCHE2026_RANGE_RTOL: float = 0.01
+
+# Numerical stability ranges used for clamping inputs during fit evaluation.
+_ROCHE2026_STABLE_RANGE: dict[str, tuple[float, float]] = {
+    'f_atm': (1.0e-6, 0.4),
+    'M_t_earth': (1.0e-3, 10.0),
+    'gamma': (1.0e-3, 1.0),
 }
 
 
@@ -121,7 +133,7 @@ _ROCHE2026_COEFFICIENTS: dict[str, float] = {
     's46': -0.1320268872697112,
 }
 
-# Table C unlisted constant values (Roche et al. 2026, Table C1-C3).
+# Terms fixed in Table C1-C3 and absent from the data files.
 _ROCHE2026_TABLE_C_CONSTANTS: dict[str, float] = {
     'q37': 1.0,
     'q48': 1.0,
@@ -150,6 +162,7 @@ _ROCHE2026_PARAMS: dict[str, float] = {
 
 
 def _roche2026_fit(
+    *,
     b: float | np.ndarray,
     gamma: float | np.ndarray,
     v_c_v_esc: float | np.ndarray,
@@ -262,20 +275,20 @@ def _roche2026_fit(
 
     m_ratio = M_i_earth / M_t_earth
     one_minus_b = np.maximum(0.0, 1.0 - b)
-    if np.isscalar(one_minus_b):
-        geom_factor = (one_minus_b**p4) if one_minus_b > 0.0 else 0.0
-    else:
-        geom_factor = np.zeros_like(one_minus_b, dtype=float)
-        pos = one_minus_b > 0.0
-        geom_factor[pos] = one_minus_b[pos] ** (p4 if np.isscalar(p4) else p4[pos])
+    with np.errstate(invalid='ignore', divide='ignore'):
+        safe_base = np.where(one_minus_b > 0.0, one_minus_b, 1.0)
+        geom_factor = np.where(one_minus_b > 0.0, safe_base**p4, 0.0)
 
     arg = Q_R_prime_MJ * (1.0 + m_ratio) * geom_factor
-    x_ff = np.clip(
-        f_ff * (p1 * np.exp(-p2 * arg) + p3),
-        0.0,
-        f_ff,
-    )
+    exp_arg = np.minimum(-p2 * arg, 700.0)
+    with np.errstate(over='ignore', invalid='ignore'):
+        raw_ff = f_ff * (p1 * np.exp(exp_arg) + p3)
+        x_ff = np.where(f_ff == 0.0, 0.0, np.clip(raw_ff, 0.0, f_ff))
+    if np.ndim(x_ff) == 0:
+        x_ff = float(x_ff)
     x_atm = np.clip(x_nf + x_ff, 0.0, 1.0)
+    if np.ndim(x_atm) == 0:
+        x_atm = float(x_atm)
     return f_nf, x_nf, x_ff, x_atm
 
 
@@ -401,11 +414,7 @@ def mass_loss(
     # Mutual escape speed of the pair at contact
     v_esc = mutual_escape_speed(M_t, M_i, R_t, R_i)
 
-    # Fractional interacting mass f_M (Kegerreis et al. 2020, Eqn. B1):
-    # density-weighted spherical caps of common height d, clamped to [0, 1]
-    # because the linearised caps can leave the interval outside the fitted
-    # geometry. At equal bulk densities this reduces exactly to the
-    # interacting volume f_V of their Eqn. B2.
+    # Fractional interacting mass f_M (Kegerreis et al. 2020, Eqn. B1).
     f_m = _interacting_mass_fraction_kegerreis(R_t, R_i, rho_t, rho_i, b)
 
     m_tot = M_i + M_t
@@ -417,12 +426,30 @@ def mass_loss(
     return min(max(x_loss, 0.0), 1.0)
 
 
+def _check_impact_inputs(
+    v_c: float,
+    M_i: float,
+    M_t: float,
+    R_i: float,
+    R_t: float,
+    b: float,
+) -> None:
+    """Validate collision parameters against physical domain constraints."""
+    if not 0.0 <= b <= 1.0:
+        raise ValueError(f'Impact parameter b must be in [0, 1], got {b!r}')
+    for name, val in (('M_i', M_i), ('M_t', M_t), ('R_i', R_i), ('R_t', R_t)):
+        if not (val > 0.0 and np.isfinite(val)):
+            raise ValueError(f'{name} must be strictly positive and finite, got {val!r}')
+    if not (v_c >= 0.0 and np.isfinite(v_c)):
+        raise ValueError(f'Collision speed v_c must be non-negative and finite, got {v_c!r}')
+
+
 def mutual_escape_speed(
     M_1: float,
     M_2: float,
     R_1: float,
     R_2: float,
-) -> float:
+) -> float | np.floating:
     r"""Mutual escape speed of two spherical bodies at contact [m/s].
 
     Parameters
@@ -438,27 +465,33 @@ def mutual_escape_speed(
 
     Returns
     -------
-    float
+    float or numpy.floating
         Mutual escape speed $\sqrt{2 G (M_1 + M_2) / (R_1 + R_2)}$ [m/s].
 
     Raises
     ------
+    TypeError
+        If any input is an array or sequence with ndim > 0.
     ValueError
-        If radii sum is not strictly positive or masses/radii are not finite.
+        If any mass or radius is not strictly positive and finite.
     """
-    if R_1 + R_2 <= 0.0 or not np.isfinite(R_1 + R_2):
-        raise ValueError(
-            f'Sum of radii must be strictly positive and finite, got {R_1 + R_2!r}'
-        )
-    if M_1 + M_2 < 0.0 or not np.isfinite(M_1 + M_2):
-        raise ValueError(f'Sum of masses must be non-negative and finite, got {M_1 + M_2!r}')
-    return float(np.sqrt(2.0 * G * (M_1 + M_2) / (R_1 + R_2)))
+    for name, val in (('M_1', M_1), ('M_2', M_2), ('R_1', R_1), ('R_2', R_2)):
+        if getattr(val, 'ndim', 0) > 0 or isinstance(val, (list, tuple)):
+            raise TypeError(f'{name} must be a scalar, got array with ndim > 0')
+    m1 = float(M_1)
+    m2 = float(M_2)
+    r1 = float(R_1)
+    r2 = float(R_2)
+    for name, val in (('M_1', m1), ('M_2', m2), ('R_1', r1), ('R_2', r2)):
+        if not (val > 0.0 and np.isfinite(val)):
+            raise ValueError(f'{name} must be strictly positive and finite, got {val!r}')
+    return np.sqrt(2.0 * G * (m1 + m2) / (r1 + r2))
 
 
 def specific_impact_energy(
     v_c: float,
     M_i: float,
-    M_t: float,
+    M_t_tot: float,
     R_i: float,
     R_t: float,
     b: float,
@@ -471,7 +504,7 @@ def specific_impact_energy(
         Impact velocity at surface contact [m/s].
     M_i : float
         Impactor mass [kg].
-    M_t : float
+    M_t_tot : float
         Target mass including its atmosphere ($M_\mathrm{t}^\mathrm{tot}$ in
         Roche et al. 2026, Eq. 1 and $Q'_\mathrm{R}$) [kg].
     R_i : float
@@ -484,10 +517,12 @@ def specific_impact_energy(
     Returns
     -------
     float
-        Modified specific impact energy $Q'_R$ [MJ/kg].
+        Modified specific impact energy $Q'_R$ in MJ/kg.
 
     Raises
     ------
+    TypeError
+        If any input is an array or sequence with ndim > 0.
     ValueError
         If b is outside [0, 1], if masses or radii are not strictly positive
         and finite, or if v_c is negative or not finite.
@@ -502,28 +537,35 @@ def specific_impact_energy(
        gravity-dominated bodies. I. Outcome regimes and scaling laws",
        ApJ 745, 79, doi:10.1088/0004-637X/745/1/79.
     """
-    if not (0.0 <= b <= 1.0) or not np.isfinite(b):
-        raise ValueError(f'Impact parameter b must be in [0, 1], got {b!r}')
-    for name, val in (('M_i', M_i), ('M_t', M_t), ('R_i', R_i), ('R_t', R_t)):
-        if not (val > 0.0 and np.isfinite(val)):
-            raise ValueError(f'{name} must be strictly positive and finite, got {val!r}')
-    if not (v_c >= 0.0 and np.isfinite(v_c)):
-        raise ValueError(f'Collision speed v_c must be non-negative and finite, got {v_c!r}')
+    for name, val in (
+        ('v_c', v_c),
+        ('M_i', M_i),
+        ('M_t_tot', M_t_tot),
+        ('R_i', R_i),
+        ('R_t', R_t),
+        ('b', b),
+    ):
+        if getattr(val, 'ndim', 0) > 0 or isinstance(val, (list, tuple)):
+            raise TypeError(f'{name} must be a scalar, got array with ndim > 0')
+    v_c = float(v_c)
+    M_i = float(M_i)
+    M_t_tot = float(M_t_tot)
+    R_i = float(R_i)
+    R_t = float(R_t)
+    b = float(b)
+
+    _check_impact_inputs(v_c, M_i, M_t_tot, R_i, R_t, b)
 
     impact_param = (R_t + R_i) * b
     if impact_param + R_i <= R_t:
         alpha = 1.0
-    elif impact_param >= R_t + R_i:
-        alpha = 0.0
     else:
         interact_len = R_t + R_i - impact_param
         alpha = (3.0 * R_i * interact_len**2 - interact_len**3) / (4.0 * R_i**3)
 
-    m_tot = M_t + M_i
-    mu = M_t * M_i / m_tot
-    mu_alpha = alpha * M_t * M_i / (alpha * M_i + M_t) if (alpha * M_i + M_t) > 0.0 else 0.0
-    q_r = mu * v_c**2 / (2.0 * m_tot)
-    q_r_prime = (mu_alpha / mu) * q_r / 1.0e6 if mu > 0.0 else 0.0
+    m_tot = M_t_tot + M_i
+    mu_alpha = (alpha * M_i) / (1.0 + (alpha * M_i) / M_t_tot)
+    q_r_prime = mu_alpha * v_c**2 / (2.0 * m_tot) / 1.0e6
     return float(q_r_prime)
 
 
@@ -537,31 +579,45 @@ def _eval_roche2026(
     f_atm: float,
 ) -> tuple[float, tuple[str, ...], dict[str, Any]]:
     """Validate, clamp, and evaluate the Roche et al. (2026) scaling law."""
-    if not (0.0 <= b <= 1.0) or not np.isfinite(b):
-        raise ValueError(f'Impact parameter b must be in [0, 1], got {b!r}')
-    for name, val in (('M_i', M_i), ('M_t', M_t), ('R_i', R_i), ('R_t', R_t)):
-        if not (val > 0.0 and np.isfinite(val)):
-            raise ValueError(f'{name} must be strictly positive and finite, got {val!r}')
-    if not (v_c >= 0.0 and np.isfinite(v_c)):
-        raise ValueError(f'Collision speed v_c must be non-negative and finite, got {v_c!r}')
-    if not (0.0 <= f_atm < 1.0 and np.isfinite(f_atm)):
-        raise ValueError(f'f_atm must be in [0, 1) and finite, got {f_atm!r}')
+    for name, val in (
+        ('v_c', v_c),
+        ('M_i', M_i),
+        ('M_t', M_t),
+        ('R_i', R_i),
+        ('R_t', R_t),
+        ('b', b),
+        ('f_atm', f_atm),
+    ):
+        if getattr(val, 'ndim', 0) > 0 or isinstance(val, (list, tuple)):
+            raise TypeError(f'{name} must be a scalar, got array with ndim > 0')
+
+    v_c = float(v_c)
+    M_i = float(M_i)
+    M_t = float(M_t)
+    R_i = float(R_i)
+    R_t = float(R_t)
+    b = float(b)
+    f_atm = float(f_atm)
+
+    _check_impact_inputs(v_c, M_i, M_t, R_i, R_t, b)
+    if not (0.0 <= f_atm < 1.0):
+        raise ValueError(f'f_atm must be in [0, 1), got {f_atm!r}')
 
     gamma = M_i / (M_i + M_t)
     r_ratio = R_i / R_t
-
-    m_t_earth = M_t / M_earth
+    m_t_earth = M_t / Me
+    m_t_tot = M_t / (1.0 - f_atm)
+    v_esc = mutual_escape_speed(m_t_tot, M_i, R_t, R_i)
+    v_ratio = v_c / v_esc
+    q_r_prime = specific_impact_energy(v_c, M_i, m_t_tot, R_i, R_t, b)
 
     if f_atm == 0.0:
-        m_t_tot = M_t
-        v_esc = mutual_escape_speed(m_t_tot, M_i, R_t, R_i)
-        v_ratio = v_c / v_esc if v_esc > 0.0 else 0.0
-        q_r_prime = specific_impact_energy(v_c, M_i, m_t_tot, R_i, R_t, b)
         diag = {
             'f_atm': 0.0,
             'M_t_earth': float(m_t_earth),
             'gamma': float(gamma),
             'b': float(b),
+            'R_ratio': float(r_ratio),
             'v_ratio': float(v_ratio),
             'v_esc': float(v_esc),
             'Q_R_prime': float(q_r_prime),
@@ -572,74 +628,68 @@ def _eval_roche2026(
         }
         return 0.0, (), diag
 
-    flags: list[str] = []
+    param_vals = {
+        'f_atm': f_atm,
+        'M_t_earth': m_t_earth,
+        'gamma': gamma,
+        'b': b,
+        'R_ratio': r_ratio,
+        'v_ratio': v_ratio,
+    }
+    eval_vals: dict[str, float] = {}
     clamped: dict[str, float] = {}
+    flags: list[str] = []
 
-    # Stability bounds and validity flags
-    fa_lo, fa_hi = ROCHE2026_FITTED_RANGE['f_atm']
-    if f_atm < 1.0e-6:
-        clamped['f_atm'] = 1.0e-6
-        f_atm_eval = 1.0e-6
-    elif f_atm > 0.4:
-        clamped['f_atm'] = 0.4
-        f_atm_eval = 0.4
-    else:
-        f_atm_eval = f_atm
-    if f_atm < fa_lo or f_atm > fa_hi:
-        flags.append('f_atm')
+    for name in ('f_atm', 'M_t_earth', 'gamma', 'b', 'R_ratio', 'v_ratio'):
+        val = param_vals[name]
+        if name in _ROCHE2026_STABLE_RANGE:
+            c_lo, c_hi = _ROCHE2026_STABLE_RANGE[name]
+            if val < c_lo:
+                clamped[name] = c_lo
+                eval_vals[name] = c_lo
+            elif val > c_hi:
+                clamped[name] = c_hi
+                eval_vals[name] = c_hi
+            else:
+                eval_vals[name] = val
+        else:
+            eval_vals[name] = val
 
-    mt_lo, mt_hi = ROCHE2026_FITTED_RANGE['M_t_earth']
-    if m_t_earth < 1.0e-3:
-        clamped['M_t_earth'] = 1.0e-3
-        m_t_eval = 1.0e-3
-    elif m_t_earth > 10.0:
-        clamped['M_t_earth'] = 10.0
-        m_t_eval = 10.0
-    else:
-        m_t_eval = m_t_earth
-    if m_t_earth < mt_lo or m_t_earth > mt_hi:
-        flags.append('M_t_earth')
+        f_lo, f_hi = ROCHE2026_FITTED_RANGE[name]
+        if name == 'v_ratio':
+            if val > f_hi * (1.0 + _ROCHE2026_RANGE_RTOL):
+                flags.append(name)
+        else:
+            if val < f_lo * (1.0 - _ROCHE2026_RANGE_RTOL) or val > f_hi * (
+                1.0 + _ROCHE2026_RANGE_RTOL
+            ):
+                flags.append(name)
 
-    g_lo, g_hi = ROCHE2026_FITTED_RANGE['gamma']
-    if gamma < 1.0e-3:
-        clamped['gamma'] = 1.0e-3
-        gamma_eval = 1.0e-3
-    else:
-        gamma_eval = gamma
-    if gamma < g_lo or gamma > g_hi:
-        flags.append('gamma')
-
-    b_lo, b_hi = ROCHE2026_FITTED_RANGE['b']
-    if b < b_lo or b > b_hi:
-        flags.append('b')
-
-    m_t_tot = M_t / (1.0 - f_atm)
-    v_esc = mutual_escape_speed(m_t_tot, M_i, R_t, R_i)
-    v_ratio = v_c / v_esc if v_esc > 0.0 else 0.0
-    q_r_prime = specific_impact_energy(v_c, M_i, m_t_tot, R_i, R_t, b)
-
-    vr_lo, vr_hi = ROCHE2026_FITTED_RANGE['v_ratio']
-    if v_ratio > vr_hi:
-        flags.append('v_ratio')
-
+    m_t_eval = eval_vals['M_t_earth']
     m_i_eval = m_t_eval * (M_i / M_t)
 
     f_nf, x_nf, x_ff, x_atm = _roche2026_fit(
         b=b,
-        gamma=gamma_eval,
+        gamma=eval_vals['gamma'],
         v_c_v_esc=v_ratio,
         M_t_earth=m_t_eval,
         M_i_earth=m_i_eval,
         Q_R_prime_MJ=q_r_prime,
-        f_atm=f_atm_eval,
+        f_atm=eval_vals['f_atm'],
         R_ratio=r_ratio,
     )
+
+    if not (
+        np.isfinite(x_atm) and np.isfinite(x_nf) and np.isfinite(x_ff) and np.isfinite(f_nf)
+    ):
+        raise ValueError(f'Roche scaling law produced non-finite result: x_atm={x_atm!r}')
 
     diag = {
         'f_atm': float(f_atm),
         'M_t_earth': float(m_t_earth),
         'gamma': float(gamma),
         'b': float(b),
+        'R_ratio': float(r_ratio),
         'v_ratio': float(v_ratio),
         'v_esc': float(v_esc),
         'Q_R_prime': float(q_r_prime),
@@ -690,6 +740,13 @@ def mass_loss_roche2026(
     ------
     ValueError
         If inputs violate physical domain constraints.
+
+    Notes
+    -----
+    Stability clamps apply to inputs outside the numerical stability bounds.
+    This function returns only the loss fraction and does not report
+    diagnostic flags; use ``impact_loss`` if validity flags or diagnostics
+    are needed. Inputs are scalar; arrays are not supported.
 
     References
     ----------
@@ -749,6 +806,12 @@ def impact_loss(
     ------
     ValueError
         If law is unsupported or required law-specific inputs are missing.
+
+    Notes
+    -----
+    Arguments that the selected scaling law does not use are ignored (e.g.
+    bulk densities for 'roche2026', or f_atm for 'kegerreis2020'). An airless
+    target (f_atm = 0) returns no diagnostic flags.
     """
     if law == 'kegerreis2020':
         if rho_i is None or rho_t is None:
@@ -756,7 +819,7 @@ def impact_loss(
             raise ValueError(f'kegerreis2020 requires {", ".join(missing)}')
         frac = mass_loss(v_c, M_i, M_t, rho_i, rho_t, R_i, R_t, b)
         v_esc = mutual_escape_speed(M_t, M_i, R_t, R_i)
-        v_ratio = v_c / v_esc if v_esc > 0.0 else 0.0
+        v_ratio = v_c / v_esc
         gamma = M_i / (M_t + M_i)
         f_m = _interacting_mass_fraction_kegerreis(R_t, R_i, rho_t, rho_i, b)
         diag = {

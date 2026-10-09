@@ -13,7 +13,6 @@ c       = 2.99792458e8                # Speed of light (exact SI value)        [
 h_planck = 6.62607015e-34             # Planck constant (exact SI value)       [J s]
 m_p     = 1.67262192369e-27           # Proton mass (CODATA 2018)              [kg]
 amu     = 1.66053906660e-27           # Atomic mass constant (CODATA 2018)     [kg]
-M_earth = 5.972e24                    # Earth mass                             [kg]
 
 # One proton crossing the planetary surface per Julian year: the smallest
 # mass-loss rate with physical content on any planetary reservoir. Reported
