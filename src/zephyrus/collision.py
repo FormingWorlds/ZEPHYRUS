@@ -27,7 +27,8 @@ class ImpactLossResult:
     fraction : float
         Fraction of the target atmosphere lost, in [0, 1].
     flags : tuple of str
-        Names of parameters that fall outside the calibrated range.
+        Names of parameters that fall outside the calibrated range, or
+        'v_sub_escape' when impact speed is below 0.99 mutual escape speed.
         Empty when all parameters lie within range. Active stability
         clamps are recorded in diagnostics['clamped'].
     diagnostics : dict of str to Any
@@ -74,9 +75,8 @@ Keys:
 - ``v_ratio``: impact speed ratio v_c / v_esc at mantle contact [dimensionless]
 
 Flags are recorded when an evaluation parameter falls outside its bounds by
-more than the 1% relative tolerance (_ROCHE2026_RANGE_RTOL = 0.01). The lower
-v_ratio bound (v_ratio < 1.0) is not flagged because the near-field velocity
-floor models sub-escape collisions.
+more than the 1% relative tolerance (_ROCHE2026_RANGE_RTOL = 0.01). Speeds
+below 0.99 v_esc trigger the 'v_sub_escape' flag.
 """
 
 # Relative tolerance on empirical boundary flags to cover grid-point rounding.
@@ -86,7 +86,7 @@ _ROCHE2026_RANGE_RTOL: float = 0.01
 _ROCHE2026_STABLE_RANGE: dict[str, tuple[float, float]] = {
     'f_atm': (1.0e-6, 0.4),
     'M_t_earth': (1.0e-3, 10.0),
-    'gamma': (1.0e-3, 1.0),
+    'gamma': (1.0e-3, 0.5),
 }
 
 
@@ -197,6 +197,7 @@ def _roche2026_fit(
     Q_R_prime_MJ: float | np.ndarray,
     f_atm: float | np.ndarray,
     R_ratio: float | np.ndarray,
+    authors_form: bool = False,
 ) -> tuple[Any, Any, Any, Any]:
     r"""Evaluate the Roche et al. (2026) giant impact atmospheric mass loss model.
 
@@ -222,6 +223,10 @@ def _roche2026_fit(
         Target atmospheric mass fraction $(M_t^{\text{tot}} - M_t^r) / M_t^{\text{tot}}$.
     R_ratio : float or numpy.ndarray
         Refractory radius ratio $R_i^r / R_t^r$.
+    authors_form : bool, default False
+        If True, evaluate the authors' published form without zero-energy
+        far-field floor subtraction. If False (default), subtract max(0, psi_1 + psi_3)
+        to ensure X_FF vanishes at zero impact energy and grazing incidence.
 
     Returns
     -------
@@ -308,8 +313,13 @@ def _roche2026_fit(
     arg = Q_R_prime_MJ * (1.0 + mass_ratio) * geom_factor
     exp_arg = np.minimum(-p2 * arg, 700.0)
     with np.errstate(over='ignore', invalid='ignore'):
-        raw_ff = f_ff * (p1 * np.exp(exp_arg) + p3)
-        x_ff = np.where(f_ff == 0.0, 0.0, np.clip(raw_ff, 0.0, f_ff))
+        if authors_form:
+            raw_ff = f_ff * (p1 * np.exp(exp_arg) + p3)
+            x_ff = np.where(f_ff == 0.0, 0.0, np.clip(raw_ff, 0.0, f_ff))
+        else:
+            offset = np.maximum(0.0, p1 + p3)
+            raw_ff = f_ff * np.clip(p1 * np.exp(exp_arg) + p3 - offset, 0.0, 1.0)
+            x_ff = np.where(f_ff == 0.0, 0.0, raw_ff)
     if np.ndim(x_ff) == 0:
         x_ff = float(x_ff)
     x_atm = np.clip(x_nf + x_ff, 0.0, 1.0)
@@ -607,7 +617,13 @@ def _eval_roche2026(
     b: float,
     f_atm: float,
 ) -> tuple[float, tuple[str, ...], dict[str, Any]]:
-    """Validate, clamp, and evaluate the Roche et al. (2026) scaling law."""
+    """Validate, clamp, and evaluate the Roche et al. (2026) scaling law.
+
+    The stability clamps on f_atm, M_t_earth, and gamma (clamped to [1e-3, 0.5])
+    enter only the empirical fit functions (zeta, xi, psi); physical quantities
+    v_esc, Q'_R, and the mass ratio M_i / M_t evaluate with raw input masses.
+    Speeds with v_c / v_esc < 0.99 record the 'v_sub_escape' diagnostic flag.
+    """
     vals = _as_floats(v_c=v_c, M_i=M_i, M_t=M_t, R_i=R_i, R_t=R_t, b=b, f_atm=f_atm)
     _check_strictly_positive(
         M_i=vals['M_i'],
@@ -686,6 +702,8 @@ def _eval_roche2026(
         if name == 'v_ratio':
             if val > f_hi * (1.0 + _ROCHE2026_RANGE_RTOL):
                 flags.append(name)
+            if val < 0.99:
+                flags.append('v_sub_escape')
         elif val < f_lo * (1.0 - _ROCHE2026_RANGE_RTOL) or val > f_hi * (
             1.0 + _ROCHE2026_RANGE_RTOL
         ):
