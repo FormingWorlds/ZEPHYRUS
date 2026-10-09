@@ -77,6 +77,6 @@ Check each change against these points and against `.github/agent-rules/code-rev
 - Units at the MORS and PROTEUS boundaries; no second orbital dilution of `Fxuv`.
 - A formula change comes with an updated discrimination guard in the escape tests (wrong scaling, dropped `K_tide`, dropped `epsilon`).
 - A change of the default `scaling` updates the `EL_escape` docstring and the docs pages that name it, and adds a test that pins the default.
-- Collision functions keep input guards (impact parameter in [0, 1], positive finite masses and radii, 0 <= v_c < c, f_atm in [0, 1)), use refractory M_t with total-mass v_esc for roche2026, and return a fraction in [0, 1].
+- `collision.py` functions (`impact_loss`, `mass_loss`, `mass_loss_roche2026`) keep input guards (impact parameter in [0, 1], positive finite masses and radii, 0 <= v_c < c, f_atm in [0, 1)), use refractory M_t with total-mass v_esc for roche2026, and return a fraction in [0, 1]. The Roche functions and `impact_loss` enforce scalar inputs.
 - No retyped constant literals.
 - Tests follow `tests/AGENTS.md`.

@@ -73,9 +73,11 @@ Keys:
 - ``v_ratio``: impact speed ratio v_c / v_esc at mantle contact [dimensionless]
 
 Flags are recorded when an evaluation parameter falls outside its bounds by
-more than the 1% relative tolerance (_ROCHE2026_RANGE_RTOL = 0.01). Speeds
-below 0.99 v_esc trigger the 'v_sub_escape' flag. Non-zero far-field loss at
-zero impact energy triggers 'X_FF_zero_energy'.
+more than the 1% relative tolerance (_ROCHE2026_RANGE_RTOL = 0.01). Where a
+stability bound equals a fitted bound, as gamma = 0.5, the 1% tolerance does
+not apply: any clamped value is flagged. Speeds below 0.99 v_esc trigger the
+'v_sub_escape' flag. Non-zero far-field loss at zero impact energy triggers
+'X_FF_zero_energy'.
 """
 
 # Relative tolerance on empirical boundary flags to cover grid-point rounding.
