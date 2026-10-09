@@ -3,10 +3,11 @@
 Companion to ``tests/test_collision.py`` holding the Hypothesis-driven
 property checks, in a separate module so the ``importorskip`` keeps the
 closed-form pins running when Hypothesis is absent (for example under a
-``pip install --no-deps`` image). The physical invariant swept here:
+``pip install --no-deps`` image). The physical invariants swept here:
 
 - Boundedness: the loss fraction stays in [0, 1] and finite across the
-  physically valid mass, radius, density, speed, and angle ranges.
+  physically valid mass, radius, density, speed, and angle ranges for
+  Kegerreis et al. (2020) and across the stability domain for Roche et al. (2026).
 - Monotonicity: at fixed geometry the loss never decreases with contact
   speed and never increases with impact parameter.
 - Reduction: at equal bulk densities the density-weighted interacting

@@ -29,7 +29,7 @@ Every test in the suite carries a tier marker, applied at module level (`pytestm
 |---|---|---|---|
 | `unit` | Python logic: the closed-form mass-loss rate, the tidal factor, the radius-scaling branches, the MORS-flux hand-off with the stellar lookup mocked. No real MORS download. | < 100 ms | PR + nightly |
 | `smoke` | Real dependency on a minimal input. | < 30 s | PR + nightly |
-| `integration` | The real MORS-coupled escape: downloads the stellar-evolution tracks and drives the escape formula across the full chain. | minutes | Nightly only |
+| `integration` | The real MORS-coupled escape: downloads the stellar-evolution tracks and drives the escape formula end to end. | minutes | Nightly only |
 | `slow` | Long parameter sweeps and convergence studies. | up to an hour | Nightly only |
 | `skip` | Placeholder, deliberately disabled. | n/a | Never |
 
@@ -99,7 +99,7 @@ Each source module with executable content has a same-named companion in `tests/
 Cross-cutting and companion tests are the documented exception, not the rule:
 
 - `tests/test_mors_coupling.py`: the MORS-to-escape flux hand-off with the stellar lookup mocked, so the coupling recipe runs in the fast unit tier without a download.
-- `tests/test_earth.py`: an Earth-analogue regression that spans the real MORS lookup and the escape formula across the full chain. It carries the `integration` tier because it downloads the stellar-evolution tracks.
+- `tests/test_earth.py`: an Earth-analogue regression that spans the real MORS lookup and the escape formula end to end. It carries the `integration` tier because it downloads the stellar-evolution tracks.
 - `tests/test_escape_properties.py`: the Hypothesis-driven property sweeps for `escape.py`, kept in their own module so the `pytest.importorskip('hypothesis')` skip applies only to these tests and the closed-form pins in `tests/test_escape.py` still run when the develop-extra dependency is absent.
 - `tests/test_collision_properties.py`: the same pattern for `collision.py`: boundedness, speed monotonicity, angle monotonicity at equal densities, and the exact reduction of the interacting mass to the interacting volume.
 

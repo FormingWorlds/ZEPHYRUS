@@ -473,10 +473,12 @@ def test_specific_impact_energy_validation_and_limits():
 def test_roche2026_velocity_floor_property():
     """Verify near-field loss floor holds at impact velocity below escape velocity."""
     rows = _get_roche2026_oracle_rows()[:2]
+    assert len(rows) == 2
     for r in rows:
         _, xnf_floor, _, _ = _roche2026_fit(**_fit_kwargs(r, v_c_v_esc=0.5))
         _, xnf_unity, _, _ = _roche2026_fit(**_fit_kwargs(r, v_c_v_esc=1.0))
         assert xnf_floor == pytest.approx(xnf_unity, rel=1e-12, abs=1e-12)
+        assert xnf_floor > 0.0
 
 
 @pytest.mark.physics_invariant
