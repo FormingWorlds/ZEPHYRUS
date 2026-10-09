@@ -1,27 +1,25 @@
 # Limitations
 
-ZEPHYRUS implements the **energy-limited (EL) approximation** to hydrodynamic atmospheric escape, given by Eq. (1) of the [model overview](model.md), and the **giant-impact erosion scaling law** of Eq. (4). Both are deliberate simplifications of much richer physical problems. The most important regimes and processes the model does not cover are summarised below.
+ZEPHYRUS implements the **energy-limited (EL) approximation** to hydrodynamic atmospheric escape, given by Eq. (1) of the [model overview](model.md), and the **giant-impact erosion scaling laws** of Kegerreis et al. (2020) and Roche et al. (2026). Both are deliberate simplifications of much richer physical problems. The most important regimes and processes the model does not cover are summarised below.
 
 ---
 
 ## What ZEPHYRUS *does* model
 
-Two channels. The first is bulk hydrodynamic escape driven by stellar XUV irradiation, in the energy-limited approximation, with an optional tidal correction (Eq. 2 of the [model overview](model.md)). The tidal correction is defined only outside the Roche lobe, where the Hill-to-XUV radius ratio $\xi > 1$; ZEPHYRUS raises an error for $\xi \le 1$, at which point the atmosphere reaches the Roche lobe and the energy-limited approximation no longer holds. The mass-loss rate is partitioned across atmospheric species in proportion to their elemental mass mixing ratios. The second channel is the fraction of the target's atmosphere eroded by a single giant impact, from a fitted power law in the collision speed, mass ratio, density ratio, and impact angle (Eq. 4 of the [model overview](model.md)).
+Two channels. The first is bulk hydrodynamic escape driven by stellar XUV irradiation, in the energy-limited approximation, with an optional tidal correction (Eq. 2 of the [model overview](model.md)). The tidal correction is defined only outside the Roche lobe, where the Hill-to-XUV radius ratio $\xi > 1$; ZEPHYRUS raises an error for $\xi \le 1$, at which point the atmosphere reaches the Roche lobe and the energy-limited approximation no longer holds. The mass-loss rate is partitioned across atmospheric species in proportion to their elemental mass mixing ratios. The second channel is the fraction of the target's atmosphere eroded by a single giant impact, evaluated by empirical scaling laws (Eq. 4 of the [model overview](model.md) for Kegerreis et al. 2020, and the Roche et al. 2026 formulation).
 
 Everything below is **not modelled.**
 
 ---
 
-## Giant-impact erosion
+## The impact channel (`collision.impact_loss`, `collision.mass_loss`, `collision.mass_loss_roche2026`)
 
-The collision channel is a single fitted power law, not an impact simulation, and inherits the scope of the simulation suite behind it:
+The channel evaluates empirical scaling laws (Kegerreis et al. 2020 for thin atmospheres, and Roche et al. 2026 for envelope mass fractions from 1% to 20%), rather than simulating collisions directly, and inherits the scope of the simulation suites behind them (see the [model overview](model.md) for fitted domains):
 
-- **Thin atmospheres only.** The fit covers atmospheres of order 1 percent of the planet mass. A substantially thicker envelope cushions the impactor and alters its trajectory, and the eroded fraction is no longer described by the law.
-- **Target-side loss only.** The law returns what the target's atmosphere loses. Any atmosphere the impactor itself carries, and any volatile delivery from the impactor into the merged body, is outside the function; the underlying paper shows that in slow, grazing collisions with an atmosphere-hosting impactor the target can retain about 85 percent of the two bodies' combined initial atmospheres, so treating the impactor as ballastless is a caller-side assumption, not a property of the collision.
-- **No mantle or core erosion.** Violent impacts also strip silicate and metal mass; the law tracks only the atmospheric fraction.
-- **Chaotic regime scatter.** Slow, head-on collisions produce chaotic fall-back and sloshing; the fit carries about 20 percent scatter there, against 9 percent overall.
-- **Linearised interacting-mass geometry.** The common-height cap construction behind $f_M(b)$ misbehaves for a much denser, much smaller impactor near head-on, outside the fitted density ratios; ZEPHYRUS clamps $f_M$ to $[0, 1]$ in that corner rather than extrapolating the artifact.
-- **Fit-domain extrapolation is unflagged.** The function evaluates the power law for any physically valid inputs; it does not warn when masses, densities, or speeds leave the fitted ranges listed in the [model overview](model.md). Staying inside them is the caller's responsibility.
+- **Atmospheric mass limits.** The `kegerreis2020` fit applies to thin atmospheres of order 1% of the target mass. The `roche2026` fit extends calibration over $f_\mathrm{atm} \in [0.01, 0.20]$, but envelopes outside that range require extrapolation.
+- **Target-side loss only.** Any atmosphere the impactor carries, and any volatile delivery into the merged body, is outside the function. The underlying simulations of Kegerreis et al. (2020) show a slow grazing collision with an atmosphere-hosting impactor can leave the target with about 85% of the two bodies' combined atmospheres, so treating the impactor as bare is a caller-side assumption.
+- **Simulation-to-law scatter.** For Kegerreis et al. (2020), the scatter between simulations and the scaling law is a relative deviation: the median relative deviation is 9%, rising to about 20% relative deviation for slow, head-on collisions where outcomes are chaotic. For Roche et al. (2026), misfits are reported as absolute differences on the loss fraction ($|X_\mathrm{sim} - X_\mathrm{calc}|$): their Table 1 uses an absolute misfit threshold of 0.05 on the loss fraction, with mean and maximum absolute misfits over their 300 simulations of 0.040 and 0.222 respectively.
+- **Fit-domain flags.** `collision.impact_loss` records out-of-range parameters in `flags` for the `roche2026` law. The direct functions `collision.mass_loss` and `collision.mass_loss_roche2026` evaluate without warning flags; staying inside fitted bounds is the caller's responsibility.
 
 ---
 
