@@ -274,6 +274,21 @@ def _get_roche2026_oracle_rows() -> list[dict[str, str]]:
     return list(csv.DictReader(io.StringIO(_ROCHE2026_ORACLE_CSV.strip())))
 
 
+def _fit_kwargs(r: dict[str, str], **override: float) -> dict[str, float]:
+    """Map one oracle row to keyword arguments for _roche2026_fit."""
+    kw: dict[str, float] = {
+        'b': float(r['b']),
+        'gamma': float(r['gamma']),
+        'v_c_v_esc': float(r['v_c_v_esc']),
+        'M_t_earth': float(r['M_t_r_earth']),
+        'mass_ratio': float(r['M_i_r_earth']) / float(r['M_t_r_earth']),
+        'Q_R_prime_MJ': float(r['Q_R_prime_MJkg']),
+        'f_atm': float(r['f_atm']),
+        'R_ratio': float(r['R_ratio']),
+    }
+    return kw | override
+
+
 def test_roche2026_coefficients_count_and_constants():
     """Verify count of 61 fitted coefficients and exact Table C constants."""
     assert len(_ROCHE2026_COEFFICIENTS) == 61
@@ -285,28 +300,11 @@ def test_roche2026_coefficients_count_and_constants():
         assert np.isfinite(val)
 
     # Verify Table C unlisted constant values.
-    assert _ROCHE2026_TABLE_C_CONSTANTS['q37'] == pytest.approx(1.0, abs=1e-15)
-    assert _ROCHE2026_TABLE_C_CONSTANTS['q48'] == pytest.approx(1.0, abs=1e-15)
-    zero_keys = [
-        'q16',
-        'q17',
-        'q18',
-        'q23',
-        'q24',
-        'q25',
-        'q26',
-        'q27',
-        'q28',
-        'k26',
-        'k27',
-        'k36',
-        'k37',
-        's34',
-        's35',
-        's36',
-    ]
-    for key in zero_keys:
-        assert _ROCHE2026_TABLE_C_CONSTANTS[key] == 0.0
+    zero_keys = 'q16 q17 q18 q23 q24 q25 q26 q27 q28 k26 k27 k36 k37 s34 s35 s36'.split()
+    assert _ROCHE2026_TABLE_C_CONSTANTS == dict.fromkeys(zero_keys, 0.0) | {
+        'q37': 1.0,
+        'q48': 1.0,
+    }
 
 
 @pytest.mark.physics_invariant
@@ -331,49 +329,28 @@ def test_roche2026_oracle_reproduction():
         tol_xff = 1e-10 if s == 'A' else 2e-4
         tol_xat = 1e-10 if s == 'A' else 2e-4
 
-        fnf, xnf, xff, xat = _roche2026_fit(
-            b=float(r['b']),
-            gamma=float(r['gamma']),
-            v_c_v_esc=float(r['v_c_v_esc']),
-            M_t_earth=float(r['M_t_r_earth']),
-            mass_ratio=float(r['M_i_r_earth']) / float(r['M_t_r_earth']),
-            Q_R_prime_MJ=float(r['Q_R_prime_MJkg']),
-            f_atm=float(r['f_atm']),
-            R_ratio=float(r['R_ratio']),
-            authors_form=True,
-        )
+        fnf, xnf, xff, xat = _roche2026_fit(**_fit_kwargs(r, authors_form=True))
         assert abs(fnf - float(r['f_NF_calc'])) <= tol_fnf
         assert abs(xnf - float(r['X_NF_calc'])) <= tol_xnf
         assert abs(xff - float(r['X_FF_calc'])) <= tol_xff
         assert abs(xat - float(r['X_atm_calc'])) <= tol_xat
 
     # Vectorized array input check across all 12 rows.
-    b_arr = np.array([float(r['b']) for r in rows])
-    g_arr = np.array([float(r['gamma']) for r in rows])
-    vc_arr = np.array([float(r['v_c_v_esc']) for r in rows])
-    mt_arr = np.array([float(r['M_t_r_earth']) for r in rows])
-    mi_arr = np.array([float(r['M_i_r_earth']) for r in rows])
-    qr_arr = np.array([float(r['Q_R_prime_MJkg']) for r in rows])
-    fa_arr = np.array([float(r['f_atm']) for r in rows])
-    rr_arr = np.array([float(r['R_ratio']) for r in rows])
-
+    kws = [_fit_kwargs(r) for r in rows]
     fnf_v, xnf_v, xff_v, xat_v = _roche2026_fit(
-        b=b_arr,
-        gamma=g_arr,
-        v_c_v_esc=vc_arr,
-        M_t_earth=mt_arr,
-        mass_ratio=mi_arr / mt_arr,
-        Q_R_prime_MJ=qr_arr,
-        f_atm=fa_arr,
-        R_ratio=rr_arr,
+        **{k: np.array([kw[k] for kw in kws]) for k in kws[0]},
         authors_form=True,
     )
-    assert np.all(abs(fnf_v - np.array([float(r['f_NF_calc']) for r in rows])) <= 1e-12)
-    assert np.all(abs(xnf_v - np.array([float(r['X_NF_calc']) for r in rows])) <= 1e-12)
-    tol_xff_arr = np.array([1e-10 if r['set'] == 'A' else 2e-4 for r in rows])
-    tol_xat_arr = np.array([1e-10 if r['set'] == 'A' else 2e-4 for r in rows])
-    assert np.all(abs(xff_v - np.array([float(r['X_FF_calc']) for r in rows])) <= tol_xff_arr)
-    assert np.all(abs(xat_v - np.array([float(r['X_atm_calc']) for r in rows])) <= tol_xat_arr)
+    for got, col, tol_a in (
+        (fnf_v, 'f_NF_calc', None),
+        (xnf_v, 'X_NF_calc', None),
+        (xff_v, 'X_FF_calc', 1e-10),
+        (xat_v, 'X_atm_calc', 1e-10),
+    ):
+        tol = np.array(
+            [1e-12 if tol_a is None else tol_a if r['set'] == 'A' else 2e-4 for r in rows]
+        )
+        assert np.all(abs(got - np.array([float(r[col]) for r in rows])) <= tol)
 
     # Public API entry point verification on reference oracle row 1.
     r0 = rows[0]
@@ -493,28 +470,9 @@ def test_specific_impact_energy_validation_and_limits():
 def test_roche2026_velocity_floor_property():
     """Verify near-field loss floor holds at impact velocity below escape velocity."""
     rows = _get_roche2026_oracle_rows()[:2]
-    assert len(rows) == 2
     for r in rows:
-        _, xnf_floor, _, _ = _roche2026_fit(
-            b=float(r['b']),
-            gamma=float(r['gamma']),
-            v_c_v_esc=0.5,
-            M_t_earth=float(r['M_t_r_earth']),
-            mass_ratio=float(r['M_i_r_earth']) / float(r['M_t_r_earth']),
-            Q_R_prime_MJ=float(r['Q_R_prime_MJkg']),
-            f_atm=float(r['f_atm']),
-            R_ratio=float(r['R_ratio']),
-        )
-        _, xnf_unity, _, _ = _roche2026_fit(
-            b=float(r['b']),
-            gamma=float(r['gamma']),
-            v_c_v_esc=1.0,
-            M_t_earth=float(r['M_t_r_earth']),
-            mass_ratio=float(r['M_i_r_earth']) / float(r['M_t_r_earth']),
-            Q_R_prime_MJ=float(r['Q_R_prime_MJkg']),
-            f_atm=float(r['f_atm']),
-            R_ratio=float(r['R_ratio']),
-        )
+        _, xnf_floor, _, _ = _roche2026_fit(**_fit_kwargs(r, v_c_v_esc=0.5))
+        _, xnf_unity, _, _ = _roche2026_fit(**_fit_kwargs(r, v_c_v_esc=1.0))
         assert xnf_floor == pytest.approx(xnf_unity, rel=1e-12, abs=1e-12)
 
 
