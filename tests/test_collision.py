@@ -1094,6 +1094,17 @@ def test_roche2026_validation_contracts(monkeypatch):
             b=kw.get('b', b),
             f_atm=kw.get('f_atm', fa),
         ),
+        lambda **kw: impact_loss(
+            'kegerreis2020',
+            v_c=kw.get('v_c', vc),
+            M_i=kw.get('M_i', mi),
+            M_t=kw.get('M_t', mt),
+            R_i=kw.get('R_i', ri),
+            R_t=kw.get('R_t', rt),
+            b=kw.get('b', b),
+            rho_i=kw.get('rho_i', 3000.0),
+            rho_t=kw.get('rho_t', 5515.0),
+        ),
     ):
         for bad_m in (0.0, -1.0, np.nan, np.inf):
             with pytest.raises(ValueError, match='M_i must be strictly positive'):
@@ -1122,6 +1133,41 @@ def test_roche2026_validation_contracts(monkeypatch):
     monkeypatch.setattr(zc, '_roche2026_fit', lambda **kw: (np.nan, np.nan, np.nan, np.nan))
     with pytest.raises(ValueError, match='produced non-finite result'):
         impact_loss('roche2026', v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b, f_atm=fa)
+
+
+def test_impact_loss_array_inputs_raise_type_error_both_laws():
+    """Verify both scaling laws reject array inputs with TypeError."""
+    arr = np.array([1.0, 2.0])
+    base_keg = {
+        'v_c': 2.0e4,
+        'M_i': 1.0e24,
+        'M_t': Me,
+        'R_i': 3.0e6,
+        'R_t': 6.371e6,
+        'b': 0.5,
+        'rho_i': 3000.0,
+        'rho_t': 5515.0,
+    }
+    base_roche = {
+        'v_c': 2.0e4,
+        'M_i': 1.0e24,
+        'M_t': Me,
+        'R_i': 3.0e6,
+        'R_t': 6.371e6,
+        'b': 0.5,
+        'f_atm': 0.05,
+    }
+    for param in base_keg:
+        kws = dict(base_keg)
+        kws[param] = arr
+        with pytest.raises(TypeError, match=f'{param} must be a scalar numeric value'):
+            impact_loss('kegerreis2020', **kws)
+
+    for param in base_roche:
+        kws = dict(base_roche)
+        kws[param] = arr
+        with pytest.raises(TypeError, match=f'{param} must be a scalar numeric value'):
+            impact_loss('roche2026', **kws)
 
 
 def test_helper_validation_contracts():
@@ -1231,7 +1277,7 @@ def test_roche2026_far_field_zero_path_huge_vc():
     ri = rt * rr
     mi = 0.3 * mt
     res = impact_loss(
-        'roche2026', v_c=1.0e6, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=0.1625, f_atm=fa
+        'roche2026', v_c=1.0e7, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=0.1625, f_atm=fa
     )
     assert res.diagnostics['f_NF'] == pytest.approx(1.0, abs=1e-15)
     assert res.diagnostics['X_FF'] == pytest.approx(0.0, abs=1e-15)

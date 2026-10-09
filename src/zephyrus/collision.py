@@ -747,6 +747,8 @@ def mass_loss_roche2026(
 
     Raises
     ------
+    TypeError
+        If any input is a string, bytes, or non-scalar sequence/array.
     ValueError
         If inputs violate physical domain constraints.
 
@@ -813,6 +815,8 @@ def impact_loss(
 
     Raises
     ------
+    TypeError
+        If any input is a string, bytes, or non-scalar sequence/array.
     ValueError
         If law is unsupported or required law-specific inputs are missing.
 
@@ -826,16 +830,37 @@ def impact_loss(
         if rho_i is None or rho_t is None:
             missing = [k for k, v in (('rho_i', rho_i), ('rho_t', rho_t)) if v is None]
             raise ValueError(f'kegerreis2020 requires {", ".join(missing)}')
-        frac = mass_loss(v_c, M_i, M_t, rho_i, rho_t, R_i, R_t, b)
-        v_esc = mutual_escape_speed(M_t, M_i, R_t, R_i)
-        v_ratio = v_c / v_esc
-        gamma = M_i / (M_t + M_i)
-        f_m = _interacting_mass_fraction_kegerreis(R_t, R_i, rho_t, rho_i, b)
+        vals = _as_floats(
+            v_c=v_c,
+            M_i=M_i,
+            M_t=M_t,
+            rho_i=rho_i,
+            rho_t=rho_t,
+            R_i=R_i,
+            R_t=R_t,
+            b=b,
+        )
+        frac = mass_loss(
+            vals['v_c'],
+            vals['M_i'],
+            vals['M_t'],
+            vals['rho_i'],
+            vals['rho_t'],
+            vals['R_i'],
+            vals['R_t'],
+            vals['b'],
+        )
+        v_esc = mutual_escape_speed(vals['M_t'], vals['M_i'], vals['R_t'], vals['R_i'])
+        v_ratio = vals['v_c'] / v_esc
+        gamma = vals['M_i'] / (vals['M_t'] + vals['M_i'])
+        f_m = _interacting_mass_fraction_kegerreis(
+            vals['R_t'], vals['R_i'], vals['rho_t'], vals['rho_i'], vals['b']
+        )
         diag = {
             'v_esc': float(v_esc),
             'v_ratio': float(v_ratio),
             'gamma': float(gamma),
-            'mass_ratio': float(M_i / M_t),
+            'mass_ratio': float(vals['M_i'] / vals['M_t']),
             'f_M': float(f_m),
         }
         return ImpactLossResult(law=law, fraction=frac, flags=(), diagnostics=diag)
