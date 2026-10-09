@@ -1,6 +1,6 @@
 # ZEPHYRUS agent instructions
 
-ZEPHYRUS computes atmospheric escape for PROTEUS: the energy-limited mass-loss rate driven by stellar XUV irradiation (`escape.py`, `EL_escape`) and the fraction of the atmosphere lost in a giant impact (`collision.py`, `mass_loss`, clipped to [0, 1]). Before a first edit:
+ZEPHYRUS computes atmospheric escape for PROTEUS: the energy-limited mass-loss rate driven by stellar XUV irradiation (`escape.py`, `EL_escape`) and the fraction of the atmosphere lost in a giant impact (`collision.py`, `impact_loss`, `mass_loss`, `mass_loss_roche2026`, clipped to [0, 1]). Before a first edit:
 
 - Tests for `src/zephyrus/<file>.py` go in `tests/test_<file>.py`; the test rules are in `tests/AGENTS.md`.
 - `escape.py` and `collision.py` are the physics sources; `constants.py` and `planets_parameters.py` are utilities.
@@ -66,7 +66,7 @@ Commit messages, pull-request text, code comments, docstrings, test names, test 
 - `Fxuv` arrives from PROTEUS already diluted to the planet (`src/proteus/escape/wrapper.py`, `run_zephyrus`); `EL_escape` must not apply `1 / (4 pi a**2)` again.
 - `scaling=2` (default) uses `Rp * Rxuv**2`, `scaling=3` uses `Rxuv**3`, any other value raises `ValueError`. PROTEUS passes `scaling=3` explicitly (`run_zephyrus`), and no test pins the default: `test_earth.py` uses it with `Rp == Rxuv`, where both branches agree, and `test_mors_coupling.py` uses it only in a flux-ratio test. A change of the default updates the `EL_escape` docstring and every docs page that names it (`grep -rn scaling docs/`), and adds a test that pins the default.
 - Tidal branch: `ksi = Rhill / Rxuv` with `Rhill = a (1 - e) (Mp / (3 Ms))**(1/3)`, and `K_tide = (ksi - 1)**2 (2 ksi + 1) / (2 ksi**3)`. `K_tide` is in (0, 1) for `ksi > 1`, and the rate divides by it, so it diverges as `ksi` approaches 1. The source raises `ValueError` for `ksi <= 1`; every tidal path keeps that guard, and the periapsis factor `(1 - e)` stays in `Rhill`.
-- `collision.py` (Kegerreis et al. 2020, Eqn. 1) raises `ValueError` for an impact parameter outside [0, 1], a non-positive or non-finite mass, density or radius, and a negative or non-finite collision speed.
+- `collision.py` implements giant-impact atmospheric erosion scaling laws (`impact_loss`, `mass_loss`, `mass_loss_roche2026`). All collision functions enforce scalar inputs, impact parameter in [0, 1], strictly positive finite masses and radii, and sub-luminal speed 0 <= v_c < c. The Roche 2026 formulation (`impact_loss`, `mass_loss_roche2026`) requires envelope fraction f_atm in [0, 1) with f_atm = 0 returning zero loss immediately; target mass M_t is the refractory core-plus-mantle mass, while mutual escape speed v_esc evaluates with the total target mass M_t / (1 - f_atm).
 - Constants and conversions (`G`, `kb`, `au2m`, `au2cm`, `ergcm2stoWm2`) come from `zephyrus.constants`; `G` is SI and `G_cgs` must not enter an SI expression. `escape.py` star-imports `constants` and `planets_parameters` (ruff `F403`, `F405` ignored); new code imports names explicitly.
 
 ## Review
@@ -77,5 +77,6 @@ Check each change against these points and against `.github/agent-rules/code-rev
 - Units at the MORS and PROTEUS boundaries; no second orbital dilution of `Fxuv`.
 - A formula change comes with an updated discrimination guard in the escape tests (wrong scaling, dropped `K_tide`, dropped `epsilon`).
 - A change of the default `scaling` updates the `EL_escape` docstring and the docs pages that name it, and adds a test that pins the default.
+- Collision functions keep input guards (impact parameter in [0, 1], positive finite masses and radii, 0 <= v_c < c, f_atm in [0, 1)), use refractory M_t with total-mass v_esc for roche2026, and return a fraction in [0, 1].
 - No retyped constant literals.
 - Tests follow `tests/AGENTS.md`.

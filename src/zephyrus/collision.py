@@ -422,8 +422,9 @@ def mass_loss(
     ------
     ValueError
         If ``b`` lies outside [0, 1], if any mass, radius, or density is
-        not strictly positive and finite, or if ``v_c`` is negative or
-        not finite. Inputs are scalar; arrays are not supported.
+        not strictly positive and finite, or if ``v_c`` is negative,
+        not sub-luminal (>= c), or not finite. Inputs are scalar;
+        arrays are not supported.
 
     References
     ----------

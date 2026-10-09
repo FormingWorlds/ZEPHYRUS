@@ -18,7 +18,7 @@ A formula change that moves the rate (a wrong scaling exponent, a dropped `epsil
 
 ## Giant-impact mass loss
 
-`collision.mass_loss` returns the fraction of the atmosphere lost (Kegerreis et al. 2020, Eqn. 1), clipped to [0, 1]. Keep its input guards: impact parameter in [0, 1]; masses, densities and radii positive and finite; collision speed non-negative and finite.
+`collision.py` provides `impact_loss`, `mass_loss` (Kegerreis et al. 2020), and `mass_loss_roche2026` (Roche et al. 2026), returning fractional loss in [0, 1]. Keep input guards: scalar inputs, impact parameter in [0, 1], strictly positive finite masses and radii, sub-luminal collision speed 0 <= v_c < c, and envelope mass fraction f_atm in [0, 1) with f_atm = 0 returning zero. For roche2026, M_t is the refractory mass while mutual escape speed v_esc uses total target mass M_t / (1 - f_atm).
 
 ## Star imports
 

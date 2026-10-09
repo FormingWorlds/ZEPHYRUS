@@ -7,6 +7,10 @@ closed-form pins running when Hypothesis is absent (for example under a
 
 - Boundedness: the loss fraction stays in [0, 1] and finite across the
   physically valid mass, radius, density, speed, and angle ranges.
+- Monotonicity: at fixed geometry the loss never decreases with contact
+  speed and never increases with impact parameter.
+- Reduction: at equal bulk densities the density-weighted interacting
+  mass of Eqn. B1 equals the interacting volume of Eqn. B2 exactly.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """

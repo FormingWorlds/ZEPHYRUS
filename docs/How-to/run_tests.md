@@ -29,7 +29,7 @@ Every test in the suite carries a tier marker, applied at module level (`pytestm
 |---|---|---|---|
 | `unit` | Python logic: the closed-form mass-loss rate, the tidal factor, the radius-scaling branches, the MORS-flux hand-off with the stellar lookup mocked. No real MORS download. | < 100 ms | PR + nightly |
 | `smoke` | Real dependency on a minimal input. | < 30 s | PR + nightly |
-| `integration` | The real MORS-coupled escape: downloads the stellar-evolution tracks and drives the escape formula end to end. | minutes | Nightly only |
+| `integration` | The real MORS-coupled escape: downloads the stellar-evolution tracks and drives the escape formula across the full chain. | minutes | Nightly only |
 | `slow` | Long parameter sweeps and convergence studies. | up to an hour | Nightly only |
 | `skip` | Placeholder, deliberately disabled. | n/a | Never |
 
@@ -61,7 +61,7 @@ A unit test on a physics source (`escape.py`, `collision.py`) must assert at lea
 - **Monotonicity or symmetry**: the rate is linear in the XUV flux at fixed geometry; it scales as `1 / Mp`; it is larger with the tidal correction than without (`K_tide < 1`) for a close-in orbit; it is zero when the flux is zero.
 - **Pinned numeric value with a discrimination guard**: a closed-form value pinned via `pytest.approx`, plus explicit assertions that a wrong exponent, a wrong scaling branch, a sign flip, or a unit slip would each differ from the correct value by more than the tolerance.
 
-For the collision law the same families read: the loss fraction is bounded in `[0, 1]` and capped at 1 for total erosion; it vanishes at grazing incidence and at zero contact speed; it never decreases with contact speed; and its closed-form pins carry guards against the wrong mass-ratio denominator, wrong exponents, and a wrong gravitational constant.
+For the collision law the same families read: for Kegerreis et al. (2020), the loss fraction is bounded in `[0, 1]` and capped at 1 for total erosion, vanishes at grazing incidence and at zero contact speed, never decreases with contact speed, and its closed-form pins carry guards against the wrong mass-ratio denominator, wrong exponents, and a wrong gravitational constant; for Roche et al. (2026), the loss fraction is bounded in `[0, 1]`, far-field loss $X_\mathrm{FF}$ vanishes at zero impact energy and at $b = 1$, near-field loss $X_\mathrm{NF}$ is held at its $v_\mathrm{esc}$ value below $v_\mathrm{esc}$, and the loss fraction is non-decreasing with contact speed within the stability box.
 
 Tests that meet one or more of these are tagged `@pytest.mark.physics_invariant`. The marker is per-function, not module-level: an error-contract test (an unsupported `scaling` raising `ValueError`) does not carry it.
 
@@ -77,6 +77,11 @@ Tests that pin behaviour against an external anchor are tagged `@pytest.mark.ref
 | `escape.py` | Lehmer & Catling (2017), ApJ 845:130, Eq. 1: closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
 | `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Eq. 1: closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
 | `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Tables 1 and 2: simulated loss fractions of the SPH suite | `tests/test_collision.py::test_scaling_law_reproduces_kegerreis_table2_simulations` |
+| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqns. 4-11, Table C1-C3: 12 reference oracle rows from `scaling_law.csv` | `tests/test_collision.py::test_roche2026_oracle_reproduction` |
+| `collision.py` | Roche et al. (2025), PSJ 6, 149, Eqns. 13-18: modified specific impact energy $Q'_\mathrm{R}$ | `tests/test_collision.py::test_roche2026_specific_impact_energy_calculation` |
+| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqn. 1: mutual escape speed $v_\mathrm{esc}$ using total target mass | `tests/test_collision.py::test_roche2026_mutual_escape_speed_calculation` |
+| `collision.py` | Roche et al. (2026), Zenodo doi:10.5281/zenodo.23192423: near-field velocity floor at $v_\mathrm{c} \le v_\mathrm{esc}$ | `tests/test_collision.py::test_roche2026_velocity_floor_property` |
+| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqn. 10: continuous evaluation at grazing parameter $b \to 1$ | `tests/test_collision.py::test_roche2026_grazing_continuity_and_value` |
 
 The marker is not the same thing as physical correctness: a reference-pinned test certifies that this implementation reproduces that anchor; it does not certify that the anchor is the right physics for every planetary regime.
 
@@ -94,7 +99,7 @@ Each source module with executable content has a same-named companion in `tests/
 Cross-cutting and companion tests are the documented exception, not the rule:
 
 - `tests/test_mors_coupling.py`: the MORS-to-escape flux hand-off with the stellar lookup mocked, so the coupling recipe runs in the fast unit tier without a download.
-- `tests/test_earth.py`: an Earth-analogue regression that spans the real MORS lookup and the escape formula end to end. It carries the `integration` tier because it downloads the stellar-evolution tracks.
+- `tests/test_earth.py`: an Earth-analogue regression that spans the real MORS lookup and the escape formula across the full chain. It carries the `integration` tier because it downloads the stellar-evolution tracks.
 - `tests/test_escape_properties.py`: the Hypothesis-driven property sweeps for `escape.py`, kept in their own module so the `pytest.importorskip('hypothesis')` skip applies only to these tests and the closed-form pins in `tests/test_escape.py` still run when the develop-extra dependency is absent.
 - `tests/test_collision_properties.py`: the same pattern for `collision.py`: boundedness, speed monotonicity, angle monotonicity at equal densities, and the exact reduction of the interacting mass to the interacting volume.
 

@@ -207,6 +207,10 @@ def test_unphysical_inputs_are_rejected():
     with pytest.raises(ValueError, match=r'\[0, 1\]'):
         mass_loss(v, b=float('nan'), **good)
 
+    # Collision speed at or exceeding the speed of light is rejected.
+    with pytest.raises(ValueError, match='sub-luminal'):
+        mass_loss(c, b=0.5, **good)
+
 
 @pytest.mark.physics_invariant
 @pytest.mark.reference_pinned
@@ -575,6 +579,7 @@ def test_roche2026_collision_speed_monotonic_grid():
                     ]
                     for x1, x2 in zip(xs[:-1], xs[1:], strict=True):
                         assert x2 >= x1
+                    assert all(0.0 <= x <= 1.0 for x in xs)
 
 
 @pytest.mark.physics_invariant
