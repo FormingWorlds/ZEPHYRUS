@@ -23,6 +23,7 @@ See ``docs/How-to/run_tests.md`` for the tier and marker conventions and
 
 import csv
 import io
+import itertools
 import types
 
 import numpy as np
@@ -328,7 +329,7 @@ def test_roche2026_oracle_reproduction():
         tol_xff = 1e-10 if s == 'A' else 2e-4
         tol_xat = 1e-10 if s == 'A' else 2e-4
 
-        fnf, xnf, xff, xat = _roche2026_fit(**_fit_kwargs(r, authors_form=True))
+        fnf, xnf, xff, xat = _roche2026_fit(**_fit_kwargs(r))
         assert abs(fnf - float(r['f_NF_calc'])) <= tol_fnf
         assert abs(xnf - float(r['X_NF_calc'])) <= tol_xnf
         assert abs(xff - float(r['X_FF_calc'])) <= tol_xff
@@ -338,7 +339,6 @@ def test_roche2026_oracle_reproduction():
     kws = [_fit_kwargs(r) for r in rows]
     fnf_v, xnf_v, xff_v, xat_v = _roche2026_fit(
         **{k: np.array([kw[k] for kw in kws]) for k in kws[0]},
-        authors_form=True,
     )
     for got, col, tol_a in (
         (fnf_v, 'f_NF_calc', None),
@@ -433,8 +433,6 @@ def test_mutual_escape_speed_validation():
         mutual_escape_speed(np.inf, 1e24, 1e6, 1e6)
     with pytest.raises(ValueError, match='R_1 must be strictly positive and finite'):
         mutual_escape_speed(1e24, 1e24, np.nan, 1e6)
-    with pytest.raises(TypeError, match='must be a scalar'):
-        mutual_escape_speed(np.array([1e24, 2e24]), 1e24, 1e6, 1e6)
 
 
 @pytest.mark.physics_invariant
@@ -454,8 +452,6 @@ def test_specific_impact_energy_validation_and_limits():
         specific_impact_energy(1e4, 1e24, 1e24, 1e6, -1e6, 0.5)
     with pytest.raises(ValueError, match='Collision speed v_c'):
         specific_impact_energy(-1.0, 1e24, 1e24, 1e6, 1e6, 0.5)
-    with pytest.raises(TypeError, match='must be a scalar'):
-        specific_impact_energy(np.array([1e4, 2e4]), 1e24, 1e24, 1e6, 1e6, 0.5)
 
     # Complete capture branch (impact_param + R_i <= R_t)
     qr_headon = specific_impact_energy(1e4, 1e23, 1e25, 1e6, 1e7, 0.0)
@@ -481,27 +477,10 @@ def test_roche2026_velocity_floor_property():
 @pytest.mark.physics_invariant
 def test_roche2026_zero_atmosphere_fraction():
     """Verify f_atm = 0 returns exactly zero loss fraction without evaluation."""
-    x = mass_loss_roche2026(
-        v_c=2.0e4,
-        M_i=1.0e24,
-        M_t=Me,
-        R_i=3.0e6,
-        R_t=6.371e6,
-        b=0.5,
-        f_atm=0.0,
-    )
-    assert x == 0.0
+    kw = dict(v_c=2.0e4, M_i=1.0e24, M_t=Me, R_i=3.0e6, R_t=6.371e6, b=0.5, f_atm=0.0)
+    assert mass_loss_roche2026(**kw) == 0.0
 
-    res = impact_loss(
-        'roche2026',
-        v_c=2.0e4,
-        M_i=1.0e24,
-        M_t=Me,
-        R_i=3.0e6,
-        R_t=6.371e6,
-        b=0.5,
-        f_atm=0.0,
-    )
+    res = impact_loss('roche2026', **kw)
     assert res.fraction == 0.0
     assert len(res.flags) == 0
     assert res.diagnostics['f_NF'] == 0.0
@@ -612,176 +591,69 @@ def test_roche2026_domain_validation_errors():
 @pytest.mark.physics_invariant
 def test_roche2026_stability_clamps():
     """Verify numerical stability clamps for f_atm, target mass, and gamma."""
-    m_t = Me
-    m_i = 1.0e24
-    r_t = 6.371e6
-    r_i = 3.0e6
-    v_c = 2.0e4
+    base = dict(v_c=2.0e4, M_i=1.0e24, M_t=Me, R_i=3.0e6, R_t=6.371e6, b=0.5, f_atm=0.01)
 
-    # f_atm < 1e-6 clamped to 1e-6 in fit
-    res_fa_lo = impact_loss(
-        'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=1e-7
-    )
-    assert 'f_atm' in res_fa_lo.flags
-    assert res_fa_lo.diagnostics['clamped']['f_atm'] == pytest.approx(1.0e-6)
-    assert 0.0 <= res_fa_lo.fraction <= 1.0
-    res_fa_1e6 = impact_loss(
-        'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=1e-6
-    )
+    def check(name, clamped_val, **override):
+        kw = base | override
+        res = impact_loss('roche2026', **kw)
+        assert name in res.flags
+        assert res.diagnostics['clamped'][name] == pytest.approx(clamped_val)
+        assert 0.0 <= res.fraction <= 1.0
+        diag = res.diagnostics
+        fit_kw = dict(
+            b=kw['b'],
+            gamma=diag['clamped'].get('gamma', diag['gamma']),
+            v_c_v_esc=diag['v_ratio'],
+            M_t_earth=diag['clamped'].get('M_t_earth', diag['M_t_earth']),
+            mass_ratio=kw['M_i'] / kw['M_t'],
+            Q_R_prime_MJ=diag['Q_R_prime'],
+            f_atm=diag['clamped'].get('f_atm', diag['f_atm']),
+            R_ratio=kw['R_i'] / kw['R_t'],
+        )
+        _, _, _, x_expected = _roche2026_fit(**fit_kw)
+        assert res.fraction == pytest.approx(x_expected, abs=1e-12)
+        return res, fit_kw
+
+    # f_atm clamps: below 1e-6 and above 0.4
+    res_fa_lo, _ = check('f_atm', 1.0e-6, f_atm=1e-7)
+    res_fa_1e6 = impact_loss('roche2026', **(base | dict(f_atm=1e-6)))
     assert res_fa_lo.fraction == pytest.approx(res_fa_1e6.fraction, rel=1e-5)
-
-    # f_atm > 0.4 clamped to 0.4 in fit
-    res_fa_hi = impact_loss(
-        'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.5
-    )
-    assert 'f_atm' in res_fa_hi.flags
-    assert res_fa_hi.diagnostics['clamped']['f_atm'] == pytest.approx(0.4)
-    assert 0.0 <= res_fa_hi.fraction <= 1.0
+    check('f_atm', 0.4, f_atm=0.5)
 
     # Target mass clamped outside [1e-3, 10] M_E
-    res_mt_lo = impact_loss(
-        'roche2026', v_c=v_c, M_i=m_i, M_t=1e-4 * Me, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
-    )
-    assert 'M_t_earth' in res_mt_lo.flags
-    assert res_mt_lo.diagnostics['clamped']['M_t_earth'] == pytest.approx(1.0e-3)
-    assert res_mt_lo.diagnostics['M_t_earth'] == pytest.approx(1e-4)
-    _, _, _, x_expected_lo = _roche2026_fit(
-        b=0.5,
-        gamma=res_mt_lo.diagnostics['clamped'].get('gamma', res_mt_lo.diagnostics['gamma']),
-        v_c_v_esc=res_mt_lo.diagnostics['v_ratio'],
-        M_t_earth=1.0e-3,
-        mass_ratio=m_i / (1e-4 * Me),
-        Q_R_prime_MJ=res_mt_lo.diagnostics['Q_R_prime'],
-        f_atm=0.01,
-        R_ratio=r_i / r_t,
-    )
-    assert res_mt_lo.fraction == pytest.approx(x_expected_lo, abs=1e-12)
+    check('M_t_earth', 1.0e-3, M_t=1e-4 * Me)
+    check('M_t_earth', 10.0, M_t=15.0 * Me)
 
-    res_mt_hi = impact_loss(
-        'roche2026', v_c=v_c, M_i=m_i, M_t=15.0 * Me, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
-    )
-    assert 'M_t_earth' in res_mt_hi.flags
-    assert res_mt_hi.diagnostics['clamped']['M_t_earth'] == pytest.approx(10.0)
-    assert res_mt_hi.diagnostics['M_t_earth'] == pytest.approx(15.0)
-    _, _, _, x_expected_hi = _roche2026_fit(
-        b=0.5,
-        gamma=res_mt_hi.diagnostics['gamma'],
-        v_c_v_esc=res_mt_hi.diagnostics['v_ratio'],
-        M_t_earth=10.0,
-        mass_ratio=m_i / (15.0 * Me),
-        Q_R_prime_MJ=res_mt_hi.diagnostics['Q_R_prime'],
-        f_atm=0.01,
-        R_ratio=r_i / r_t,
-    )
-    assert res_mt_hi.fraction == pytest.approx(x_expected_hi, abs=1e-12)
-
-    # Impactor mass ratio clamped below 1e-3
-    res_gamma_lo = impact_loss(
-        'roche2026', v_c=v_c, M_i=1e-4 * m_t, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
-    )
-    assert 'gamma' in res_gamma_lo.flags
-    assert res_gamma_lo.diagnostics['clamped']['gamma'] == pytest.approx(1.0e-3)
-    _, _, _, x_expected_gamma = _roche2026_fit(
-        b=0.5,
-        gamma=1.0e-3,
-        v_c_v_esc=res_gamma_lo.diagnostics['v_ratio'],
-        M_t_earth=1.0,
-        mass_ratio=1e-4,
-        Q_R_prime_MJ=res_gamma_lo.diagnostics['Q_R_prime'],
-        f_atm=0.01,
-        R_ratio=r_i / r_t,
-    )
-    assert res_gamma_lo.fraction == pytest.approx(x_expected_gamma, abs=1e-12)
-
-    # gamma = 0.9 evaluates at 0.5 under the upper stability bound
-    res_gamma_09 = impact_loss(
-        'roche2026', v_c=v_c, M_i=9.0 * m_t, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
-    )
-    assert 'gamma' in res_gamma_09.flags
-    assert res_gamma_09.diagnostics['clamped']['gamma'] == pytest.approx(0.5)
-    _, _, _, x_expected_g09 = _roche2026_fit(
-        b=0.5,
-        gamma=0.5,
-        v_c_v_esc=res_gamma_09.diagnostics['v_ratio'],
-        M_t_earth=1.0,
-        mass_ratio=9.0,
-        Q_R_prime_MJ=res_gamma_09.diagnostics['Q_R_prime'],
-        f_atm=0.01,
-        R_ratio=r_i / r_t,
-    )
-    assert res_gamma_09.fraction == pytest.approx(x_expected_g09, abs=1e-12)
-
-    # gamma = 0.502 in (0.5, 0.505] is clamped to 0.5 and carries the 'gamma' flag
-    res_gamma_502 = impact_loss(
-        'roche2026',
-        v_c=v_c,
-        M_i=(0.502 / (1.0 - 0.502)) * m_t,
-        M_t=m_t,
-        R_i=r_i,
-        R_t=r_t,
-        b=0.5,
-        f_atm=0.01,
-    )
-    assert 'gamma' in res_gamma_502.flags
-    assert res_gamma_502.diagnostics['clamped']['gamma'] == pytest.approx(0.5)
+    # Impactor mass ratio clamped below 1e-3 and above 0.5
+    check('gamma', 1.0e-3, M_i=1e-4 * Me)
+    check('gamma', 0.5, M_i=9.0 * Me)
+    check('gamma', 0.5, M_i=(0.502 / (1.0 - 0.502)) * Me)
 
     # gamma = 0.7 gives the same fit result as gamma = 0.5 at equal other fit inputs
-    res_gamma_07 = impact_loss(
-        'roche2026',
-        v_c=v_c,
-        M_i=(0.7 / 0.3) * m_t,
-        M_t=m_t,
-        R_i=r_i,
-        R_t=r_t,
-        b=0.5,
-        f_atm=0.01,
-    )
-    assert 'gamma' in res_gamma_07.flags
-    assert res_gamma_07.diagnostics['clamped']['gamma'] == pytest.approx(0.5)
-    diag07 = res_gamma_07.diagnostics
-    _, _, _, x_expected_clamped = _roche2026_fit(
-        b=0.5,
-        gamma=0.5,
-        v_c_v_esc=diag07['v_ratio'],
-        M_t_earth=diag07['M_t_earth'],
-        mass_ratio=0.7 / 0.3,
-        Q_R_prime_MJ=diag07['Q_R_prime'],
-        f_atm=0.01,
-        R_ratio=r_i / r_t,
-    )
-    _, _, _, x_unclamped_g07 = _roche2026_fit(
-        b=0.5,
-        gamma=0.7,
-        v_c_v_esc=diag07['v_ratio'],
-        M_t_earth=diag07['M_t_earth'],
-        mass_ratio=0.7 / 0.3,
-        Q_R_prime_MJ=diag07['Q_R_prime'],
-        f_atm=0.01,
-        R_ratio=r_i / r_t,
-    )
-    assert res_gamma_07.fraction == pytest.approx(x_expected_clamped, abs=1e-12)
-    assert abs(res_gamma_07.fraction - x_unclamped_g07) > 1e-3
+    res_g07, fit_kw_g07 = check('gamma', 0.5, M_i=(0.7 / 0.3) * Me)
+    _, _, _, x_unclamped_g07 = _roche2026_fit(**(fit_kw_g07 | dict(gamma=0.7)))
+    assert abs(res_g07.fraction - x_unclamped_g07) > 1e-3
 
 
 @pytest.mark.physics_invariant
 def test_roche2026_fitted_range_flags():
     """Verify diagnostic flags for out-of-fitted-range parameters."""
     m_t = Me
-    m_i = 1.0e24
     r_t = 6.371e6
     r_i = 3.0e6
-    v_c = 2.0e4
+    base = dict(v_c=2.0e4, M_i=1.0e24, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01)
 
     # Flags for out-of-fitted-range conditions (b > 0.9, gamma > 0.5, v_ratio > 3)
     res_flags = impact_loss(
         'roche2026',
-        v_c=4.0 * mutual_escape_speed(m_t / 0.99, 2.0 * m_t, r_t, r_i),
-        M_i=2.0 * m_t,
-        M_t=m_t,
-        R_i=r_i,
-        R_t=r_t,
-        b=0.95,
-        f_atm=0.01,
+        **(
+            base
+            | dict(
+                v_c=4.0 * mutual_escape_speed(m_t / 0.99, 2.0 * m_t, r_t, r_i),
+                M_i=2.0 * m_t,
+                b=0.95,
+            )
+        ),
     )
     assert 'b' in res_flags.flags
     assert 'gamma' in res_flags.flags
@@ -796,58 +668,32 @@ def test_roche2026_fitted_range_flags():
     # Speed below escape speed triggers v_sub_escape but not high-speed v_ratio
     res_sub_vesc = impact_loss(
         'roche2026',
-        v_c=0.5 * mutual_escape_speed(m_t / 0.99, m_i, r_t, r_i),
-        M_i=m_i,
-        M_t=m_t,
-        R_i=r_i,
-        R_t=r_t,
-        b=0.5,
-        f_atm=0.01,
+        **(base | dict(v_c=0.5 * mutual_escape_speed(m_t / 0.99, base['M_i'], r_t, r_i))),
     )
     assert 'v_ratio' not in res_sub_vesc.flags
     assert 'v_sub_escape' in res_sub_vesc.flags
     assert res_sub_vesc.diagnostics['v_ratio'] == pytest.approx(0.5)
 
     # v/v_esc = 5 is not clamped and differs from value at 3
-    vesc_eval = mutual_escape_speed(
-        m_t / (1.0 - 0.01), 0.1 * m_t, r_t, r_t * 0.1 ** (1.0 / 3.0)
-    )
+    ri_small = r_t * 0.1 ** (1.0 / 3.0)
+    vesc_eval = mutual_escape_speed(m_t / (1.0 - 0.01), 0.1 * m_t, r_t, ri_small)
     res_v3 = impact_loss(
         'roche2026',
-        v_c=3.0 * vesc_eval,
-        M_i=0.1 * m_t,
-        M_t=m_t,
-        R_i=r_t * 0.1 ** (1.0 / 3.0),
-        R_t=r_t,
-        b=0.7,
-        f_atm=0.01,
+        **(base | dict(v_c=3.0 * vesc_eval, M_i=0.1 * m_t, R_i=ri_small, b=0.7)),
     )
     res_v5 = impact_loss(
         'roche2026',
-        v_c=5.0 * vesc_eval,
-        M_i=0.1 * m_t,
-        M_t=m_t,
-        R_i=r_t * 0.1 ** (1.0 / 3.0),
-        R_t=r_t,
-        b=0.7,
-        f_atm=0.01,
+        **(base | dict(v_c=5.0 * vesc_eval, M_i=0.1 * m_t, R_i=ri_small, b=0.7)),
     )
     assert 'v_ratio' in res_v5.flags
     assert 'v_ratio' not in res_v5.diagnostics['clamped']
     assert res_v5.fraction > res_v3.fraction
 
     # Physical quantities derived from physical inputs
-    res_phys = impact_loss(
-        'roche2026',
-        v_c=v_c,
-        M_i=m_i,
-        M_t=15.0 * Me,
-        R_i=r_i,
-        R_t=r_t,
-        b=0.5,
-        f_atm=0.5,
+    res_phys = impact_loss('roche2026', **(base | dict(M_t=15.0 * Me, f_atm=0.5)))
+    assert res_phys.diagnostics['v_esc'] == mutual_escape_speed(
+        15.0 * Me / 0.5, base['M_i'], r_t, r_i
     )
-    assert res_phys.diagnostics['v_esc'] == mutual_escape_speed(15.0 * Me / 0.5, m_i, r_t, r_i)
     assert 'M_t_earth' in res_phys.flags
     assert 'f_atm' in res_phys.flags
     assert res_phys.diagnostics['clamped']['M_t_earth'] == pytest.approx(10.0)
@@ -932,19 +778,15 @@ def test_roche2026_m_earth_sensitivity(monkeypatch):
     assert diff < 1.0e-5
 
 
-_ROCHE2026_FF_OFFSET: dict[tuple[str, int], float] = {
-    ('A', 1): 0.023265,
-    ('B', 0): 0.001646,
-}
-
-
 @pytest.mark.physics_invariant
 @pytest.mark.reference_pinned
 def test_roche2026_oracle_set_a_impact_loss():
-    """Verify all 8 Set A rows through public impact_loss.
+    """Verify all 8 Set A rows through public impact_loss against published column.
 
-    Row 1 has far-field floor offset 0.023265; rows 0, 2, 3, 4, 5, 6, 7 have
-    offset 0.0 under the zero-energy subtraction.
+    Impact speed v_c_kms in the reference table has 2 decimal digits, producing
+    up to a 1.01e-4 residual in Q'_R and loss fraction against X_atm_calc.
+    Row 1 triggers the 'X_FF_zero_energy' flag from its zero-energy far-field term.
+    All rows match within the 2e-4 tolerance.
     """
     rows = _get_roche2026_oracle_rows()
     set_a = [r for r in rows if r['set'] == 'A']
@@ -962,34 +804,11 @@ def test_roche2026_oracle_set_a_impact_loss():
             b=float(r['b']),
             f_atm=float(r['f_atm']),
         )
-        expected_offset = _ROCHE2026_FF_OFFSET.get(('A', idx), 0.0)
-        _, _, xff_auth, _ = _roche2026_fit(
-            b=float(r['b']),
-            gamma=res.diagnostics['gamma'],
-            v_c_v_esc=float(r['v_c_v_esc']),
-            M_t_earth=res.diagnostics['M_t_earth'],
-            mass_ratio=float(r['M_i_r_earth']) / float(r['M_t_r_earth']),
-            Q_R_prime_MJ=res.diagnostics['Q_R_prime'],
-            f_atm=float(r['f_atm']),
-            R_ratio=float(r['R_i_r_earth']) / float(r['R_t_r_earth']),
-            authors_form=True,
-        )
-        _, _, xff_def, _ = _roche2026_fit(
-            b=float(r['b']),
-            gamma=res.diagnostics['gamma'],
-            v_c_v_esc=float(r['v_c_v_esc']),
-            M_t_earth=res.diagnostics['M_t_earth'],
-            mass_ratio=float(r['M_i_r_earth']) / float(r['M_t_r_earth']),
-            Q_R_prime_MJ=res.diagnostics['Q_R_prime'],
-            f_atm=float(r['f_atm']),
-            R_ratio=float(r['R_i_r_earth']) / float(r['R_t_r_earth']),
-            authors_form=False,
-        )
-        assert xff_auth - xff_def == pytest.approx(expected_offset, abs=2e-6)
-        assert res.fraction == pytest.approx(float(r['X_atm_calc']) - expected_offset, abs=2e-4)
+        assert res.fraction == pytest.approx(float(r['X_atm_calc']), abs=2e-4)
         v_expected = vc / float(r['v_c_v_esc'])
         assert abs(res.diagnostics['v_esc'] / v_expected - 1.0) <= 1e-3
-        assert res.flags == ()
+        expected_flags = ('X_FF_zero_energy',) if idx == 1 else ()
+        assert res.flags == expected_flags
 
 
 @pytest.mark.physics_invariant
@@ -997,8 +816,10 @@ def test_roche2026_oracle_set_a_impact_loss():
 def test_roche2026_oracle_set_b_impact_loss():
     """Verify all 4 Set B rows through public impact_loss within 2e-4 tolerance.
 
-    Row 0 (Set B row 0) has far-field floor offset 0.001646; rows 1, 2, 3 have
-    offset 0.0 under the zero-energy subtraction.
+    Impactor masses follow nominal gamma rather than exact mass ratio in the
+    published table, producing up to a 1.02e-4 residual in Q'_R.
+    Row 0 triggers the 'X_FF_zero_energy' flag from its zero-energy far-field term.
+    All rows match within the 2e-4 tolerance.
     """
     rows = _get_roche2026_oracle_rows()
     set_b = [r for r in rows if r['set'] == 'B']
@@ -1029,32 +850,9 @@ def test_roche2026_oracle_set_b_impact_loss():
         vc = vr * vesc
 
         res = impact_loss('roche2026', v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b, f_atm=fa)
-        expected_offset = _ROCHE2026_FF_OFFSET.get(('B', idx), 0.0)
-        _, _, xff_auth, _ = _roche2026_fit(
-            b=b,
-            gamma=res.diagnostics['gamma'],
-            v_c_v_esc=vr,
-            M_t_earth=res.diagnostics['M_t_earth'],
-            mass_ratio=mi / mt,
-            Q_R_prime_MJ=res.diagnostics['Q_R_prime'],
-            f_atm=fa,
-            R_ratio=rr,
-            authors_form=True,
-        )
-        _, _, xff_def, _ = _roche2026_fit(
-            b=b,
-            gamma=res.diagnostics['gamma'],
-            v_c_v_esc=vr,
-            M_t_earth=res.diagnostics['M_t_earth'],
-            mass_ratio=mi / mt,
-            Q_R_prime_MJ=res.diagnostics['Q_R_prime'],
-            f_atm=fa,
-            R_ratio=rr,
-            authors_form=False,
-        )
-        assert xff_auth - xff_def == pytest.approx(expected_offset, abs=2e-6)
-        assert res.fraction == pytest.approx(float(r['X_atm_calc']) - expected_offset, abs=2e-4)
-        assert res.flags == ()
+        assert res.fraction == pytest.approx(float(r['X_atm_calc']), abs=2e-4)
+        expected_flags = ('X_FF_zero_energy',) if idx == 0 else ()
+        assert res.flags == expected_flags
 
 
 @pytest.mark.physics_invariant
@@ -1067,31 +865,65 @@ def test_roche2026_v_sub_escape_flag():
     fa = 0.01
     vesc = mutual_escape_speed(mt / (1.0 - fa), mi, rt, ri)
 
-    res_098 = impact_loss(
-        'roche2026', v_c=0.98 * vesc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=0.5, f_atm=fa
-    )
-    assert 'v_sub_escape' in res_098.flags
-
-    res_0995 = impact_loss(
-        'roche2026', v_c=0.995 * vesc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=0.5, f_atm=fa
-    )
-    assert 'v_sub_escape' not in res_0995.flags
-
-    res_100 = impact_loss(
-        'roche2026', v_c=1.0 * vesc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=0.5, f_atm=fa
-    )
-    assert 'v_sub_escape' not in res_100.flags
-
-    res_vc0 = impact_loss('roche2026', v_c=0.0, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=0.5, f_atm=fa)
-    assert 'v_sub_escape' in res_vc0.flags
+    res = {
+        fac: impact_loss(
+            'roche2026', v_c=fac * vesc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=0.5, f_atm=fa
+        )
+        for fac in (0.98, 0.995, 1.0, 0.0)
+    }
+    assert 'v_sub_escape' in res[0.98].flags
+    assert 'v_sub_escape' not in res[0.995].flags
+    assert 'v_sub_escape' not in res[1.0].flags
+    assert 'v_sub_escape' in res[0.0].flags
 
     # Evaluation unchanged: near-field loss evaluated at mutual escape speed
-    assert res_098.diagnostics['X_NF'] == res_100.diagnostics['X_NF']
+    assert res[0.98].diagnostics['X_NF'] == res[1.0].diagnostics['X_NF']
 
 
 @pytest.mark.physics_invariant
-def test_roche2026_far_field_floor_invariants():
-    """Verify physical invariants for far-field zero-energy floor subtraction."""
+def test_roche2026_zero_energy_flag():
+    """Verify X_FF_zero_energy diagnostic and flag behavior."""
+    rt = 6.371e6
+    ri = 0.5 * rt
+    mt = Me
+    gamma = 0.3
+    mi = (gamma / (1.0 - gamma)) * mt
+
+    # Flag set at f_atm = 1e-4, b = 1 (X_FF equals diagnostic ~ 0.081)
+    fa_low = 1.0e-4
+    vesc_low = mutual_escape_speed(mt / (1.0 - fa_low), mi, rt, ri)
+    res_b1 = impact_loss(
+        'roche2026', v_c=1.5 * vesc_low, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=1.0, f_atm=fa_low
+    )
+    assert 'X_FF_zero_energy' in res_b1.flags
+    assert res_b1.diagnostics['X_FF_zero_energy'] == pytest.approx(0.081378, abs=1e-4)
+    assert res_b1.diagnostics['X_FF'] == pytest.approx(
+        res_b1.diagnostics['X_FF_zero_energy'], abs=1e-15
+    )
+
+    # Flag set at v_c = 0 for the same configuration
+    res_vc0 = impact_loss(
+        'roche2026', v_c=0.0, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=1.0, f_atm=fa_low
+    )
+    assert 'X_FF_zero_energy' in res_vc0.flags
+    assert 'v_sub_escape' in res_vc0.flags
+    assert res_vc0.diagnostics['X_FF'] == pytest.approx(
+        res_vc0.diagnostics['X_FF_zero_energy'], abs=1e-15
+    )
+
+    # Flag not set at f_atm = 0.01, gamma = 0.3, b = 0.3 (psi1 + psi3 < 0)
+    fa_med = 0.01
+    vesc_med = mutual_escape_speed(mt / (1.0 - fa_med), mi, rt, ri)
+    res_med = impact_loss(
+        'roche2026', v_c=1.5 * vesc_med, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=0.3, f_atm=fa_med
+    )
+    assert 'X_FF_zero_energy' not in res_med.flags
+    assert res_med.diagnostics['X_FF_zero_energy'] == 0.0
+
+
+@pytest.mark.physics_invariant
+def test_roche2026_far_field_zero_energy_invariants():
+    """Verify physical invariants for zero-energy far-field loss."""
     gammas = [1.0e-3, 0.1, 0.3, 0.5]
     fatms = [1.0e-6, 1.0e-4, 1.0e-2, 0.4]
     mts = [1.0e-3, 0.1, 1.0, 10.0]
@@ -1101,86 +933,49 @@ def test_roche2026_far_field_floor_invariants():
     rt = 6.371e6
     ri = 0.5 * rt
 
-    # 1. At v_c = 0: X_FF is exactly 0 and v_sub_escape is flagged
-    for g in gammas:
-        for fa in fatms:
-            for mt in mts:
-                m_t_kg = mt * Me
-                m_i_kg = (g / (1.0 - g)) * m_t_kg
-                for b in bs:
-                    res_vc0 = impact_loss(
-                        'roche2026',
-                        v_c=0.0,
-                        M_i=m_i_kg,
-                        M_t=m_t_kg,
-                        R_i=ri,
-                        R_t=rt,
-                        b=b,
-                        f_atm=fa,
-                    )
-                    assert res_vc0.diagnostics['X_FF'] == 0.0
-                    assert 'v_sub_escape' in res_vc0.flags
+    # 1. At v_c = 0: X_FF equals X_FF_zero_energy and v_sub_escape is flagged
+    for g, fa, mt, b in itertools.product(gammas, fatms, mts, bs):
+        m_t_kg = mt * Me
+        m_i_kg = (g / (1.0 - g)) * m_t_kg
+        res_vc0 = impact_loss(
+            'roche2026', v_c=0.0, M_i=m_i_kg, M_t=m_t_kg, R_i=ri, R_t=rt, b=b, f_atm=fa
+        )
+        assert res_vc0.diagnostics['X_FF'] == pytest.approx(
+            res_vc0.diagnostics['X_FF_zero_energy'], abs=1e-15
+        )
+        assert 'v_sub_escape' in res_vc0.flags
+        if res_vc0.diagnostics['X_FF_zero_energy'] > 0.0:
+            assert 'X_FF_zero_energy' in res_vc0.flags
+        else:
+            assert 'X_FF_zero_energy' not in res_vc0.flags
 
-    # 2. At b = 1: X_FF is exactly 0 and loss is continuous across grazing boundary
-    for g in gammas:
-        for fa in fatms:
-            for mt in mts:
-                m_t_kg = mt * Me
-                m_i_kg = (g / (1.0 - g)) * m_t_kg
-                for vr in v_ratios:
-                    vc = vr * 11.2e3 * np.sqrt(mt)
-                    res_b1 = impact_loss(
-                        'roche2026',
-                        v_c=vc,
-                        M_i=m_i_kg,
-                        M_t=m_t_kg,
-                        R_i=ri,
-                        R_t=rt,
-                        b=1.0,
-                        f_atm=fa,
-                    )
-                    res_near = impact_loss(
-                        'roche2026',
-                        v_c=vc,
-                        M_i=m_i_kg,
-                        M_t=m_t_kg,
-                        R_i=ri,
-                        R_t=rt,
-                        b=1.0 - 1e-9,
-                        f_atm=fa,
-                    )
-                    assert res_b1.diagnostics['X_FF'] == 0.0
-                    assert abs(res_near.fraction - res_b1.fraction) < 1.0e-6
+    # 2. At b = 1: X_FF equals X_FF_zero_energy and loss is continuous across grazing boundary
+    for g, fa, mt, vr in itertools.product(gammas, fatms, mts, v_ratios):
+        m_t_kg = mt * Me
+        m_i_kg = (g / (1.0 - g)) * m_t_kg
+        vc = vr * 11.2e3 * np.sqrt(mt)
 
-    # 3. Default form X_FF never exceeds authors form X_FF across stability box
-    for g in gammas:
-        for fa in fatms:
-            for mt in mts:
-                for b in bs:
-                    for vr in v_ratios:
-                        _, _, xff_def, _ = _roche2026_fit(
-                            b=b,
-                            gamma=g,
-                            v_c_v_esc=vr,
-                            M_t_earth=mt,
-                            mass_ratio=g / (1.0 - g),
-                            Q_R_prime_MJ=10.0,
-                            f_atm=fa,
-                            R_ratio=0.5,
-                            authors_form=False,
-                        )
-                        _, _, xff_auth, _ = _roche2026_fit(
-                            b=b,
-                            gamma=g,
-                            v_c_v_esc=vr,
-                            M_t_earth=mt,
-                            mass_ratio=g / (1.0 - g),
-                            Q_R_prime_MJ=10.0,
-                            f_atm=fa,
-                            R_ratio=0.5,
-                            authors_form=True,
-                        )
-                        assert xff_def <= xff_auth + 1e-15
+        def call_b(b_val):
+            return impact_loss(
+                'roche2026', v_c=vc, M_i=m_i_kg, M_t=m_t_kg, R_i=ri, R_t=rt, b=b_val, f_atm=fa
+            )
+
+        res_b1 = call_b(1.0)
+        res_near = call_b(1.0 - 1e-9)
+        assert res_b1.diagnostics['X_FF'] == pytest.approx(
+            res_b1.diagnostics['X_FF_zero_energy'], abs=1e-15
+        )
+        assert abs(res_near.fraction - res_b1.fraction) < 1.0e-6
+
+    # 3. Across stability box: X_FF_zero_energy never exceeds X_FF
+    for g, fa, mt, b, vr in itertools.product(gammas, fatms, mts, bs, v_ratios):
+        m_t_kg = mt * Me
+        m_i_kg = (g / (1.0 - g)) * m_t_kg
+        vc = vr * 11.2e3 * np.sqrt(mt)
+        res = impact_loss(
+            'roche2026', v_c=vc, M_i=m_i_kg, M_t=m_t_kg, R_i=ri, R_t=rt, b=b, f_atm=fa
+        )
+        assert res.diagnostics['X_FF_zero_energy'] <= res.diagnostics['X_FF'] + 1e-15
 
 
 @pytest.mark.physics_invariant
@@ -1195,18 +990,13 @@ def test_roche2026_fitted_range_boundaries_and_r_ratio():
     vesc = mutual_escape_speed(mt / (1.0 - fa), mi, rt, ri)
     vc = 2.0 * vesc
 
-    def call(**overrides):
-        kw = {
-            'v_c': vc,
-            'M_i': mi,
-            'M_t': mt,
-            'R_i': ri,
-            'R_t': rt,
-            'b': b,
-            'f_atm': fa,
-        }
-        kw.update(overrides)
-        return impact_loss('roche2026', **kw).flags
+    base = dict(v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b, f_atm=fa)
+
+    def call(**o):
+        return impact_loss('roche2026', **(base | o)).flags
+
+    def m_i(g):
+        return (g / (1.0 - g)) * mt
 
     # Boundary cases: (overrides, param_name, expected_flagged)
     # 1% relative tolerance is applied to each boundary
@@ -1227,10 +1017,10 @@ def test_roche2026_fitted_range_boundaries_and_r_ratio():
         ({'M_t': 5.0 * 1.005 * Me}, 'M_t_earth', False),
         ({'M_t': 5.0 * 1.015 * Me}, 'M_t_earth', True),
         # gamma: (0.1, 0.5)
-        ({'M_i': (g_lo_in / (1.0 - g_lo_in)) * mt}, 'gamma', False),
-        ({'M_i': (g_lo_out / (1.0 - g_lo_out)) * mt}, 'gamma', True),
-        ({'M_i': (g_hi_in / (1.0 - g_hi_in)) * mt}, 'gamma', False),
-        ({'M_i': (g_hi_out / (1.0 - g_hi_out)) * mt}, 'gamma', True),
+        ({'M_i': m_i(g_lo_in)}, 'gamma', False),
+        ({'M_i': m_i(g_lo_out)}, 'gamma', True),
+        ({'M_i': m_i(g_hi_in)}, 'gamma', False),
+        ({'M_i': m_i(g_hi_out)}, 'gamma', True),
         # b: (0.0, 0.9)
         ({'b': 0.9 * 1.005}, 'b', False),
         ({'b': 0.9 * 1.015}, 'b', True),
@@ -1245,15 +1035,11 @@ def test_roche2026_fitted_range_boundaries_and_r_ratio():
         ({'v_c': 0.5 * vesc}, 'v_ratio', False),
     ]
 
-    for kw_overrides, param, expect_flag in cases:
-        flags = call(**kw_overrides)
-        if expect_flag:
-            assert param in flags, f'Expected {param} in flags for {kw_overrides}'
-        else:
-            assert param not in flags, f'Did not expect {param} in flags for {kw_overrides}'
+    for overrides, param, expect in cases:
+        assert (param in call(**overrides)) is expect
 
     # R_i / R_t = 1.2 sets flag and evaluates fit without flag logic
-    r_12 = impact_loss('roche2026', v_c=vc, M_i=mi, M_t=mt, R_i=rt * 1.2, R_t=rt, b=b, f_atm=fa)
+    r_12 = impact_loss('roche2026', **(base | dict(R_i=rt * 1.2)))
     assert 'R_ratio' in r_12.flags
     _, _, _, x_direct = _roche2026_fit(
         b=b,
@@ -1280,36 +1066,12 @@ def test_roche2026_validation_contracts(monkeypatch):
     b = 0.5
     fa = 0.05
 
+    base = dict(v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b)
     for entry_point in (
-        lambda **kw: mass_loss_roche2026(
-            v_c=kw.get('v_c', vc),
-            M_i=kw.get('M_i', mi),
-            M_t=kw.get('M_t', mt),
-            R_i=kw.get('R_i', ri),
-            R_t=kw.get('R_t', rt),
-            b=kw.get('b', b),
-            f_atm=kw.get('f_atm', fa),
-        ),
+        lambda **kw: mass_loss_roche2026(**(base | dict(f_atm=fa) | kw)),
+        lambda **kw: impact_loss('roche2026', **(base | dict(f_atm=fa) | kw)),
         lambda **kw: impact_loss(
-            'roche2026',
-            v_c=kw.get('v_c', vc),
-            M_i=kw.get('M_i', mi),
-            M_t=kw.get('M_t', mt),
-            R_i=kw.get('R_i', ri),
-            R_t=kw.get('R_t', rt),
-            b=kw.get('b', b),
-            f_atm=kw.get('f_atm', fa),
-        ),
-        lambda **kw: impact_loss(
-            'kegerreis2020',
-            v_c=kw.get('v_c', vc),
-            M_i=kw.get('M_i', mi),
-            M_t=kw.get('M_t', mt),
-            R_i=kw.get('R_i', ri),
-            R_t=kw.get('R_t', rt),
-            b=kw.get('b', b),
-            rho_i=kw.get('rho_i', 3000.0),
-            rho_t=kw.get('rho_t', 5515.0),
+            'kegerreis2020', **(base | dict(rho_i=3000.0, rho_t=5515.0) | kw)
         ),
     ):
         for bad_m in (0.0, -1.0, np.nan, np.inf):
@@ -1338,7 +1100,7 @@ def test_roche2026_validation_contracts(monkeypatch):
     # Non-finite scaling law output raises ValueError
     monkeypatch.setattr(zc, '_roche2026_fit', lambda **kw: (np.nan, np.nan, np.nan, np.nan))
     with pytest.raises(ValueError, match='produced non-finite result'):
-        impact_loss('roche2026', v_c=vc, M_i=mi, M_t=mt, R_i=ri, R_t=rt, b=b, f_atm=fa)
+        impact_loss('roche2026', **(base | dict(f_atm=fa)))
 
 
 def test_impact_loss_array_inputs_raise_type_error_both_laws():

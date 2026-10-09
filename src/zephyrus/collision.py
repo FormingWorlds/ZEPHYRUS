@@ -27,16 +27,17 @@ class ImpactLossResult:
     fraction : float
         Fraction of the target atmosphere lost, in [0, 1].
     flags : tuple of str
-        Names of parameters that fall outside the calibrated range, or
-        'v_sub_escape' when impact speed is below 0.99 mutual escape speed.
-        Empty when all parameters lie within range. Active stability
-        clamps are recorded in diagnostics['clamped'].
+        Names of parameters that fall outside the calibrated range,
+        'v_sub_escape' when impact speed is below 0.99 mutual escape speed,
+        or 'X_FF_zero_energy' when zero-energy far-field loss is strictly positive.
+        Empty when all parameters lie within range and zero-energy loss is zero.
+        Active stability clamps are recorded in diagnostics['clamped'].
     diagnostics : dict of str to Any
         Diagnostic quantities computed during evaluation.
         For 'kegerreis2020': 'v_esc', 'v_ratio', 'gamma', 'mass_ratio', 'f_M'.
         For 'roche2026': 'f_atm', 'M_t_earth', 'gamma', 'b', 'R_ratio',
         'v_ratio', 'v_esc', 'Q_R_prime' (in MJ/kg), 'clamped', 'f_NF',
-        'X_NF', 'X_FF'.
+        'X_NF', 'X_FF', 'X_FF_zero_energy'.
     """
 
     law: str
@@ -73,7 +74,8 @@ Keys:
 
 Flags are recorded when an evaluation parameter falls outside its bounds by
 more than the 1% relative tolerance (_ROCHE2026_RANGE_RTOL = 0.01). Speeds
-below 0.99 v_esc trigger the 'v_sub_escape' flag.
+below 0.99 v_esc trigger the 'v_sub_escape' flag. Non-zero far-field loss at
+zero impact energy triggers 'X_FF_zero_energy'.
 """
 
 # Relative tolerance on empirical boundary flags to cover grid-point rounding.
@@ -160,22 +162,9 @@ _ROCHE2026_COEFFICIENTS: dict[str, float] = {
 _ROCHE2026_TABLE_C_CONSTANTS: dict[str, float] = {
     'q37': 1.0,
     'q48': 1.0,
-    'q16': 0.0,
-    'q17': 0.0,
-    'q18': 0.0,
-    'q23': 0.0,
-    'q24': 0.0,
-    'q25': 0.0,
-    'q26': 0.0,
-    'q27': 0.0,
-    'q28': 0.0,
-    'k26': 0.0,
-    'k27': 0.0,
-    'k36': 0.0,
-    'k37': 0.0,
-    's34': 0.0,
-    's35': 0.0,
-    's36': 0.0,
+    **dict.fromkeys(
+        'q16 q17 q18 q23 q24 q25 q26 q27 q28 k26 k27 k36 k37 s34 s35 s36'.split(), 0.0
+    ),
 }
 
 _ROCHE2026_PARAMS: dict[str, float] = {
@@ -194,7 +183,6 @@ def _roche2026_fit(
     Q_R_prime_MJ: float | np.ndarray,
     f_atm: float | np.ndarray,
     R_ratio: float | np.ndarray,
-    authors_form: bool = False,
 ) -> tuple[Any, Any, Any, Any]:
     r"""Evaluate the Roche et al. (2026) giant impact atmospheric mass loss model.
 
@@ -220,10 +208,6 @@ def _roche2026_fit(
         Target atmospheric mass fraction $(M_t^{\text{tot}} - M_t^r) / M_t^{\text{tot}}$.
     R_ratio : float or numpy.ndarray
         Refractory radius ratio $R_i^r / R_t^r$.
-    authors_form : bool, default False
-        If True, evaluate the authors' published form without zero-energy
-        far-field floor subtraction. If False (default), subtract max(0, psi_1 + psi_3)
-        to ensure X_FF vanishes at zero impact energy and grazing incidence.
 
     Returns
     -------
@@ -245,7 +229,7 @@ def _roche2026_fit(
     """
     p = _ROCHE2026_PARAMS
 
-    # Near-field envelope fraction zeta_i terms (Eq. 7, general form)
+    # Near-field envelope fraction zeta_i terms (Roche et al. 2026, Eq. 7, general form)
     def _calc_zeta(i: int) -> Any:
         return (
             p[f'q{i}1']
@@ -256,18 +240,15 @@ def _roche2026_fit(
             + p[f'q{i}7'] * M_t_earth ** p[f'q{i}8']
         )
 
-    z1 = _calc_zeta(1)
-    z2 = _calc_zeta(2)
-    z3 = _calc_zeta(3)
-    z4 = _calc_zeta(4)
+    z1, z2, z3, z4 = (_calc_zeta(i) for i in (1, 2, 3, 4))
 
-    # Near-field atmospheric mass fraction f_NF (Eq. 6)
+    # Near-field atmospheric mass fraction f_NF (Roche et al. 2026, Eq. 6)
     with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
         f_nf = z4 / (1.0 + p['zeta6'] * np.exp(z3 * (R_ratio - z2))) ** z1 + p['zeta5']
         f_nf = np.clip(f_nf, 0.0, 1.0)
     f_ff = 1.0 - f_nf
 
-    # Near-field loss function xi_i (Eq. 8, Eq. 9, general form)
+    # Near-field loss function xi_i (Roche et al. 2026, Eq. 8, Eq. 9, general form)
     def _calc_xi_i(i: int, v_rel: Any) -> Any:
         return (
             p[f'k{i}1']
@@ -279,16 +260,12 @@ def _roche2026_fit(
         )
 
     def _calc_xi(v_rel: Any) -> Any:
-        x1 = _calc_xi_i(1, v_rel)
-        x2 = _calc_xi_i(2, v_rel)
-        x3 = _calc_xi_i(3, v_rel)
+        x1, x2, x3 = (_calc_xi_i(i, v_rel) for i in (1, 2, 3))
         return f_nf * (x1 - x2 * (b + x3) ** 2)
 
-    x_nf = _calc_xi(v_c_v_esc)
-    lo = np.maximum(0.0, _calc_xi(1.0))
-    x_nf = np.clip(x_nf, lo, f_nf)
+    x_nf = np.clip(_calc_xi(v_c_v_esc), np.maximum(0.0, _calc_xi(1.0)), f_nf)
 
-    # Far-field loss function psi_i (Eq. 10, Eq. 11, general form)
+    # Far-field loss function psi_i (Roche et al. 2026, Eq. 10, Eq. 11, general form)
     def _calc_psi_i(i: int) -> Any:
         return (
             p[f's{i}1']
@@ -297,10 +274,7 @@ def _roche2026_fit(
             + p[f's{i}6'] * np.log10(f_atm)
         )
 
-    p1 = _calc_psi_i(1)
-    p2 = _calc_psi_i(2)
-    p3 = _calc_psi_i(3)
-    p4 = _calc_psi_i(4)
+    p1, p2, p3, p4 = (_calc_psi_i(i) for i in (1, 2, 3, 4))
 
     one_minus_b = np.maximum(0.0, 1.0 - b)
     with np.errstate(invalid='ignore', divide='ignore'):
@@ -310,13 +284,8 @@ def _roche2026_fit(
     arg = Q_R_prime_MJ * (1.0 + mass_ratio) * geom_factor
     exp_arg = np.minimum(-p2 * arg, 700.0)
     with np.errstate(over='ignore', invalid='ignore'):
-        if authors_form:
-            raw_ff = f_ff * (p1 * np.exp(exp_arg) + p3)
-            x_ff = np.where(f_ff == 0.0, 0.0, np.clip(raw_ff, 0.0, f_ff))
-        else:
-            offset = np.maximum(0.0, p1 + p3)
-            raw_ff = f_ff * np.clip(p1 * np.exp(exp_arg) + p3 - offset, 0.0, 1.0)
-            x_ff = np.where(f_ff == 0.0, 0.0, raw_ff)
+        raw_ff = f_ff * (p1 * np.exp(exp_arg) + p3)
+        x_ff = np.where(f_ff == 0.0, 0.0, np.clip(raw_ff, 0.0, f_ff))
     if np.ndim(x_ff) == 0:
         x_ff = float(x_ff)
     x_atm = np.clip(x_nf + x_ff, 0.0, 1.0)
@@ -466,11 +435,7 @@ def _as_floats(**kwargs: Any) -> dict[str, float]:
     """Convert scalar arguments to float, rejecting sequences, strings, and overflow."""
     floats: dict[str, float] = {}
     for name, val in kwargs.items():
-        if (
-            isinstance(val, (str, bytes))
-            or getattr(val, 'ndim', 0) > 0
-            or isinstance(val, (list, tuple))
-        ):
+        if isinstance(val, (str, bytes, list, tuple)) or getattr(val, 'ndim', 0) > 0:
             raise TypeError(f'{name} must be a scalar numeric value, got {type(val).__name__}')
         try:
             floats[name] = float(val)
@@ -649,6 +614,7 @@ def _eval_roche2026(
         'f_NF': 0.0,
         'X_NF': 0.0,
         'X_FF': 0.0,
+        'X_FF_zero_energy': 0.0,
     }
 
     if f_atm == 0.0:
@@ -684,12 +650,26 @@ def _eval_roche2026(
         R_ratio=r_ratio,
     )
 
-    if not np.isfinite([f_nf, x_nf, x_ff, x_atm]).all():
+    _, _, x_ff_zero, _ = _roche2026_fit(
+        b=b,
+        gamma=eval_params['gamma'],
+        v_c_v_esc=v_ratio,
+        M_t_earth=eval_params['M_t_earth'],
+        mass_ratio=M_i / M_t,
+        Q_R_prime_MJ=0.0,
+        f_atm=eval_params['f_atm'],
+        R_ratio=r_ratio,
+    )
+
+    if not np.isfinite([f_nf, x_nf, x_ff, x_atm, x_ff_zero]).all():
         raise ValueError(f'Roche scaling law produced non-finite result: x_atm={x_atm!r}')
 
     diag['f_NF'] = float(f_nf)
     diag['X_NF'] = float(x_nf)
     diag['X_FF'] = float(x_ff)
+    diag['X_FF_zero_energy'] = float(x_ff_zero)
+    if float(x_ff_zero) > 0.0:
+        flags.append('X_FF_zero_energy')
     return float(x_atm), tuple(flags), diag
 
 
@@ -737,9 +717,7 @@ def mass_loss_roche2026(
 
     Notes
     -----
-    ZEPHYRUS subtracts the zero-energy value max(0, psi_1 + psi_3) from the
-    authors' far-field fit (a ZEPHYRUS choice that departs from the authors'
-    fit). Target mass M_t is the refractory core-plus-mantle mass; mutual
+    Target mass M_t is the refractory core-plus-mantle mass; mutual
     escape speed v_esc and specific impact energy Q'_R evaluate with total
     target mass M_t / (1 - f_atm). Stability clamps apply to inputs outside
     the numerical stability bounds. This function returns only the loss
@@ -810,28 +788,20 @@ def impact_loss(
 
     Notes
     -----
-    For 'roche2026', ZEPHYRUS subtracts the zero-energy value max(0, psi_1 + psi_3)
-    from the authors' far-field fit (a ZEPHYRUS choice that departs from the
-    authors' fit). Target mass M_t is the refractory mass, while mutual escape
+    For 'roche2026', target mass M_t is the refractory mass, while mutual escape
     speed v_esc and specific impact energy Q'_R evaluate with total target mass
-    M_t / (1 - f_atm). Arguments not used by the selected scaling law are
-    ignored (e.g. bulk densities for 'roche2026', or f_atm for 'kegerreis2020').
-    An airless target (f_atm = 0) returns no diagnostic flags. Inputs are scalar;
-    arrays are not supported.
+    M_t / (1 - f_atm). Non-zero far-field loss at zero impact energy is recorded in
+    diagnostics['X_FF_zero_energy'] and flagged as 'X_FF_zero_energy'. Arguments
+    not used by the selected scaling law are ignored (e.g. bulk densities for
+    'roche2026', or f_atm for 'kegerreis2020'). An airless target (f_atm = 0)
+    returns no diagnostic flags. Inputs are scalar; arrays are not supported.
     """
     if law == 'kegerreis2020':
         if rho_i is None or rho_t is None:
             missing = [k for k, v in (('rho_i', rho_i), ('rho_t', rho_t)) if v is None]
             raise ValueError(f'kegerreis2020 requires {", ".join(missing)}')
         vals = _as_floats(
-            v_c=v_c,
-            M_i=M_i,
-            M_t=M_t,
-            rho_i=rho_i,
-            rho_t=rho_t,
-            R_i=R_i,
-            R_t=R_t,
-            b=b,
+            v_c=v_c, M_i=M_i, M_t=M_t, rho_i=rho_i, rho_t=rho_t, R_i=R_i, R_t=R_t, b=b
         )
         frac = mass_loss(**vals)
         v_esc = mutual_escape_speed(vals['M_t'], vals['M_i'], vals['R_t'], vals['R_i'])
