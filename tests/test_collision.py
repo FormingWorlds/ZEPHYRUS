@@ -291,6 +291,9 @@ def _fit_kwargs(r: dict[str, str], **override: float) -> dict[str, float]:
 
 def test_roche2026_coefficients_count_and_constants():
     """Verify count of 61 fitted coefficients and exact Table C constants."""
+    import zephyrus
+
+    print(f'zephyrus.__file__: {zephyrus.__file__}')
     assert len(_ROCHE2026_COEFFICIENTS) == 61
 
     # Verify all 61 fitted coefficients are present, float, and non-zero.
