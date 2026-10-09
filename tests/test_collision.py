@@ -572,7 +572,7 @@ def test_roche2026_input_contract_and_clamps():
         with pytest.raises(ValueError, match='Collision speed v_c'):
             mass_loss_roche2026(vc_bad, m_i, m_t, r_i, r_t, 0.5, 0.01)
 
-    # Stability clamps and flags via impact_loss (Ruling 8)
+    # Stability clamps and flags via impact_loss
     assert set(ROCHE2026_FITTED_RANGE.keys()) == {'f_atm', 'M_t_earth', 'gamma', 'b', 'v_ratio'}
 
     # f_atm < 1e-6 clamped to 1e-6 in fit
@@ -638,7 +638,21 @@ def test_roche2026_input_contract_and_clamps():
     assert res_flags.diagnostics['M_t_earth'] == pytest.approx(1.0)
     assert res_flags.diagnostics['v_ratio'] > 3.0
 
-    # Physical quantities derived from physical inputs (Ruling 6 Item 3, Ruling 8)
+    # Speed below escape speed is not flagged (held by near-field velocity floor)
+    res_sub_vesc = impact_loss(
+        'roche2026',
+        v_c=0.5 * mutual_escape_speed(m_t / 0.99, m_i, r_t, r_i),
+        M_i=m_i,
+        M_t=m_t,
+        R_i=r_i,
+        R_t=r_t,
+        b=0.5,
+        f_atm=0.01,
+    )
+    assert 'v_ratio' not in res_sub_vesc.flags
+    assert res_sub_vesc.diagnostics['v_ratio'] == pytest.approx(0.5)
+
+    # Physical quantities derived from physical inputs
     res_phys = impact_loss(
         'roche2026',
         v_c=v_c,

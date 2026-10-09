@@ -494,10 +494,10 @@ def specific_impact_energy(
 
     References
     ----------
-    1. Roche, M. J., Lock, S. J., Dou, J., Carter, P. J., Leinhardt, Z. M.,
-       & Kegerreis, J. A. (2025), "Atmospheric loss during giant impacts:
-       mechanisms and scaling of near- and far-field loss", accepted to PSJ,
-       arXiv:2505.04343, Eqns. 13 to 18.
+    1. Roche, M. J., Lock, S. J., Dou, J., Carter, P. J., Kegerreis, J. A.,
+       & Leinhardt, Z. M. (2025), "Atmospheric Loss during Giant Impacts:
+       Mechanisms and Scaling of Near- and Far-field Loss", The Planetary
+       Science Journal, 6, 149, doi:10.3847/PSJ/add929, Eqns. 13 to 18.
     2. Leinhardt, Z. M., & Stewart, S. T. (2012), "Collisions between
        gravity-dominated bodies. I. Outcome regimes and scaling laws",
        ApJ 745, 79, doi:10.1088/0004-637X/745/1/79.
@@ -575,7 +575,7 @@ def _eval_roche2026(
     flags: list[str] = []
     clamped: dict[str, float] = {}
 
-    # Stability bounds and validity flags (Section 2 policy, Ruling 8)
+    # Stability bounds and validity flags
     fa_lo, fa_hi = ROCHE2026_FITTED_RANGE['f_atm']
     if f_atm < 1.0e-6:
         clamped['f_atm'] = 1.0e-6
@@ -619,7 +619,7 @@ def _eval_roche2026(
     q_r_prime = specific_impact_energy(v_c, M_i, m_t_tot, R_i, R_t, b)
 
     vr_lo, vr_hi = ROCHE2026_FITTED_RANGE['v_ratio']
-    if v_ratio < vr_lo or v_ratio > vr_hi:
+    if v_ratio > vr_hi:
         flags.append('v_ratio')
 
     m_i_eval = m_t_eval * (M_i / M_t)
