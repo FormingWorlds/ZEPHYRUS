@@ -19,6 +19,7 @@ import pytest
 from zephyrus.collision import (
     _ROCHE2026_COEFFICIENTS,
     _ROCHE2026_TABLE_C_CONSTANTS,
+    ROCHE2026_FITTED_RANGE,
     _roche2026_fit,
     impact_loss,
     mass_loss,
@@ -517,11 +518,15 @@ def test_roche2026_input_contract_and_clamps():
         with pytest.raises(ValueError, match='Collision speed v_c'):
             mass_loss_roche2026(vc_bad, m_i, m_t, r_i, r_t, 0.5, 0.01)
 
+    # Stability clamps and flags via impact_loss (Ruling 8)
+    assert set(ROCHE2026_FITTED_RANGE.keys()) == {'f_atm', 'M_t_earth', 'gamma', 'b', 'v_ratio'}
+
     # f_atm < 1e-6 clamped to 1e-6 in fit
     res_fa_lo = impact_loss(
         'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=1e-7
     )
     assert 'f_atm' in res_fa_lo.flags
+    assert res_fa_lo.diagnostics['clamped']['f_atm'] == pytest.approx(1.0e-6)
     assert 0.0 <= res_fa_lo.fraction <= 1.0
     res_fa_1e6 = impact_loss(
         'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=1e-6
@@ -533,23 +538,30 @@ def test_roche2026_input_contract_and_clamps():
         'roche2026', v_c=v_c, M_i=m_i, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.5
     )
     assert 'f_atm' in res_fa_hi.flags
+    assert res_fa_hi.diagnostics['clamped']['f_atm'] == pytest.approx(0.4)
     assert 0.0 <= res_fa_hi.fraction <= 1.0
 
     # Target mass clamped outside [1e-3, 10] M_E
     res_mt_lo = impact_loss(
         'roche2026', v_c=v_c, M_i=m_i, M_t=1e-4 * M_earth, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
     )
-    assert 'M_t' in res_mt_lo.flags
+    assert 'M_t_earth' in res_mt_lo.flags
+    assert res_mt_lo.diagnostics['clamped']['M_t_earth'] == pytest.approx(1.0e-3)
+    assert res_mt_lo.diagnostics['M_t_earth'] == pytest.approx(1e-4)
+
     res_mt_hi = impact_loss(
         'roche2026', v_c=v_c, M_i=m_i, M_t=15.0 * M_earth, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
     )
-    assert 'M_t' in res_mt_hi.flags
+    assert 'M_t_earth' in res_mt_hi.flags
+    assert res_mt_hi.diagnostics['clamped']['M_t_earth'] == pytest.approx(10.0)
+    assert res_mt_hi.diagnostics['M_t_earth'] == pytest.approx(15.0)
 
     # Impactor mass ratio clamped below 1e-3
     res_gamma_lo = impact_loss(
         'roche2026', v_c=v_c, M_i=1e-4 * m_t, M_t=m_t, R_i=r_i, R_t=r_t, b=0.5, f_atm=0.01
     )
     assert 'gamma' in res_gamma_lo.flags
+    assert res_gamma_lo.diagnostics['clamped']['gamma'] == pytest.approx(1.0e-3)
 
     # Flags for out-of-fitted-range conditions (b > 0.9, gamma > 0.5, v_ratio > 3)
     res_flags = impact_loss(
@@ -565,8 +577,14 @@ def test_roche2026_input_contract_and_clamps():
     assert 'b' in res_flags.flags
     assert 'gamma' in res_flags.flags
     assert 'v_ratio' in res_flags.flags
+    assert res_flags.diagnostics['clamped'] == {}
+    assert res_flags.diagnostics['b'] == pytest.approx(0.95)
+    assert res_flags.diagnostics['gamma'] == pytest.approx(2.0 / 3.0)
+    assert res_flags.diagnostics['f_atm'] == pytest.approx(0.01)
+    assert res_flags.diagnostics['M_t_earth'] == pytest.approx(1.0)
+    assert res_flags.diagnostics['v_ratio'] > 3.0
 
-    # Physical quantities derived from physical inputs (Ruling 6 Item 3)
+    # Physical quantities derived from physical inputs (Ruling 6 Item 3, Ruling 8)
     res_phys = impact_loss(
         'roche2026',
         v_c=v_c,
@@ -580,8 +598,10 @@ def test_roche2026_input_contract_and_clamps():
     assert res_phys.diagnostics['v_esc'] == mutual_escape_speed(
         15.0 * M_earth / 0.5, m_i, r_t, r_i
     )
-    assert 'M_t' in res_phys.flags
+    assert 'M_t_earth' in res_phys.flags
     assert 'f_atm' in res_phys.flags
+    assert res_phys.diagnostics['clamped']['M_t_earth'] == pytest.approx(10.0)
+    assert res_phys.diagnostics['clamped']['f_atm'] == pytest.approx(0.4)
 
 
 @pytest.mark.physics_invariant

@@ -41,6 +41,16 @@ class ImpactLossResult:
         return self.fraction
 
 
+# Calibrated parameter ranges for the Roche et al. (2026) scaling law (Sect. 4.1, p. 7).
+ROCHE2026_FITTED_RANGE: dict[str, tuple[float, float]] = {
+    'f_atm': (0.01, 0.2),
+    'M_t_earth': (0.35, 5.0),
+    'gamma': (0.1, 0.5),
+    'b': (0.0, 0.9),
+    'v_ratio': (1.0, 3.0),
+}
+
+
 # Fitted coefficients for the Roche et al. (2026) giant impact model.
 # Source: Roche et al. (2026), arXiv:2610.06077; Zenodo doi:10.5281/zenodo.23192423.
 _ROCHE2026_COEFFICIENTS: dict[str, float] = {
@@ -514,15 +524,22 @@ def _eval_roche2026(
     gamma = M_i / (M_i + M_t)
     r_ratio = R_i / R_t
 
+    m_t_earth = M_t / M_earth
+
     if f_atm == 0.0:
-        v_esc = mutual_escape_speed(M_t, M_i, R_t, R_i)
+        m_t_tot = M_t
+        v_esc = mutual_escape_speed(m_t_tot, M_i, R_t, R_i)
         v_ratio = v_c / v_esc if v_esc > 0.0 else 0.0
-        q_r_prime = specific_impact_energy(v_c, M_i, M_t, R_i, R_t, b)
+        q_r_prime = specific_impact_energy(v_c, M_i, m_t_tot, R_i, R_t, b)
         diag = {
-            'v_esc': float(v_esc),
-            'v_ratio': float(v_ratio),
+            'f_atm': 0.0,
+            'M_t_earth': float(m_t_earth),
             'gamma': float(gamma),
+            'b': float(b),
+            'v_ratio': float(v_ratio),
+            'v_esc': float(v_esc),
             'Q_R_prime': float(q_r_prime),
+            'clamped': {},
             'f_NF': 0.0,
             'X_NF': 0.0,
             'X_FF': 0.0,
@@ -530,43 +547,44 @@ def _eval_roche2026(
         return 0.0, (), diag
 
     flags: list[str] = []
+    clamped: dict[str, float] = {}
 
-    # Stability bounds and validity flags (Section 2 policy)
+    # Stability bounds and validity flags (Section 2 policy, Ruling 8)
+    fa_lo, fa_hi = ROCHE2026_FITTED_RANGE['f_atm']
     if f_atm < 1.0e-6:
-        flags.append('f_atm')
+        clamped['f_atm'] = 1.0e-6
         f_atm_eval = 1.0e-6
     elif f_atm > 0.4:
-        flags.append('f_atm')
+        clamped['f_atm'] = 0.4
         f_atm_eval = 0.4
-    elif f_atm < 0.01 or f_atm > 0.2:
-        flags.append('f_atm')
-        f_atm_eval = f_atm
     else:
         f_atm_eval = f_atm
+    if f_atm < fa_lo or f_atm > fa_hi:
+        flags.append('f_atm')
 
-    m_t_earth = M_t / M_earth
+    mt_lo, mt_hi = ROCHE2026_FITTED_RANGE['M_t_earth']
     if m_t_earth < 1.0e-3:
-        flags.append('M_t')
+        clamped['M_t_earth'] = 1.0e-3
         m_t_eval = 1.0e-3
     elif m_t_earth > 10.0:
-        flags.append('M_t')
+        clamped['M_t_earth'] = 10.0
         m_t_eval = 10.0
-    elif m_t_earth < 0.35 or m_t_earth > 5.0:
-        flags.append('M_t')
-        m_t_eval = m_t_earth
     else:
         m_t_eval = m_t_earth
+    if m_t_earth < mt_lo or m_t_earth > mt_hi:
+        flags.append('M_t_earth')
 
+    g_lo, g_hi = ROCHE2026_FITTED_RANGE['gamma']
     if gamma < 1.0e-3:
-        flags.append('gamma')
+        clamped['gamma'] = 1.0e-3
         gamma_eval = 1.0e-3
-    elif gamma < 0.1 or gamma > 0.5:
-        flags.append('gamma')
-        gamma_eval = gamma
     else:
         gamma_eval = gamma
+    if gamma < g_lo or gamma > g_hi:
+        flags.append('gamma')
 
-    if b > 0.9:
+    b_lo, b_hi = ROCHE2026_FITTED_RANGE['b']
+    if b < b_lo or b > b_hi:
         flags.append('b')
 
     m_t_tot = M_t / (1.0 - f_atm)
@@ -574,7 +592,8 @@ def _eval_roche2026(
     v_ratio = v_c / v_esc if v_esc > 0.0 else 0.0
     q_r_prime = specific_impact_energy(v_c, M_i, m_t_tot, R_i, R_t, b)
 
-    if v_ratio > 3.0:
+    vr_lo, vr_hi = ROCHE2026_FITTED_RANGE['v_ratio']
+    if v_ratio < vr_lo or v_ratio > vr_hi:
         flags.append('v_ratio')
 
     m_i_eval = m_t_eval * (M_i / M_t)
@@ -591,10 +610,14 @@ def _eval_roche2026(
     )
 
     diag = {
-        'v_esc': float(v_esc),
-        'v_ratio': float(v_ratio),
+        'f_atm': float(f_atm),
+        'M_t_earth': float(m_t_earth),
         'gamma': float(gamma),
+        'b': float(b),
+        'v_ratio': float(v_ratio),
+        'v_esc': float(v_esc),
         'Q_R_prime': float(q_r_prime),
+        'clamped': clamped,
         'f_NF': float(f_nf),
         'X_NF': float(x_nf),
         'X_FF': float(x_ff),
