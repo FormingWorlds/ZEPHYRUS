@@ -167,7 +167,7 @@ The Roche et al. (2026, Sect. 4.1) scaling law does not account for pre-impact p
 Physical effects operate in both directions:
 
 - **Miscibility (overestimate):** Magma-envelope miscibility at high pressures without a sharp boundary can cause the scaling law to overestimate the loss of massive envelopes on young planets (Roche et al. 2026, Sect. 4.1).
-- **Post-impact thermal loss (underestimate):** The hydrodynamic simulations track only the first tens of hours after the event, capturing immediate shock-driven and vapour-plume ejection while neglecting subsequent thermally driven loss from post-impact shock heating of the mantle and core. Consequently, shock estimates serve as lower limits for the final extent of impact-driven loss (Roche et al. 2026, Sect. 4.1).
+- **Post-impact thermal loss (underestimate):** The law covers the immediate shock- and vapour-plume-driven loss only; it neglects later thermally driven loss (an outflow driven by heat from the post-impact interior, Biersteker & Schlichting 2021), so for primordial H2-He envelopes the total loss can be higher (Roche et al. 2026, Sect. 4.1); that later loss becomes negligible for envelopes of higher mean molecular weight.
 - **Atmospheric composition (upper limit):** Heavier atmospheres ($\mathrm{CO}, \mathrm{CO}_2$) are less susceptible to shock-driven removal, so shock-driven loss is an upper limit for a given atmosphere mass (Roche et al. 2026, Sect. 4.3). For PROTEUS atmospheres of higher mean molecular weight ($\mathrm{H}_2\mathrm{O}, \mathrm{CO}_2, \mathrm{O}_2$), the H2-He loss fractions likewise serve as upper limits.
 
 ### Law selection with `impact_loss`
