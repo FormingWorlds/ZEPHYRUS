@@ -6,9 +6,282 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 from zephyrus.constants import G
+
+# Fitted coefficients for the Roche et al. (2026) giant impact model.
+# Source: Roche et al. (2026), arXiv:2610.06077; Zenodo doi:10.5281/zenodo.23192423.
+_ROCHE2026_COEFFICIENTS: dict[str, float] = {
+    # Near-field mass parameters (fit_params_NF_mass.txt, 23 values):
+    'q11': -0.0011404070287601,
+    'q12': 0.0005853554706874,
+    'q13': 0.0004229310650559,
+    'q14': 2.0,
+    'q15': -0.0001681893595867,
+    'q21': -2.990394733907284,
+    'q22': -4.340509285222407,
+    'q31': 3.680308721661617,
+    'q32': -3.9046955628287696,
+    'q33': 1.881415631996061,
+    'q34': 2.0,
+    'q35': 2.328882600831519,
+    'q36': -6.797028501938182,
+    'q38': -0.0411818029322558,
+    'q41': 161.05720316915694,
+    'q42': -7.690384546730376,
+    'q43': 7.577016664697488,
+    'q44': 1.0308432839505288,
+    'q45': 1.033504078552506,
+    'q46': -2.3556779061398494,
+    'q47': -0.0012879570817664,
+    'zeta5': -161.02157740225127,
+    'zeta6': 8.28566684431704e-08,
+    # Near-field loss parameters (fit_params_NF_loss.txt, 17 values):
+    'k11': -535.6899898220761,
+    'k12': 843.4184481359747,
+    'k13': -847.0795889608318,
+    'k14': 494.21158521587927,
+    'k15': 0.0002703723957616,
+    'k16': -0.0187233083484831,
+    'k17': -0.3845105615920718,
+    'k21': 0.0029091121113151,
+    'k22': 0.0013483201004243,
+    'k23': -0.0013547525798418,
+    'k24': -0.0029748236386274,
+    'k25': 0.0002703723957616,
+    'k31': 4811.153182686202,
+    'k32': -0.0364090718700348,
+    'k33': -0.2382117497656167,
+    'k34': -4020.819856042687,
+    'k35': 0.0002703723957616,
+    # Far-field loss parameters (fit_params_FF_loss.txt, 21 values):
+    's11': 1020.3918108627572,
+    's12': 9.294519886102522,
+    's13': -0.11166497483473946,
+    's14': -1030.1005018606777,
+    's15': 3.262206184294514e-05,
+    's16': -0.0501934230566666,
+    's21': -3.8940780439779576,
+    's22': -1.1017541187112085,
+    's23': -0.0004728717375858641,
+    's24': 4.993174134062099,
+    's25': 0.000581419775592155,
+    's26': 0.003429221121849461,
+    's31': -3208.3991776498683,
+    's32': 3208.848548705081,
+    's33': 0.00038822588810121883,
+    's41': -322.486418835046,
+    's42': -1.9230068604833475,
+    's43': 1.415457700191505,
+    's44': 322.9055347383739,
+    's45': 0.0001799965131025202,
+    's46': -0.1320268872697112,
+}
+
+# Table C unlisted constant values (Roche et al. 2026, Table C1-C3).
+_ROCHE2026_TABLE_C_CONSTANTS: dict[str, float] = {
+    'q37': 1.0,
+    'q48': 1.0,
+    'q16': 0.0,
+    'q17': 0.0,
+    'q18': 0.0,
+    'q23': 0.0,
+    'q24': 0.0,
+    'q25': 0.0,
+    'q26': 0.0,
+    'q27': 0.0,
+    'q28': 0.0,
+    'k26': 0.0,
+    'k27': 0.0,
+    'k36': 0.0,
+    'k37': 0.0,
+    's34': 0.0,
+    's35': 0.0,
+    's36': 0.0,
+}
+
+ROCHE2026_COEFFICIENTS = _ROCHE2026_COEFFICIENTS
+ROCHE2026_TABLE_C_CONSTANTS = _ROCHE2026_TABLE_C_CONSTANTS
+
+# Expose individual parameter names as module-level constants.
+for _param_name, _param_val in _ROCHE2026_COEFFICIENTS.items():
+    globals()[_param_name] = _param_val
+for _param_name, _param_val in _ROCHE2026_TABLE_C_CONSTANTS.items():
+    globals()[_param_name] = _param_val
+
+
+def _roche2026_fit(
+    b: float | np.ndarray,
+    gamma: float | np.ndarray,
+    v_c_v_esc: float | np.ndarray,
+    M_t_earth: float | np.ndarray,
+    M_i_earth: float | np.ndarray,
+    Q_R_prime_MJ: float | np.ndarray,
+    f_atm: float | np.ndarray,
+    R_ratio: float | np.ndarray,
+    *,
+    eq6: str = 'code',
+    ffmass: str = 'refr',
+    vfloor: bool = True,
+    coefficients: dict[str, float] | None = None,
+    **kwargs: Any,
+) -> tuple[Any, Any, Any, Any]:
+    r"""Evaluate the Roche et al. (2026) giant impact atmospheric mass loss model.
+
+    Implements the scaling law of Roche et al. (2026) for fractional atmospheric
+    mass loss ($X_{\text{atm}} = X_{\text{NF}} + X_{\text{FF}}$) using the
+    reduced/dimensionless variables of the paper.
+
+    Parameters
+    ----------
+    b : float or numpy.ndarray
+        Impact parameter $\sin\beta$ in [0, 1].
+    gamma : float or numpy.ndarray
+        Refractory mass ratio $M_i^r / (M_i^r + M_t^r)$ in (0, 1).
+    v_c_v_esc : float or numpy.ndarray
+        Velocity ratio $v_c / v_{\text{esc}}$ at surface contact.
+    M_t_earth : float or numpy.ndarray
+        Target refractory mass in Earth masses ($M_t^r / M_{\oplus}$).
+    M_i_earth : float or numpy.ndarray
+        Impactor refractory mass in Earth masses ($M_i^r / M_{\oplus}$).
+    Q_R_prime_MJ : float or numpy.ndarray
+        Modified specific impact energy $Q'_R$ in MJ/kg.
+    f_atm : float or numpy.ndarray
+        Target atmospheric mass fraction $(M_t^{\text{tot}} - M_t^r) / M_t^{\text{tot}}$.
+    R_ratio : float or numpy.ndarray
+        Refractory radius ratio $R_i^r / R_t^r$.
+    eq6 : str, default 'code'
+        Near-field mass fraction exponent formulation. 'code' uses
+        $\zeta_3 (R - \zeta_2)$, 'print' uses $\zeta_3 R - \zeta_2$.
+    ffmass : str, default 'refr'
+        Mass ratio formulation in the far-field term. 'refr' uses $M_i^r / M_t^r$,
+        'tot' uses $M_i^r / M_t^{\text{tot}}$.
+    vfloor : bool, default True
+        Whether to enforce the near-field velocity floor at $v_c = v_{\text{esc}}$.
+    coefficients : dict of str to float, optional
+        Fitted coefficients dictionary. Defaults to `_ROCHE2026_COEFFICIENTS`.
+    **kwargs : Any
+        Keyword aliases for inputs (`v_ratio`, `M_t_r_earth`, `M_i_r_earth`, `Q_R_prime_MJkg`).
+
+    Returns
+    -------
+    f_NF : float or numpy.ndarray
+        Near-field atmospheric mass fraction in [0, 1].
+    X_NF : float or numpy.ndarray
+        Near-field atmospheric mass loss fraction in [0, f_NF].
+    X_FF : float or numpy.ndarray
+        Far-field atmospheric mass loss fraction in [0, 1 - f_NF].
+    X_atm : float or numpy.ndarray
+        Total atmospheric mass loss fraction in [0, 1].
+
+    References
+    ----------
+    1. Roche M.J., Stewart S.T., Carter P.J., Leinhardt Z.M. (2026).
+       arXiv:2610.06077; Zenodo doi:10.5281/zenodo.23192423.
+    """
+    if 'v_ratio' in kwargs:
+        v_c_v_esc = kwargs['v_ratio']
+    if 'M_t_r_earth' in kwargs:
+        M_t_earth = kwargs['M_t_r_earth']
+    if 'M_i_r_earth' in kwargs:
+        M_i_earth = kwargs['M_i_r_earth']
+    if 'Q_R_prime_MJkg' in kwargs:
+        Q_R_prime_MJ = kwargs['Q_R_prime_MJkg']
+
+    c = _ROCHE2026_COEFFICIENTS if coefficients is None else coefficients
+
+    # Near-field envelope fraction zeta_i terms (Eq. 7)
+    z1 = c['q11'] + c['q12'] * b + c['q13'] * b ** c['q14'] + c['q15'] * f_atm
+    z2 = c['q21'] + c['q22'] * b
+    z3 = (
+        c['q31']
+        + c['q32'] * b
+        + c['q33'] * b ** c['q34']
+        + c['q35'] * f_atm
+        + c['q36'] * f_atm**2
+        + M_t_earth ** c['q38']
+    )
+    z4 = (
+        c['q41']
+        + c['q42'] * b
+        + c['q43'] * b ** c['q44']
+        + c['q45'] * f_atm
+        + c['q46'] * f_atm**2
+        + c['q47'] * M_t_earth
+    )
+
+    # Near-field atmospheric mass fraction f_NF (Eq. 6)
+    if eq6 == 'code':
+        f_nf = z4 / (1.0 + c['zeta6'] * np.exp(z3 * (R_ratio - z2))) ** z1 + c['zeta5']
+    else:
+        f_nf = z4 / (1.0 + c['zeta6'] * np.exp(z3 * R_ratio - z2)) ** z1 + c['zeta5']
+    f_nf = np.clip(f_nf, 0.0, 1.0)
+    f_ff = 1.0 - f_nf
+
+    # Near-field loss function xi_i (Eq. 8, Eq. 9)
+    def _calc_xi(v_rel: Any) -> Any:
+        x1 = (
+            c['k11']
+            + c['k12'] * gamma
+            + c['k13'] * (gamma + 0.05) ** 2
+            + c['k14'] * v_rel ** c['k15']
+            + c['k16'] * (M_t_earth + 1.0)
+            + c['k17'] * np.log10(f_atm)
+        )
+        x2 = (
+            c['k21']
+            + c['k22'] * gamma
+            + c['k23'] * (gamma + 0.05) ** 2
+            + c['k24'] * v_rel ** c['k25']
+        )
+        x3 = (
+            c['k31']
+            + c['k32'] * gamma
+            + c['k33'] * (gamma + 0.05) ** 2
+            + c['k34'] * v_rel ** c['k35']
+        )
+        return f_nf * (x1 - x2 * (b + x3) ** 2)
+
+    x_nf = _calc_xi(v_c_v_esc)
+    lo = np.maximum(0.0, _calc_xi(1.0)) if vfloor else 0.0
+    x_nf = np.clip(x_nf, lo, f_nf)
+
+    # Far-field loss function psi_i (Eq. 10, Eq. 11)
+    p1 = (
+        c['s11']
+        + c['s12'] * (gamma + 0.05) ** c['s13']
+        + c['s14'] * (M_t_earth + 0.05) ** c['s15']
+        + c['s16'] * np.log10(f_atm)
+    )
+    p2 = (
+        c['s21']
+        + c['s22'] * (gamma + 0.05) ** c['s23']
+        + c['s24'] * (M_t_earth + 0.05) ** c['s25']
+        + c['s26'] * np.log10(f_atm)
+    )
+    p3 = c['s31'] + c['s32'] * (gamma + 0.05) ** c['s33']
+    p4 = (
+        c['s41']
+        + c['s42'] * (gamma + 0.05) ** c['s43']
+        + c['s44'] * (M_t_earth + 0.05) ** c['s45']
+        + c['s46'] * np.log10(f_atm)
+    )
+
+    if ffmass == 'refr':
+        m_ratio = M_i_earth / M_t_earth
+    else:
+        m_ratio = M_i_earth / (M_t_earth / (1.0 - f_atm))
+
+    x_ff = np.clip(
+        f_ff * (p1 * np.exp(-p2 * (Q_R_prime_MJ * (1.0 + m_ratio) * (1.0 - b) ** p4)) + p3),
+        0.0,
+        f_ff,
+    )
+    x_atm = np.clip(x_nf + x_ff, 0.0, 1.0)
+    return f_nf, x_nf, x_ff, x_atm
 
 
 def mass_loss(
