@@ -43,7 +43,7 @@ from zephyrus.collision import (
     specific_impact_energy,
 )
 from zephyrus.constants import G, c
-from zephyrus.planets_parameters import Me
+from zephyrus.planets_parameters import Me, Re
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
@@ -486,6 +486,7 @@ def test_roche2026_zero_atmosphere_fraction():
     assert res.diagnostics['f_NF'] == 0.0
     assert res.diagnostics['X_NF'] == 0.0
     assert res.diagnostics['X_FF'] == 0.0
+    assert res.diagnostics['X_FF_zero_energy'] == 0.0
 
     # Diagnostics computed from physical inputs
     v_esc_expected = mutual_escape_speed(Me, 1.0e24, 6.371e6, 3.0e6)
@@ -612,6 +613,10 @@ def test_roche2026_stability_clamps():
         )
         _, _, _, x_expected = _roche2026_fit(**fit_kw)
         assert res.fraction == pytest.approx(x_expected, abs=1e-12)
+        _, _, x_ff_zero_expected, _ = _roche2026_fit(**(fit_kw | {'Q_R_prime_MJ': 0.0}))
+        assert res.diagnostics['X_FF_zero_energy'] == pytest.approx(
+            x_ff_zero_expected, abs=1e-12
+        )
         return res, fit_kw
 
     # f_atm clamps: below 1e-6 and above 0.4
@@ -624,10 +629,11 @@ def test_roche2026_stability_clamps():
     check('M_t_earth', 1.0e-3, M_t=1e-4 * Me)
     check('M_t_earth', 10.0, M_t=15.0 * Me)
 
-    # Impactor mass ratio clamped below 1e-3 and above 0.5
+    # Impactor mass ratio clamped below 1e-3 and above 0.5; test R_ratio != 0.5
     check('gamma', 1.0e-3, M_i=1e-4 * Me)
-    check('gamma', 0.5, M_i=9.0 * Me)
+    check('gamma', 0.5, M_i=9.0 * Me, R_i=0.8 * 6.371e6)
     check('gamma', 0.5, M_i=(0.502 / (1.0 - 0.502)) * Me)
+    check('gamma', 0.5, M_i=((0.5 + 1e-9) / (1.0 - (0.5 + 1e-9))) * Me)
 
     # gamma = 0.7 gives the same fit result as gamma = 0.5 at equal other fit inputs
     res_g07, fit_kw_g07 = check('gamma', 0.5, M_i=(0.7 / 0.3) * Me)
@@ -920,6 +926,36 @@ def test_roche2026_zero_energy_flag():
     assert 'X_FF_zero_energy' not in res_med.flags
     assert res_med.diagnostics['X_FF_zero_energy'] == 0.0
 
+    # Threshold follows X_FF_zero_energy > 0 near psi1 + psi3 = 0 crossing:
+    # fa = 0.0076 gives 0 < z < 1e-3 (flagged), fa = 0.0077 gives z = 0 (unflagged)
+    mi_35 = (0.35 / 0.65) * mt
+    vesc_cross = mutual_escape_speed(mt / (1.0 - 0.0076), mi_35, rt, ri)
+    res_pos = impact_loss(
+        'roche2026',
+        v_c=1.5 * vesc_cross,
+        M_i=mi_35,
+        M_t=mt,
+        R_i=ri,
+        R_t=rt,
+        b=0.5,
+        f_atm=0.0076,
+    )
+    assert 0.0 < res_pos.diagnostics['X_FF_zero_energy'] < 1.0e-3
+    assert 'X_FF_zero_energy' in res_pos.flags
+
+    res_zero = impact_loss(
+        'roche2026',
+        v_c=1.5 * vesc_cross,
+        M_i=mi_35,
+        M_t=mt,
+        R_i=ri,
+        R_t=rt,
+        b=0.5,
+        f_atm=0.0077,
+    )
+    assert res_zero.diagnostics['X_FF_zero_energy'] == 0.0
+    assert 'X_FF_zero_energy' not in res_zero.flags
+
 
 @pytest.mark.physics_invariant
 def test_roche2026_far_field_zero_energy_invariants():
@@ -1021,6 +1057,7 @@ def test_roche2026_fitted_range_boundaries_and_r_ratio():
         ({'M_i': m_i(g_lo_out)}, 'gamma', True),
         ({'M_i': m_i(g_hi_in)}, 'gamma', False),
         ({'M_i': m_i(g_hi_out)}, 'gamma', True),
+        ({'M_i': m_i(0.5 + 1e-9)}, 'gamma', True),
         # b: (0.0, 0.9)
         ({'b': 0.9 * 1.005}, 'b', False),
         ({'b': 0.9 * 1.015}, 'b', True),
@@ -1289,3 +1326,69 @@ def test_roche2026_grazing_psi4_negative():
     assert np.isfinite(res.fraction)
     assert res.fraction == res.diagnostics['X_NF']
     assert res.diagnostics['X_FF'] == 0.0
+
+    # Direct _roche2026_fit call at b = 1 with Q_R_prime_MJ > 0 and psi4 < 0:
+    # geometry guard sets factor to 0 to avoid 0 * inf -> nan
+    _, _, xff_direct, _ = _roche2026_fit(
+        b=1.0,
+        gamma=0.5,
+        v_c_v_esc=1.5,
+        M_t_earth=0.35,
+        mass_ratio=1.0,
+        Q_R_prime_MJ=10.0,
+        f_atm=fa,
+        R_ratio=1.0,
+    )
+    _, _, xff_zero, _ = _roche2026_fit(
+        b=1.0,
+        gamma=0.5,
+        v_c_v_esc=1.5,
+        M_t_earth=0.35,
+        mass_ratio=1.0,
+        Q_R_prime_MJ=0.0,
+        f_atm=fa,
+        R_ratio=1.0,
+    )
+    assert np.isfinite(xff_direct)
+    assert xff_direct == pytest.approx(xff_zero, abs=1e-15)
+
+
+@pytest.mark.physics_invariant
+@pytest.mark.reference_pinned
+def test_roche2026_table_d1_moon_forming_scenarios():
+    """Verify Table D1 Moon-forming impact scenarios at f_atm = 1e-4.
+
+    Pins atmospheric erosion fractions against published scenario inputs
+    from Roche et al. (2026), Table D1 and Sect. 4.3, evaluated with radii
+    scaling as M^(1/4) * Re and contact speeds v_c = ratio * v_esc.
+    """
+    scenarios = {
+        'CA01': (0.907, 0.1121, 0.7, 1.0, 0.208),
+        'R12': (0.9, 0.2, 0.57, 1.2, 0.310),
+        'CS12': (1.05, 0.05, 0.3, 2.0, 0.467),
+        'C12': (0.5709, 0.4671, 0.55, 1.1, 0.466),
+        'LS18a': (0.572, 0.468, 0.4, 1.34, 0.613),
+        'LS18b': (0.75, 0.3, 0.6, 1.25, 0.363),
+    }
+    fa = 1.0e-4
+
+    for name, (mt, mi, b, vr, expected_fraction) in scenarios.items():
+        m_t_kg = mt * Me
+        m_i_kg = mi * Me
+        r_t_m = Re * mt**0.25
+        r_i_m = Re * mi**0.25
+        vesc = mutual_escape_speed(m_t_kg / (1.0 - fa), m_i_kg, r_t_m, r_i_m)
+        vc = vr * vesc
+        res = impact_loss(
+            'roche2026',
+            v_c=vc,
+            M_i=m_i_kg,
+            M_t=m_t_kg,
+            R_i=r_i_m,
+            R_t=r_t_m,
+            b=b,
+            f_atm=fa,
+        )
+        assert res.fraction == pytest.approx(expected_fraction, abs=5e-4)
+        if name == 'CA01':
+            assert res.diagnostics['X_FF_zero_energy'] == pytest.approx(0.0572, abs=1e-3)

@@ -636,30 +636,21 @@ def _eval_roche2026(
         or diag[name] > f_hi * (1.0 + tol)
         or name in clamped
     ]
-    if diag['v_ratio'] < 1.0 - _ROCHE2026_RANGE_RTOL:
+    if diag['v_ratio'] < 1.0 - tol:
         flags.append('v_sub_escape')
 
-    f_nf, x_nf, x_ff, x_atm = _roche2026_fit(
-        b=b,
-        gamma=eval_params['gamma'],
-        v_c_v_esc=v_ratio,
-        M_t_earth=eval_params['M_t_earth'],
-        mass_ratio=M_i / M_t,
-        Q_R_prime_MJ=q_r_prime,
-        f_atm=eval_params['f_atm'],
-        R_ratio=r_ratio,
-    )
-
-    _, _, x_ff_zero, _ = _roche2026_fit(
-        b=b,
-        gamma=eval_params['gamma'],
-        v_c_v_esc=v_ratio,
-        M_t_earth=eval_params['M_t_earth'],
-        mass_ratio=M_i / M_t,
-        Q_R_prime_MJ=0.0,
-        f_atm=eval_params['f_atm'],
-        R_ratio=r_ratio,
-    )
+    fit_kw = {
+        'b': b,
+        'gamma': eval_params['gamma'],
+        'v_c_v_esc': v_ratio,
+        'M_t_earth': eval_params['M_t_earth'],
+        'mass_ratio': M_i / M_t,
+        'Q_R_prime_MJ': q_r_prime,
+        'f_atm': eval_params['f_atm'],
+        'R_ratio': r_ratio,
+    }
+    f_nf, x_nf, x_ff, x_atm = _roche2026_fit(**fit_kw)
+    _, _, x_ff_zero, _ = _roche2026_fit(**(fit_kw | {'Q_R_prime_MJ': 0.0}))
 
     if not np.isfinite([f_nf, x_nf, x_ff, x_atm, x_ff_zero]).all():
         raise ValueError(f'Roche scaling law produced non-finite result: x_atm={x_atm!r}')
@@ -668,7 +659,7 @@ def _eval_roche2026(
     diag['X_NF'] = float(x_nf)
     diag['X_FF'] = float(x_ff)
     diag['X_FF_zero_energy'] = float(x_ff_zero)
-    if float(x_ff_zero) > 0.0:
+    if diag['X_FF_zero_energy'] > 0.0:
         flags.append('X_FF_zero_energy')
     return float(x_atm), tuple(flags), diag
 
@@ -722,8 +713,7 @@ def mass_loss_roche2026(
     target mass M_t / (1 - f_atm). Stability clamps apply to inputs outside
     the numerical stability bounds. This function returns only the loss
     fraction; use ``impact_loss`` if validity flags or diagnostics are needed.
-    Arguments not used by this law are ignored. Inputs are scalar; arrays
-    are not supported.
+    Inputs are scalar; arrays are not supported.
 
     References
     ----------
