@@ -384,10 +384,13 @@ def test_roche2026_oracle_reproduction():
 def test_roche2026_printed_forms_miss_oracle(monkeypatch):
     """Verify printed paper forms miss published oracle values.
 
-    Exercises three independent discrimination guards across all 12 oracle rows:
-    1. Printed Eq. 10 using total target mass in the mass ratio.
-    2. Printed Eq. 6 using unparenthesised exponent zeta_3 * R - zeta_2.
-    3. Scaling coefficients rounded to 4 significant digits.
+    Exercises three independent discrimination guards:
+    1. Printed Eq. 10 using total target mass in the mass ratio misses on the
+       f_atm = 0.2 row (the test asserts the largest miss).
+    2. Printed Eq. 6 using unparenthesised exponent zeta_3 * R - zeta_2 misses
+       across all 12 rows.
+    3. Scaling coefficients rounded to 4 significant digits miss across all
+       12 rows.
     """
     rows = _get_roche2026_oracle_rows()
     assert len(rows) == 12
