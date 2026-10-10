@@ -22,6 +22,7 @@ See ``docs/How-to/run_tests.md`` for the tier and marker conventions and
 """
 
 import csv
+import hashlib
 import io
 import itertools
 import types
@@ -31,6 +32,7 @@ import pytest
 
 from zephyrus.collision import (
     _ROCHE2026_COEFFICIENTS,
+    _ROCHE2026_PARAMS,
     _ROCHE2026_RANGE_RTOL,
     _ROCHE2026_STABLE_RANGE,
     _ROCHE2026_TABLE_C_CONSTANTS,
@@ -290,14 +292,21 @@ def _fit_kwargs(r: dict[str, str], **override: float) -> dict[str, float]:
 
 
 def test_roche2026_coefficients_count_and_constants():
-    """Verify count of 61 fitted coefficients and exact Table C constants."""
+    """Verify count of 61 stored values, sha256 digest, and exact Table C constants."""
     assert len(_ROCHE2026_COEFFICIENTS) == 61
 
-    # Verify all 61 fitted coefficients are present, float, and non-zero.
+    # Verify all 61 stored values are present, float, and non-zero.
     for _name, val in _ROCHE2026_COEFFICIENTS.items():
         assert isinstance(val, float)
         assert val != 0.0
         assert np.isfinite(val)
+
+    # Digest computed from fit_params_NF_mass.txt, fit_params_NF_loss.txt,
+    # and fit_params_FF_loss.txt from Zenodo doi:10.5281/zenodo.23192423.
+    digest = hashlib.sha256(
+        '\n'.join(f'{k}={v!r}' for k, v in sorted(_ROCHE2026_COEFFICIENTS.items())).encode()
+    ).hexdigest()
+    assert digest == '1cefdd7b9e30e4e6868bd55ad70b1448e97cdaf82bd0b46ca10052f673d75c8b'
 
     # Verify Table C unlisted constant values.
     zero_keys = 'q16 q17 q18 q23 q24 q25 q26 q27 q28 k26 k27 k36 k37 s34 s35 s36'.split()
@@ -369,6 +378,69 @@ def test_roche2026_oracle_reproduction():
     assert res0.diagnostics['f_NF'] == pytest.approx(float(r0['f_NF_calc']), abs=1e-10)
     assert res0.diagnostics['X_NF'] == pytest.approx(float(r0['X_NF_calc']), abs=1e-4)
     assert res0.diagnostics['X_FF'] == pytest.approx(float(r0['X_FF_calc']), abs=1e-4)
+
+
+@pytest.mark.physics_invariant
+def test_roche2026_printed_forms_miss_oracle(monkeypatch):
+    """Verify printed paper forms miss published oracle values.
+
+    Exercises three independent discrimination guards across all 12 oracle rows:
+    1. Printed Eq. 10 using total target mass in the mass ratio.
+    2. Printed Eq. 6 using unparenthesised exponent zeta_3 * R - zeta_2.
+    3. Scaling coefficients rounded to 4 significant digits.
+    """
+    rows = _get_roche2026_oracle_rows()
+    assert len(rows) == 12
+
+    # Check 1: Printed Eq. 10 using M_i^r / M_t^tot = (M_i^r / M_t^r) * (1 - f_atm).
+    diffs_eq10 = []
+    for r in rows:
+        f_atm = float(r['f_atm'])
+        m_i_r = float(r['M_i_r_earth'])
+        m_t_r = float(r['M_t_r_earth'])
+        kw = _fit_kwargs(r, mass_ratio=(m_i_r / m_t_r) * (1.0 - f_atm))
+        _fnf, _xnf, _xff, xat = _roche2026_fit(**kw)
+        tol = 1e-10 if r['set'] == 'A' else 2e-4
+        diffs_eq10.append((abs(xat - float(r['X_atm_calc'])), tol))
+    max_diff_eq10, tol_at_max = max(diffs_eq10, key=lambda x: x[0])
+    assert max_diff_eq10 > 100.0 * tol_at_max
+    assert max_diff_eq10 > 1e-2
+
+    # Check 2: Printed Eq. 6 with exponent zeta_3 * R_ratio - zeta_2.
+    p = _ROCHE2026_PARAMS
+    for r in rows:
+        b = float(r['b'])
+        fa = float(r['f_atm'])
+        mt = float(r['M_t_r_earth'])
+        r_ratio = float(r['R_ratio'])
+        tol = 1e-12 if r['set'] == 'A' else 2e-4
+
+        def _calc_zeta(i: int) -> float:
+            return (
+                p[f'q{i}1']
+                + p[f'q{i}2'] * b
+                + p[f'q{i}3'] * (b ** p[f'q{i}4'])
+                + p[f'q{i}5'] * fa
+                + p[f'q{i}6'] * (fa**2)
+                + p[f'q{i}7'] * (mt ** p[f'q{i}8'])
+            )
+
+        z1, z2, z3, z4 = (_calc_zeta(i) for i in (1, 2, 3, 4))
+        f_nf_printed = z4 / (1.0 + p['zeta6'] * np.exp(z3 * r_ratio - z2)) ** z1 + p['zeta5']
+        f_nf_printed = float(np.clip(f_nf_printed, 0.0, 1.0))
+        diff_fnf = abs(f_nf_printed - float(r['f_NF_calc']))
+        assert diff_fnf > max(100.0 * tol, 1e-2)
+
+    # Check 3: Coefficients rounded to 4 significant digits.
+    for k, v in _ROCHE2026_COEFFICIENTS.items():
+        monkeypatch.setitem(_ROCHE2026_PARAMS, k, float(f'{v:.4g}'))
+
+    for r in rows:
+        kw = _fit_kwargs(r)
+        _fnf, _xnf, _xff, xat = _roche2026_fit(**kw)
+        tol = 1e-10 if r['set'] == 'A' else 2e-4
+        diff_xat = abs(xat - float(r['X_atm_calc']))
+        assert diff_xat > max(100.0 * tol, 1e-2)
 
 
 @pytest.mark.physics_invariant
