@@ -142,7 +142,7 @@ This works the same way for ZEPHYRUS, dummy, and BOREAS backends.
 
 ## Giant-impact atmosphere loss
 
-Alongside the continuous escape channel above, ZEPHYRUS provides `collision.mass_loss`, the giant-impact erosion law described in the [model overview](model.md). It is a standalone function of the collision parameters (contact speed, masses, radii, bulk densities, and impact parameter) and returns the fraction of the target's atmosphere removed by one impact, for a caller that models giant impacts during accretion. Three conventions bind the caller: the speed is taken at first contact, the masses and radii exclude the atmosphere with radii at its base, and the densities are bulk values of the atmosphere-free bodies.
+Alongside the continuous escape channel above, ZEPHYRUS provides `collision.impact_loss`, which evaluates one of the two giant-impact erosion laws described on the [giant impacts](impacts.md) page: Kegerreis et al. (2020) for thin atmospheres and Roche et al. (2026) for envelopes of 1% to 20% of the planet mass. It is a standalone function of the collision parameters and returns the fraction of the target's atmosphere removed by one impact, for a caller that models giant impacts during accretion. Under both laws the speed is taken at first contact, and the masses and radii exclude the atmosphere, with radii at its base. The Kegerreis law also takes the bulk densities of the atmosphere-free bodies, and the Roche law the target's atmospheric mass fraction.
 
 ---
 

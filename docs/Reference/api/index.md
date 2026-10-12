@@ -11,7 +11,7 @@ This is an overview of ZEPHYRUS' API for the user's reference. If you want to un
 | [`zephyrus.nozzle`](nozzle.md) | Roche-lobe overflow: the tidally driven L1 nozzle transfer rate |
 | [`zephyrus.hydrodynamic`](hydrodynamic.md) | Energy-limited and radiation-recombination-limited rates |
 | [`zephyrus.hydrostatic`](hydrostatic.md) | Per-species Jeans escape with the diffusion-limited supply cap |
-| [`zephyrus.collision`](collision.md) | `mass_loss`: fractional atmospheric loss in a giant impact |
+| [`zephyrus.collision`](collision.md) | `impact_loss`, `mass_loss`, `mass_loss_roche2026`: fractional atmospheric loss in a giant impact |
 | **Supporting physics** | |
 | [`zephyrus.profiles`](profiles.md) | Atmosphere-profile container and the escape working levels |
 | [`zephyrus.thermostat`](thermostat.md) | Wind temperature from local heating against radiative cooling |
@@ -32,7 +32,7 @@ The **source tree** is given by:
 src/zephyrus
     ├── atomic_data.py          # Cooling data tables and rate coefficients
     ├── boiloff.py              # Bolometrically driven boil-off escape
-    ├── collision.py            # Giant-impact atmospheric mass loss (mass_loss)
+    ├── collision.py            # Giant-impact atmospheric mass loss (impact_loss, mass_loss, mass_loss_roche2026)
     ├── composition.py          # Element masses, formula parsing, atomization
     ├── constants.py            # Physical constants and unit conversions
     ├── diagnostics.py          # Regime diagnostics beside every verdict

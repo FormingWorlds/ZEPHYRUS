@@ -6,7 +6,8 @@ closed-form pins running when Hypothesis is absent (for example under a
 ``pip install --no-deps`` image). The physical invariants swept here:
 
 - Boundedness: the loss fraction stays in [0, 1] and finite across the
-  physically valid mass, radius, density, speed, and angle ranges.
+  physically valid mass, radius, density, speed, and angle ranges for
+  Kegerreis et al. (2020) and across the stability domain for Roche et al. (2026).
 - Monotonicity: at fixed geometry the loss never decreases with contact
   speed and never increases with impact parameter.
 - Reduction: at equal bulk densities the density-weighted interacting
@@ -18,13 +19,12 @@ See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 import numpy as np
 import pytest
 
-from zephyrus.collision import mass_loss
+from zephyrus.collision import mass_loss, mass_loss_roche2026, mutual_escape_speed
 from zephyrus.constants import G
+from zephyrus.planets_parameters import Me
 
-# hypothesis is a develop-extra dependency; skip this whole module if it is
-# unavailable rather than failing collection. The closed-form pins and the
-# error-contract guards live in tests/test_collision.py and run
-# unconditionally.
+# Skip if hypothesis is unavailable; closed-form pins and error-contract
+# guards live in tests/test_collision.py and run unconditionally.
 hyp = pytest.importorskip('hypothesis')
 given = hyp.given
 settings = hyp.settings
@@ -32,10 +32,8 @@ st = hyp.strategies
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
-# Strategy bounds: masses from large asteroids to super-Earths, radii and
-# densities spanning icy to iron bodies, speeds from rest to twice the
-# paper's fitted ceiling so the cap branch is exercised, and the full
-# head-on to grazing angle range.
+# Strategy bounds: masses from asteroids to super-Earths, icy to iron bodies,
+# speeds up to 2x the fitted ceiling, and full impact angle range.
 _MASS = st.floats(min_value=1e22, max_value=2e25)
 _RADIUS = st.floats(min_value=1e6, max_value=2e7)
 _RHO = st.floats(min_value=900.0, max_value=13000.0)
@@ -144,3 +142,33 @@ def test_equal_densities_match_the_interacting_volume_form(m_t, q, rho, r_i, r_t
     x_expected = 0.64 * bracket**0.65
     assert x_expected < 1.0  # the mass-ratio bound keeps the law sub-cap
     assert x == pytest.approx(x_expected, rel=1e-12, abs=1e-15)
+
+
+@pytest.mark.physics_invariant
+@given(
+    mt_factor=st.floats(min_value=1e-3, max_value=10.0),
+    gamma=st.floats(min_value=1e-3, max_value=0.999),
+    f_atm=st.floats(min_value=1e-6, max_value=0.4),
+    b=st.floats(min_value=0.0, max_value=1.0),
+    vfac=st.floats(min_value=0.0, max_value=30.0),
+    rho_t_fac=st.floats(min_value=0.5, max_value=2.0),
+    rho_i_fac=st.floats(min_value=0.5, max_value=2.0),
+)
+@settings(max_examples=100, deadline=None, derandomize=True)
+def test_roche2026_loss_fraction_bounded_over_stability_range(
+    mt_factor, gamma, f_atm, b, vfac, rho_t_fac, rho_i_fac
+):
+    """Verify loss fraction is finite and bounded in [0, 1] across extended domain."""
+    rho_earth = 5515.0
+    rho_t = rho_t_fac * rho_earth
+    rho_i = rho_i_fac * rho_earth
+    m_t = mt_factor * Me
+    m_i = m_t * (gamma / (1.0 - gamma))
+    r_t = (m_t / (4.0 / 3.0 * np.pi * rho_t)) ** (1.0 / 3.0)
+    r_i = (m_i / (4.0 / 3.0 * np.pi * rho_i)) ** (1.0 / 3.0)
+    v_esc = float(mutual_escape_speed(m_t / (1.0 - f_atm), m_i, r_t, r_i))
+    v_c = vfac * v_esc
+
+    x = mass_loss_roche2026(v_c, m_i, m_t, r_i, r_t, b, f_atm)
+    assert np.isfinite(x)
+    assert 0.0 <= x <= 1.0

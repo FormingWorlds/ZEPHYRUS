@@ -53,7 +53,7 @@ Whichever regime sets the bulk rate, the loss is also partitioned over chemical 
 
 ## The impact channel
 
-A giant collision removes part of the target's atmosphere in a single event, on a timescale unrelated to the continuous escape. ZEPHYRUS computes the eroded fraction with the scaling law of Kegerreis et al. (2020) [^kegerreis] through `zephyrus.collision.mass_loss`; the [giant impacts](impacts.md) page defines the law and its fitted domain. The impact channel is not part of the continuous-regime classification: a regime label is reserved for it, and the caller applies impact erosion as a discrete event.
+A giant collision removes part of the target's atmosphere in a single event, on a timescale unrelated to the continuous escape. ZEPHYRUS computes the eroded fraction with the scaling law of Kegerreis et al. (2020) [^kegerreis] for thin atmospheres or that of Roche et al. (2026) [^roche2026] for envelopes of 1% to 20% of the planet mass, selected through `zephyrus.collision.impact_loss`; the [giant impacts](impacts.md) page defines both laws and their fitted domains. The impact channel is not part of the continuous-regime classification: a regime label is reserved for it, and the caller applies impact erosion as a discrete event.
 
 ## Reading guide
 
@@ -96,3 +96,5 @@ A giant collision removes part of the target's atmosphere in a single event, on 
 [^attia]: Attia, M., & Lichtenberg, T. (2026). Atmospheric escape fractionates secondary but not primary atmospheres. *arXiv e-prints*, arXiv:2608.30106. https://doi.org/10.48550/arXiv.2608.30106
 
 [^kegerreis]: Kegerreis, J. A., Eke, V. R., Catling, D. C., Massey, R. J., Teodoro, L. F. A., & Zahnle, K. J. (2020). Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density. *The Astrophysical Journal Letters, 901*(2), L31. https://doi.org/10.3847/2041-8213/abb5fb
+
+[^roche2026]: Roche, M. J., Lock, S. J., Carter, P. J., & Leinhardt, Z. M. (2026). Giant impacts preferentially remove low-mass atmospheres: a generalised scaling law for impact-driven atmospheric loss. *The Astrophysical Journal Letters* (accepted), arXiv:2610.06077. https://doi.org/10.48550/arXiv.2610.06077. Dataset: Zenodo, https://doi.org/10.5281/zenodo.23192423.
