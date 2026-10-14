@@ -4,7 +4,8 @@ Exercises the energy-limited and radiation-recombination-limited rates and
 the machinery that selects between them. The physical invariants under test:
 
 - Reference pins: the Erkaev et al. (2007) Table 1 tidal enhancement
-  factors within 1 percent; the Caldiroli et al. (2022) efficiency fit at
+  factors within 1 percent, and the factor's leading-order value
+  ``1.5 (xi - 1)^2`` next to its double root; the Caldiroli et al. (2022) efficiency fit at
   spot points of its validity box; the Lopez (2017) printed wind mean-mass
   pairs; the Murray-Clay et al. (2009) fiducial hot Jupiter (base Jeans
   parameter, sonic radius, and sonic-point Knudsen numbers with their
@@ -86,6 +87,34 @@ def test_erkaev_table1_enhancement_factors():
     assert 1.0 / k_tide(1.001) == pytest.approx(6.68e5, rel=0.01, abs=0.0)
     factors = [1.0 / k_tide(xi) for xi, _ in ERKAEV_TABLE1]
     assert all(a >= b for a, b in zip(factors, factors[1:]))
+
+
+@pytest.mark.physics_invariant
+def test_k_tide_stays_positive_next_to_its_double_root():
+    """The tidal factor keeps its leading-order value as xi approaches 1.
+
+    Next to the double root ``K = (xi - 1)^2 (2 xi + 1) / (2 xi^3)`` tends
+    to ``1.5 (xi - 1)^2``, with a relative correction of about
+    ``2.3 (xi - 1)``. A planet whose radius grows toward its Hill radius
+    passes through this corner, and the rates divide by ``K``, so the
+    factor must stay positive and accurate down to the smallest ``xi > 1``.
+    """
+    for d in (1e-7, 1e-9, 1e-10, 1e-12):
+        xi = 1.0 + d
+        dxi = xi - 1.0  # exact in float64, so the reference carries no rounding
+        assert k_tide(xi) > 0.0, d
+        assert k_tide(xi) == pytest.approx(1.5 * dxi**2, rel=1e-6, abs=0.0), d
+    # Edge case: the smallest float above the root still gives a positive factor.
+    assert k_tide(math.nextafter(1.0, 2.0)) > 0.0
+    # Discrimination: the expanded polynomial, the most plausible rewrite,
+    # is off by more than 10 percent at xi - 1 = 1e-8 and goes negative at 3e-9.
+    xi = 1.0 + 1e-8
+    expanded = 1.0 - 3.0 / (2.0 * xi) + 1.0 / (2.0 * xi**3)
+    assert abs(expanded / (1.5 * (xi - 1.0) ** 2) - 1.0) > 0.1
+    xi = 1.0 + 3e-9
+    assert 1.0 - 3.0 / (2.0 * xi) + 1.0 / (2.0 * xi**3) < 0.0
+    with pytest.raises(ValueError, match='xi > 1'):
+        k_tide(1.0)
 
 
 def _planet_for(log_phi, f_over_rho_cgs):

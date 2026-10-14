@@ -60,11 +60,13 @@ def k_tide(xi: float) -> float:
     rate divides by it, so the rate diverges as the atmosphere approaches its
     Roche lobe. Below the root the polynomial returns values that would
     reduce the rate, so ``xi <= 1`` raises ``ValueError``: such a planet
-    fills its lobe and needs the overflow treatment.
+    fills its lobe and needs the overflow treatment. The factored form is
+    evaluated because the expanded ``1 - 3/(2 xi) + 1/(2 xi^3)`` cancels to
+    zero or below in float64 for ``xi - 1`` under about 1e-8.
     """
     if not xi > 1.0:
         raise ValueError(f'k_tide is defined for xi > 1 and has a double root at 1, got {xi!r}')
-    return 1.0 - 3.0 / (2.0 * xi) + 1.0 / (2.0 * xi**3)
+    return (xi - 1.0) ** 2 * (2.0 * xi + 1.0) / (2.0 * xi**3)
 
 
 def el_rate(eps: float, F_xuv: float, R_p: float, R_xuv: float, M_p: float, K: float) -> float:
@@ -254,7 +256,7 @@ def EL_escape(
                 'atmosphere reaches the Roche lobe and the energy-limited '
                 'approximation no longer applies.'
             )
-        K_tide = 1 - (3 / (2 * ksi)) + (1 / (2 * (ksi**3)))
+        K_tide = k_tide(ksi)
     else:
         K_tide = 1
 

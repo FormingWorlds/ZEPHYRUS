@@ -15,7 +15,7 @@ under test:
   the radius the ``scaling`` argument selects (``ksi = Rhill / Rp`` for
   ``scaling=2``, ``ksi = Rhill / Rxuv`` for ``scaling=3``), rising toward 1
   as the orbit widens; the close-in geometries under test keep it well
-  below 1.
+  below 1, and next to ``ksi = 1`` the tidal rate stays finite and positive.
 - Monotonicity / symmetry: the rate is linear in ``Fxuv``, scales as
   ``1 / Mp``, is larger with the tidal correction than without, and is zero
   when ``Fxuv = 0``.
@@ -210,6 +210,31 @@ def test_el_escape_tidal_correction_increases_escape():
     # only in the ksi -> infinity limit of an infinitely wide orbit.
     k_tide = no_tidal / tidal
     assert 0.0 < k_tide < 1.0
+
+
+@pytest.mark.physics_invariant
+def test_el_escape_tidal_rate_stays_finite_next_to_the_roche_lobe():
+    """The tidal rate stays finite and positive as ksi approaches 1.
+
+    The orbit is placed so the periapsis Hill radius exceeds ``Rp`` by one
+    part in 1e9 (``scaling=2``, so ``ksi = Rhill / Rp``). There the tidal
+    enhancement is ``1 / K_tide``, close to ``1 / (1.5 (ksi - 1)^2)``, about
+    6.7e17. The expanded polynomial for ``K_tide`` rounds to 0 here and
+    raised ``ZeroDivisionError``; just inside the lobe the call must raise
+    ``ValueError`` instead.
+    """
+    hill_per_a = (Me / (3.0 * Ms)) ** (1.0 / 3.0)
+    d = 1e-9
+    a = RP * (1.0 + d) / hill_per_a  # periapsis Hill radius at Rp (1 + d), e = 0
+    no_tidal = EL_escape(False, a, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
+    tidal = EL_escape(True, a, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
+    assert np.isfinite(tidal) and tidal > no_tidal > 0.0
+    # ksi - 1 carries a rounding error near 1e-7 relative from a and Rhill, and
+    # the next-order term in K_tide is about 2e-9, so 1e-5 bounds both.
+    assert tidal / no_tidal == pytest.approx(1.0 / (1.5 * d**2), rel=1e-5, abs=0.0)
+    a_inside = RP * (1.0 - d) / hill_per_a
+    with pytest.raises(ValueError, match='ksi'):
+        EL_escape(True, a_inside, 0.0, Me, Ms, EPSILON, RP, RXUV, FXUV, scaling=2)
 
 
 @pytest.mark.physics_invariant

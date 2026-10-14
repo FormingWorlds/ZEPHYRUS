@@ -140,7 +140,7 @@ result = dispatch(build_state('CO2', 1.0, 1.0, 10.0))
 print(result.regime)
 print(result.mdot)
 print(result.per_species)
-print(sum(result.per_species.values()) - result.mdot)
+print(abs(sum(result.per_species.values()) / result.mdot - 1) < 1e-12)
 print(result.flags)
 print(sorted(result.diagnostics))
 ```
@@ -149,9 +149,9 @@ Output:
 
 ```text
 hydrodynamic:EL
-2347722.550685174
-{'C': 660971.2983440236, 'O': 1686751.2523411503}
-0.0
+2347722.5506851743
+{'C': 660971.2983440239, 'O': 1686751.252341151}
+True
 {}
 ['base_level', 'bolometric', 'closure', 'documentation', 'erkaev_tc_K', 'fluid_check', 'guo_triple', 'hydrodynamic', 'hydrostatic', 'johnson_q', 'knudsen', 'lambda_gate', 'nozzle', 'potential_screens', 'rate_floor', 'roche', 'self_consistency', 'tang_timescale', 'thermostat']
 ```
