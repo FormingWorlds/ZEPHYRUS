@@ -91,6 +91,7 @@ The `effect` column says whether the returned rate already reflects the flag or 
 
 | `split_from_base_composition` | `True` | The per-species split used the atomized wind-base composition because no reservoirs were supplied. | The split reflects it |
 | `rock_former_bij` | list | Rock-forming species (Na, Mg, Si, Fe) are present in the closure, whose binary-diffusion coefficients for them sit in the widest provenance class. | Reporting only |
+| `substituted_bij` | list | Elements with no kinetic diameter (Al, P, Cl, K, Ca, Ti) are present in the closure, so their binary-diffusion coefficients are those of the nearest-mass species that has one, while their own masses still enter the closure. | Reporting only |
 | `stale_input` | `True` | The caller passed `atm_converged=False`, so the profile is from a non-converged atmosphere solve. | Reporting only |
 
 Every flag describes the branch whose rate was dispatched. The hydrodynamic candidates are computed on every call, because the diagnostics report them at every dispatch, so their cautions (`subcritical_sonic`, `thermostat_clamped`, `efficiency_fallback_fixed`, and the fitted-efficiency guards) appear only when a hydrodynamic branch won, and the bolometric residual clears them again when it displaces that winner. What the losing candidate did is in `diagnostics['hydrodynamic']` either way.

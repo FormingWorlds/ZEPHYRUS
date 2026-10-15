@@ -12,7 +12,7 @@ import numpy as np
 
 from zephyrus.composition import ELEMENT_AMU
 from zephyrus.constants import G, kb_cgs
-from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g
+from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g, substitutable
 
 # The closure generalizes the two-species fractionation of Hunten, Pepin &
 # Walker (1987, Icarus 69, 532) to N species escaping through mutual binary
@@ -213,7 +213,10 @@ def closure_per_species(
     to the bulk rate. Rock-forming species (Na, Mg, Si, Fe) raise the
     ``rock_former_bij`` flag: their coefficients sit in the widest
     provenance class, and Na and Mg ionize where rock vapor exists while
-    these are neutral-gas coefficients.
+    these are neutral-gas coefficients. Elements with no kinetic diameter
+    (Al, P, Cl, K, Ca, Ti) take the coefficients of their nearest-mass
+    covered substitute and raise the ``substituted_bij`` flag; their own
+    masses still enter the closure.
 
     Returns ``(per_element, diagnostics, flags)`` with the diagnostics
     carrying the active set, the retained species, the multiplier, the
@@ -230,6 +233,10 @@ def closure_per_species(
     prov = {f'{r.i}-{r.j}': (r.provenance, r.uncertainty) for r in rows}
     if any(el in ROCK_FORMERS for el in species):
         flags['rock_former_bij'] = [el for el in species if el in ROCK_FORMERS]
+    covered = substitutable()
+    substituted = [el for el in species if el not in covered and len(species) > 1]
+    if substituted:
+        flags['substituted_bij'] = substituted
 
     g0_cgs = (G * M_p / r_base**2) * 1e2  # m/s^2 -> cm/s^2
     phi_cgs = (mdot / (4.0 * math.pi * r_base**2)) * 0.1  # kg/m^2/s -> g/cm^2/s

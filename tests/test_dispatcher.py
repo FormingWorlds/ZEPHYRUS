@@ -1068,6 +1068,42 @@ def test_fractionation_toggle_and_split_protocol():
     assert sum(off.per_species.values()) == pytest.approx(off.mdot, rel=1e-6, abs=0.0)
 
 
+@pytest.mark.physics_invariant
+def test_rock_vapour_trace_species_dispatch_with_fractionation():
+    """Trace rock-vapour species do not stop a fractionated dispatch.
+
+    CO2 with 1 percent HCl and N2 with 1 percent KCl are atmospheres a
+    coupled run can pass in, and neither Cl nor K has a kinetic diameter.
+    With fractionation on, each hydrodynamic verdict returns a finite rate
+    equal to the unfractionated one (the split never moves the bulk rate),
+    per-element rates summing to it, and the substituted elements named in
+    the flags.
+    """
+    for comp, subs in (
+        ({'CO2': 0.99, 'HCl': 0.01}, ['Cl']),
+        ({'N2': 0.99, 'KCl': 0.01}, ['Cl', 'K']),
+    ):
+        for f_xuv in (10.0, 1.0e3):
+            on = dispatch(_inputs(Me, Re, 1000.0, comp, F_xuv=f_xuv, a=0.0775 * AU))
+            off = dispatch(
+                _inputs(
+                    Me,
+                    Re,
+                    1000.0,
+                    comp,
+                    F_xuv=f_xuv,
+                    a=0.0775 * AU,
+                    settings=DispatchSettings(fractionate=False),
+                )
+            )
+            assert on.regime in REGIME_LABELS and on.regime.startswith('hydrodynamic')
+            assert math.isfinite(on.mdot) and on.mdot > 0.0
+            assert on.mdot == pytest.approx(off.mdot, rel=1e-12, abs=0.0)
+            assert sum(on.per_species.values()) == pytest.approx(on.mdot, rel=1e-9, abs=0.0)
+            assert on.flags.get('substituted_bij') == subs
+            assert 'substituted_bij' not in off.flags
+
+
 def test_settings_and_inputs_error_contract():
     """Malformed settings and physical states raise before any physics runs.
 

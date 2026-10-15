@@ -225,10 +225,16 @@ MOLECULAR_BACKGROUND = {
 
 # The scaling rule and the library assembly.
 
-# Fractional 1-sigma width per provenance class. 'measured' is a margin set
-# wider than the 0.2 to 4 percent the two compilations agree to, not a
-# published figure; 30 percent is the ZK86 estimated-class perturbation.
-SIGMA_CLASS = {'measured': 0.10, 'estimated': 0.30, 'scaled': 0.30, 'scaled*': 0.30}
+# Fractional 1-sigma width per class: 'measured' is a margin wider than the 0.2 to 4
+# percent the compilations agree to; 30 percent is the ZK86 estimated perturbation,
+# and a lower bound for 'substituted', a borrowed coefficient no source gives a width for.
+SIGMA_CLASS = {
+    'measured': 0.10,
+    'estimated': 0.30,
+    'scaled': 0.30,
+    'scaled*': 0.30,
+    'substituted': 0.30,
+}
 CLASS_OF_ZK23 = {'M': 'measured', 'E': 'estimated'}
 
 N_CLOSEST = 3
@@ -270,7 +276,7 @@ def _anchors_for(target: tuple, mass: dict, diam: dict):
             raise ValueError(
                 f'no binary diffusion scaling for {sp!r}: it carries '
                 f'{"no mass" if sp not in mass else "no kinetic diameter"}. '
-                'Reach it through b_pair, which substitutes the nearest '
+                'build_rows and b_pair substitute the nearest '
                 'covered species.'
             )
     eligible = [
@@ -292,6 +298,34 @@ def _anchors_for(target: tuple, mass: dict, diam: dict):
     )
     out = [(p, eq10(_zk23_lookup(p)[0], target, p, mass, diam)) for p in ranked[:N_CLOSEST]]
     return out, 'closest'
+
+
+def _substitute(sp: str, exclude: tuple = ()) -> str:
+    """The species itself if covered, else the nearest-mass covered one."""
+    pool = [s for s in substitutable() if s not in exclude]
+    if sp in pool:
+        return sp
+    m = species_mass_amu(sp)
+    return min(pool, key=lambda s2: abs(ALL_MASS[s2] - m))
+
+
+def _proxy_pair(a: str, b: str) -> tuple[str, str]:
+    """Substitutes for a pair, never collapsing two species onto one."""
+    pa, pb = _substitute(a), _substitute(b)
+    if pa == pb:
+        # Distinct species must not collapse onto one substitute, or the
+        # pair's reduced mass stops resembling the target's; a genuine
+        # self-pair takes any distinct partner, having no second mass.
+        pb = _substitute(b, exclude=(pa,)) if a != b else ('O' if pa != 'O' else 'N')
+    return pa, pb
+
+
+def _proxy_row(i: str, j: str) -> Row:
+    """The library row of the pair's substitutes, relabeled for (i, j)."""
+    pi, pj = _proxy_pair(i, j)
+    r = build_rows([pi, pj])[0]
+    prov = f'proxy {i}->{pi}, {j}->{pj} [{r.provenance}]'
+    return Row(i, j, r.b1000, r.exponent, prov, 'substituted', r.source)
 
 
 class Row:
@@ -323,7 +357,9 @@ def build_rows(species: list) -> list[Row]:
     printed (measured or estimated, at its printed value); the Sasaki &
     Nakazawa (1988) noble-gas rows; otherwise the Eq. (10) scaling from the
     measured Table 2 anchors, with the provenance class recording that the
-    row is scaled and whether it rests on an estimated diameter.
+    row is scaled and whether it rests on an estimated diameter. A species
+    with no kinetic diameter (Al, P, Cl, K, Ca, Ti) takes the row of its
+    nearest-mass covered substitute, in the ``substituted`` class.
     """
     mass, diam = ALL_MASS, diameters()
     rows = []
@@ -355,6 +391,9 @@ def build_rows(species: list) -> list[Row]:
                         f'{s_fit:.3f}, entered at 0.75',
                     )
                 )
+                continue
+            if any(s not in mass or s not in diam for s in (i, j)):
+                rows.append(_proxy_row(i, j))
                 continue
             scaled, submode = _anchors_for((i, j), mass, diam)
             vals = np.array([v for _p, v in scaled])
@@ -455,33 +494,9 @@ def b_pair(sp_i: str, sp_j: str, T: float) -> tuple[float, str]:
         prov = 'molecular-background table'
         _PAIR_CACHE[key] = (b1000, s_fit, prov)
         return b1000 * (T / 1000.0) ** s_fit * 100.0, prov
-    if a in ALL_MASS and b in ALL_MASS:
-        try:
-            r = build_rows([a, b])[0]
-            _PAIR_CACHE[key] = (r.b1000, r.exponent, r.provenance)
-            return r.b(T) * 100.0, r.provenance
-        except (ValueError, KeyError):
-            pass
-
-    covered = substitutable()
-
-    def _proxy(sp, exclude=()):
-        pool = [s for s in covered if s not in exclude]
-        if sp in pool:
-            return sp
-        m = species_mass_amu(sp)
-        return min(pool, key=lambda s2: abs(ALL_MASS[s2] - m))
-
-    pa, pb = _proxy(a), _proxy(b)
-    if pa == pb:
-        # Distinct species must not collapse onto one substitute, or the
-        # pair's reduced mass stops resembling the target's; a genuine
-        # self-pair takes any distinct partner, having no second mass.
-        pb = _proxy(b, exclude=(pa,)) if a != b else ('O' if pa != 'O' else 'N')
-    r = build_rows([pa, pb])[0]
-    prov = f'proxy {a}->{pa}, {b}->{pb} [{r.provenance}]'
-    _PAIR_CACHE[key] = (r.b1000, r.exponent, prov)
-    return r.b(T) * 100.0, prov
+    r = build_rows([a, b])[0] if a in ALL_MASS and b in ALL_MASS else _proxy_row(a, b)
+    _PAIR_CACHE[key] = (r.b1000, r.exponent, r.provenance)
+    return r.b(T) * 100.0, r.provenance
 
 
 def b_mixture(sp: str, comp: dict[str, float], T: float) -> tuple[float, dict]:

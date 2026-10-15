@@ -13,7 +13,8 @@ invariants under test:
   two-component mixture; the b matrix is symmetric with an infinite
   diagonal.
 - Provenance: every assembled row carries a class the error model knows,
-  and proxy substitutions are recorded, never silent.
+  and proxy substitutions are recorded, never silent, with the closure's
+  rows and the pair fallback agreeing on every substituted coefficient.
 - Error contract: an incomplete matrix and an untabulated mass raise.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
@@ -191,6 +192,40 @@ def test_build_rows_source_order_and_classes():
         assert r.uncertainty in SIGMA_CLASS
     # The temperature law is the fitted power law.
     assert r_hhe.b(2000.0) / r_hhe.b(1000.0) == pytest.approx(2.0**0.75, rel=1e-12, abs=0.0)
+
+
+@pytest.mark.physics_invariant
+def test_build_rows_substitutes_species_without_a_kinetic_diameter():
+    """Rows for uncovered species borrow a substitute's coefficient, named.
+
+    Al, P, Cl, K, Ca, and Ti carry a mass but no kinetic diameter, so the
+    scaling rule cannot reach them, and a coupled run can hand any of them
+    to the closure. Each pair takes the row of its nearest-mass covered
+    substitutes, in the ``substituted`` class, with the same value and
+    provenance the hydrostatic branch gets from ``b_pair``, so the two
+    branches never disagree on a coefficient. Two uncovered species never
+    collapse onto one substitute, and the scaling rule itself still refuses
+    them when called directly.
+    """
+    for sp in ('Al', 'P', 'Cl', 'K', 'Ca', 'Ti'):
+        row = build_rows([sp, 'O'])[0]
+        assert row.uncertainty == 'substituted', sp
+        assert row.provenance.startswith(f'proxy {sp}->'), sp
+        b_si, prov = b_pair(sp, 'O', 1000.0)
+        assert row.b(1000.0) * 100.0 == pytest.approx(b_si, rel=1e-12, abs=0.0), sp
+        assert prov == build_rows(sorted([sp, 'O']))[0].provenance
+    assert 'substituted' in SIGMA_CLASS
+    # Edge case: two uncovered species in one pair take distinct substitutes.
+    row_kcl = build_rows(['K', 'Cl'])[0]
+    subs = [part.split('->')[1] for part in row_kcl.provenance[6:].split(' [')[0].split(', ')]
+    assert len(set(subs)) == 2
+    # A full closure matrix over a CO2 + HCl wind is finite and symmetric.
+    b = bmatrix(['H', 'C', 'O', 'Cl'], 5000.0)
+    off = ~np.eye(4, dtype=bool)
+    assert np.all(np.isfinite(b[off])) and np.all(b[off] > 0.0)
+    assert np.array_equal(b, b.T)
+    with pytest.raises(ValueError, match='no kinetic diameter'):
+        _anchors_for(('Cl', 'O'), ALL_MASS, diameters())
 
 
 def test_bmatrix_symmetry_and_error_contract():

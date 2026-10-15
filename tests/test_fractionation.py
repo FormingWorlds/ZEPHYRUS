@@ -496,6 +496,38 @@ def test_shim_low_flux_and_rock_former_flag():
     assert flags.get('rock_former_bij') == ['Si']
 
 
+@pytest.mark.physics_invariant
+def test_shim_substitutes_uncovered_species_and_flags_them():
+    """A trace species with no kinetic diameter is substituted and flagged.
+
+    A CO2 wind with 1 percent HCl, atomized: chlorine has no kinetic
+    diameter, so its coefficients come from a substitute. The closure must
+    still run, conserve the bulk rate, fractionate (hydrogen leaves above
+    its base mass fraction), and name chlorine in ``substituted_bij``. The
+    same wind without chlorine, and a chlorine-only wind with no pair to
+    build, raise no flag; a species with no tabulated mass still raises.
+    """
+    comp = {'C': 0.99, 'O': 1.98, 'H': 0.01, 'Cl': 0.01}
+    per, diag, flags = closure_per_species(1.0e6, comp, 8000.0, 5 * Me, 2 * Re)
+    assert flags.get('substituted_bij') == ['Cl']
+    assert 'rock_former_bij' not in flags
+    assert sum(per.values()) == pytest.approx(1.0e6, rel=1e-9, abs=0.0)
+    assert all(v >= 0.0 for v in per.values())
+    assert diag['b_provenance']['H-Cl'][1] == 'substituted'
+    assert diag['b_provenance']['H-C'][1] != 'substituted'
+    amu_of = {'C': 12.011, 'O': 15.999, 'H': 1.008, 'Cl': 35.45}
+    m_frac_h = 0.01 * amu_of['H'] / sum(x * amu_of[el] for el, x in comp.items())
+    assert per['H'] / 1.0e6 > 1.1 * m_frac_h
+    _per, _diag, flags_no_cl = closure_per_species(
+        1.0e6, {'C': 0.99, 'O': 1.98, 'H': 0.01}, 8000.0, 5 * Me, 2 * Re
+    )
+    assert 'substituted_bij' not in flags_no_cl
+    _per, _diag, flags_alone = closure_per_species(1.0e6, {'Cl': 1.0}, 8000.0, 5 * Me, 2 * Re)
+    assert 'substituted_bij' not in flags_alone
+    with pytest.raises(KeyError, match='Zz'):
+        closure_per_species(1.0e6, {'H': 0.5, 'Zz': 0.5}, 8000.0, 5 * Me, 2 * Re)
+
+
 def test_unfractionated_split_protocol():
     """The unfractionated split follows reservoirs, else base composition.
 
