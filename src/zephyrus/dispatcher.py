@@ -30,17 +30,17 @@ from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 # malformed input. The fixed evaluation order:
 #
 # 1. The bolometric candidate is computed at every call. Below the
-#    restricted Jeans parameter threshold the atmosphere boils off and
-#    that candidate is the rate (Owen & Wu 2016); past it the same
-#    machinery is a luminosity-capped residual (Gupta & Schlichting 2019),
-#    competing only when ``residual_mode`` admits it, off by default since
-#    its persistence is disputed (Tang et al. 2024). The test comes first
-#    because a boiling atmosphere has not yet built the base an XUV wind
-#    launches from (Owen & Schlichting 2024).
+#    restricted Jeans parameter threshold the atmosphere boils off (Owen &
+#    Wu 2016) and the larger of that candidate and the XUV wind of step 2
+#    is the rate, the stronger outflow setting it (Owen & Schlichting
+#    2024); past it the same machinery is a luminosity-capped residual
+#    (Gupta & Schlichting 2019), competing only when ``residual_mode``
+#    admits it, off by default since its persistence is disputed (Tang et
+#    al. 2024).
 # 2. The hydrodynamic candidate: wind base by the configured method, wind
 #    temperature from the thermostat, rate min(EL, RR, PL) with the
 #    winner naming the sub-label.
-# 3. The sonic-point Knudsen switch, on the hydrodynamic branch only,
+# 3. The sonic-point Knudsen switch, past the activation gate only,
 #    confirms the wind or re-routes the point to the hydrostatic branch.
 # 4. The hydrostatic branch: per-species Jeans escape with the
 #    diffusion-limited supply on the extended upper structure. Its
@@ -471,10 +471,19 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # may overwrite it.
     per_species = None
     if bolo['active']:
-        branch = 'boiloff'
-        rate = bolo_rate
-        flow_radius = bolo['R_sonic']
-        winner_flags = bolo_flags
+        # Below the gate the XUV wind competes with the bolometric one, and the
+        # stronger outflow sets the rate (Owen & Schlichting 2024, Sect. 2.1.3);
+        # a bolometric flow is XUV-penetrated before it goes collisionless.
+        if mdot_hydro > bolo_rate:
+            branch = hydro_label
+            rate = mdot_hydro
+            flow_radius = max(r_xuv, rr['R_s'])
+            winner_flags = hydro_flags
+        else:
+            branch = 'boiloff'
+            rate = bolo_rate
+            flow_radius = bolo['R_sonic']
+            winner_flags = bolo_flags
     else:
         if kn_sc <= threshold:
             branch = hydro_label

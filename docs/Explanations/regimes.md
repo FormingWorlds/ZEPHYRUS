@@ -17,8 +17,8 @@ Four levels of the atmosphere recur.
 
 ## The evaluation order
 
-1. The bolometric (boil-off) candidate is computed at every call. If the restricted Jeans parameter sits below its threshold, the atmosphere is boiling off and that candidate is the rate. XUV-driven escape needs a stable base to launch from, and a bolometrically boiling atmosphere has not built one yet, which is why this test precedes everything else [^owensch].
-2. Otherwise the hydrodynamic candidate is assembled: the wind base is located on the profile, a thermostat sets the wind temperature, and the candidate is the smallest of the energy-limited, radiation-recombination-limited, and photon-limited rates, with the winner naming the sub-label.
+1. The bolometric (boil-off) candidate is computed at every call, and so is the XUV wind candidate of step 2. If the restricted Jeans parameter sits below its threshold, the atmosphere is boiling off and the larger of the two rates is dispatched, with the matching label. Owen & Schlichting (2024) give the rate to photoevaporation when XUV photons are absorbed inside the Bondi radius and drive the stronger outflow, and to the bolometric wind otherwise [^owensch]. The dispatcher applies their second condition, the rate comparison, and does not test the first. The Knudsen switch of step 3 is not applied below the threshold, because a bolometric outflow is penetrated by XUV photons before it turns collisionless (their Eq. 7).
+2. The hydrodynamic candidate is assembled at every call: the wind base is located on the profile, a thermostat sets the wind temperature, and the candidate is the smallest of the energy-limited, radiation-recombination-limited, and photon-limited rates, with the winner naming the sub-label.
 3. The sonic-point Knudsen number decides whether that wind is collisional enough to exist. If it is, the hydrodynamic label stands and the [fractionation closure](fractionation.md) partitions the rate over species; if not, the state re-routes to the hydrostatic branch.
 4. The hydrostatic branch evaluates per-species Jeans escape on an extended upper structure, capped by the diffusive supply of each species. Its escape-temperature gate sends a thermally unstable exosphere back to the hydrodynamic rate.
 5. Past the activation gate the bolometric candidate is still computed, capped by the interior luminosity, and reported as the residual. It competes for the rate and the label only when the `residual_mode` setting admits it, and by default it does not. The tidally driven transfer through the L1 nozzle [^jackson17] competes last, on both sides of the gate, wherever the overflow description applies; a nozzle win labels the state `roche_overflow` and dispatches the transfer rate itself.
@@ -27,11 +27,13 @@ Four levels of the atmosphere recur.
 ```mermaid
 flowchart TD
     IN(["Planet state + atmosphere profile"]) --> BOLO["Bolometric candidate:<br/>Parker wind, Bondi cap"]
-    BOLO --> Q1{"Lambda below<br/>threshold?"}
-    Q1 -- yes --> BO["BOIL-OFF<br/>uncapped bolometric rate"]
-    Q1 -- no --> BASE["Wind base on the profile<br/>+ thermostat wind temperature"]
+    BOLO --> BASE["Wind base on the profile<br/>+ thermostat wind temperature"]
     BASE --> HYD["Candidates: energy limited,<br/>recombination limited,<br/>photon limited"]
-    HYD --> Q2{"Sonic-point Knudsen<br/>below threshold?"}
+    HYD --> Q1{"Lambda below<br/>threshold?"}
+    Q1 -- yes --> QB{"XUV wind rate above<br/>the bolometric rate?"}
+    QB -- yes --> HD
+    QB -- no --> BO["BOIL-OFF<br/>uncapped bolometric rate"]
+    Q1 -- no --> Q2{"Sonic-point Knudsen<br/>below threshold?"}
     Q2 -- yes --> HD["HYDRODYNAMIC<br/>min of the enabled limits, winner<br/>names EL, RR, or PL + fractionation"]
     Q2 -- no --> Q3{"Exobase hotter than half<br/>the escape temperature?"}
     Q3 -- yes --> HD
@@ -53,7 +55,7 @@ flowchart TD
     classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
     classDef stage fill:#ffffff,stroke:#1e6091,color:#111111
     class BO,BO2,HD,HS,RN,RO regime
-    class Q1,Q2,Q3,Q4,QN,Q5 decision
+    class Q1,QB,Q2,Q3,Q4,QN,Q5 decision
     class BOLO,BASE,HYD,KEEP stage
 ```
 
@@ -105,11 +107,11 @@ $$\dot{M}_\mathrm{bol} \;=\; \begin{cases} \min\left(\dot{M}_\mathrm{P},\ \dot{M
 
 reported in `diagnostics['bolometric']` on every call; past the gate it is the residual. Whether the residual also competes is the `residual_mode` setting. Under `'luminosity_capped'` it enters the final comparison of Eq. (38) and the larger rate takes both the rate and the label; under the default `'off'` it is reported and the branch verdict stands, and `competes` in the same diagnostics group says which happened.
 
-Whether that residual is physical is disputed, and the default takes the side that dispatches less. Gupta & Schlichting (2019) find that a bolometric wind fed by the cooling interior persists for gigayears, at the smaller of the Bondi-limited rate and the cooling-luminosity rate of Eq. (7) [^gs19]. Tang et al. (2024) find that once boil-off is initialized self-consistently the same wind removes at most a tenth of a percent of the envelope over gigayears, and diagnose the persistent rate as an artifact of coupling the wind to the core luminosity, of a missing wind energy-loss term, and of pre-boil-off initial conditions [^tang]. Here the dispute is confined to a narrow band past the gate. On a three Earth-mass hydrogen envelope at 0.1 au under an XUV flux of 10 W m⁻², the candidate past the gate is set by the Parker rate of Eq. (5) almost everywhere, since the closed form is still shutting off; it exceeds the XUV rate only while $\Lambda$ stays below about 21 to 23 (lower for a cooler envelope), by up to a factor of about 9 just past the gate between 1000 and 1500 K, and has fallen to 3 to 7% of it at $\Lambda = 25$. The default reports the candidate and does not dispatch it, which follows Tang et al. and makes the gate a jump in the dispatched rate. Measured at the gate itself on a three Earth-mass hydrogen and helium envelope at 1000 K and 0.0775 au, it is a factor of 5.2 under that XUV flux and 518 under 0.1 W m⁻², where the XUV rate is small (3.0 and 303 with `photon_limit = False`). A run that wants the rate continuous across the gate sets `residual_mode = 'luminosity_capped'`, and the two runs differ by the candidate rate the diagnostics print either way. The termination timescale of Tang et al. (their Eq. 8) is computed on the closed-form wind $\min(\dot{M}_\mathrm{P}, \dot{M}_\mathrm{B})$ before the luminosity cap, since that cap and their cooling time are set by the same luminosity, and reported beside the rate, never used as a gate, so the reader can see how long the branch would survive under their criterion whichever setting is in force.
+Whether that residual is physical is disputed, and the default takes the side that dispatches less. Gupta & Schlichting (2019) find that a bolometric wind fed by the cooling interior persists for gigayears, at the smaller of the Bondi-limited rate and the cooling-luminosity rate of Eq. (7) [^gs19]. Tang et al. (2024) find that once boil-off is initialized self-consistently the same wind removes at most a tenth of a percent of the envelope over gigayears, and diagnose the persistent rate as an artifact of coupling the wind to the core luminosity, of a missing wind energy-loss term, and of pre-boil-off initial conditions [^tang]. Here the dispute is confined to a narrow band past the gate. On a three Earth-mass hydrogen envelope at 0.1 au under an XUV flux of 10 W m⁻², the candidate past the gate is set by the Parker rate of Eq. (5) almost everywhere, since the closed form is still shutting off; it exceeds the XUV rate only while $\Lambda$ stays below about 21 to 23 (lower for a cooler envelope), by up to a factor of about 9 just past the gate between 1000 and 1500 K, and has fallen to 3 to 7% of it at $\Lambda = 25$. The default reports the candidate and does not dispatch it, which follows Tang et al. and makes the gate a jump in the dispatched rate wherever the bolometric rate is still the larger one at the gate; where the XUV wind has already overtaken it below the gate, the gate is continuous. Measured at the gate itself on a three Earth-mass hydrogen and helium envelope at 1000 K and 0.0775 au, it is a factor of 5.2 under that XUV flux and 518 under 0.1 W m⁻², where the XUV rate is small (3.0 and 303 with `photon_limit = False`). A run that wants the rate continuous across the gate sets `residual_mode = 'luminosity_capped'`, and the two runs differ by the candidate rate the diagnostics print either way. The termination timescale of Tang et al. (their Eq. 8) is computed on the closed-form wind $\min(\dot{M}_\mathrm{P}, \dot{M}_\mathrm{B})$ before the luminosity cap, since that cap and their cooling time are set by the same luminosity, and reported beside the rate, never used as a gate, so the reader can see how long the branch would survive under their criterion whichever setting is in force.
 
 ## The hydrodynamic wind
 
-Past the boil-off gate, stellar XUV heating can drive a fluid wind. Its rate is the smallest of three limits built on one wind base and one wind temperature.
+Stellar XUV heating can drive a fluid wind on either side of the boil-off gate; below it, the wind competes with the bolometric outflow. Its rate is the smallest of three limits built on one wind base and one wind temperature.
 
 **The wind base.** XUV photons deposit their energy where the atmosphere first reaches unit optical depth to them, which over one scale height is the pressure level of Lopez (2017) [^lopez2017],
 
@@ -279,9 +281,9 @@ Two things the primary computes and this module does not. The first is the torqu
 
 The branch rate follows from the gate, the switch, and the escape-temperature gate:
 
-$$\dot{M}_\mathrm{branch} \;=\; \begin{cases} \dot{M}_\mathrm{bol}, & \Lambda < \Lambda_\mathrm{c} \\ \dot{M}_\mathrm{hyd}, & \Lambda \ge \Lambda_\mathrm{c}\ \text{and}\ \left(\mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c}\ \text{or}\ T_\mathrm{exo} > T_\mathrm{esc,gate}/2\right) \\ \dot{M}_\mathrm{hs}, & \text{otherwise} \end{cases} \tag{37}$$
+$$\dot{M}_\mathrm{branch} \;=\; \begin{cases} \max\left(\dot{M}_\mathrm{bol},\ \dot{M}_\mathrm{hyd}\right), & \Lambda < \Lambda_\mathrm{c} \\ \dot{M}_\mathrm{hyd}, & \Lambda \ge \Lambda_\mathrm{c}\ \text{and}\ \left(\mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c}\ \text{or}\ T_\mathrm{exo} > T_\mathrm{esc,gate}/2\right) \\ \dot{M}_\mathrm{hs}, & \text{otherwise} \end{cases} \tag{37}$$
 
-with $\dot{M}_\mathrm{bol}$ from Eq. (8), $\dot{M}_\mathrm{hyd}$ from Eq. (18), $\dot{M}_\mathrm{hs}$ from Eq. (29), and $T_\mathrm{esc,gate}$ the escape temperature of Eq. (30) the `gate` setting selects. The dispatched rate is the largest of the candidates that survive:
+with $\dot{M}_\mathrm{bol}$ from Eq. (8), $\dot{M}_\mathrm{hyd}$ from Eq. (18), $\dot{M}_\mathrm{hs}$ from Eq. (29), and $T_\mathrm{esc,gate}$ the escape temperature of Eq. (30) the `gate` setting selects. Below the gate the larger of the two outflows takes the label, `boiloff` or the wind's own sub-label. The dispatched rate is the largest of the candidates that survive:
 
 $$\dot{M} \;=\; \max\left(\dot{M}_\mathrm{branch},\ \chi_\mathrm{res}\, \dot{M}_\mathrm{bol},\ \chi_\mathrm{L1}\, \langle \dot{M}_\mathrm{L1} \rangle\right) \tag{38}$$
 

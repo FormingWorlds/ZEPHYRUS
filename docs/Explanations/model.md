@@ -11,19 +11,21 @@ Mass loss happens through two physically distinct channels, and ZEPHYRUS models 
 
 Which physics carries the continuous loss depends on how tightly the atmosphere is bound, how strongly it is irradiated, and how collisional its outer layers are. Applying a prescription outside its regime gives rates that are wrong by orders of magnitude, so ZEPHYRUS classifies each atmospheric state before choosing a rate. Every state receives one of six regime labels:
 
-- `boiloff`: the atmosphere is so weakly bound that it flows out on the planet's own thermal energy, before stellar XUV heating matters. Typical of young, hot, hydrogen-rich planets fresh out of the nebula. The rate is the isothermal Parker wind of Owen & Wu (2016) [^owenwu] at the wind temperature of Misener et al. (2025) [^misener], and the state is recognized by the restricted Jeans parameter of Fossati et al. (2017) [^fossati].
+- `boiloff`: the atmosphere is so weakly bound that it flows out on the planet's own thermal energy, faster than stellar XUV heating could drive it. Typical of young, hot, hydrogen-rich planets fresh out of the nebula. The rate is the isothermal Parker wind of Owen & Wu (2016) [^owenwu] at the wind temperature of Misener et al. (2025) [^misener], and the state is recognized by the restricted Jeans parameter of Fossati et al. (2017) [^fossati].
 - `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (Watson et al. 1981 [^watson], in the tidally corrected form of Erkaev et al. 2007 [^erkaev]); the energy-limited rate is the smallest of the three hydrodynamic limits here.
 - `hydrodynamic:RR`: the same fluid wind, but the rate is capped below the energy limit because radiative recombination re-emits part of the absorbed energy (the radiation-recombination-limited rate of Murray-Clay et al. 2009 [^mc09] wins).
 - `hydrodynamic:PL`: the same fluid wind in a well shallow enough that the heating share of each ionizing photon's energy exceeds the work to lift one particle out, so the rate is set by the number of photons rather than their energy (the photon-limited rate of Owen & Alvarez 2016 [^owenalvarez] wins).
 - `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape, with the kinetic enhancement of Volkov et al. 2011 [^volkovb]), species by species, capped by how fast diffusion can resupply each species (Yelle 2024 [^yelle]). Whether the wind is collisional enough to exist is decided by the sonic-point Knudsen number of Chatterjee & Pierrehumbert (2026) [^cp26].
 - `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017 [^jackson17]) outruns every bound candidate and is dispatched as the rate, or the flow region reaches the planet's Hill sphere and the label sits on top of whichever regime produced the rate, which is then a lower limit (the overflow geometries of Owen & Jackson 2012 [^oj12]). `diagnostics['roche']['rate_branch']` says which reading applies.
 
-The classification logic reduces to three questions, asked in a fixed order:
+The classification logic reduces to four questions, asked in a fixed order:
 
 ```mermaid
 flowchart TD
     IN(["Planet state + atmosphere profile"]) --> Q1{"Is the atmosphere inflated<br/>beyond its sonic radius?<br/>(Jeans parameter below threshold)"}
-    Q1 -- yes --> BO["BOIL-OFF<br/>bolometric wind"]
+    Q1 -- yes --> QB{"Does the XUV wind<br/>outrun the bolometric one?"}
+    QB -- yes --> HD
+    QB -- no --> BO["BOIL-OFF<br/>bolometric wind"]
     Q1 -- no --> Q2{"Is an XUV wind collisional<br/>at its sonic point?<br/>(Knudsen number below threshold)"}
     Q2 -- yes --> HD["HYDRODYNAMIC WIND<br/>label EL, RR, or PL,<br/>whichever rate is smallest"]
     Q2 -- no --> HS["HYDROSTATIC<br/>per-species Jeans escape"]
@@ -36,7 +38,7 @@ flowchart TD
     classDef regime fill:#1e6091,stroke:#0f3a5c,color:#ffffff
     classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
     class BO,HD,HS,RO regime
-    class Q1,Q2,Q3 decision
+    class Q1,QB,Q2,Q3 decision
 ```
 
 The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and three refinements are omitted for clarity (a thermally unstable exosphere re-routes from the hydrostatic branch back to the wind rate, a residual bolometric rate can be admitted past the boil-off gate by a setting, and the tidally driven L1 transfer rate competes as a final candidate wherever the overflow description applies, taking the overflow label with its own rate when it wins). The [escape regimes](regimes.md) page walks every step with its equations and thresholds.

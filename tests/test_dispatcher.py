@@ -10,6 +10,8 @@ mocks). The properties under test:
 - Routing: an inflated light envelope dispatches to boil-off; a bound heavy
   atmosphere under weak XUV to hydrostatic; a light envelope under strong
   XUV to a hydrodynamic sub-label; a Roche-filling geometry to overflow.
+  Below the boil-off gate the larger of the bolometric and XUV outflows
+  takes the rate, so the rate falls with mass on both sides of the gate.
 - The Roche screen renames a state without changing its rate, so the
   dispatched rate is continuous across the overflow boundary, and its
   subflag separates the two published overflow geometries by the extent of
@@ -1102,6 +1104,56 @@ def test_rock_vapour_trace_species_dispatch_with_fractionation():
             assert sum(on.per_species.values()) == pytest.approx(on.mdot, rel=1e-9, abs=0.0)
             assert on.flags.get('substituted_bij') == subs
             assert 'substituted_bij' not in off.flags
+
+
+@pytest.mark.physics_invariant
+def test_xuv_wind_competes_below_the_boiloff_gate():
+    """Below the activation gate the stronger of the two outflows sets the rate.
+
+    Owen & Schlichting (2024, Sect. 2.1.3) give the rate to photoevaporation
+    when the XUV-driven wind is stronger than the bolometric one. On a
+    hydrogen envelope of 1 R_E at T_eq = 1000 K and F_xuv = 1e4 W m-2 the
+    XUV wind wins from Lambda of about 15 up to the gate, so a planet 1
+    percent lighter than the gate must not lose mass 95 times more slowly.
+    The rate falls with mass on both sides of Lambda = 20 at both fluxes,
+    every state below the gate dispatches the larger candidate, a winning
+    wind is split by the closure, and at 10 W m-2 the boil-off rate still
+    wins below the gate. Without XUV the bolometric rate stands alone.
+    """
+    hhe = {'H2': 0.9, 'He': 0.1}
+    masses = np.linspace(1.3, 2.0, 15)  # Lambda 13 to 25 across the gate
+    for f_xuv in (1.0e4, 10.0):
+        out = [
+            dispatch(_inputs(m * Me, Re, 1000.0, hhe, F_xuv=f_xuv, a=0.0775 * AU))
+            for m in masses
+        ]
+        rates = [o.mdot for o in out]
+        assert all(b <= a * (1.0 + 1e-12) for a, b in zip(rates, rates[1:])), f_xuv
+        lams = [o.diagnostics['lambda_gate'] for o in out]
+        assert lams[0] < 20.0 < lams[-1]
+        for o in out:
+            if o.diagnostics['bolometric']['active']:
+                h = o.diagnostics['hydrodynamic']
+                xuv = min(h['mdot_el'], h['mdot_rr'], h['mdot_pl'])
+                best = max(xuv, o.diagnostics['bolometric']['rate_kg_s'])
+                assert o.mdot == pytest.approx(best, rel=1e-12, abs=0.0)
+    below = dispatch(_inputs(1.70 * Me, Re, 1000.0, hhe, F_xuv=1.0e4, a=0.0775 * AU))
+    above = dispatch(_inputs(1.75 * Me, Re, 1000.0, hhe, F_xuv=1.0e4, a=0.0775 * AU))
+    assert below.diagnostics['bolometric']['active']
+    assert below.regime == 'hydrodynamic:PL'
+    assert below.mdot > 50.0 * below.diagnostics['bolometric']['rate_kg_s']
+    assert 'closure' in below.diagnostics
+    assert above.mdot == pytest.approx(below.mdot, rel=0.05, abs=0.0)
+    # Discrimination: at 10 W m-2 the boil-off rate still dominates below the
+    # gate, and the gate keeps its downward jump.
+    low = dispatch(_inputs(1.70 * Me, Re, 1000.0, hhe, F_xuv=10.0, a=0.0775 * AU))
+    low_above = dispatch(_inputs(1.75 * Me, Re, 1000.0, hhe, F_xuv=10.0, a=0.0775 * AU))
+    assert low.regime == 'boiloff'
+    assert low_above.mdot < 0.2 * low.mdot
+    # Limit input: with no XUV the bolometric candidate is the only outflow.
+    dark = dispatch(_inputs(1.70 * Me, Re, 1000.0, hhe, F_xuv=0.0, a=0.0775 * AU))
+    assert dark.regime == 'boiloff'
+    assert dark.mdot == pytest.approx(low.mdot, rel=1e-12, abs=0.0)
 
 
 def test_settings_and_inputs_error_contract():
