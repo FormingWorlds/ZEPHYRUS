@@ -367,9 +367,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         # density is not.
         r_nozzle = base['r']
         rho_nozzle = base['p'] * mu_nozzle / (kb * t_nozzle)
+        vmr_nozzle = elements
     else:
         t_nozzle, mu_nozzle = photo['T'], photo['mmw']
         r_nozzle, rho_nozzle = photo['r'], photo['rho']
+        vmr_nozzle = photo['vmr']
+    sigma_nozzle, _ = kn.sigma_mixture(vmr_nozzle, t_nozzle)
     nozzle_full, noz = nz.nozzle_candidate(
         inputs.M_p,
         inputs.M_star,
@@ -379,6 +382,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         r_ph=r_nozzle,
         T=t_nozzle,
         mu_kg=mu_nozzle,
+        sigma_m2=sigma_nozzle,
+        kn_crit=st.kn_crit,
     )
     # The competed rate is duty-cycled over the arc where overflow applies;
     # the unguarded average is kept so the closed form stays comparable

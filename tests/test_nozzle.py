@@ -255,6 +255,60 @@ def test_exponent_clamps_at_lobe_contact():
     assert math.isclose(beyond, at_contact, rel_tol=1e-12, abs_tol=0.0)
 
 
+@pytest.mark.physics_invariant
+def test_collisionality_at_l1_gates_each_phase():
+    """A phase applies only where the gas at L1 is a fluid.
+
+    The Knudsen number at L1 is the Maxwell mean free path at the density
+    the rate implies there, over the nozzle's Gaussian width sqrt(A/2 pi),
+    so it scales as 1/sigma. On a lobe-hugging hot Jupiter the threshold
+    placed just above and just below the computed value admits and refuses
+    the same candidate, and with no cross section the test is skipped, which
+    keeps the closed form comparable with the published table. On an
+    eccentric orbit the denser periapsis arc can pass while apoapsis fails,
+    which shrinks the applicable fraction without emptying it. Unphysical
+    cross sections and thresholds raise.
+    """
+    m_p, m_s, a = 0.5 * M_JUP, 1.989e30, 0.015 * AU
+    rho, t, mu_kg = 1e-9, 1500.0, 2.0 * amu
+    r_ph = 0.8 * eggleton_lobe_radius(m_p / m_s, a)
+    sigma = 1.0e-19  # m^2, of order the H2 collision cross section
+    _r, base = nozzle_candidate(m_p, m_s, a, 0.0, rho, r_ph, t, mu_kg, sigma_m2=sigma)
+    kn = base['kn_L1']
+    n_l1 = base['rate_periapsis_kg_s'] / (base['v_th'] * base['area_m2'] * mu_kg)
+    h_l1 = math.sqrt(base['area_m2'] / (2.0 * math.pi))
+    assert kn == pytest.approx(1.0 / (math.sqrt(2.0) * sigma * n_l1 * h_l1), rel=1e-12, abs=0.0)
+    _r, d2 = nozzle_candidate(m_p, m_s, a, 0.0, rho, r_ph, t, mu_kg, sigma_m2=2.0 * sigma)
+    assert d2['kn_L1'] == pytest.approx(0.5 * kn, rel=1e-12, abs=0.0)
+    admit = nozzle_candidate(
+        m_p, m_s, a, 0.0, rho, r_ph, t, mu_kg, sigma_m2=sigma, kn_crit=1.01 * kn
+    )[1]
+    refuse = nozzle_candidate(
+        m_p, m_s, a, 0.0, rho, r_ph, t, mu_kg, sigma_m2=sigma, kn_crit=0.99 * kn
+    )[1]
+    skip = nozzle_candidate(m_p, m_s, a, 0.0, rho, r_ph, t, mu_kg)[1]
+    assert admit['applicable'] and admit['rate_applicable_kg_s'] > 0.0
+    assert not refuse['applicable'] and refuse['rate_applicable_kg_s'] == 0.0
+    assert skip['applicable'] and math.isnan(skip['kn_L1'])
+    assert skip['rate_applicable_kg_s'] == pytest.approx(
+        admit['rate_applicable_kg_s'], rel=1e-12, abs=0.0
+    )
+    # Eccentric orbit: periapsis is denser at L1 than apoapsis.
+    ecc = nozzle_candidate(m_p, m_s, a, 0.3, rho, r_ph, t, mu_kg, sigma_m2=sigma, kn_crit=1.0)[
+        1
+    ]
+    ecc_kn_peri = ecc['kn_L1']
+    ecc_mid = nozzle_candidate(
+        m_p, m_s, a, 0.3, rho, r_ph, t, mu_kg, sigma_m2=sigma, kn_crit=3.0 * ecc_kn_peri
+    )[1]
+    assert 0.0 < ecc_mid['applicable_orbit_fraction'] < 1.0
+    for bad in (0.0, -1.0, math.inf, math.nan):
+        with pytest.raises(ValueError, match='sigma_m2'):
+            nozzle_candidate(m_p, m_s, a, 0.0, rho, r_ph, t, mu_kg, sigma_m2=bad)
+        with pytest.raises(ValueError, match='kn_crit'):
+            nozzle_candidate(m_p, m_s, a, 0.0, rho, r_ph, t, mu_kg, sigma_m2=sigma, kn_crit=bad)
+
+
 def test_curvature_rejects_unphysical_mass_ratio():
     """A non-positive or non-finite mass ratio raises; a valid one returns.
 

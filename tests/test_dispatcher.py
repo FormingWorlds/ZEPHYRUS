@@ -14,6 +14,7 @@ mocks). The properties under test:
   takes the rate, so the rate falls with mass on both sides of the gate.
   Past the escape-temperature gate the larger of the wind and Jeans rates
   is dispatched, so heating the exosphere never lowers the escape.
+  The L1 nozzle competes only where its flow is collisional at L1.
 - The Roche screen renames a state without changing its rate, so the
   dispatched rate is continuous across the overflow boundary, and its
   subflag separates the two published overflow geometries by the extent of
@@ -459,21 +460,23 @@ def test_roche_subflag_separates_the_two_geometries():
     assert roche_b['xi_ktide'] > 1.0
 
     # The third: the label won by the rate crossing alone, with neither
-    # the atmosphere nor the flow radius reaching out.
+    # the atmosphere nor the flow radius reaching out. A steam envelope at
+    # 0.01 au is collisional at L1 while its extent stays inside the lobe.
     neither = dispatch(
         _inputs(
-            0.107 * Me,
-            0.53 * Re,
+            0.5 * Me,
+            0.8 * Re,
             1000.0,
-            {'CO2': 1.0},
+            {'H2O': 1.0},
             F_xuv=1e-4,
-            a=0.02 * AU,
-            settings=DispatchSettings(T_exo_value=2000.0),
+            a=0.01 * AU,
+            settings=DispatchSettings(T_exo_value=1000.0),
         )
     )
     roche_n = neither.diagnostics['roche']
     assert neither.regime == 'roche_overflow'
     assert roche_n['rate_branch'] == 'roche_overflow'
+    assert neither.diagnostics['nozzle']['kn_L1'] < 1.0
     assert neither.flags.get('roche_subflag') == 'neither'
     assert roche_n['r_atmosphere'] < neither.diagnostics['nozzle']['r_lobe']
     assert roche_n['xi_flow'] > 1.0
@@ -511,10 +514,10 @@ def test_nozzle_win_relabels_with_the_transfer_rate():
 def test_nozzle_competes_only_inside_its_domain():
     """The nozzle candidate needs applicability and a non-empty rate to win.
 
-    Two refusals, one per condition. A bound CO2 planet has a nozzle rate
-    below the one-proton-per-Julian-year floor, so a crossing against the
-    similarly empty hydrodynamic rate decides nothing and the verdict
-    stands. A residual-driven sub-Neptune at a wide orbit, with the
+    Two refusals, one per condition. A bound CO2 planet's isothermal column
+    reaches L1 with a density so low that the gas there is collisionless,
+    so the fluid formula has no flow to describe and the candidate reports
+    without competing. A residual-driven sub-Neptune at a wide orbit, with the
     residual admitted through its setting, has a nozzle candidate above
     its own dispatched rate, but the isothermal sonic radius sits inside
     the L1 distance (Jackson et al. 2017, their Figure 9), so a spherical
@@ -523,8 +526,10 @@ def test_nozzle_competes_only_inside_its_domain():
     """
     empty = dispatch(_inputs(Me, Re, 700.0, {'CO2': 1.0}, F_xuv=10.0, a=0.1 * AU))
     noz = empty.diagnostics['nozzle']
-    assert noz['applicable'] is True
-    assert 0.0 <= noz['rate_kg_s'] < empty.diagnostics['rate_floor']['floor_kg_s']
+    assert noz['R_sonic_over_R_L1'] >= 1.0  # the sonic criterion alone would admit it
+    assert noz['kn_L1'] > 1.0e10
+    assert noz['applicable'] is False
+    assert noz['rate_kg_s'] == 0.0
     assert empty.regime == 'hydrodynamic:EL'
 
     outside = dispatch(
@@ -559,31 +564,17 @@ def test_nozzle_crossing_is_continuous():
     crossing, unlike the criterion boundaries (the activation gate, the
     Knudsen switch, the applicability edge), whose jumps are results.
     """
-    prof_settings = DispatchSettings(T_exo_value=3000.0)
 
     def at(a):
         return dispatch(
-            _inputs(
-                0.107 * Me,
-                0.53 * Re,
-                600.0,
-                {'CO2': 1.0},
-                F_xuv=1e-4,
-                a=a,
-                settings=prof_settings,
-            )
+            _inputs(8 * Me, 3.0 * Re, 1200.0, {'H2': 0.9, 'He': 0.1}, F_xuv=10.0, a=a)
         )
 
-    lo, hi = 0.010 * AU, 0.014 * AU
-    inner = at(lo)
+    lo, hi = 0.044 * AU, 0.046 * AU
+    inner, outer = at(lo), at(hi)
     assert inner.regime == 'roche_overflow'
     assert inner.diagnostics['roche']['rate_branch'] == 'roche_overflow'
-    # This donor's extended structure passes its own Roche lobe while
-    # staying inside the Hill sphere, so the geometric subflag reads
-    # dynamical whichever candidate carries the rate.
-    assert inner.flags.get('roche_subflag') == 'dynamical'
-    assert inner.diagnostics['roche']['r_atmosphere'] >= inner.diagnostics['nozzle']['r_lobe']
-    assert at(hi).regime == 'hydrostatic'
+    assert outer.regime == 'hydrodynamic:PL'
     for _ in range(50):
         mid = 0.5 * (lo + hi)
         if at(mid).regime == inner.regime:
@@ -592,7 +583,11 @@ def test_nozzle_crossing_is_continuous():
             hi = mid
     below, above = at(lo), at(hi)
     assert below.regime == 'roche_overflow'
-    assert above.regime == 'hydrostatic'
+    assert above.regime == 'hydrodynamic:PL'
+    # Still inside both applicability conditions on the far side, so the
+    # label changed because the rates crossed, not because a criterion did.
+    noz = above.diagnostics['nozzle']
+    assert noz['applicable'] is True and noz['kn_L1'] < 1.0 and noz['rate_kg_s'] > 0.0
     assert below.mdot == pytest.approx(above.mdot, rel=1e-6, abs=0.0)
 
 
@@ -1218,6 +1213,67 @@ def test_unstable_exosphere_never_escapes_slower_than_a_stable_one():
     assert steam.regime.startswith('hydrodynamic')
     assert wind > 1.5 * steam.diagnostics['hydrostatic']['rate_kg_s']
     assert steam.mdot == pytest.approx(wind, rel=1e-12, abs=0.0)
+
+
+@pytest.mark.physics_invariant
+def test_nozzle_needs_a_collisional_flow_at_l1():
+    """Bound planets whose gas is collisionless at L1 keep their own label.
+
+    The Jackson et al. (2017) rate assumes a fluid column out to L1. An
+    Earth-mass steam atmosphere at 1000 K with no XUV has an isothermal
+    column whose density at L1 implies a Knudsen number of order 1e37 there,
+    so the candidate must not compete and the state stays hydrostatic; a
+    Mars-mass CO2 planet under weak XUV likewise. Raising the threshold far
+    above those values restores the old overflow label, which shows the
+    collisionality condition, not some other change, removed it. A puffy
+    sub-Neptune near its lobe is collisional at L1 by eight decades and
+    keeps its overflow win.
+    """
+    steam_in = _inputs(Me, Re, 1000.0, {'H2O': 1.0}, F_xuv=0.0, a=0.0775 * AU)
+    steam = dispatch(steam_in)
+    noz = steam.diagnostics['nozzle']
+    assert steam.regime == 'hydrostatic'
+    assert noz['R_sonic_over_R_L1'] >= 1.0
+    assert noz['kn_L1'] > 1.0e30
+    assert noz['applicable'] is False and noz['rate_kg_s'] == 0.0
+    # The reported density is the one the rate implies at L1.
+    assert noz['n_L1_m3'] * noz['v_th'] * noz['area_m2'] * noz['mu_kg'] == pytest.approx(
+        noz['rate_periapsis_kg_s'], rel=1e-12, abs=0.0
+    )
+    assert noz['H_L1_m'] == pytest.approx(
+        math.sqrt(noz['area_m2'] / (2.0 * math.pi)), rel=1e-12, abs=0.0
+    )
+    lax = dispatch(
+        _inputs(
+            Me,
+            Re,
+            1000.0,
+            {'H2O': 1.0},
+            F_xuv=0.0,
+            a=0.0775 * AU,
+            settings=DispatchSettings(kn_crit=1.0e40),
+        )
+    )
+    assert lax.regime == 'roche_overflow'
+    assert lax.diagnostics['roche']['rate_branch'] == 'roche_overflow'
+    mars = dispatch(
+        _inputs(
+            0.107 * Me,
+            0.53 * Re,
+            1000.0,
+            {'CO2': 1.0},
+            F_xuv=0.01,
+            a=0.0775 * AU,
+            settings=DispatchSettings(T_exo_value=1000.0),
+        )
+    )
+    assert mars.regime != 'roche_overflow'
+    assert mars.diagnostics['nozzle']['kn_L1'] > 1.0
+    puffy = dispatch(
+        _inputs(3 * Me, 2.2 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=13.4, a=0.07 * AU)
+    )
+    assert puffy.diagnostics['roche']['rate_branch'] == 'roche_overflow'
+    assert puffy.diagnostics['nozzle']['kn_L1'] < 1.0e-6
 
 
 def test_settings_and_inputs_error_contract():

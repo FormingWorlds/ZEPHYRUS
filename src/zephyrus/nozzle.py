@@ -37,6 +37,13 @@ from zephyrus.constants import G, kb
 #   short of it the gas chokes at its own sonic surface first and the wind
 #   branches apply. The comparison is their Section 4 and Figure 9; making
 #   it a gate is this module's, not a rule they state.
+# - Collisionality: the formula assumes a fluid column all the way to L1,
+#   so a phase applies only where the Maxwell mean free path at the model's
+#   own L1 density, rate / (v_th A), is below kn_crit times the nozzle's
+#   Gaussian width sqrt(A / 2 pi) (their Eqs. 8 and 9 give A as 2 pi times
+#   the product of the two transverse widths). This is the sonic-point
+#   Knudsen construction of Chatterjee & Pierrehumbert (2026) moved to L1;
+#   the primary does not state it.
 # - Orbit average: the rate is the Kepler-weighted time average over the
 #   orbit, each phase evaluated with the circular formula at its own
 #   separation; the primary has no eccentric treatment.
@@ -202,6 +209,31 @@ def _phase_state(
     )
 
 
+def _l1_density_and_width(st: dict, v_th: float, mu_kg: float) -> tuple[float, float]:
+    """Number density at L1 [m^-3] implied by the rate, and the nozzle's width [m]."""
+    return st['rate'] / (v_th * st['area_m2'] * mu_kg), math.sqrt(
+        st['area_m2'] / (2.0 * math.pi)
+    )
+
+
+def _kn_l1(n_l1: float, h_l1: float, sigma_m2: float | None) -> float:
+    """Maxwell mean free path at L1 over the nozzle width; NaN without a cross section."""
+    if sigma_m2 is None:
+        return math.nan
+    if n_l1 <= 0.0:
+        return math.inf
+    return 1.0 / (math.sqrt(2.0) * sigma_m2 * n_l1 * h_l1)
+
+
+def _collisional(
+    st: dict, v_th: float, mu_kg: float, sigma_m2: float | None, kn_crit: float
+) -> bool:
+    """Whether the gas at L1 is a fluid at this phase; always True without a cross section."""
+    if sigma_m2 is None:
+        return True
+    return _kn_l1(*_l1_density_and_width(st, v_th, mu_kg), sigma_m2) <= kn_crit
+
+
 def nozzle_candidate(
     M_p: float,
     M_star: float,
@@ -212,6 +244,8 @@ def nozzle_candidate(
     T: float,
     mu_kg: float,
     n_phase: int = 64,
+    sigma_m2: float | None = None,
+    kn_crit: float = 1.0,
 ) -> tuple[float, dict]:
     """Orbit-averaged Roche-lobe overflow rate through the L1 nozzle.
 
@@ -238,6 +272,13 @@ def nozzle_candidate(
         Midpoint nodes in eccentric anomaly for the orbit average; the
         quadrature is converged well below the default. At ``e = 0`` every
         node holds the same value and the average is the instantaneous rate.
+    sigma_m2 : float or None
+        Collision cross section [m^2] of the gas at L1. When given, a phase
+        applies only where the L1 Knudsen number is at most ``kn_crit``;
+        ``None`` skips that test, which leaves the closed form comparable
+        with the primary's published rates.
+    kn_crit : float
+        Knudsen threshold at L1, used only with ``sigma_m2``.
 
     Returns
     -------
@@ -251,7 +292,9 @@ def nozzle_candidate(
         ratio, and curvature; the geometry (lobe radius, both potentials,
         the applied exponent, the nozzle area, ``saturated``) at periapsis;
         the applicable and saturated orbit fractions; the periapsis and
-        apoapsis rates; and the lift power, duty-cycled
+        apoapsis rates; the L1 density, Gaussian width, and Knudsen number at
+        periapsis (``n_L1_m3``, ``H_L1_m``, ``kn_L1``); and the lift power,
+        duty-cycled
         (``power_lift_W``) and over the full orbit
         (``power_lift_full_orbit_W``).
     """
@@ -270,6 +313,9 @@ def nozzle_candidate(
         raise ValueError(f'rho_ph must be non-negative and finite, got {rho_ph!r}')
     if not math.isfinite(e) or not 0.0 <= e < 1.0:
         raise ValueError(f'e must satisfy 0 <= e < 1, got {e!r}')
+    if sigma_m2 is not None:
+        _positive('sigma_m2', sigma_m2)
+    _positive('kn_crit', kn_crit)
     v_th = math.sqrt(kb * T / mu_kg)
     q = M_p / M_star
     a_curv = curvature_a(q)
@@ -292,7 +338,7 @@ def nozzle_candidate(
         # Off the applicable arc, which surrounds periapsis because the L1
         # distance grows with separation, the gas chokes at its own sonic
         # surface first and the nozzle carries nothing.
-        if r_sonic >= st['R_L1']:
+        if r_sonic >= st['R_L1'] and _collisional(st, v_th, mu_kg, sigma_m2, kn_crit):
             duty_rate_sum += w * st['rate']
             duty_power_sum += w * st['power']
             applicable_sum += w
@@ -301,6 +347,7 @@ def nozzle_candidate(
 
     peri = _phase_state(M_p, M_star, a * (1.0 - e), rho_ph, r_ph, v_th, q, a_curv)
     apo = _phase_state(M_p, M_star, a * (1.0 + e), rho_ph, r_ph, v_th, q, a_curv)
+    n_l1, h_l1 = _l1_density_and_width(peri, v_th, mu_kg)
     return rate_sum / w_sum, dict(
         T_K=T,
         mu_kg=mu_kg,
@@ -323,6 +370,9 @@ def nozzle_candidate(
         rate_periapsis_kg_s=peri['rate'],
         rate_apoapsis_kg_s=apo['rate'],
         rate_applicable_kg_s=duty_rate_sum / w_sum,
+        n_L1_m3=n_l1,
+        H_L1_m=h_l1,
+        kn_L1=_kn_l1(n_l1, h_l1, sigma_m2),
         applicable=applicable_sum > 0.0,
         applicable_orbit_fraction=applicable_sum / w_sum,
         saturated_orbit_fraction=saturated_sum / w_sum,
