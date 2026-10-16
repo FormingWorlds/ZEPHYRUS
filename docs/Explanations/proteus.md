@@ -1,6 +1,6 @@
 # ZEPHYRUS in PROTEUS
 
-This page describes how ZEPHYRUS is wired into the PROTEUS framework as its atmospheric scape module. The source code for this coupling can be found in the [wrapper](https://github.com/FormingWorlds/PROTEUS/blob/main/src/proteus/escape/wrapper.py). For the underlying ZEPHYRUS model itself, see the [model overview](model.md). For the standalone API, see the [API reference](../Reference/api/index.md).
+This page describes how ZEPHYRUS is wired into the PROTEUS framework as its atmospheric escape module. The source code for this coupling can be found in the [wrapper](https://github.com/FormingWorlds/PROTEUS/blob/main/src/proteus/escape/wrapper.py). For the underlying ZEPHYRUS model itself, see [the ZEPHYRUS model](model.md). For the standalone API, see the [API reference](../Reference/api/index.md). The coupling described here consumes the energy-limited default (`EL_escape`); the [escape-regime framework](regimes.md) is standalone API until its PROTEUS coupling lands in a follow-up change.
 
 ---
 
@@ -36,14 +36,14 @@ The PROTEUS configuration block for ZEPHYRUS lives under `[escape]` and `[escape
 
 | Key | Type | Units | Description |
 |---|---|---|---|
-| `escape.module` | str | – | Must be `"zephyrus"` to enable this backend. |
-| `escape.reservoir` | str | – | Which volatile inventory the escape rate is distributed over. See [Reservoir](#reservoir) below. |
+| `escape.module` | str | - | Must be `"zephyrus"` to enable this backend. |
+| `escape.reservoir` | str | - | Which volatile inventory the escape rate is distributed over. See [Reservoir](#reservoir) below. |
 | `escape.zephyrus.Pxuv` | float | bar | Reference pressure at which the atmosphere is taken to become optically thick to XUV photons; used by the atmosphere module (AGNI/JANUS) to compute the corresponding $R_\mathrm{XUV}$. |
-| `escape.zephyrus.efficiency` | float | – | Energy-limited escape efficiency $\epsilon$. |
-| `escape.zephyrus.tidal` | bool | – | If `true`, include the tidal correction $K_\mathrm{tide}$ in `EL_escape`. |
+| `escape.zephyrus.efficiency` | float | - | Energy-limited escape efficiency $\epsilon$. |
+| `escape.zephyrus.tidal` | bool | - | If `true`, include the tidal correction $K_\mathrm{tide}$ in `EL_escape`. |
 
 !!! note "`scaling=3` is hard-coded"
-    The PROTEUS wrapper always calls `EL_escape` with `scaling=3`, i.e. the $R_\mathrm{XUV}^3$ form. This is not exposed as a config option. Standalone users of `EL_escape` can choose `scaling=2` (the function default, $R_p R_\mathrm{XUV}^2$).
+    The PROTEUS wrapper always calls `EL_escape` with `scaling=3`, i.e., the $R_\mathrm{XUV}^3$ form. This is not exposed as a config option. Standalone users of `EL_escape` can choose `scaling=2` (the function default, $R_p R_\mathrm{XUV}^2$).
 
 ---
 
@@ -142,7 +142,7 @@ This works the same way for ZEPHYRUS, dummy, and BOREAS backends.
 
 ## Giant-impact atmosphere loss
 
-Alongside the continuous escape channel above, ZEPHYRUS provides `collision.mass_loss`, the giant-impact erosion law described in the [model overview](model.md). It is a standalone function of the collision parameters (contact speed, masses, radii, bulk densities, and impact parameter) and returns the fraction of the target's atmosphere removed by one impact, for a caller that models giant impacts during accretion. Three conventions bind the caller: the speed is taken at first contact, the masses and radii exclude the atmosphere with radii at its base, and the densities are bulk values of the atmosphere-free bodies.
+Alongside the continuous escape channel above, ZEPHYRUS provides `collision.impact_loss`, which evaluates one of the two giant-impact erosion laws described on the [giant impacts](impacts.md) page: Kegerreis et al. (2020) for thin atmospheres and Roche et al. (2026) for envelopes of 1% to 20% of the planet mass. It is a standalone function of the collision parameters and returns the fraction of the target's atmosphere removed by one impact, for a caller that models giant impacts during accretion. Under both laws the speed is taken at first contact, and the masses and radii exclude the atmosphere, with radii at its base. The Kegerreis law also takes the bulk densities of the atmosphere-free bodies, and the Roche law the target's atmospheric mass fraction.
 
 ---
 
