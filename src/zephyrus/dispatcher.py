@@ -43,9 +43,9 @@ from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 # 3. The sonic-point Knudsen switch, past the activation gate only,
 #    confirms the wind or re-routes the point to the hydrostatic branch.
 # 4. The hydrostatic branch: per-species Jeans escape with the
-#    diffusion-limited supply on the extended upper structure. Its
-#    escape-temperature gate re-routes thermally unstable exospheres back
-#    to the hydrodynamic rate and flags contested gate conventions.
+#    diffusion-limited supply on the extended upper structure. Where its
+#    escape-temperature gate finds the exosphere unstable, the wind rate
+#    competes and the larger one wins; contested conventions are flagged.
 # 5. The final rate is the largest of the surviving branch rate, the
 #    admitted bolometric residual, and the L1 nozzle rate (Jackson et al.
 #    2017), labeled by the winner.
@@ -485,16 +485,15 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             flow_radius = bolo['R_sonic']
             winner_flags = bolo_flags
     else:
-        if kn_sc <= threshold:
-            branch = hydro_label
-            rate = mdot_hydro
-            flow_radius = max(r_xuv, rr['R_s'])
-            winner_flags = hydro_flags
-        elif unstable:
-            branch = hydro_label
-            rate = mdot_hydro
-            flow_radius = max(r_xuv, rr['R_s'])
+        if unstable and kn_sc > threshold:
+            # An unstable exosphere admits the wind beside the Jeans rate, which
+            # is outside its own domain there (Volkov et al. 2011); the larger
+            # one is dispatched, so heating past the gate never lowers escape.
             flags['gate_rerouted'] = True
+        if kn_sc <= threshold or (unstable and mdot_hydro > mdot_hs):
+            branch = hydro_label
+            rate = mdot_hydro
+            flow_radius = max(r_xuv, rr['R_s'])
             winner_flags = hydro_flags
         else:
             branch = 'hydrostatic'

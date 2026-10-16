@@ -12,6 +12,8 @@ mocks). The properties under test:
   XUV to a hydrodynamic sub-label; a Roche-filling geometry to overflow.
   Below the boil-off gate the larger of the bolometric and XUV outflows
   takes the rate, so the rate falls with mass on both sides of the gate.
+  Past the escape-temperature gate the larger of the wind and Jeans rates
+  is dispatched, so heating the exosphere never lowers the escape.
 - The Roche screen renames a state without changing its rate, so the
   dispatched rate is continuous across the overflow boundary, and its
   subflag separates the two published overflow geometries by the extent of
@@ -1154,6 +1156,68 @@ def test_xuv_wind_competes_below_the_boiloff_gate():
     dark = dispatch(_inputs(1.70 * Me, Re, 1000.0, hhe, F_xuv=0.0, a=0.0775 * AU))
     assert dark.regime == 'boiloff'
     assert dark.mdot == pytest.approx(low.mdot, rel=1e-12, abs=0.0)
+
+
+@pytest.mark.physics_invariant
+def test_unstable_exosphere_never_escapes_slower_than_a_stable_one():
+    """Past the escape-temperature gate the wind competes with the Jeans rate.
+
+    An exobase hotter than half its escape temperature is unstable, and
+    neither candidate is built for it (Volkov et al. 2011: below a Jeans
+    parameter of about 2 the kinetic rate sits near the free-evaporation
+    flux), so heating must not lower the rate. On a 5 M_E, 1.6 R_E hydrogen
+    envelope with no XUV the wind rate is
+    zero, so the gate must keep the Jeans rate: the rate rises with T_exo
+    across the gate and the flag marks the unstable side only. On an Earth-mass
+    steam atmosphere under the plasma gate the wind is the larger candidate
+    and takes the rate and the label, which rules out always keeping Jeans.
+    """
+    hhe = {'H2': 0.9, 'He': 0.1}
+    t_exos = (1500.0, 2000.0, 2500.0, 3000.0, 4000.0, 6000.0, 12000.0)
+    out = [
+        dispatch(
+            _inputs(
+                5 * Me,
+                1.6 * Re,
+                1000.0,
+                hhe,
+                F_xuv=0.0,
+                a=0.0775 * AU,
+                settings=DispatchSettings(T_exo_value=t),
+            )
+        )
+        for t in t_exos
+    ]
+    rates = [o.mdot for o in out]
+    assert all(b >= a for a, b in zip(rates, rates[1:]))
+    unstable = [o.diagnostics['hydrostatic']['gate_unstable'] for o in out]
+    assert unstable[0] is False and unstable[-1] is True
+    for o, u in zip(out, unstable):
+        assert bool(o.flags.get('gate_rerouted')) == u
+        if u:
+            assert o.regime == 'hydrostatic'
+            assert o.mdot == pytest.approx(
+                o.diagnostics['hydrostatic']['rate_kg_s'], rel=1e-12, abs=0.0
+            )
+            assert o.mdot > 1.0e4  # kg/s; the zero wind rate would fail this
+    # Discrimination: where the wind is larger it wins under the gate.
+    steam = dispatch(
+        _inputs(
+            Me,
+            Re,
+            400.0,
+            {'H2O': 1.0},
+            F_xuv=0.01,
+            a=0.5 * AU,
+            settings=DispatchSettings(T_exo_value=15000.0, gate='plasma'),
+        )
+    )
+    h = steam.diagnostics['hydrodynamic']
+    wind = min(h['mdot_el'], h['mdot_rr'], h['mdot_pl'])
+    assert steam.flags.get('gate_rerouted') is True
+    assert steam.regime.startswith('hydrodynamic')
+    assert wind > 1.5 * steam.diagnostics['hydrostatic']['rate_kg_s']
+    assert steam.mdot == pytest.approx(wind, rel=1e-12, abs=0.0)
 
 
 def test_settings_and_inputs_error_contract():

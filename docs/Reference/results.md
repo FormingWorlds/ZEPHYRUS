@@ -61,7 +61,7 @@ The `effect` column says whether the returned rate already reflects the flag or 
 | `caldiroli_below_flux_bound` | `True` | Below the validity bound of the efficiency fit, where its formulas turn complex. | Rejected |
 | `efficiency_fallback_fixed` | `True` | The fitted efficiency was unavailable, so the fixed setting was used. | The rate reflects it |
 | `bolometric_residual` | `True` | The luminosity-capped bolometric residual, admitted by `residual_mode = 'luminosity_capped'`, beat the branch that won above and took the label. Never raised under the default setting, which reports the candidate without dispatching it. | The rate reflects it |
-| `gate_rerouted` | `True` | The exobase was too hot to stay hydrostatic, so the state was routed back to the hydrodynamic rate. | The rate reflects it |
+| `gate_rerouted` | `True` | The exobase was too hot to stay hydrostatic, so the wind rate competed with the Jeans rate and the larger one carries the rate and the label. A `hydrostatic` label with this flag is a Jeans rate on an unstable exosphere, outside the Jeans formula's own domain. | The rate reflects it |
 | `contested_ion` | `True` | The neutral and plasma escape-temperature conventions disagree about the branch. Both rates are recorded in `diagnostics['contested_ion']`. | Reporting only |
 | `hysteresis_active` | `True` | A previous regime label was supplied, so the hysteresis window was available. It says the memory was offered, not that it changed anything: read `diagnostics['knudsen']['threshold_applied']` against `kn_crit` to see whether the window actually moved the threshold on this call. | The rate reflects it |
 

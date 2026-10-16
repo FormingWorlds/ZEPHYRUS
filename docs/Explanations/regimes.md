@@ -20,7 +20,7 @@ Four levels of the atmosphere recur.
 1. The bolometric (boil-off) candidate is computed at every call, and so is the XUV wind candidate of step 2. If the restricted Jeans parameter sits below its threshold, the atmosphere is boiling off and the larger of the two rates is dispatched, with the matching label. Owen & Schlichting (2024) give the rate to photoevaporation when XUV photons are absorbed inside the Bondi radius and drive the stronger outflow, and to the bolometric wind otherwise [^owensch]. The dispatcher applies their second condition, the rate comparison, and does not test the first. The Knudsen switch of step 3 is not applied below the threshold, because a bolometric outflow is penetrated by XUV photons before it turns collisionless (their Eq. 7).
 2. The hydrodynamic candidate is assembled at every call: the wind base is located on the profile, a thermostat sets the wind temperature, and the candidate is the smallest of the energy-limited, radiation-recombination-limited, and photon-limited rates, with the winner naming the sub-label.
 3. The sonic-point Knudsen number decides whether that wind is collisional enough to exist. If it is, the hydrodynamic label stands and the [fractionation closure](fractionation.md) partitions the rate over species; if not, the state re-routes to the hydrostatic branch.
-4. The hydrostatic branch evaluates per-species Jeans escape on an extended upper structure, capped by the diffusive supply of each species. Its escape-temperature gate sends a thermally unstable exosphere back to the hydrodynamic rate.
+4. The hydrostatic branch evaluates per-species Jeans escape on an extended upper structure, capped by the diffusive supply of each species. Where its escape-temperature gate finds the exosphere thermally unstable, the wind rate competes with the Jeans rate and the larger one is dispatched.
 5. Past the activation gate the bolometric candidate is still computed, capped by the interior luminosity, and reported as the residual. It competes for the rate and the label only when the `residual_mode` setting admits it, and by default it does not. The tidally driven transfer through the L1 nozzle [^jackson17] competes last, on both sides of the gate, wherever the overflow description applies; a nozzle win labels the state `roche_overflow` and dispatches the transfer rate itself.
 6. Last, the Roche screen tests the flow radius of the winning branch against the Hill radius; an overflowing state is renamed `roche_overflow` and keeps the rate its own branch computed. The screen runs after both comparisons, so the radius it tests belongs to the branch that won.
 
@@ -36,7 +36,9 @@ flowchart TD
     Q1 -- no --> Q2{"Sonic-point Knudsen<br/>below threshold?"}
     Q2 -- yes --> HD["HYDRODYNAMIC<br/>min of the enabled limits, winner<br/>names EL, RR, or PL + fractionation"]
     Q2 -- no --> Q3{"Exobase hotter than half<br/>the escape temperature?"}
-    Q3 -- yes --> HD
+    Q3 -- yes --> QW{"Wind rate above<br/>the Jeans rate?"}
+    QW -- yes --> HD
+    QW -- no --> HS
     Q3 -- no --> HS["HYDROSTATIC<br/>per-species Jeans<br/>+ diffusion supply cap"]
     BO --> QN
     HD --> Q4{"Residual admitted by the setting<br/>and larger than the branch rate?"}
@@ -55,11 +57,11 @@ flowchart TD
     classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
     classDef stage fill:#ffffff,stroke:#1e6091,color:#111111
     class BO,BO2,HD,HS,RN,RO regime
-    class Q1,QB,Q2,Q3,Q4,QN,Q5 decision
+    class Q1,QB,Q2,Q3,QW,Q4,QN,Q5 decision
     class BOLO,BASE,HYD,KEEP stage
 ```
 
-Every section below is one box of that figure. The two refinements the [model overview](model.md) leaves out of its own flowchart are the diamonds `Q3` and `Q4`: a thermally unstable exosphere returns to the wind rate, and the bolometric residual enters the comparison past the activation gate when the setting admits it.
+Every section below is one box of that figure. The two refinements the [model overview](model.md) leaves out of its own flowchart are the diamonds `Q3` with `QW` and `Q4`: a thermally unstable exosphere lets the wind rate compete with the Jeans rate, and the bolometric residual enters the comparison past the activation gate when the setting admits it.
 
 ## Tidal geometry
 
@@ -237,7 +239,7 @@ with each species rate mapped onto elements by the mass fractions of its formula
 
 $$T_\mathrm{esc} \;=\; \frac{G M_\mathrm{p}\, \mu_0}{2\, k_\mathrm{B}\, R_\mathrm{exo}}, \qquad T_\mathrm{esc,+} = \frac{T_\mathrm{esc}}{2} \tag{30}$$
 
-The neutral escape temperature $T_\mathrm{esc}$ marks where thermal energy rivals binding energy; the plasma escape temperature $T_\mathrm{esc,+}$ is half of it, because in an ionized exosphere the ambipolar electric field shares each ion's binding energy with its electron (Chatterjee & Pierrehumbert 2026, their Eq. 34 [^cp26]). An exobase with $T_\mathrm{exo}$ above half the gating escape temperature is unstable by their Figure 10 criterion, and such states re-route to the hydrodynamic rate of Eq. (18), flagged `gate_rerouted`. The setting `gate` chooses the neutral (default) or the plasma temperature. Both are always computed, together with the local ionization fraction at the exobase; states where the two conventions disagree are flagged `contested_ion`, with both branch rates recorded, because the ion physics that would decide them is not modeled.
+The neutral escape temperature $T_\mathrm{esc}$ marks where thermal energy rivals binding energy; the plasma escape temperature $T_\mathrm{esc,+}$ is half of it, because in an ionized exosphere the ambipolar electric field shares each ion's binding energy with its electron (Chatterjee & Pierrehumbert 2026, their Eq. 34 [^cp26]). An exobase with $T_\mathrm{exo}$ above half the gating escape temperature is unstable by their Figure 10 criterion. In such states the wind rate of Eq. (18) competes with the Jeans rate of Eq. (29), the larger one is dispatched with its own label, and the state is flagged `gate_rerouted`. Neither candidate is built for this regime. Below a Jeans parameter of about 2 the kinetic simulations of Volkov et al. (2011) [^volkova] find an organized outflow escaping near the free-evaporation flux of the heated base, not a Jeans flux, and the wind rate is energy-limited. Taking the larger of the two keeps the dispatched rate from falling as the exosphere heats past the gate. The setting `gate` chooses the neutral (default) or the plasma temperature. Both are always computed, together with the local ionization fraction at the exobase; states where the two conventions disagree are flagged `contested_ion`, with both branch rates recorded, because the ion physics that would decide them is not modeled.
 
 ## Tidal transfer through L1
 
@@ -281,7 +283,7 @@ Two things the primary computes and this module does not. The first is the torqu
 
 The branch rate follows from the gate, the switch, and the escape-temperature gate:
 
-$$\dot{M}_\mathrm{branch} \;=\; \begin{cases} \max\left(\dot{M}_\mathrm{bol},\ \dot{M}_\mathrm{hyd}\right), & \Lambda < \Lambda_\mathrm{c} \\ \dot{M}_\mathrm{hyd}, & \Lambda \ge \Lambda_\mathrm{c}\ \text{and}\ \left(\mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c}\ \text{or}\ T_\mathrm{exo} > T_\mathrm{esc,gate}/2\right) \\ \dot{M}_\mathrm{hs}, & \text{otherwise} \end{cases} \tag{37}$$
+$$\dot{M}_\mathrm{branch} \;=\; \begin{cases} \max\left(\dot{M}_\mathrm{bol},\ \dot{M}_\mathrm{hyd}\right), & \Lambda < \Lambda_\mathrm{c} \\ \dot{M}_\mathrm{hyd}, & \Lambda \ge \Lambda_\mathrm{c}\ \text{and}\ \mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c} \\ \max\left(\dot{M}_\mathrm{hyd},\ \dot{M}_\mathrm{hs}\right), & \Lambda \ge \Lambda_\mathrm{c},\ \mathrm{Kn}_\mathrm{s} > \mathrm{Kn}_\mathrm{c},\ \text{and}\ T_\mathrm{exo} > T_\mathrm{esc,gate}/2 \\ \dot{M}_\mathrm{hs}, & \text{otherwise} \end{cases} \tag{37}$$
 
 with $\dot{M}_\mathrm{bol}$ from Eq. (8), $\dot{M}_\mathrm{hyd}$ from Eq. (18), $\dot{M}_\mathrm{hs}$ from Eq. (29), and $T_\mathrm{esc,gate}$ the escape temperature of Eq. (30) the `gate` setting selects. Below the gate the larger of the two outflows takes the label, `boiloff` or the wind's own sub-label. The dispatched rate is the largest of the candidates that survive:
 
