@@ -540,13 +540,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         # The escape-temperature gate admits the wind beside the Jeans rate,
         # outside its own domain there (Volkov et al. 2011).
         flags['gate_rerouted'] = True
-    admit = admitted(
-        gate_open,
-        collisional,
-        unstable,
-        bolo['competes'],
-        nozzle_applicable and nozzle_rate > dg.RATE_FLOOR_KG_S,
-    )
+    admit = admitted(gate_open, collisional, unstable, bolo['competes'], nozzle_applicable)
     rates = dict(
         hydrostatic=mdot_hs,
         boiloff=bolo_rate,

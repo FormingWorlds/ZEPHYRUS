@@ -264,7 +264,8 @@ def test_collisionality_at_l1_gates_each_phase():
     so it scales as 1/sigma. On a lobe-hugging hot Jupiter the threshold
     placed just above and just below the computed value admits and refuses
     the same candidate, and with no cross section the test is skipped, which
-    keeps the closed form comparable with the published table. On an
+    keeps the closed form comparable with the published table. An admitted
+    phase carries at least the rate a fluid at L1 implies. On an
     eccentric orbit the denser periapsis arc can pass while apoapsis fails,
     which shrinks the applicable fraction without emptying it. Unphysical
     cross sections and thresholds raise.
@@ -288,6 +289,11 @@ def test_collisionality_at_l1_gates_each_phase():
     )[1]
     skip = nozzle_candidate(m_p, m_s, a, 0.0, rho, r_ph, t, mu_kg)[1]
     assert admit['applicable'] and admit['rate_applicable_kg_s'] > 0.0
+    # A fluid at L1 bounds the rate from below, Mdot >= sqrt(2) pi mu v_th H /
+    # (sigma kn_crit), which is why the candidate needs no rate floor of its own.
+    bound = math.sqrt(2.0) * math.pi * mu_kg * admit['v_th'] * h_l1 / (sigma * 1.01 * kn)
+    assert admit['rate_periapsis_kg_s'] >= bound
+    assert admit['rate_periapsis_kg_s'] == pytest.approx(1.01 * bound, rel=1e-9, abs=0.0)
     assert not refuse['applicable'] and refuse['rate_applicable_kg_s'] == 0.0
     assert skip['applicable'] and math.isnan(skip['kn_L1'])
     assert skip['rate_applicable_kg_s'] == pytest.approx(
