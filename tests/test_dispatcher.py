@@ -1431,6 +1431,313 @@ def test_regimes_page_table_matches_the_admission_rule():
     assert re.findall(r'`([a-z]+)`', order.group(1)) == list(CANDIDATES)
 
 
+# One state per routing path: (gate open, wind collisional, exosphere unstable
+# with the gate closed and the wind rarefied, winner, renamed by the Roche
+# screen), then mass and radius in Earth units, T_eq, composition, F_xuv,
+# a in au, e, T_exo, residual_mode, gate.
+ROUTING_WITNESSES = [
+    (
+        (False, False, False, 'hydrostatic', False),
+        8.535,
+        0.4473,
+        504.8,
+        {'CO2': 0.99, 'H2': 0.01},
+        1822.0,
+        0.4116,
+        0.0,
+        589.3,
+        'off',
+        'plasma',
+    ),
+    (
+        (False, False, False, 'hydrostatic', True),
+        5.0,
+        1.5,
+        1000.0,
+        {'H2': 0.9, 'He': 0.1},
+        0.0,
+        0.014,
+        0.0,
+        2900.0,
+        'off',
+        'neutral',
+    ),
+    (
+        (False, False, False, 'nozzle', False),
+        0.3108,
+        1.736,
+        683.2,
+        {'CO2': 0.99, 'H2': 0.01},
+        0.001839,
+        0.008098,
+        0.4597,
+        1413.0,
+        'luminosity_capped',
+        'neutral',
+    ),
+    (
+        (False, False, True, 'hydrodynamic', False),
+        1.0,
+        0.8,
+        400.0,
+        {'H2O': 1.0},
+        0.03,
+        0.02,
+        0.0,
+        25000.0,
+        'off',
+        'plasma',
+    ),
+    (
+        (False, False, True, 'hydrodynamic', True),
+        1.0,
+        0.8,
+        400.0,
+        {'H2O': 1.0},
+        0.03,
+        0.007,
+        0.0,
+        25000.0,
+        'off',
+        'plasma',
+    ),
+    (
+        (False, False, True, 'hydrostatic', False),
+        0.4041,
+        3.858,
+        265.0,
+        {'CO2': 0.7, 'N2': 0.3},
+        0.0004713,
+        0.2599,
+        0.0,
+        28320.0,
+        'luminosity_capped',
+        'plasma',
+    ),
+    (
+        (False, False, True, 'hydrostatic', True),
+        0.08948,
+        0.7528,
+        631.9,
+        {'CO2': 0.7, 'N2': 0.3},
+        0.0005217,
+        0.03512,
+        0.3141,
+        2378.0,
+        'luminosity_capped',
+        'neutral',
+    ),
+    (
+        (False, False, True, 'nozzle', False),
+        0.3198,
+        2.578,
+        450.7,
+        {'CO2': 0.99, 'H2': 0.01},
+        0.001046,
+        0.01657,
+        0.2208,
+        3079.0,
+        'off',
+        'plasma',
+    ),
+    (
+        (False, True, None, 'hydrodynamic', False),
+        3.115,
+        0.4693,
+        375.2,
+        {'N2': 1.0},
+        5121.0,
+        0.4012,
+        0.0,
+        18920.0,
+        'off',
+        'plasma',
+    ),
+    (
+        (False, True, None, 'hydrodynamic', True),
+        3.7,
+        1.641,
+        574.2,
+        {'CO2': 0.7, 'N2': 0.3},
+        3483.0,
+        0.007688,
+        0.08921,
+        8416.0,
+        'off',
+        'plasma',
+    ),
+    (
+        (False, True, None, 'nozzle', False),
+        8.157,
+        3.834,
+        1983.0,
+        {'CO2': 1.0},
+        8947.0,
+        0.00736,
+        0.2312,
+        878.2,
+        'off',
+        'plasma',
+    ),
+    (
+        (False, True, None, 'residual', False),
+        7.175,
+        1.865,
+        1582.0,
+        {'H2': 1.0},
+        0.001249,
+        0.2289,
+        0.368,
+        2455.0,
+        'luminosity_capped',
+        'neutral',
+    ),
+    (
+        (False, True, None, 'residual', True),
+        3.0,
+        1.5,
+        1000.0,
+        {'H2': 0.9, 'He': 0.1},
+        0.0001,
+        0.0775,
+        0.0,
+        600.0,
+        'luminosity_capped',
+        'neutral',
+    ),
+    (
+        (True, None, None, 'boiloff', False),
+        0.2308,
+        0.6232,
+        1040.0,
+        {'H2': 0.9, 'He': 0.1},
+        24.79,
+        0.3746,
+        0.0,
+        9719.0,
+        'luminosity_capped',
+        'neutral',
+    ),
+    (
+        (True, None, None, 'boiloff', True),
+        1.0,
+        1.3,
+        1200.0,
+        {'H2': 0.9, 'He': 0.1},
+        1000.0,
+        0.005,
+        0.0,
+        1000.0,
+        'off',
+        'neutral',
+    ),
+    (
+        (True, None, None, 'hydrodynamic', False),
+        0.4957,
+        2.498,
+        1899.0,
+        {'N2': 1.0},
+        3995.0,
+        0.3103,
+        0.0,
+        3528.0,
+        'luminosity_capped',
+        'neutral',
+    ),
+    (
+        (True, None, None, 'hydrodynamic', True),
+        2.0,
+        1.05,
+        1200.0,
+        {'H2': 0.9, 'He': 0.1},
+        30000.0,
+        0.0345,
+        0.0,
+        700.0,
+        'off',
+        'neutral',
+    ),
+    (
+        (True, None, None, 'nozzle', False),
+        0.07648,
+        3.825,
+        768.3,
+        {'N2': 1.0},
+        83.36,
+        0.01566,
+        0.2143,
+        21270.0,
+        'luminosity_capped',
+        'neutral',
+    ),
+]
+# Paths the table admits but no state has shown: the residual winning on the
+# rarefied side. Across 270 gate-closed hydrogen envelopes built to favor it,
+# the Jeans rate of the extended exobase stayed at least 45 times larger.
+UNWITNESSED = {
+    (False, False, True, 'residual', False),
+    (False, False, True, 'residual', True),
+    (False, False, False, 'residual', False),
+    (False, False, False, 'residual', True),
+}
+
+
+def test_every_routing_path_has_a_witness_state():
+    """Each path the admission table opens is reached by a physical state.
+
+    A path is the gate side, the collisionality verdict, the exosphere
+    verdict where it matters, the winning candidate, and whether the Roche
+    screen renamed the state. The pinned states reach eighteen of the
+    twenty-two paths the table opens, each at least about 10 percent from
+    every threshold and rate tie it depends on; the other four are listed
+    with the search that did not find them, so a change that makes one
+    reachable or unreachable shows up here.
+    """
+    expected = set()
+    for g, k, u in (
+        (True, None, None),
+        (False, True, None),
+        (False, False, True),
+        (False, False, False),
+    ):
+        adm = admitted(bool(g), bool(k), bool(u), True, True)
+        for win in adm:
+            for renamed in (False,) if win == 'nozzle' else (False, True):
+                expected.add((g, k, u, win, renamed))
+    seen = set()
+    for path, m, r, t_eq, comp, f_xuv, a, e, t_exo, residual, gate in ROUTING_WITNESSES:
+        res = dispatch(
+            _inputs(
+                m * Me,
+                r * Re,
+                t_eq,
+                comp,
+                F_xuv=f_xuv,
+                a=a * AU,
+                e=e,
+                settings=DispatchSettings(T_exo_value=t_exo, residual_mode=residual, gate=gate),
+            )
+        )
+        d = res.diagnostics
+        branch = d['roche']['rate_branch']
+        if branch == 'roche_overflow':
+            win = 'nozzle'
+        elif res.flags.get('bolometric_residual'):
+            win = 'residual'
+        else:
+            win = branch.split(':')[0]
+        g = bool(d['bolometric']['active'])
+        k = None if g else d['knudsen']['kn_sc'] <= d['knudsen']['threshold_applied']
+        u = None if (g or k) else bool(d['hydrostatic']['gate_unstable'])
+        got = (g, k, u, win, res.regime == 'roche_overflow' and win != 'nozzle')
+        assert got == path, (path, got)
+        assert bool(res.flags.get('gate_rerouted')) == (u is True)
+        seen.add(got)
+    assert len(expected) == 22
+    assert seen | UNWITNESSED == expected
+    assert not seen & UNWITNESSED
+
+
 def test_settings_and_inputs_error_contract():
     """Malformed settings and physical states raise before any physics runs.
 
