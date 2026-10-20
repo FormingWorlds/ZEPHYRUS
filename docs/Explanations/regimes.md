@@ -26,42 +26,38 @@ Four levels of the atmosphere recur.
 
 ```mermaid
 flowchart TD
-    IN(["Planet state + atmosphere profile"]) --> BOLO["Bolometric candidate:<br/>Parker wind, Bondi cap"]
-    BOLO --> BASE["Wind base on the profile<br/>+ thermostat wind temperature"]
-    BASE --> HYD["Candidates: energy limited,<br/>recombination limited,<br/>photon limited"]
-    HYD --> Q1{"Lambda below<br/>threshold?"}
-    Q1 -- yes --> QB{"XUV wind rate above<br/>the bolometric rate?"}
-    QB -- yes --> HD
-    QB -- no --> BO["BOIL-OFF<br/>uncapped bolometric rate"]
-    Q1 -- no --> Q2{"Sonic-point Knudsen<br/>below threshold?"}
-    Q2 -- yes --> HD["HYDRODYNAMIC<br/>min of the enabled limits, winner<br/>names EL, RR, or PL + fractionation"]
+    IN(["Planet state + atmosphere profile"]) --> CAND["Every candidate computed:<br/>Jeans, bolometric, XUV wind<br/>(min of EL, RR, PL), residual,<br/>L1 nozzle"]
+    CAND --> Q1{"Lambda below<br/>threshold?"}
+    Q1 -- yes --> A1["admit boil-off + wind"]
+    Q1 -- no --> Q2{"Sonic-point Knudsen<br/>below threshold?<br/>(window widened when the<br/>previous label is known)"}
+    Q2 -- yes --> A2["admit wind"]
     Q2 -- no --> Q3{"Exobase hotter than half<br/>the escape temperature?"}
-    Q3 -- yes --> QW{"Wind rate above<br/>the Jeans rate?"}
-    QW -- yes --> HD
-    QW -- no --> HS
-    Q3 -- no --> HS["HYDROSTATIC<br/>per-species Jeans<br/>+ diffusion supply cap"]
-    BO --> QN
-    HD --> Q4{"Residual admitted by the setting<br/>and larger than the branch rate?"}
-    HS --> Q4
-    Q4 -- yes --> BO2["BOIL-OFF<br/>luminosity-capped residual<br/>takes the label"]
-    Q4 -- no --> KEEP["Branch label stands"]
-    BO2 --> QN{"L1 nozzle applicable,<br/>a fluid at L1, and larger<br/>than the standing rate?"}
-    KEEP --> QN
-    QN -- yes --> RN["ROCHE OVERFLOW<br/>L1 nozzle transfer rate"]
-    QN -- no --> Q5{"Flow radius<br/>past the Hill radius?"}
-    Q5 -- yes --> RO["ROCHE OVERFLOW<br/>the branch rate stands,<br/>as a lower limit"]
-    Q5 -- no --> OUT(["Regime label + bulk rate<br/>+ per-species rates<br/>+ flags + diagnostics"])
-    RN --> OUT
-    RO --> OUT
+    Q3 -- yes --> A3["admit Jeans + wind,<br/>flag gate_rerouted"]
+    Q3 -- no --> A4["admit Jeans"]
+    A2 --> Q4{"Residual admitted<br/>by the setting?"}
+    A3 --> Q4
+    A4 --> Q4
+    Q4 -- yes --> A5["+ residual"]
+    Q4 -- no --> QN
+    A1 --> QN{"L1 nozzle applies:<br/>sonic radius at L1<br/>and a fluid at L1?"}
+    A5 --> QN
+    QN -- yes --> A6["+ nozzle"]
+    QN -- no --> MAX["Dispatch the largest<br/>admitted rate; ties go to<br/>Jeans, boil-off, wind,<br/>residual, nozzle"]
+    A6 --> MAX
+    MAX --> Q5{"Hill radius inside the<br/>flow or the planet,<br/>or a nozzle win?"}
+    Q5 -- yes --> RO["ROCHE OVERFLOW<br/>the rate stands"]
+    Q5 -- no --> LAB["Label of the winner:<br/>HYDROSTATIC, BOIL-OFF,<br/>HYDRODYNAMIC:EL, RR, or PL"]
+    RO --> OUT(["Regime label + bulk rate<br/>+ per-species rates<br/>+ flags + diagnostics"])
+    LAB --> OUT
     classDef regime fill:#1e6091,stroke:#0f3a5c,color:#ffffff
     classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
     classDef stage fill:#ffffff,stroke:#1e6091,color:#111111
-    class BO,BO2,HD,HS,RN,RO regime
-    class Q1,QB,Q2,Q3,QW,Q4,QN,Q5 decision
-    class BOLO,BASE,HYD,KEEP stage
+    class RO,LAB regime
+    class Q1,Q2,Q3,Q4,QN,Q5 decision
+    class CAND,A1,A2,A3,A4,A5,A6,MAX stage
 ```
 
-Every section below is one box of that figure. The two refinements the [model overview](model.md) leaves out of its own flowchart are the diamonds `Q3` with `QW` and `Q4`: a thermally unstable exosphere lets the wind rate compete with the Jeans rate, and the bolometric residual enters the comparison past the activation gate when the setting admits it.
+The figure is drawn from the admission table of [the dispatched rate](#the-dispatched-rate), which is the reference when the two seem to disagree: each diamond admits candidates, and only the box after the last diamond compares rates. The [model overview](model.md) keeps a simpler chart that leaves out the escape-temperature gate (`Q3`), the residual (`Q4`), and the nozzle (`QN`).
 
 ## Tidal geometry
 
@@ -107,7 +103,7 @@ with $K$ from Eq. (2). The denominator is the same barrier the energy-limited ra
 
 $$\dot{M}_\mathrm{bol} \;=\; \begin{cases} \min\left(\dot{M}_\mathrm{P},\ \dot{M}_\mathrm{B}\right), & \Lambda < \Lambda_\mathrm{c} \\ \min\left(\dot{M}_\mathrm{P},\ \dot{M}_\mathrm{B},\ \dot{M}_\mathrm{E}\right), & \Lambda \ge \Lambda_\mathrm{c} \end{cases} \tag{8}$$
 
-reported in `diagnostics['bolometric']` on every call; past the gate it is the residual. Whether the residual also competes is the `residual_mode` setting. Under `'luminosity_capped'` it enters the final comparison of Eq. (38) and the larger rate takes both the rate and the label; under the default `'off'` it is reported and the branch verdict stands, and `competes` in the same diagnostics group says which happened.
+reported in `diagnostics['bolometric']` on every call; past the gate it is the residual. Whether the residual also competes is the `residual_mode` setting. Under `'luminosity_capped'` it enters the final comparison of Eq. (37) and the larger rate takes both the rate and the label; under the default `'off'` it is reported and the branch verdict stands, and `competes` in the same diagnostics group says which happened.
 
 Whether that residual is physical is disputed, and the default takes the side that dispatches less. Gupta & Schlichting (2019) find that a bolometric wind fed by the cooling interior persists for gigayears, at the smaller of the Bondi-limited rate and the cooling-luminosity rate of Eq. (7) [^gs19]. Tang et al. (2024) find that once boil-off is initialized self-consistently the same wind removes at most a tenth of a percent of the envelope over gigayears, and diagnose the persistent rate as an artifact of coupling the wind to the core luminosity, of a missing wind energy-loss term, and of pre-boil-off initial conditions [^tang]. Here the dispute is confined to a narrow band past the gate. On a three Earth-mass hydrogen envelope at 0.1 au under an XUV flux of 10 W m⁻², the candidate past the gate is set by the Parker rate of Eq. (5) almost everywhere, since the closed form is still shutting off; it exceeds the XUV rate only while $\Lambda$ stays below about 21 to 23 (lower for a cooler envelope), by up to a factor of about 9 just past the gate between 1000 and 1500 K, and has fallen to 3 to 7% of it at $\Lambda = 25$. The default reports the candidate and does not dispatch it, which follows Tang et al. and makes the gate a jump in the dispatched rate wherever the bolometric rate is still the larger one at the gate; where the XUV wind has already overtaken it below the gate, the gate is continuous. Measured at the gate itself on a three Earth-mass hydrogen and helium envelope at 1000 K and 0.0775 au, it is a factor of 5.2 under that XUV flux and 518 under 0.1 W m⁻², where the XUV rate is small (3.0 and 303 with `photon_limit = False`). A run that wants the rate continuous across the gate sets `residual_mode = 'luminosity_capped'`, and the two runs differ by the candidate rate the diagnostics print either way. The termination timescale of Tang et al. (their Eq. 8) is computed on the closed-form wind $\min(\dot{M}_\mathrm{P}, \dot{M}_\mathrm{B})$ before the luminosity cap, since that cap and their cooling time are set by the same luminosity, and reported beside the rate, never used as a gate, so the reader can see how long the branch would survive under their criterion whichever setting is in force.
 
@@ -287,19 +283,26 @@ Two things the primary computes and this module does not. The first is the torqu
 
 ## The dispatched rate
 
-The branch rate follows from the gate, the switch, and the escape-temperature gate:
+Every rate above is computed at every call, and the state admits some of them to a final comparison. The dispatched rate is the largest admitted one,
 
-$$\dot{M}_\mathrm{branch} \;=\; \begin{cases} \max\left(\dot{M}_\mathrm{bol},\ \dot{M}_\mathrm{hyd}\right), & \Lambda < \Lambda_\mathrm{c} \\ \dot{M}_\mathrm{hyd}, & \Lambda \ge \Lambda_\mathrm{c}\ \text{and}\ \mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c} \\ \max\left(\dot{M}_\mathrm{hyd},\ \dot{M}_\mathrm{hs}\right), & \Lambda \ge \Lambda_\mathrm{c},\ \mathrm{Kn}_\mathrm{s} > \mathrm{Kn}_\mathrm{c},\ \text{and}\ T_\mathrm{exo} > T_\mathrm{esc,gate}/2 \\ \dot{M}_\mathrm{hs}, & \text{otherwise} \end{cases} \tag{37}$$
+$$\dot{M} \;=\; \max_{c \,\in\, \mathcal{A}} \dot{M}_c \tag{37}$$
 
-with $\dot{M}_\mathrm{bol}$ from Eq. (8), $\dot{M}_\mathrm{hyd}$ from Eq. (18), $\dot{M}_\mathrm{hs}$ from Eq. (29), and $T_\mathrm{esc,gate}$ the escape temperature of Eq. (30) the `gate` setting selects. Below the gate the larger of the two outflows takes the label, `boiloff` or the wind's own sub-label. The dispatched rate is the largest of the candidates that survive:
+over five candidates $c$: the Jeans rate $\dot{M}_\mathrm{hs}$ of Eq. (29) (`hydrostatic`), the bolometric rate $\dot{M}_\mathrm{bol}$ of Eq. (8) below the gate (`boiloff`), the XUV wind $\dot{M}_\mathrm{hyd}$ of Eq. (18) (`hydrodynamic`), the same bolometric rate past the gate (`residual`), and the orbit-averaged transfer rate $\langle \dot{M}_\mathrm{L1} \rangle$ of Eq. (36) (`nozzle`). Three conditions on the state decide which of the first three are admitted: the gate is open when $\Lambda < \Lambda_\mathrm{c}$ (Eq. 3), the wind is collisional when $\mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c}$ (Eq. 19, with the hysteresis window when the previous label is known), and the exosphere is unstable when $T_\mathrm{exo}$ exceeds half the escape temperature of Eq. (30) that the `gate` setting selects.
 
-$$\dot{M} \;=\; \max\left(\dot{M}_\mathrm{branch},\ \chi_\mathrm{res}\, \dot{M}_\mathrm{bol},\ \chi_\mathrm{L1}\, \langle \dot{M}_\mathrm{L1} \rangle\right) \tag{38}$$
+| Gate open | Wind collisional | Exosphere unstable | Admitted |
+|---|---|---|---|
+| yes | any | any | `boiloff`, `hydrodynamic` |
+| no | yes | any | `hydrodynamic` |
+| no | no | yes | `hydrostatic`, `hydrodynamic` |
+| no | no | no | `hydrostatic` |
 
-where $\chi_\mathrm{res} = 1$ only past the gate under `residual_mode = 'luminosity_capped'`, and $\chi_\mathrm{L1} = 1$ only where Eq. (35) and the fluid condition at L1 hold on some part of the orbit and the averaged transfer rate exceeds the one-proton-per-Julian-year floor $\dot{M}_\mathrm{floor} = m_\mathrm{p} / (1\ \mathrm{yr})$; each is 0 otherwise. Taking the maximum makes each comparison a rate crossing: the dispatched rate is continuous where one candidate overtakes another, and the label follows the candidate that carries the rate. A residual win takes the label `boiloff` with the flag `bolometric_residual`; a nozzle win takes `roche_overflow` with the transfer rate itself.
+On every row two more candidates can join: `residual` when the gate is closed and `residual_mode = 'luminosity_capped'`, and `nozzle` where Eq. (35) and the fluid condition at L1 hold on some part of the orbit and the averaged transfer rate exceeds the one-proton-per-Julian-year floor $\dot{M}_\mathrm{floor} = m_\mathrm{p} / (1\ \mathrm{yr})$. Ties go to the earliest of `hydrostatic`, `boiloff`, `hydrodynamic`, `residual`, and `nozzle`. The table is the reference for the routing: `zephyrus.dispatcher.admitted` implements it, `zephyrus.dispatcher.select` takes the maximum, and the test suite checks this table against the code. The third row is the escape-temperature gate, flagged `gate_rerouted` whichever candidate wins.
+
+Taking the maximum makes each comparison a rate crossing: the dispatched rate is continuous where one candidate overtakes another, and the label follows the candidate that carries the rate. A `hydrodynamic` win takes the wind's sub-label, a residual win takes the label `boiloff` with the flag `bolometric_residual`, and a nozzle win takes `roche_overflow` with the transfer rate itself. The jumps are where a condition admits or excludes a candidate: the gate, the collisionality switch, the escape-temperature gate, and the nozzle's two applicability conditions.
 
 The floor guard on the nozzle exists because a crossing between two numerically empty numbers would rename the deeply bound corner on no content. The floor enters the module in exactly two places and is never applied to the dispatched rate. One is this guard, whose effect is confined to rates below the floor: an applicable nozzle rate that exceeds the bound branch's rate but not the floor leaves the verdict with a bound branch whose rate is smaller still. The other is a shortcut in the hydrostatic branch: a species whose supply-free Jeans rate is already below the floor skips its diffusion-supply integral and returns that Jeans rate, an upper bound on the harmonic mean of Eq. (28), marked `pruned` in the per-species detail. It is loose: the constant marks what is distinguishable from zero in floating point, so the label remains reachable at rates far below anything that could matter over a planet's lifetime. `diagnostics['rate_floor']` reports the floor and whether the dispatched rate cleared it, and the depletion screen beside it is how a consumer tells whether a rate matters; the floor is never applied to a dispatched rate. The applicability edge of Eq. (35) is a criterion boundary like the activation gate, and the jump across it is a result to measure rather than an artifact to hide.
 
-The switches summarize as follows. `photon_limit` and `recombination_limit` remove a term from the minimum of Eq. (18) and nothing else; `residual_mode` sets $\chi_\mathrm{res}$ in Eq. (38) and never changes $\dot{M}_\mathrm{bol}$ itself; `nozzle_temperature` chooses the launch level of Eqs. (31) to (34); `tidal = False` sets $K = 1$ in Eqs. (7), (11), and (17).
+The switches summarize as follows. `photon_limit` and `recombination_limit` remove a term from the minimum of Eq. (18) and nothing else; `residual_mode` admits the residual to Eq. (37) and never changes $\dot{M}_\mathrm{bol}$ itself; `nozzle_temperature` chooses the launch level of Eqs. (31) to (34); `tidal = False` sets $K = 1$ in Eqs. (7), (11), and (17).
 
 ## The Roche screen
 

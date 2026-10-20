@@ -26,7 +26,7 @@ flowchart TD
     Q1 -- yes --> QB{"Does the XUV wind<br/>outrun the bolometric one?"}
     QB -- yes --> HD
     QB -- no --> BO["BOIL-OFF<br/>bolometric wind"]
-    Q1 -- no --> Q2{"Is an XUV wind collisional<br/>at its sonic point?<br/>(Knudsen number below threshold)"}
+    Q1 -- no --> Q2{"Is an XUV wind collisional<br/>at its sonic point?<br/>(Knudsen number below threshold;<br/>the window widens when the<br/>previous label is known)"}
     Q2 -- yes --> HD["HYDRODYNAMIC WIND<br/>label EL, RR, or PL,<br/>whichever rate is smallest"]
     Q2 -- no --> HS["HYDROSTATIC<br/>per-species Jeans escape"]
     BO --> Q3{"Does the flow reach<br/>the Hill sphere?"}
@@ -41,7 +41,7 @@ flowchart TD
     class Q1,QB,Q2,Q3 decision
 ```
 
-The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and three refinements are omitted for clarity (a thermally unstable exosphere lets the wind rate compete with the Jeans rate, a residual bolometric rate can be admitted past the boil-off gate by a setting, and the tidally driven L1 transfer rate competes as a final candidate wherever the overflow description applies, taking the overflow label with its own rate when it wins). The [escape regimes](regimes.md) page walks every step with its equations and thresholds.
+The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and three refinements are omitted for clarity (a thermally unstable exosphere lets the wind rate compete with the Jeans rate, a residual bolometric rate can be admitted past the boil-off gate by a setting, and the tidally driven L1 transfer rate competes as a final candidate wherever the overflow description applies, taking the overflow label with its own rate when it wins). The [escape regimes](regimes.md) page walks every step with its equations and thresholds, and its admission table, under the dispatched rate, is the reference for the routing.
 
 The regime boundaries are not sharp lines in nature. Each threshold carries a physical band (the collisionality threshold spans a factor of 30 across heating geometries, the boil-off threshold a factor of about two across the literature), and ZEPHYRUS reports, beside every verdict, the diagnostics needed to see how close the state sat to each boundary and what the label would have been at the band edges.
 

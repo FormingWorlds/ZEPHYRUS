@@ -29,8 +29,10 @@ mocks). The properties under test:
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
 
+import itertools
 import math
 import re
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -38,10 +40,14 @@ import pytest
 from zephyrus.composition import species_mass_amu
 from zephyrus.constants import G, amu, kb
 from zephyrus.dispatcher import (
+    CANDIDATES,
     REGIME_LABELS,
     DispatchSettings,
     EscapeInputs,
+    admitted,
     dispatch,
+    roche_label,
+    select,
 )
 from zephyrus.escape import EL_escape
 from zephyrus.hydrodynamic import caldiroli_efficiency
@@ -1274,6 +1280,155 @@ def test_nozzle_needs_a_collisional_flow_at_l1():
     )
     assert puffy.diagnostics['roche']['rate_branch'] == 'roche_overflow'
     assert puffy.diagnostics['nozzle']['kn_L1'] < 1.0e-6
+
+
+CONDITIONS = list(itertools.product((False, True), repeat=5))
+
+
+@pytest.mark.physics_invariant
+def test_admission_rule_over_every_condition():
+    """Each candidate is admitted exactly where the admission rule says.
+
+    The regimes page states the rule: the Jeans rate with the gate closed and
+    the wind rarefied, the bolometric rate with the gate open, the XUV wind
+    with the gate open or the wind collisional or the exosphere unstable, the
+    residual with the gate closed and the setting admitting it, the nozzle
+    where it applies. All 32 combinations are checked, the result is never
+    empty and keeps the tie order, and every condition changes the admitted
+    set somewhere, so none of the five tests is dead.
+    """
+    for g, k, u, c, n in CONDITIONS:
+        adm = admitted(g, k, u, c, n)
+        assert ('hydrostatic' in adm) == (not g and not k)
+        assert ('boiloff' in adm) == g
+        assert ('hydrodynamic' in adm) == (g or k or u)
+        assert ('residual' in adm) == (not g and c)
+        assert ('nozzle' in adm) == n
+        assert adm and list(adm) == [x for x in CANDIDATES if x in adm]
+    for i in range(5):
+        flips = 0
+        for cond in CONDITIONS:
+            other = list(cond)
+            other[i] = not other[i]
+            flips += set(admitted(*cond)) != set(admitted(*other))
+        assert flips > 0, i
+    # The unstable exosphere matters only with the gate closed and the wind
+    # rarefied, which is where the escape-temperature gate sits.
+    for g, k, c, n in itertools.product((False, True), repeat=4):
+        if g or k:
+            assert admitted(g, k, False, c, n) == admitted(g, k, True, c, n)
+
+
+@pytest.mark.physics_invariant
+def test_selection_takes_the_largest_admitted_rate():
+    """The dispatched candidate is the admitted one with the largest rate.
+
+    Every combination of conditions against all 24 orderings of four distinct
+    rates (the residual carries the bolometric rate): the winner is admitted,
+    its rate is the admitted maximum, admitting one more candidate never
+    lowers the dispatched rate, and every candidate wins somewhere. On a tie
+    the earlier entry of the table wins.
+    """
+    wins = set()
+    for g, k, u, c, n in CONDITIONS:
+        adm = admitted(g, k, u, c, n)
+        for perm in itertools.permutations((1.0, 2.0, 3.0, 4.0)):
+            rates = dict(
+                hydrostatic=perm[0],
+                boiloff=perm[1],
+                hydrodynamic=perm[2],
+                residual=perm[1],
+                nozzle=perm[3],
+            )
+            win = select(adm, rates)
+            wins.add(win)
+            assert win in adm
+            assert rates[win] == max(rates[x] for x in adm)
+            for i in range(5):
+                bigger = list((g, k, u, c, n))
+                bigger[i] = not bigger[i]
+                adm_b = admitted(*bigger)
+                if set(adm) < set(adm_b):
+                    assert rates[select(adm_b, rates)] >= rates[win]
+        tie = dict.fromkeys(CANDIDATES, 1.0)
+        assert select(adm, tie) == adm[0]
+    assert wins == set(CANDIDATES)
+    # The residual and the gate-open bolometric rate share one rate but never
+    # one state, so the tie between them is never decided.
+    assert not any({'boiloff', 'residual'} <= set(admitted(*cond)) for cond in CONDITIONS)
+
+
+@pytest.mark.physics_invariant
+def test_roche_label_over_its_inputs():
+    """The Roche screen renames on geometry or a nozzle win, never otherwise.
+
+    Over flow-radius ratios on both sides of 1 and of the 1.5 warning line,
+    Hill-to-planet ratios on both sides of 1, and both values of the nozzle
+    win and of the atmosphere reaching the lobe: the rename fires exactly on
+    the three routes, the subflag reads the geometry in precedence order
+    (dynamical, then no transonic solution, then neither), the near-miss
+    warning appears only on states not renamed, and every outcome occurs.
+    """
+    seen = set()
+    for xi_flow, xi_k, won, reach in itertools.product(
+        (0.5, 1.0, 1.2, 2.0), (0.5, 1.0, 2.0), (False, True), (False, True)
+    ):
+        renamed, sub, near = roche_label(xi_flow, xi_k, won, reach)
+        assert renamed == (xi_flow <= 1.0 or xi_k <= 1.0 or won)
+        if renamed:
+            expected = (
+                'dynamical'
+                if (xi_k <= 1.0 or reach)
+                else ('no_transonic' if xi_flow <= 1.0 else 'neither')
+            )
+            assert sub == expected and near is False
+        else:
+            assert sub is None and near == (xi_flow < 1.5)
+        seen.add((renamed, sub, near))
+    assert seen == {
+        (True, 'dynamical', False),
+        (True, 'no_transonic', False),
+        (True, 'neither', False),
+        (False, None, True),
+        (False, None, False),
+    }
+
+
+def test_regimes_page_table_matches_the_admission_rule():
+    """The admission table printed on the regimes page is the one the code runs.
+
+    Each row of the page's decision table (gate open, wind collisional,
+    exosphere unstable, admitted candidates) is expanded over its ``any``
+    entries and compared with ``admitted``; the four rows cover all eight
+    combinations once; and the page's tie-order sentence lists the
+    candidates in the order the code breaks ties.
+    """
+    page = (Path(__file__).parents[1] / 'docs' / 'Explanations' / 'regimes.md').read_text()
+    header = '| Gate open | Wind collisional | Exosphere unstable | Admitted |'
+    assert header in page
+    lines = page[page.index(header) :].splitlines()[2:]
+    rows = []
+    for line in lines:
+        if not line.startswith('|'):
+            break
+        rows.append([cell.strip() for cell in line.strip('|').split('|')])
+    assert len(rows) == 4
+    covered = []
+    for g_txt, k_txt, u_txt, names in rows:
+        listed = set(re.findall(r'`([a-z]+)`', names))
+        assert listed
+        for g, k, u in itertools.product(
+            *[
+                {'yes': (True,), 'no': (False,), 'any': (False, True)}[t]
+                for t in (g_txt, k_txt, u_txt)
+            ]
+        ):
+            assert set(admitted(g, k, u, False, False)) == listed, (g, k, u)
+            covered.append((g, k, u))
+    assert sorted(covered) == sorted(itertools.product((False, True), repeat=3))
+    order = re.search(r'Ties go to the earliest of (.*?)\.', page)
+    assert order is not None
+    assert re.findall(r'`([a-z]+)`', order.group(1)) == list(CANDIDATES)
 
 
 def test_settings_and_inputs_error_contract():

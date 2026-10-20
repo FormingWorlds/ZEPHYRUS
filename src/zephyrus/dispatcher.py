@@ -67,7 +67,67 @@ REGIME_LABELS = (
 # The label 'impact' is reserved for impact-driven escape (see collision.py
 # for the erosion scaling law; the dispatcher does not yet route to it).
 
+# The final comparison. Each candidate is admitted by a condition on the
+# state and the largest admitted rate is dispatched; ties go to the earlier
+# entry. The table is the reference the regimes page reproduces.
+CANDIDATES = ('hydrostatic', 'boiloff', 'hydrodynamic', 'residual', 'nozzle')
+
 _TINY = 1e-300
+
+
+def admitted(
+    gate_open: bool, collisional: bool, unstable: bool, residual: bool, nozzle: bool
+) -> tuple[str, ...]:
+    """Candidates a state admits to the final comparison, in tie-breaking order.
+
+    ``gate_open``: the boil-off activation parameter is below its threshold.
+    ``collisional``: the sonic-point Knudsen number is at or below its
+    threshold. ``unstable``: the exobase is hotter than half the gating escape
+    temperature. ``residual``: the setting admits the post-gate bolometric
+    residual. ``nozzle``: the L1 nozzle description applies on some part of
+    the orbit. The XUV wind or the Jeans rate is always admitted, so the
+    result is never empty.
+    """
+    rows = (
+        ('hydrostatic', not gate_open and not collisional),
+        ('boiloff', gate_open),
+        ('hydrodynamic', gate_open or collisional or unstable),
+        ('residual', not gate_open and residual),
+        ('nozzle', nozzle),
+    )
+    return tuple(name for name, ok in rows if ok)
+
+
+def select(candidates: tuple[str, ...], rates: dict[str, float]) -> str:
+    """The candidate with the largest rate, the earliest one on a tie."""
+    best = candidates[0]
+    for name in candidates[1:]:
+        if rates[name] > rates[best]:
+            best = name
+    return best
+
+
+def roche_label(
+    xi_flow: float, xi_ktide: float, nozzle_won: bool, reaches_lobe: bool
+) -> tuple[bool, str | None, bool]:
+    """The Roche screen: ``(renamed, subflag, near_roche)``.
+
+    The state is renamed ``roche_overflow`` when the winning flow radius passes
+    the periapsis Hill radius (``xi_flow <= 1``), when the Hill radius sits
+    inside the planet (``xi_ktide <= 1``), or when the nozzle won the rate.
+    The subflag follows Owen & Jackson (2012): ``dynamical`` when the
+    atmosphere itself reaches the Roche lobe (``reaches_lobe``) or the planet
+    fills its Hill sphere, ``no_transonic`` when only the flow radius passes
+    the Hill radius, ``neither`` when only the rate crossing put it there. A
+    state not renamed warns ``near_roche`` below ``xi_flow = 1.5``.
+    """
+    if xi_flow <= 1.0 or xi_ktide <= 1.0 or nozzle_won:
+        if xi_ktide <= 1.0 or reaches_lobe:
+            return True, 'dynamical', False
+        if xi_flow <= 1.0:
+            return True, 'no_transonic', False
+        return True, 'neither', False
+    return False, None, xi_flow < 1.5
 
 
 @dataclass
@@ -474,72 +534,54 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # Route. ``branch`` names the physics that produced the rate and decides
     # the split; ``label`` is what the caller reads, and the Roche screen
     # may overwrite it.
-    per_species = None
-    if bolo['active']:
-        # Below the gate the XUV wind competes with the bolometric one, and the
-        # stronger outflow sets the rate (Owen & Schlichting 2024, Sect. 2.1.3);
-        # a bolometric flow is XUV-penetrated before it goes collisionless.
-        if mdot_hydro > bolo_rate:
-            branch = hydro_label
-            rate = mdot_hydro
-            flow_radius = max(r_xuv, rr['R_s'])
-            winner_flags = hydro_flags
-        else:
-            branch = 'boiloff'
-            rate = bolo_rate
-            flow_radius = bolo['R_sonic']
-            winner_flags = bolo_flags
+    gate_open = bolo['active']
+    collisional = kn_sc <= threshold
+    if not gate_open and not collisional and unstable:
+        # The escape-temperature gate admits the wind beside the Jeans rate,
+        # outside its own domain there (Volkov et al. 2011).
+        flags['gate_rerouted'] = True
+    admit = admitted(
+        gate_open,
+        collisional,
+        unstable,
+        bolo['competes'],
+        nozzle_applicable and nozzle_rate > dg.RATE_FLOOR_KG_S,
+    )
+    rates = dict(
+        hydrostatic=mdot_hs,
+        boiloff=bolo_rate,
+        hydrodynamic=mdot_hydro,
+        residual=bolo_rate,
+        nozzle=nozzle_rate,
+    )
+    winner = select(admit, rates)
+    # A nozzle win keeps the bound winner's flow radius: the lobe radius
+    # would pin xi_flow at the fixed lobe-to-Hill ratio.
+    bound = select(tuple(c for c in admit if c != 'nozzle'), rates)
+    flow_radius = {
+        'hydrostatic': hsd['r_exo'],
+        'boiloff': bolo['R_sonic'],
+        'hydrodynamic': max(r_xuv, rr['R_s']),
+        'residual': bolo['R_sonic'],
+    }[bound]
+    rate = rates[winner]
+    per_species = dict(hs_per_element) if winner == 'hydrostatic' else None
+    branch = {
+        'hydrostatic': 'hydrostatic',
+        'boiloff': 'boiloff',
+        'hydrodynamic': hydro_label,
+        'residual': 'boiloff',
+        'nozzle': 'roche_overflow',
+    }[winner]
+    if winner == 'nozzle':
+        winner_flags = _nozzle_flags(noz, inputs.e)
     else:
-        if unstable and kn_sc > threshold:
-            # An unstable exosphere admits the wind beside the Jeans rate, which
-            # is outside its own domain there (Volkov et al. 2011); the larger
-            # one is dispatched, so heating past the gate never lowers escape.
-            flags['gate_rerouted'] = True
-        if kn_sc <= threshold or (unstable and mdot_hydro > mdot_hs):
-            branch = hydro_label
-            rate = mdot_hydro
-            flow_radius = max(r_xuv, rr['R_s'])
-            winner_flags = hydro_flags
-        else:
-            branch = 'hydrostatic'
-            rate = mdot_hs
-            per_species = dict(hs_per_element)
-            winner_flags = hs_flags
-            flow_radius = hsd['r_exo']
-        # Step 5: past the gate the bolometric residual competes only when
-        # ``residual_mode`` admits it, since its persistence is disputed.
-        if bolo['competes'] and bolo_rate > rate:
-            branch = 'boiloff'
-            rate = bolo_rate
-            per_species = None
-            flow_radius = bolo['R_sonic']
-            winner_flags = dict(bolo_flags, bolometric_residual=True)
-    # The nozzle competes last, on both sides of the gate. Below the rate
-    # floor it stands down, since a label decided by comparing two
-    # numerically empty rates would rename the bound corner on no content.
-    if nozzle_applicable and nozzle_rate > rate and nozzle_rate > dg.RATE_FLOOR_KG_S:
-        branch = 'roche_overflow'
-        rate = nozzle_rate
-        per_species = None
-        # ``flow_radius`` keeps the losing branch's value: the lobe radius
-        # would pin xi_flow at the fixed lobe-to-Hill ratio. The lobe radius
-        # travels in ``diagnostics['nozzle']['r_lobe']``.
-        winner_flags = {}
-        if noz['saturated']:
-            # The photospheric potential reached the L1 value, so the rate
-            # is the lobe-filling boundary value of the model rather than
-            # an interior point of it.
-            winner_flags['nozzle_saturated'] = True
-        if inputs.e > 0.0:
-            # A time average of the circular formula over the orbit, since
-            # periapsis bounds the rate from opposite sides with and without
-            # saturation; the average is what a secular caller needs.
-            winner_flags['nozzle_orbit_averaged'] = True
-        if noz['applicable_orbit_fraction'] < 1.0:
-            # The overflow description holds only on an arc around
-            # periapsis. The rate is duty-cycled over that arc, so it
-            # omits the wind the planet drives on the rest of the orbit.
-            winner_flags['nozzle_partial_orbit'] = True
+        winner_flags = {
+            'hydrostatic': hs_flags,
+            'boiloff': bolo_flags,
+            'hydrodynamic': hydro_flags,
+            'residual': dict(bolo_flags, bolometric_residual=True),
+        }[winner]
     # Only the winner's warnings reach the result.
     flags.update(winner_flags)
     label = branch
@@ -565,19 +607,14 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # Two routes into the label, geometric or a nozzle win, with a geometric
     # subflag under either; ``near_roche`` warns about a bound rate's tidal
     # inflation, so it is not raised on a labeled state.
-    if xi_flow <= 1.0 or xi_ktide <= 1.0 or branch == 'roche_overflow':
+    renamed, subflag, near = roche_label(
+        xi_flow, xi_ktide, winner == 'nozzle', r_atm >= noz['r_lobe']
+    )
+    if renamed:
         label = 'roche_overflow'
         flags['roche_overflow'] = True
-        # Owen & Jackson (2012): dynamical when the atmosphere reaches the
-        # Roche lobe (the critical surface), no transonic solution when only
-        # the flow radius passes the Hill radius, else the rate crossing alone.
-        if xi_ktide <= 1.0 or r_atm >= noz['r_lobe']:
-            flags['roche_subflag'] = 'dynamical'
-        elif xi_flow <= 1.0:
-            flags['roche_subflag'] = 'no_transonic'
-        else:
-            flags['roche_subflag'] = 'neither'
-    elif xi_flow < 1.5:
+        flags['roche_subflag'] = subflag
+    elif near:
         flags['near_roche'] = True
 
     # Per-species split, by the branch that produced the rate.
@@ -647,6 +684,24 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     return EscapeResult(
         regime=label, mdot=rate, per_species=per_species, flags=flags, diagnostics=diag
     )
+
+
+def _nozzle_flags(noz: dict, e: float) -> dict:
+    """Warnings carried by a nozzle win."""
+    out = {}
+    if noz['saturated']:
+        # The photospheric potential reached the L1 value, so the rate is the
+        # lobe-filling boundary value of the model rather than an interior point.
+        out['nozzle_saturated'] = True
+    if e > 0.0:
+        # A time average of the circular formula over the orbit, since periapsis
+        # bounds the rate from opposite sides with and without saturation.
+        out['nozzle_orbit_averaged'] = True
+    if noz['applicable_orbit_fraction'] < 1.0:
+        # The description holds only on an arc around periapsis, so the
+        # duty-cycled rate omits the wind driven on the rest of the orbit.
+        out['nozzle_partial_orbit'] = True
+    return out
 
 
 def _resolve_wind_base(inputs: EscapeInputs, t_exo: float) -> tuple[dict, dict]:
