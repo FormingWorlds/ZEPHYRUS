@@ -46,13 +46,14 @@ jobs:
           key: ${{ steps.cachekey.outputs.key }}
           restore-keys: ${{ steps.cachekey.outputs.restore-keys }}
 
-      # An exact hit is never saved again, so fetch would repair a damaged entry
-      # every night without a word; fail instead, and delete the entry to recover.
+      # An exact hit is never saved again, so fetch would repair a damaged entry every
+      # night unseen; fail on a missing file or one that differs from its registry
+      # checksum (an archive's files: presence only); recover: gh cache delete <key>.
       - name: Check an exact cache hit
         if: steps.cache-fwl-data.outputs.cache-hit == 'true'
         run: fwl-io cache check --key star.tracks.spada_2013 --data-root ${{ github.workspace }}/fwl_data
 
-      # Every run: a tree restored from an older entry is completed and checked
+      # Every run: fetch fills a missing or partial tree and the check follows,
       # before the save.
       - name: Fetch and check the grid
         run: |
