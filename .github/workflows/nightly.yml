@@ -40,13 +40,20 @@ jobs:
         run: fwl-io cache key --prefix fwl-data-nightly- --key star.tracks.spada_2013
 
       - uses: actions/cache@v5
+        id: cache-fwl-data
         with:
           path: ${{ github.workspace }}/fwl_data
           key: ${{ steps.cachekey.outputs.key }}
           restore-keys: ${{ steps.cachekey.outputs.restore-keys }}
 
+      # An exact hit is never saved again, so fetch would repair a damaged entry
+      # every night without a word; fail instead, and delete the entry to recover.
+      - name: Check an exact cache hit
+        if: steps.cache-fwl-data.outputs.cache-hit == 'true'
+        run: fwl-io cache check --key star.tracks.spada_2013 --data-root ${{ github.workspace }}/fwl_data
+
       # Every run: a tree restored from an older entry is completed and checked
-      # before the save; an exact hit is not saved again, so fetch completes it here.
+      # before the save.
       - name: Fetch and check the grid
         run: |
           fwl-io cache fetch --key star.tracks.spada_2013 --data-root ${{ github.workspace }}/fwl_data
