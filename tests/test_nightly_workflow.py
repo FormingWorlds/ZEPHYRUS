@@ -4,7 +4,8 @@ The nightly caches the FWL data tree under a key from ``fwl-io cache key``. A
 key over other data than the fetch fills, a fetch into another tree than the
 tests read, or a check that is skipped or allowed to fail, fails nothing: the
 nightly stays green and serves a stale tree. These tests pin the cache steps to
-their exact text, and their selection to the tracks the suite downloads.
+their text, up to the actions/cache version and the outer whitespace of a run,
+and their selection to the tracks the suite downloads.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
@@ -45,12 +46,9 @@ def test_nightly_keys_checks_fetches_and_checks_the_spada_grid():
         'run': f'fwl-io cache key --prefix fwl-data-nightly- {SEL}',
     }
     out = {k: f'${{{{ steps.cachekey.outputs.{k} }}}}' for k in ('key', 'restore-keys')}
-    # Any release tag or commit of actions/cache; a branch such as main can change under us.
-    assert re.fullmatch(r'actions/cache@(v\d+|[0-9a-f]{40})', cache.pop('uses', ''))
-    assert cache == {
-        'id': 'cache-fwl-data',
-        'with': {'path': ROOT, **out},
-    }
+    # A major-version tag or a full commit SHA of actions/cache, never a branch such as main.
+    assert re.fullmatch(r'actions/cache@(v[0-9]+|[0-9a-f]{40})', cache.pop('uses', ''))
+    assert cache == {'id': 'cache-fwl-data', 'with': {'path': ROOT, **out}}
     assert hit == {
         'if': "steps.cache-fwl-data.outputs.cache-hit == 'true'",
         'run': f'fwl-io cache check {SEL} --data-root {ROOT}',
