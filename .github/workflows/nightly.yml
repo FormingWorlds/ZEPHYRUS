@@ -45,8 +45,8 @@ jobs:
           key: ${{ steps.cachekey.outputs.key }}
           restore-keys: ${{ steps.cachekey.outputs.restore-keys }}
 
-      # actions/cache never saves over an entry it hit, so the tree is
-      # completed and checked on every run, before the save.
+      # Every run: a tree restored from an older entry is completed and checked
+      # before the save; an exact hit is not saved again, so fetch completes it here.
       - name: Fetch and check the grid
         run: |
           fwl-io cache fetch --key star.tracks.spada_2013 --data-root ${{ github.workspace }}/fwl_data
