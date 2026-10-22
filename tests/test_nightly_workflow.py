@@ -3,9 +3,8 @@
 The nightly caches the FWL data tree under a key from ``fwl-io cache key``. A
 key over other data than the fetch fills, a fetch into another tree than the
 tests read, or a check that is skipped or allowed to fail, fails nothing: the
-nightly stays green and serves a stale tree. These tests pin the steps to one
-selection and one data root, run unconditionally, and the selection to the
-tracks the suite downloads.
+nightly stays green and serves a stale tree. These tests pin the cache steps to
+their exact text, and their selection to the tracks the suite downloads.
 
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
@@ -27,32 +26,29 @@ TRACKS = {'Spada': 'star.tracks.spada_2013', 'Baraffe': 'star.tracks.baraffe_201
 SEL, ROOT = '--key star.tracks.spada_2013', '${{ github.workspace }}/fwl_data'
 
 
-def _workflow():
-    """Return the nightly workflow, its jobs and its steps in order."""
+def test_nightly_keys_checks_fetches_and_checks_the_spada_grid():
+    """The nightly keys and restores the grid, checks an exact hit, then fills and checks it."""
     workflow = yaml.safe_load(
         (REPO / '.github' / 'workflows' / 'nightly.yml').read_text(encoding='utf-8')
     )
     jobs = list(workflow['jobs'].values())
-    return workflow, jobs, [step for job in jobs for step in job['steps']]
-
-
-def test_nightly_keys_checks_fetches_and_checks_the_spada_grid():
-    """The nightly keys and restores the grid, checks an exact hit, then fills and checks it."""
-    workflow, jobs, steps = _workflow()
+    steps = [step for job in jobs for step in job['steps']]
     # Fixed step bodies: a shell, an extra command or flag, or another condition would let
     # an unchecked tree be saved, or a damaged exact hit pass.
     i = next(i for i, s in enumerate(steps) if s.get('run', '').startswith('fwl-io cache key'))
     key, cache, hit, fill = (
-        {k: v for k, v in s.items() if k != 'name'} for s in steps[i : i + 4]
+        {k: v.strip() if k == 'run' else v for k, v in s.items() if k != 'name'}
+        for s in steps[i : i + 4]
     )
     assert key == {
         'id': 'cachekey',
         'run': f'fwl-io cache key --prefix fwl-data-nightly- {SEL}',
     }
     out = {k: f'${{{{ steps.cachekey.outputs.{k} }}}}' for k in ('key', 'restore-keys')}
+    # Any release tag or commit of actions/cache; a branch such as main can change under us.
+    assert re.fullmatch(r'actions/cache@(v\d+|[0-9a-f]{40})', cache.pop('uses', ''))
     assert cache == {
         'id': 'cache-fwl-data',
-        'uses': 'actions/cache@v5',
         'with': {'path': ROOT, **out},
     }
     assert hit == {
@@ -60,13 +56,14 @@ def test_nightly_keys_checks_fetches_and_checks_the_spada_grid():
         'run': f'fwl-io cache check {SEL} --data-root {ROOT}',
     }
     assert fill == {
-        'run': ''.join(
-            f'fwl-io cache {c} {SEL} --data-root {ROOT}\n' for c in ('fetch', 'check')
+        'run': '\n'.join(
+            f'fwl-io cache {c} {SEL} --data-root {ROOT}' for c in ('fetch', 'check')
         )
     }
     # The tests read the tree the steps above filled, after them, on every run.
     tests = next(j for j, s in enumerate(steps) if 'FWL_DATA' in s.get('env', {}))
     assert i + 3 < tests and steps[tests]['env']['FWL_DATA'] == ROOT
+    assert not {'if', 'continue-on-error'} & steps[tests].keys()
     for scope in (workflow, *jobs):
         assert not {'defaults', 'continue-on-error', 'if'} & scope.keys()
         assert 'FWL_DATA' not in scope.get('env', {})
