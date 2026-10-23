@@ -14,7 +14,8 @@ import re
 from pathlib import Path
 
 import pytest
-import yaml
+
+yaml = pytest.importorskip('yaml')
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
