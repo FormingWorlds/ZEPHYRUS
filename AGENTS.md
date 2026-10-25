@@ -64,6 +64,7 @@ Commit messages, pull-request text, code comments, docstrings, test names, test 
 ## Documentation
 
 - The outward-facing documentation (the pages under `docs/`, the tutorials, and `README.md`) uses UK English spelling: behaviour, colour, modelling, centre, analyse, labelled. Code, comments, docstrings, commit messages, and pull-request text use US English. Identifiers, config keys, and quoted titles keep their own spelling.
+- The dispatcher tutorial does not copy its code: each code block on `docs/Tutorials/dispatch.md` includes a named section of `examples/demo_dispatcher/demo_dispatcher.py` (`--8<-- "<path>:<section>"`, `pymdownx.snippets`). Change the code in the script, then rerun it and update the quoted output on the page; `tests/test_examples.py` runs every section in page order and fails when an output block differs.
 
 ## Physics and coupling contract
 
