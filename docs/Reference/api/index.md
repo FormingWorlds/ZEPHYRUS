@@ -18,6 +18,7 @@ This is an overview of ZEPHYRUS' API for the user's reference. If you want to un
 | [`zephyrus.knudsen`](knudsen.md) | Collision cross sections and the sonic-point Knudsen switch |
 | [`zephyrus.fractionation`](fractionation.md) | Simultaneous N-species fractionation closure |
 | [`zephyrus.diagnostics`](diagnostics.md) | Regime diagnostics reported beside every dispatch verdict |
+| [`zephyrus.plot`](plot.md) | Figures of dispatcher results: a flux sweep and a stellar history |
 | **Reference data** | |
 | [`zephyrus.diffusion`](diffusion.md) | Binary diffusion coefficient library with provenance classes |
 | [`zephyrus.atomic_data`](atomic_data.md) | Cooling data tables and closed-form rate coefficients |
@@ -45,6 +46,7 @@ src/zephyrus
     ├── __init__.py             # Package entry point and top-level exports
     ├── knudsen.py              # Cross sections and the Knudsen switch
     ├── nozzle.py               # Roche-lobe overflow through the L1 nozzle
+    ├── plot.py                 # Figures of dispatcher results
     ├── planets_parameters.py   # Sun, Earth, Jupiter, TOI-561 reference values
     ├── profiles.py             # Profile container and escape working levels
     └── thermostat.py           # Wind-temperature thermostat

@@ -47,6 +47,7 @@ nav:
         - Knudsen: Reference/api/knudsen.md
         - Fractionation: Reference/api/fractionation.md
         - Diagnostics: Reference/api/diagnostics.md
+        - Plotting: Reference/api/plot.md
         - Diffusion: Reference/api/diffusion.md
         - Atomic data: Reference/api/atomic_data.md
         - Composition: Reference/api/composition.md
