@@ -165,12 +165,12 @@ def plot_regime_sweep(panels: Sequence[Mapping], rate_floor: float = 1.0e3) -> F
             ax.axvspan(
                 min(band), max(band), color=REGIME_COLORS['hydrostatic'], alpha=0.18, lw=0
             )
-            ax.text(
-                math.sqrt(band[0] * band[1]),
-                0.86,
+            ax.annotate(
                 'boundary width',
-                transform=ax.get_xaxis_transform(),
-                ha='center',
+                xy=(max(band), 0.86),
+                xycoords=ax.get_xaxis_transform(),
+                xytext=(4, 0),
+                textcoords='offset points',
                 fontsize=11,
                 color=RULE_COLOR,
                 fontfamily=mono,
@@ -247,8 +247,8 @@ def plot_track(
     inconsistent : sequence of bool, optional
         `diagnostics['self_consistency']['inconsistent']` per age.
     species_floor : float
-        Lowest element rate on the axis [kg s-1]; smaller rates are drawn
-        at it.
+        Lowest element rate on the axis [kg s-1]. Smaller rates leave the
+        axis through its bottom edge, since on it they read as zero.
 
     Returns
     -------
@@ -287,7 +287,7 @@ def plot_track(
         ax_rate.text(
             math.sqrt(bad.min() * bad.max()),
             0.9,
-            'rejected by the consistency screen',
+            'inconsistent snapshots',
             transform=ax_rate.get_xaxis_transform(),
             ha='center',
             fontsize=11,
@@ -329,7 +329,9 @@ def plot_track(
 
     elements = sorted({el for rates_i in per_species for el in rates_i})
     for element in elements:
-        values = [max(rates_i.get(element, 0.0), species_floor) for rates_i in per_species]
+        values = [
+            max(rates_i.get(element, 0.0), species_floor * 1e-3) for rates_i in per_species
+        ]
         ax_species.plot(
             ages, values, color=ELEMENT_COLORS.get(element, RULE_COLOR), label=element
         )
@@ -339,7 +341,7 @@ def plot_track(
     ax_rate.legend(loc='lower left', title='regime')
     ax_species.set_xscale('log')
     ax_species.set_yscale('log')
-    ax_species.set_ylim(bottom=species_floor / 3.0)
+    ax_species.set_ylim(bottom=species_floor)
     ax_species.set_xlabel('Stellar age [Myr]')
     ax_species.set_ylabel('Element rate [kg s$^{-1}$]')
     ax_species.legend(loc='lower left', title='element', ncol=3)

@@ -162,12 +162,12 @@ def _track(**overrides):
     return track
 
 
-def test_track_marks_the_label_change_and_floors_tiny_rates():
+def test_track_marks_the_label_change_and_drops_tiny_rates_off_axis():
     """One label change gives one dashed line per panel, at the geometric mean age.
 
-    The heavy-element rate of 1e-140 kg/s is drawn at the species floor
-    rather than vanishing from a log axis, and the screen's rejected ages
-    are shaded in both panels.
+    The heavy-element rate of 1e-140 kg/s leaves the axis through its
+    floor, so it reads as zero rather than as a small rate, and the
+    screen's rejected ages are shaded in both panels.
     """
     fig = plot.plot_track(**_track(), species_floor=1.0e-25)
     ax_rate, ax_species = fig.axes[:2]
@@ -175,7 +175,8 @@ def test_track_marks_the_label_change_and_floors_tiny_rates():
     assert len(dashed) == 1
     assert dashed[0].get_xdata()[0] == pytest.approx((100.0 * 1000.0) ** 0.5, rel=1e-12)
     carbon = [line for line in ax_species.lines if line.get_label() == 'C'][0]
-    assert min(carbon.get_ydata()) == pytest.approx(1.0e-25, rel=1e-12, abs=0.0)
+    assert ax_species.get_ylim()[0] == pytest.approx(1.0e-25, rel=1e-12, abs=0.0)
+    assert min(carbon.get_ydata()) < ax_species.get_ylim()[0]
     assert len(ax_rate.patches) == 1 and len(ax_species.patches) == 1
     plt.close(fig)
 
