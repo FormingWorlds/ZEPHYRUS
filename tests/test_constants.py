@@ -30,7 +30,9 @@ from zephyrus.constants import (
     kb,
     kb_cgs,
     m_p,
+    rate_floor,
     s2yr,
+    yr_julian,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
@@ -96,6 +98,20 @@ def test_seconds_to_year_uses_the_365_day_convention():
     # The 365-day and Julian conventions are resolvably different.
     assert s2yr != pytest.approx(julian, rel=1e-4, abs=0.0)
     assert s2yr > julian  # a shorter year makes each second a larger fraction
+
+
+def test_julian_year_and_rate_floor_use_365_25_days():
+    """``yr_julian`` is the 365.25-day year, and the rate floor is one proton per such year.
+
+    The Julian year is 31 557 600 s exactly. The guard is the 365-day year
+    behind ``s2yr``, about 0.07% shorter, so swapping the conventions fails.
+    The floor is pinned against its definition, a proton mass per Julian year.
+    """
+    assert yr_julian == pytest.approx(3600 * 24 * 365.25, rel=1e-15, abs=0.0)
+    assert yr_julian != pytest.approx(1.0 / s2yr, rel=1e-4, abs=0.0)
+    assert rate_floor == pytest.approx(m_p / (3600 * 24 * 365.25), rel=1e-15, abs=0.0)
+    # Scale guard: about 5.3e-35 kg/s; a floor per day or per second would be far off.
+    assert 5.0e-35 < rate_floor < 5.6e-35
 
 
 def test_boltzmann_constant_is_the_exact_si_value():

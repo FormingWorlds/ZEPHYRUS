@@ -18,7 +18,8 @@ amu     = 1.66053906660e-27           # Atomic mass constant (CODATA 2018)     [
 # mass-loss rate with physical content on any planetary reservoir. Reported
 # beside every escape verdict and never applied, since whether a rate is
 # negligible is the caller's decision.
-rate_floor = m_p / 3.15576e7          # Rate floor                             [kg s-1]
+yr_julian = 3.15576e7                # Julian year, 365.25 days (exact)       [s]
+rate_floor = m_p / yr_julian          # Rate floor                             [kg s-1]
 
 ######################################### Units conversions #########################################
 s2yr                = 1/(3600*24*365)       # convert [seconds]      to [years]
