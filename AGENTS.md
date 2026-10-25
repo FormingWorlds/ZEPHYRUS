@@ -61,6 +61,10 @@ Commit messages, pull-request text, code comments, docstrings, test names, test 
 
 `pip install -e ".[develop]"` and `pre-commit install -f`; there is nothing to compile. `fwl-mors` is a runtime dependency; only the integration tier (`test_earth.py`) needs its stellar data (`FWL_DATA` set, `mors download all`). The pre-commit hook runs `ruff check --fix`; run `ruff format` yourself on the files you change. `constants.py` and `planets_parameters.py` keep hand-aligned tables that `ruff format` would rewrite; leave their layout. Serve the docs locally with `zensical serve` after `pip install -e '.[docs]'`.
 
+## Documentation
+
+- The outward-facing documentation (the pages under `docs/`, the tutorials, and `README.md`) uses UK English spelling: behaviour, colour, modelling, centre, analyse, labelled. Code, comments, docstrings, commit messages, and pull-request text use US English. Identifiers, config keys, and quoted titles keep their own spelling.
+
 ## Physics and coupling contract
 
 - Units are SI throughout: `EL_escape(tidal_contribution, a, e, Mp, Ms, epsilon, Rp, Rxuv, Fxuv, scaling=2)` takes `a`, `Rp`, `Rxuv` in m, `Mp`, `Ms` in kg, `Fxuv` in W m-2, `e` and `epsilon` dimensionless, and returns kg s-1. MORS returns `Lx`, `Leuv` in erg s-1: divide by `4 pi a**2` with `a` in cm (`a_au * au2cm`) for a flux in erg s-1 cm-2, then multiply by `ergcm2stoWm2`. The erg against W and au against m or cm conversions are where errors enter.
