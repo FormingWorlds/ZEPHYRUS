@@ -35,8 +35,6 @@ flowchart TD
     Q3 -- yes --> RO["ROCHE OVERFLOW"]
     Q3 -- no --> OUT(["Regime label + bulk rate<br/>+ per-species rates"])
     RO --> OUT
-    classDef regime fill:#1e6091,stroke:#0f3a5c,color:#ffffff
-    classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
     class BO,HD,HS,RO regime
     class Q1,QB,Q2,Q3 decision
 ```

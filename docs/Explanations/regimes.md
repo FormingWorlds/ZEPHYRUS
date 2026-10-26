@@ -49,9 +49,6 @@ flowchart TD
     Q5 -- no --> LAB["Label of the winner:<br/>HYDROSTATIC, BOIL-OFF,<br/>HYDRODYNAMIC:EL, RR, or PL"]
     RO --> OUT(["Regime label + bulk rate<br/>+ per-species rates<br/>+ flags + diagnostics"])
     LAB --> OUT
-    classDef regime fill:#1e6091,stroke:#0f3a5c,color:#ffffff
-    classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
-    classDef stage fill:#ffffff,stroke:#1e6091,color:#111111
     class RO,LAB regime
     class Q1,Q2,Q3,Q4,QN,Q5 decision
     class CAND,A1,A2,A3,A4,A5,A6,MAX stage

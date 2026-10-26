@@ -87,9 +87,6 @@ flowchart TD
     RES -- yes --> ADD["Re-admit the one with<br/>the largest residual"]
     ADD --> SOLVE
     RES -- no --> OUT(["Clamp drifts at zero,<br/>return the fluxes"])
-    classDef regime fill:#1e6091,stroke:#0f3a5c,color:#ffffff
-    classDef decision fill:#f4f4f4,stroke:#888888,color:#111111
-    classDef stage fill:#ffffff,stroke:#1e6091,color:#111111
     class ZERO,OUT regime
     class Z,NEG,RES decision
     class INIT,SOLVE,DROP,ADD stage
