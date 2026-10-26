@@ -33,30 +33,31 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[develop]"
 
-      # The key digests the versioned directory and the registry checksums of
-      # the Spada entry in the fwl-mors dataset manifest, so it moves when that
-      # grid is re-pinned. Full rationale in the helper's module docstring.
+      # fwl-io builds the key from the folder, checksums and extract kind the
+      # fwl-mors manifest pins for the Spada grid plus its own release.
       - name: Resolve the data cache key
         id: cachekey
-        run: python tools/nightly_data_cache.py key
+        run: fwl-io cache key --prefix fwl-data-nightly- --key star.tracks.spada_2013
 
-      # Deliberately no restore-keys: a prefix restore reports no cache hit, so
-      # the check below is skipped and the previous record's stale tree would
-      # be saved under the new key. A moved key has to miss and fetch.
       - uses: actions/cache@v5
         id: cache-fwl-data
         with:
           path: ${{ github.workspace }}/fwl_data
           key: ${{ steps.cachekey.outputs.key }}
+          restore-keys: ${{ steps.cachekey.outputs.restore-keys }}
 
-      # A tree restored on an exact key hit holds what that key was stored
-      # under, so a missing or half-unpacked grid means the two have come
-      # apart. A prefix restore is expected to be incomplete and is not checked.
-      - name: Check the restored grid
+      # An exact hit is never saved again, so fetch would repair a damaged entry every
+      # night unseen; fail on a missing, unreadable or changed file (an archive's
+      # files: presence only); recover with: gh cache delete <key>.
+      - name: Check an exact cache hit
         if: steps.cache-fwl-data.outputs.cache-hit == 'true'
+        run: fwl-io cache check --key star.tracks.spada_2013 --data-root ${{ github.workspace }}/fwl_data
+
+      # Every run, before the save: fetch fills a missing or partial tree, then check.
+      - name: Fetch and check the grid
         run: |
-          python tools/nightly_data_cache.py check \
-            --data-root "${{ github.workspace }}/fwl_data"
+          fwl-io cache fetch --key star.tracks.spada_2013 --data-root ${{ github.workspace }}/fwl_data
+          fwl-io cache check --key star.tracks.spada_2013 --data-root ${{ github.workspace }}/fwl_data
 
       - name: Run full suite with coverage
         env:
