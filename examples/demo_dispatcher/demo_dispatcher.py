@@ -147,14 +147,15 @@ bands = {  # the wind boundary at the two edges of the Knudsen criterion
 for composition in ('CO2', 'N2-O2'):
     lo, hi = bands[composition]
     lowest = sweeps[composition][0]
+    listed = ', '.join(f'{b:.3g}' for b in boundaries[composition])
     print(composition)
-    print(f'  boundaries        {", ".join(f"{b:.3g}" for b in boundaries[composition])} W m-2')
-    print(f'  wind onset band   {lo:.3g} to {hi:.3g} W m-2, a factor {hi / lo:.2g}')
+    print(f'  regime boundaries       {listed} W m-2')
+    print(f'  wind onset band         {lo:.3g} to {hi:.3g} W m-2, a factor {hi / lo:.2g}')
     print(
-        f'  rate at 0.01      {lowest.mdot:.2e} kg/s, above the floor: '
+        f'  rate at 0.01 W m-2      {lowest.mdot:.2e} kg/s, above the floor: '
         f'{lowest.diagnostics["rate_floor"]["above_floor"]}'
     )
-print(f'rate floor          {rate_floor:.2e} kg/s')
+print(f'rate floor (1 proton/yr)  {rate_floor:.2e} kg/s')
 # --8<-- [end:step3_boundaries]
 
 # --8<-- [start:step3_figure]
