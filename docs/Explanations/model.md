@@ -2,31 +2,34 @@
 
 ZEPHYRUS computes the atmospheric mass loss of rocky and sub-Neptune exoplanets. It runs standalone or as the escape module of the [PROTEUS](https://proteus-framework.org) coupled atmosphere and interior framework, where it is called at every time step with the current planetary state and returns the mass-loss rate that depletes the volatile inventory.
 
+!!! info "Two entry points"
+    The escape model of ZEPHYRUS is the regime dispatcher, `zephyrus.dispatch`, which decides which escape physics applies to a state before computing a rate. The older entry point `zephyrus.escape.EL_escape` applies one prescription, the energy-limited rate, to every state without that decision. PROTEUS calls `EL_escape` until its coupling to the dispatcher lands. Energy-limited escape is also one of the dispatcher's regimes, `hydrodynamic:EL`, so the name appears in both places.
+
 Mass loss happens through two physically distinct channels, and ZEPHYRUS models both:
 
-1. **Continuous thermal escape**: the steady outflow or evaporation of the upper atmosphere, driven by stellar irradiation and by the planet's own heat. This is one framework with several regimes, described below.
+1. **Continuous thermal escape**: the steady outflow or evaporation of the upper atmosphere, driven by stellar irradiation and by the planet's own heat. This is one model with several regimes, described below.
 2. **Impact-driven erosion**: the impulsive removal of atmosphere by a single giant collision during accretion, a separate channel with its own prescription (see [giant impacts](impacts.md)).
 
-## The continuous channel: one framework, six regimes
+## Continuous escape: one model, six regimes
 
-Which physics carries the continuous loss depends on how tightly the atmosphere is bound, how strongly it is irradiated, and how collisional its outer layers are. Applying a prescription outside its regime gives rates that are wrong by orders of magnitude, so ZEPHYRUS classifies each atmospheric state before choosing a rate. Every state receives one of six regime labels:
+Which physics carries the continuous loss depends on how tightly the atmosphere is bound, how strongly it is irradiated, and how collisional its outer layers are. Applying a prescription outside its regime gives rates that are wrong by orders of magnitude, so the dispatcher decides the regime of each atmospheric state before choosing a rate. Every state receives one of six regime labels:
 
-- `boiloff`: the atmosphere is so weakly bound that it flows out on the planet's own thermal energy, faster than stellar XUV heating could drive it. Typical of young, hot, hydrogen-rich planets fresh out of the nebula. The rate is the isothermal Parker wind of Owen & Wu (2016) [^owenwu] at the wind temperature of Misener et al. (2025) [^misener], and the state is recognized by the restricted Jeans parameter of Fossati et al. (2017) [^fossati].
-- `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (Watson et al. 1981 [^watson], in the tidally corrected form of Erkaev et al. 2007 [^erkaev]); the energy-limited rate is the smallest of the three hydrodynamic limits here.
-- `hydrodynamic:RR`: the same fluid wind, but the rate is capped below the energy limit because radiative recombination re-emits part of the absorbed energy (the radiation-recombination-limited rate of Murray-Clay et al. 2009 [^mc09] wins).
-- `hydrodynamic:PL`: the same fluid wind in a well shallow enough that the heating share of each ionizing photon's energy exceeds the work to lift one particle out, so the rate is set by the number of photons rather than their energy (the photon-limited rate of Owen & Alvarez 2016 [^owenalvarez] wins).
-- `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape, with the kinetic enhancement of Volkov et al. 2011 [^volkovb]), species by species, capped by how fast diffusion can resupply each species (Yelle 2024 [^yelle]). Whether the wind is collisional enough to exist is decided by the sonic-point Knudsen number of Chatterjee & Pierrehumbert (2026) [^cp26].
-- `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017 [^jackson17]) outruns every bound candidate and is dispatched as the rate, or the flow region reaches the planet's Hill sphere and the label sits on top of whichever regime produced the rate, which is then a lower limit (the overflow geometries of Owen & Jackson 2012 [^oj12]). `diagnostics['roche']['rate_branch']` says which reading applies.
+- `boiloff`: the atmosphere is so loosely bound that it flows out on the planet's own thermal energy, faster than stellar XUV heating could drive it. This is typical of young, hot, hydrogen-rich planets fresh out of the nebula. The rate is the isothermal Parker wind of Owen & Wu (2016) [^owenwu] at the wind temperature of Misener et al. (2025) [^misener], and the state is recognised by the restricted Jeans parameter of Fossati et al. (2017) [^fossati].
+- `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (Watson et al. 1981 [^watson], in the tidally corrected form of Erkaev et al. 2007 [^erkaev]). The energy-limited rate is the smallest of the three hydrodynamic limits here.
+- `hydrodynamic:RR`: the same fluid wind, with the rate held below the energy limit because the absorbed energy goes into ionisation that recombination re-radiates (the recombination-limited rate of Murray-Clay et al. 2009 [^mc09] is the smallest).
+- `hydrodynamic:PL`: the same fluid wind in a well shallow enough that each ionising photon carries more energy than lifting one particle out costs, so the number of photons rather than their energy sets the rate (the photon-limited rate of Owen & Alvarez 2016 [^owenalvarez] is the smallest).
+- `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape, with the kinetic enhancement of Volkov et al. 2011 [^volkovb]), species by species, capped by how fast diffusion resupplies each species (Yelle 2024 [^yelle]). Whether the wind is collisional enough to exist is decided by the Knudsen number at its sonic point, after Chatterjee & Pierrehumbert (2026) [^cp26].
+- `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017 [^jackson17]) is the largest rate and is dispatched, or the flow reaches the planet's Hill sphere and the label replaces that of the regime that produced the rate, which is then a lower limit (the overflow geometries of Owen & Jackson 2012 [^oj12]). `diagnostics['roche']['rate_branch']` says which reading applies.
 
-The classification logic reduces to four questions, asked in a fixed order:
+The logic reduces to four questions:
 
 ```mermaid
 flowchart TD
-    IN(["Planet state + atmosphere profile"]) --> Q1{"Is the atmosphere inflated<br/>beyond its sonic radius?<br/>(Jeans parameter below threshold)"}
+    IN(["Planet state + atmosphere profile"]) --> Q1{"Is the atmosphere<br/>loosely bound?<br/>(restricted Jeans parameter<br/>below threshold)"}
     Q1 -- yes --> QB{"Does the XUV wind<br/>outrun the bolometric one?"}
     QB -- yes --> HD
     QB -- no --> BO["BOIL-OFF<br/>bolometric wind"]
-    Q1 -- no --> Q2{"Is an XUV wind collisional<br/>at its sonic point?<br/>(Knudsen number below threshold;<br/>the window widens when the<br/>previous label is known)"}
+    Q1 -- no --> Q2{"Is an XUV wind collisional<br/>at its sonic point?<br/>(Knudsen number below<br/>threshold)"}
     Q2 -- yes --> HD["HYDRODYNAMIC WIND<br/>label EL, RR, or PL,<br/>whichever rate is smallest"]
     Q2 -- no --> HS["HYDROSTATIC<br/>per-species Jeans escape"]
     BO --> Q3{"Does the flow reach<br/>the Hill sphere?"}
@@ -39,29 +42,27 @@ flowchart TD
     class Q1,QB,Q2,Q3 decision
 ```
 
-The figure shows the logic, not the full machinery: each branch carries its own rate physics, caps, and consistency checks, and three refinements are omitted for clarity (a thermally unstable exosphere lets the wind rate compete with the Jeans rate, a residual bolometric rate can be admitted past the boil-off gate by a setting, and the tidally driven L1 transfer rate competes as a final candidate wherever the overflow description applies, taking the overflow label with its own rate when it wins). The [escape regimes](regimes.md) page walks every step with its equations and thresholds, and its admission table, under the dispatched rate, is the reference for the routing.
+The figure shows the logic, not the full machinery. Each branch carries its own rate physics, limits, and checks, and three refinements are left out: an unstable exosphere lets the wind rate compete with the Jeans rate, a setting can let the bolometric wind compete after boil-off ends, and the transfer through L1 competes wherever it applies, taking the overflow label with its own rate when it wins. The [escape regimes](regimes.md) section walks through every step with its equations and thresholds, and its admission table is the reference for the routing.
 
-The regime boundaries are not sharp lines in nature. Each threshold carries a physical band (the collisionality threshold spans a factor of 30 across heating geometries, the boil-off threshold a factor of about two across the literature), and ZEPHYRUS reports, beside every verdict, the diagnostics needed to see how close the state sat to each boundary and what the label would have been at the band edges.
+The regime boundaries are not sharp lines in nature. Each threshold carries a physical band: the collisionality threshold spans a factor of 30 across heating geometries, and the boil-off threshold a factor of about two across the literature. Beside every verdict, ZEPHYRUS reports how close the state sat to each boundary and what the label would have been at the edges of the band.
 
-## The default prescription and the full framework
+Whichever regime sets the bulk rate, the loss is also split over chemical species. Hydrodynamic winds fractionate: heavy species lag the outflow through diffusive drag and can drop out of it entirely, which the N-species closure of the [fractionation](fractionation.md) page resolves (Attia & Lichtenberg 2026 [^attia]). The other regimes split the rate by reservoir mass fractions, and the hydrostatic regime is natively per-species.
 
-The energy-limited (EL) rate is the default prescription: it is what PROTEUS consumes at each time step today, through the released entry point `zephyrus.escape.EL_escape`, and the [energy-limited escape](energy_limited.md) page defines it in full. It is not an independent channel: within the framework it is one of the three hydrodynamic limits, valid when the atmosphere sustains a collisional XUV-driven wind, which is the regime that dominates the loss during the first 10 to 100 million years of a close-in planet's life.
+## The energy-limited entry point
 
-The full classification framework is available as the standalone entry point `zephyrus.dispatch`, which takes one planetary state (scalars plus an atmosphere profile) and returns the regime label, the bulk rate, per-species rates that sum to it, flags, and the diagnostics container. Its coupling into PROTEUS is planned as a follow-up to the current energy-limited wiring; until then, coupled runs use the EL default and standalone studies can use either entry point.
-
-Whichever regime sets the bulk rate, the loss is also partitioned over chemical species. Confirmed hydrodynamic winds fractionate: heavy species lag the outflow through diffusive drag and can drop out of it entirely, which the N-species closure of the [fractionation](fractionation.md) page resolves (Attia & Lichtenberg 2026 [^attia]). The other regimes split the rate by reservoir mass fractions, and the hydrostatic regime is natively per-species.
+`zephyrus.escape.EL_escape` is the energy-limited rate on its own, with its two radius scalings and its tidal correction, defined on the [energy-limited escape](energy_limited.md) page. It does not check whether the state sustains a collisional XUV wind, which is the regime where the rate applies and which dominates the loss during roughly the first $10^6$ to $10^8$ years of a close-in planet's life. It is the entry point PROTEUS calls today, and a standalone study that wants one prescription applied everywhere can use it.
 
 ## The impact channel
 
-A giant collision removes part of the target's atmosphere in a single event, on a timescale unrelated to the continuous escape. ZEPHYRUS computes the eroded fraction with the scaling law of Kegerreis et al. (2020) [^kegerreis] for thin atmospheres or that of Roche et al. (2026) [^roche2026] for envelopes of 1% to 20% of the planet mass, selected through `zephyrus.collision.impact_loss`; the [giant impacts](impacts.md) page defines both laws and their fitted domains. The impact channel is not part of the continuous-regime classification: a regime label is reserved for it, and the caller applies impact erosion as a discrete event.
+A giant collision removes part of the target's atmosphere in a single event, on a timescale unrelated to the continuous escape. ZEPHYRUS computes the eroded fraction with the scaling law of Kegerreis et al. (2020) [^kegerreis] for thin atmospheres or that of Roche et al. (2026) [^roche2026] for envelopes of 1% to 20% of the planet mass, selected through `zephyrus.collision.impact_loss`. The [giant impacts](impacts.md) page defines both laws and their fitted domains. The impact channel is not part of the continuous regimes: a label is reserved for it, and the caller applies impact erosion as a discrete event.
 
 ## Reading guide
 
-- [Energy-limited escape](energy_limited.md): the default prescription, its radius scaling, and its tidal correction.
-- [Escape regimes](regimes.md): the classification logic and the rate physics of every branch, with thresholds and bands.
-- [Dispatching a regime](../Tutorials/dispatch.md): the framework driven end to end on synthetic atmospheres, boundary crossings included.
-- [Fractionation](fractionation.md): how a wind partitions over species, and when heavy species drop out.
-- [Giant impacts](impacts.md): the erosion scaling law and its fitted domain.
+- [Escape regimes](regimes.md): how the dispatcher chooses a rate, the notation, and one page per regime with its equations, thresholds, and bands.
+- [Dispatching a regime](../Tutorials/dispatch.md): the dispatcher driven end to end on synthetic atmospheres, boundary crossings included.
+- [Fractionation](fractionation.md): how a wind splits over species, and when heavy species drop out.
+- [Energy-limited escape](energy_limited.md): the single-prescription entry point, its radius scaling, and its tidal correction.
+- [Giant impacts](impacts.md): the erosion scaling laws and their fitted domains.
 - [Coupling to PROTEUS](proteus.md): configuration keys, the per-time-step sequence, and reservoir bookkeeping.
 - [Limitations](limitations.md): what each entry point does not model, and what that implies for results.
 - [Troubleshooting the dispatcher](../How-to/troubleshooting.md): what to look at when a flag fires or a label surprises you.

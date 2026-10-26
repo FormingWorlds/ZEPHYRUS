@@ -22,9 +22,15 @@ nav:
 
   - Explanations:
       - The ZEPHYRUS model: Explanations/model.md
-      - Energy-limited escape: Explanations/energy_limited.md
-      - Escape regimes: Explanations/regimes.md
+      - Escape regimes:
+        - Overview: Explanations/regimes.md
+        - Boil-off: Explanations/regimes/boiloff.md
+        - Hydrodynamic wind: Explanations/regimes/wind.md
+        - Collisionality switch: Explanations/regimes/collisionality.md
+        - Hydrostatic escape: Explanations/regimes/hydrostatic.md
+        - Roche overflow: Explanations/regimes/roche.md
       - Fractionation: Explanations/fractionation.md
+      - Energy-limited escape: Explanations/energy_limited.md
       - Giant impacts: Explanations/impacts.md
       - Coupling to PROTEUS: Explanations/proteus.md
       - Limitations: Explanations/limitations.md

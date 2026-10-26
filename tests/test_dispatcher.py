@@ -1397,14 +1397,14 @@ def test_roche_label_over_its_inputs():
 def test_regimes_page_table_matches_the_admission_rule():
     """The admission table printed on the regimes page is the one the code runs.
 
-    Each row of the page's decision table (gate open, wind collisional,
+    Each row of the page's decision table (boil-off criterion met, wind collisional,
     exosphere unstable, admitted candidates) is expanded over its ``any``
     entries and compared with ``admitted``; the four rows cover all eight
     combinations once; and the page's tie-order sentence lists the
     candidates in the order the code breaks ties.
     """
     page = (Path(__file__).parents[1] / 'docs' / 'Explanations' / 'regimes.md').read_text()
-    header = '| Gate open | Wind collisional | Exosphere unstable | Admitted |'
+    header = '| Boil-off criterion met | Wind collisional | Exosphere unstable | Admitted |'
     assert header in page
     lines = page[page.index(header) :].splitlines()[2:]
     rows = []

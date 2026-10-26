@@ -1,6 +1,6 @@
 # ZEPHYRUS in PROTEUS
 
-This page describes how ZEPHYRUS is wired into the PROTEUS framework as its atmospheric escape module. The source code for this coupling can be found in the [wrapper](https://github.com/FormingWorlds/PROTEUS/blob/main/src/proteus/escape/wrapper.py). For the underlying ZEPHYRUS model itself, see [the ZEPHYRUS model](model.md). For the standalone API, see the [API reference](../Reference/api/index.md). The coupling described here consumes the energy-limited default (`EL_escape`); the [escape-regime framework](regimes.md) is standalone API until its PROTEUS coupling lands in a follow-up change.
+This page describes how ZEPHYRUS is wired into the PROTEUS framework as its atmospheric escape module. The source code for this coupling can be found in the [wrapper](https://github.com/FormingWorlds/PROTEUS/blob/main/src/proteus/escape/wrapper.py). For the underlying ZEPHYRUS model itself, see [the ZEPHYRUS model](model.md). For the standalone API, see the [API reference](../Reference/api/index.md). The coupling described here consumes the energy-limited default (`EL_escape`); the [escape-regime dispatcher](regimes.md) is standalone API until its PROTEUS coupling lands in a follow-up change.
 
 ---
 

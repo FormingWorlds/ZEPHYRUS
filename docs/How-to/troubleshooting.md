@@ -76,7 +76,7 @@ The flipping under a small change has a separate cause. The radius the screen te
 
 **What to do.** Read four things:
 
-- `diagnostics['roche']['rate_branch']`: `roche_overflow` means the L1 transfer itself was dispatched, and any other value means the geometric screen renamed a state whose rate that branch produced.
+- `diagnostics['roche']['rate_branch']`: `roche_overflow` means the L1 transfer itself was dispatched, and any other value means the Roche screen renamed a state whose rate that branch produced.
 - `diagnostics['roche']['r_atmosphere']` against `diagnostics['nozzle']['r_lobe']`: whether the atmosphere itself reaches its Roche lobe, which `roche_subflag` reports as `dynamical`.
 - `diagnostics['rate_floor']['above_floor']`: whether the rate is a number at all.
 - `flags['bolometric_residual']`: whether the residual carried the rate.
@@ -85,7 +85,7 @@ They sort the state into one of five cases:
 
 - `rate_branch` reading `roche_overflow`: the rate is the tidally driven transfer through L1 (Jackson et al. 2017 [^jackson17]). It won inside its two applicability criteria, the sonic radius reaching L1 and a fluid at L1 (`kn_L1` in `diagnostics['nozzle']` at most `kn_crit`). It is a real transfer rate, and `diagnostics['nozzle']` carries the barrier, the saturation state, and the lift power against the available luminosities. The subflag reads `dynamical` when the atmosphere's own extent passes the lobe and `neither` when it does not, so it describes the geometry and not the mechanism. On an eccentric orbit the rate is an orbit average over the arc where the description applies: read `applicable_orbit_fraction`, and treat a value below one as a rate that omits the wind driven on the rest of the orbit.
 - Subflag `dynamical` on a bound branch and a rate above the floor: the atmosphere reaches its Roche lobe while the nozzle candidate lost or did not apply. The rate is the bound-flow estimate, and the real rate is higher by whatever the tidal flow would carry. Treat it as a lower limit.
-- Subflag `no_transonic` with `r_atmosphere` well inside the lobe: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly bound case above, not an overflow; the [Roche screen](../Explanations/regimes.md#the-roche-screen) explains why the two look alike to it.
+- Subflag `no_transonic` with `r_atmosphere` well inside the lobe: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly bound case above, not an overflow; the [Roche screen](../Explanations/regimes/roche.md#the-roche-screen) explains why the two look alike to it.
 - `above_floor` false: the label is decided by the ordering of two rates with no numerical content. Report no escape and treat the geometry as a note.
 - A rate above the floor but far below anything that matters. The floor, one proton per Julian year, marks what is distinguishable from zero in floating point, many decades below a rate that could change an atmosphere. Read `diagnostics['self_consistency']` beside it: the depletion timescale against the age you passed in settles whether a rate matters, not the floor.
 
