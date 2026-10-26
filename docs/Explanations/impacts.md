@@ -18,7 +18,7 @@ with $R_\mathrm{t}$ and $R_\mathrm{i}$ the body radii at the base of any atmosph
 
 $$f_M \;=\; \frac{\rho_\mathrm{t}\, V^\mathrm{cap}_\mathrm{t} + \rho_\mathrm{i}\, V^\mathrm{cap}_\mathrm{i}}{\rho_\mathrm{t}\, V_\mathrm{t} + \rho_\mathrm{i}\, V_\mathrm{i}}, \qquad V^\mathrm{cap}_\mathrm{t,i} = \frac{\pi}{3}\, d^2 \left(3 R_\mathrm{t,i} - d\right) \tag{3}$$
 
-where $V_\mathrm{t,i}$ are the full body volumes. At equal bulk densities $f_M$ reduces to the fractional interacting volume of their Eq. B2. The common-height caps are a linearized bookkeeping: outside the fitted geometry, for a much denser and much smaller impactor near head-on, the raw $f_M$ can leave $[0, 1]$ and vary non-monotonically with $b$, so ZEPHYRUS clamps $f_M$ to $[0, 1]$. Within the fitted domain the clamp never engages.
+where $V_\mathrm{t,i}$ are the full body volumes. At equal bulk densities $f_M$ reduces to the fractional interacting volume of their Eq. B2. The common-height caps are a linearised bookkeeping: outside the fitted geometry, for a much denser and much smaller impactor near head-on, the raw $f_M$ can leave $[0, 1]$ and vary non-monotonically with $b$, so ZEPHYRUS clamps $f_M$ to $[0, 1]$. Within the fitted domain the clamp never engages.
 
 Three input conventions follow the paper and must be honored by the caller: $v_\mathrm{c}$ is the speed at first contact, not the relative speed at infinity; the masses and radii exclude any atmosphere, with radii taken at the base of the atmosphere; and the densities are bulk values of the atmosphere-free bodies.
 
@@ -28,11 +28,11 @@ The law is constrained by simulations spanning target masses of roughly 0.3 to 3
 
 ## The Roche et al. (2026) law
 
-Roche et al. (2026) [^roche2026] generalize atmospheric erosion scaling to account explicitly for envelope mass fraction $f_\mathrm{atm} \equiv M_\mathrm{atm} / M_\mathrm{t}^\mathrm{tot}$. The scaling law splits atmospheric loss into near-field erosion ($X_\mathrm{NF}$, loss near the impact site) and far-field erosion ($X_\mathrm{FF}$, loss through ground motion):
+Roche et al. (2026) [^roche2026] generalise atmospheric erosion scaling to account explicitly for envelope mass fraction $f_\mathrm{atm} \equiv M_\mathrm{atm} / M_\mathrm{t}^\mathrm{tot}$. The scaling law splits atmospheric loss into near-field erosion ($X_\mathrm{NF}$, loss near the impact site) and far-field erosion ($X_\mathrm{FF}$, loss through ground motion):
 
 $$X_\mathrm{atm} \;=\; X_\mathrm{NF} + X_\mathrm{FF} \tag{4}$$
 
-where $X_\mathrm{atm}$ is clamped to $[0, 1]$. The fraction of the atmosphere located in the near-field region, $f_\mathrm{NF}$, is parameterized by a generalized logistic function:
+where $X_\mathrm{atm}$ is clamped to $[0, 1]$. The fraction of the atmosphere located in the near-field region, $f_\mathrm{NF}$, is parameterised by a generalised logistic function:
 
 $$f_\mathrm{NF} \;=\; \frac{\zeta_4}{\left(1 + \zeta_6 \exp\!\left(\zeta_3 \left(\frac{R_\mathrm{i}^\mathrm{r}}{R_\mathrm{t}^\mathrm{r}} - \zeta_2\right)\right)\right)^{\zeta_1}} + \zeta_5 \tag{5}$$
 

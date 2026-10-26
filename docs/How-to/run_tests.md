@@ -11,7 +11,7 @@ This page describes the suite as a whole and how to run it.
 
 ## Test quality contract
 
-Five layers enforce test rigor across the suite:
+Five layers enforce test rigour across the suite:
 
 1. A four-marker tier scheme (`unit`, `smoke`, `integration`, `slow`) selects what runs in the PR gate versus the nightly.
 2. Two validation markers (`physics_invariant`, `reference_pinned`) tag tests that carry physical meaning beyond pure code coverage.
@@ -118,7 +118,7 @@ Cross-cutting and companion tests are the documented exception, not the rule:
 - `tests/test_earth.py`: an Earth-analogue regression that spans the real MORS lookup and the escape formula end to end. It carries the `integration` tier because it downloads the stellar-evolution tracks.
 - `tests/test_escape_properties.py`: the Hypothesis-driven property sweeps for `escape.py`, kept in their own module so the `pytest.importorskip('hypothesis')` skip applies only to these tests and the closed-form pins in `tests/test_escape.py` still run when the develop-extra dependency is absent.
 - `tests/test_collision_properties.py`: the same pattern for `collision.py`: boundedness, speed monotonicity, angle monotonicity at equal densities, and the exact reduction of the interacting mass to the interacting volume.
-- `tests/test_fractionation_ensembles.py`: randomized ensembles of the fractionation closure, in the smoke tier because they take seconds rather than milliseconds.
+- `tests/test_fractionation_ensembles.py`: randomised ensembles of the fractionation closure, in the smoke tier because they take seconds rather than milliseconds.
 - `tests/test_examples.py`: the scripts under `examples/` and the numbers the documentation quotes from them, in the smoke tier.
 - `tests/test_tutorial_track.py`: the tutorial step that needs the real stellar tracks, in the integration tier.
 - `tests/test_nightly_workflow.py`: the data cache steps of `.github/workflows/nightly.yml`.

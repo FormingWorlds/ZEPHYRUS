@@ -70,7 +70,7 @@ and is reported in `diagnostics['bolometric']` on every call. Past the threshold
 Whether a bolometric wind persists after contraction is disputed, and the default takes the side that dispatches less.
 
 - Gupta & Schlichting (2019) find that a bolometric wind fed by the cooling interior, core-powered mass loss, persists for gigayears, at the smaller of the Bondi-limited rate and the cooling-luminosity rate of Eq. (5) [^gs19].
-- Tang et al. (2024) find that once boil-off is initialised self-consistently, the same wind removes at most a tenth of a percent of the envelope over gigayears [^tang]. They attribute the persistent rate to coupling the wind to the core luminosity, to a missing energy-loss term in the wind, and to initial conditions set before boil-off.
+- Tang et al. (2024) find that once boil-off is initialised self-consistently, the same wind removes at most 0.1% of the envelope over gigayears [^tang]. They attribute the persistent rate to coupling the wind to the core luminosity, to a missing energy-loss term in the wind, and to initial conditions set before boil-off.
 
 Here the dispute matters only in a narrow range past the threshold, where the closed-form rate of Eq. (3) has not yet shut off ([measured below](#measured-behaviour)). The default follows Tang et al.: it reports the residual and does not dispatch it. The boil-off criterion is then a jump in the dispatched rate wherever the bolometric rate is still the larger one at the threshold, and continuous where the XUV wind has already overtaken it. A run that wants the rate continuous sets `residual_mode = 'luminosity_capped'`, and the two settings differ by the candidate rate that the diagnostics print either way.
 

@@ -99,7 +99,7 @@ The barometric factor, reported as `rr_chain['barometric_factor']`, separates th
 Numbers measured with this code, on the states named:
 
 - $\epsilon_\mathrm{PL}$ is 0.034 for a 1 Earth-mass, 1.05 Earth-radius hydrogen and helium envelope, and 0.055 at 2 Earth masses and 1.3 Earth radii, so at the default efficiency of 0.1 both winds are photon-limited. A 1 Earth-mass carbon dioxide atmosphere reaches it at 0.26.
-- The CO$_2$ band carries a few percent of the cooling at the temperatures the thermostat selects, and most of it at a base of 1000 to 3000 K.
+- The CO$_2$ band carries a few per cent of the cooling at the temperatures the thermostat selects, and most of it at a base of 1000 to 3000 K.
 
 [^lopez2017]: Lopez, E. D. (2017). Born dry in the photoevaporation desert: Kepler's ultra-short-period planets formed water-poor. *Monthly Notices of the Royal Astronomical Society, 472*(1), 245–253.
 

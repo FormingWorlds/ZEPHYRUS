@@ -37,7 +37,7 @@ Start with the two questions that dispose of most surprises:
 
 **Cause.** The isothermal sonic radius $R_\mathrm{s} = G M_\mathrm{p} / (2 c_\mathrm{s}^2)$ came out below the wind base, which happens when the base Jeans parameter $\lambda_\mathrm{b} = G M_\mathrm{p} / (R_\mathrm{base} c_\mathrm{s}^2)$ drops below 2. The gas at the base is then already unbound in the isothermal sense: there is no subsonic region above the base for a wind to accelerate through, so there is no transonic point to anchor a rate on. Below $\lambda_\mathrm{b} = 3/2$ it is worse, because the barometric factor $e^{3/2 - \lambda_\mathrm{b}}$ exceeds 1 and the formula would carry density outward rather than thinning it. The branch responds by flooring the sonic radius at the base and dropping the barometric factor, which keeps the rate finite and monotone, and flags that it did.
 
-Physically, a state in that corner is not an XUV wind launched at an ionization front. It is the blow-off corner, where the whole upper atmosphere streams away, the transonic point sits below the base, and the rate is set by the energy supplied rather than by radiation. The boil-off branch, admitted by the restricted Jeans parameter, describes that corner, and most states that raise this flag are labeled `boiloff` or `roche_overflow` for that reason.
+Physically, a state in that corner is not an XUV wind launched at an ionisation front. It is the blow-off corner, where the whole upper atmosphere streams away, the transonic point sits below the base, and the rate is set by the energy supplied rather than by radiation. The boil-off branch, admitted by the restricted Jeans parameter, describes that corner, and most states that raise this flag are labelled `boiloff` or `roche_overflow` for that reason.
 
 **What to do.** Read `diagnostics['hydrodynamic']['rr_chain']['lambda_b']` and `diagnostics['hydrodynamic']['selection_mechanism']` together, then split by which candidate won:
 
@@ -48,9 +48,9 @@ Physically, a state in that corner is not an XUV wind launched at an ionization 
 
 **Symptom.** A recombination-limited verdict, and the question of whether recombination is what limited it.
 
-**Cause.** The minimum over the hydrodynamic limits can select the recombination-limited rate for two physically different reasons. One is genuine saturation: the base ion density follows photoionization against recombination balance, so the rate grows as $\sqrt{F_\mathrm{XUV}}$ while the energy-limited rate grows linearly, and the former wins at high flux. The other is barometric suppression: at large $\lambda_\mathrm{b}$ the isothermal wind is exponentially throttled between the base and the sonic point, and the smallness has nothing to do with radiation.
+**Cause.** The minimum over the hydrodynamic limits can select the recombination-limited rate for two physically different reasons. One is genuine saturation: the base ion density follows photoionisation against recombination balance, so the rate grows as $\sqrt{F_\mathrm{XUV}}$ while the energy-limited rate grows linearly, and the former wins at high flux. The other is barometric suppression: at large $\lambda_\mathrm{b}$ the isothermal wind is exponentially throttled between the base and the sonic point, and the smallness has nothing to do with radiation.
 
-**What to do.** Read `diagnostics['hydrodynamic']['rr_chain']['barometric_factor']`, which is $e^{3/2 - \lambda_\mathrm{b}}$, the fraction of the base density that survives to the sonic point. Near 1 the sonic-point density is the base density and the rate is set by the recombination-limited base ionization, which is the mechanism the label names. Several decades below 1 the rate is small mostly because the isothermal wind cannot carry material that far, and attributing the smallness to recombination misplaces it.
+**What to do.** Read `diagnostics['hydrodynamic']['rr_chain']['barometric_factor']`, which is $e^{3/2 - \lambda_\mathrm{b}}$, the fraction of the base density that survives to the sonic point. Near 1 the sonic-point density is the base density and the rate is set by the recombination-limited base ionisation, which is the mechanism the label names. Several decades below 1 the rate is small mostly because the isothermal wind cannot carry material that far, and attributing the smallness to recombination misplaces it.
 
 Do not expect `selection_mechanism` to answer this. It reports which candidate won, `EL-selected`, `RR-selected`, or `RR-selected:subcritical-floor`, and nothing about why. A threshold on the base Jeans parameter cannot make that separation either: the canonical recombination-limited case of the literature sits near $\lambda_\mathrm{b} = 5.5$, where a fixed cut would have to be chosen with no published basis.
 
@@ -72,7 +72,7 @@ The flux scaling will not separate them either: the base ion density follows $\s
 
 The geometric reading is where surprises come from. When the bolometric residual wins, which it can do only where `residual_mode = 'luminosity_capped'` admits it, the tested radius is the bolometric sonic radius $R_\mathrm{B} = \Lambda R_\mathrm{ph}\, 2^{1/4} / 2$, which grows with the Jeans parameter $\Lambda$. A tightly bound heavy atmosphere therefore puts it several Hill radii out while the atmosphere itself sits deep inside, which is the opposite of overflowing.
 
-The flipping under a small change has a separate cause. The radius the screen tests belongs to the candidate that won the rate comparison, so wherever two candidates are within a few percent of each other, a small input change swaps the tested radius and with it the label. The rate does not move with it, because the screen never changes the rate.
+The flipping under a small change has a separate cause. The radius the screen tests belongs to the candidate that won the rate comparison, so wherever two candidates are within a few per cent of each other, a small input change swaps the tested radius and with it the label. The rate does not move with it, because the screen never changes the rate.
 
 **What to do.** Read four things:
 
@@ -99,7 +99,7 @@ Points whose flow radius exceeds two thirds of the Hill radius raise `near_roche
 
 **What to do.** Report both rates, or report the point as contested. Do not resolve it with the `gate` setting: that setting chooses which convention gates the branch, and choosing one does not make the other wrong. In the nitrogen and oxygen corner the two conventions can differ by four orders of magnitude in rate.
 
-## The label flips between neighboring points of a smooth sweep
+## The label flips between neighbouring points of a smooth sweep
 
 **Symptom.** A parameter grid or a time series whose label alternates.
 

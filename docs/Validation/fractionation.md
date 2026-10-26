@@ -1,6 +1,6 @@
 # Validation: `src/zephyrus/fractionation.py`
 
-This page tracks the `@pytest.mark.reference_pinned` tests that anchor the N-species closure of `zephyrus.fractionation` against every special case of the escape-fractionation lineage it generalizes.
+This page tracks the `@pytest.mark.reference_pinned` tests that anchor the N-species closure of `zephyrus.fractionation` against every special case of the escape-fractionation lineage it generalises.
 
 | Test id | Reference | Scope |
 |---|---|---|
@@ -14,7 +14,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the N-spe
 
 ## Notes
 
-The randomized ensemble suite additionally verifies global properties across activation thresholds (conservation, non-negativity, monotonicity, active-set growth, two-sided continuity, piecewise linearity), active-set uniqueness by Karush-Kuhn-Tucker enumeration against a brute-force oracle, and the stability of composition fixed points under well-mixed-layer relaxation.
+The randomised ensemble suite additionally verifies global properties across activation thresholds (conservation, non-negativity, monotonicity, active-set growth, two-sided continuity, piecewise linearity), active-set uniqueness by Karush-Kuhn-Tucker enumeration against a brute-force oracle, and the stability of composition fixed points under well-mixed-layer relaxation.
 
 ## Anchor type
 
