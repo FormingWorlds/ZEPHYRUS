@@ -2,8 +2,6 @@
 
 This is a reference page for all parameters and constants used in ZEPHYRUS. For the physical model, see the [model overview](../Explanations/model.md). For what a dispatch call returns, see [dispatch results](results.md).
 
----
-
 ## Physical constants (`constants.py`)
 
 | Name | Symbol | Value | Units |
@@ -30,8 +28,6 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `ergcm2stoWm2` | $10^{-3}$ | erg s⁻¹ cm⁻² → W m⁻² |
 | `ev2joule` | $1.602176634 \times 10^{-19}$ (exact) | eV → J |
 
----
-
 ## Sun and Earth reference values (`planets_parameters.py`)
 
 ### Sun
@@ -42,7 +38,6 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `Ms` | $M_\odot$ | $1.98847 \times 10^{30}$ | kg |
 | `Ls` | $L_\odot$ | $3.828 \times 10^{26}$ | W |
 | `age_sun` | none | $4.603 \times 10^{9}$ | yr |
-
 
 ### Earth
 
@@ -68,8 +63,6 @@ The radius is the IAU 2015 nominal equatorial radius (Prša et al. 2016 [^prsa])
 | `Rjup` | $R_\mathrm{Jup}$ | $7.1492 \times 10^{7}$ | m |
 | `Mjup` | $M_\mathrm{Jup}$ | $1.8982 \times 10^{27}$ | kg |
 
----
-
 ## TOI-561 reference values (`planets_parameters.py`)
 
 ### TOI-561 (star)
@@ -83,7 +76,6 @@ From Weiss et al. (2021) [^weiss].
 | `L_TOI561` | $0.522\,L_\odot$ | $0.017\,L_\odot$ | W |
 | `age_TOI561` | $10 \times 10^{9}$ | $3 \times 10^{9}$ | yr |
 
-
 ### TOI-561 b (planet)
 
 From Brinkman et al. (2023) [^brinkman].
@@ -93,9 +85,6 @@ From Brinkman et al. (2023) [^brinkman].
 | `R_TOI561b` | $1.37\,R_\oplus$ | $0.04\,R_\oplus$ | m |
 | `M_TOI561b` | $2.24\,M_\oplus$ | $0.20\,M_\oplus$ | kg |
 | `a_TOI561b` | $0.0106$ | $0.0004$ | au |
-
-
----
 
 ## Dispatcher settings (`dispatcher.DispatchSettings`)
 
@@ -140,15 +129,13 @@ The knobs of the [escape-regime framework](../Explanations/regimes.md). Every de
 | `M_star`, `a`, `e` | kg, m, dimensionless | Stellar mass, semi-major axis, eccentricity (the Hill radius is evaluated at periapsis). |
 | `T_eq` | K | Equilibrium temperature; the boil-off wind runs at $T_\mathrm{eq} / 2^{1/4}$. |
 | `F_xuv`, `F_bol`, `F_int` | W m⁻² | XUV flux, bolometric instellation, and interior heat flux (the luminosity cap). `F_bol` is validated and carried with the state but no branch reads it: the bolometric branch takes its temperature from `T_eq`. It is required so that a caller assembling a state cannot omit it and then find a later version silently reading zero. |
-| `kappa_photo` | m² kg⁻¹ | Photospheric opacity; the boil-off rate scales as its inverse. |
+| `kappa_photo` | m² kg⁻¹ | Grey photospheric opacity; the boil-off rate scales as its inverse. No default. The tutorial passes $10^{-2}$ m² kg⁻¹ as a typical value; a coupled run should pass the mean opacity of the atmosphere model at the photospheric level (AGNI, in PROTEUS). |
 | `profile` | not applicable | `profiles.Profile`: pressure, radius, temperature, per-species mixing ratios, and mean molecular mass per level, base to top. |
 | `settings` | not applicable | The `DispatchSettings` block above. |
 | `prev_regime` | not applicable | Optional previous regime label; activates the hysteresis window. |
 | `atm_converged` | not applicable | Optional data-quality flag, surfaced as `stale_input`. |
 | `age`, `reservoirs` | s, kg | Optional; consumed only by the snapshot self-consistency screen and the unfractionated split. |
 | `dt` | s | Optional; carried for the caller's supply cap, never used by the dispatcher itself. |
-
----
 
 [^wordsworth2018]: Wordsworth, R. D., Schaefer, L. K., & Fischer, R. A. (2018). Redox evolution via gravitational differentiation on low-mass planets: implications for abiotic oxygen, water loss, and habitability. *The Astronomical Journal, 155*(5), 195. https://doi.org/10.3847/1538-3881/aab608
 

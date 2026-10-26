@@ -14,14 +14,7 @@ If you haven't installed ZEPHYRUS yet, follow the [installation guide](../How-to
 
 ## The full script
 
-The complete example lives at `examples/demo_earth/demo_earth.py` in the repository. Start by creating the output directory it writes to:
-
-```sh
-mkdir -p output
-```
-
-!!! warning "Output directory"
-    The script writes to `output/` relative to the **current working directory.** If the directory doesn't exist, `plt.savefig` will fail. Make sure you run the example from the same level as the output directory, or change the path. 
+The complete example lives at `examples/demo_earth/demo_earth.py` in the repository. Run it from the repository root, so that it writes to the same `output/` folder as the [dispatcher tutorial](dispatch.md); the script creates the folder if it does not exist.
 
 Then run it:
 
@@ -38,6 +31,8 @@ The rest of this page steps through what the script does.
 ## Step 1: Imports and system parameters
 
 ```python
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 import mors
@@ -124,6 +119,7 @@ ax2.set_ylim((ylims[0]/ s2yr) / Me,(ylims[1] / s2yr) / Me)
 ax2.set_yscale('log')
 ax2.set_ylabel(r'Mass loss rate [$M_{\oplus}$ $yr^{-1}$]', fontsize=15)
 
+os.makedirs('output', exist_ok=True)
 plt.savefig('output/demo_earth_escape_vs_time_MORS.pdf', dpi=180)
 ```
 

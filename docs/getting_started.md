@@ -16,7 +16,7 @@ Here is the quickest path to getting started:
    → [Using ZEPHYRUS](Tutorials/first_run.md)
 
 3. **Classify the escape regime**  
-   Dispatch a planetary state to the physics that governs its mass loss. <br>
+   Dispatch a planetary state to the escape regime that applies to it. <br>
    → [Dispatching a regime](Tutorials/dispatch.md)
 
 ---

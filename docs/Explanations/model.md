@@ -4,8 +4,8 @@ ZEPHYRUS computes the atmospheric mass loss of rocky and sub-Neptune exoplanets.
 
 Mass loss happens through two physically distinct channels, and ZEPHYRUS models both:
 
-1. Continuous thermal escape: the steady outflow or evaporation of the upper atmosphere, driven by stellar irradiation and by the planet's own heat. This is one framework with several regimes, described below.
-2. Impact-driven erosion: the impulsive removal of atmosphere by a single giant collision during accretion, a separate channel with its own prescription (see [giant impacts](impacts.md)).
+1. **Continuous thermal escape**: the steady outflow or evaporation of the upper atmosphere, driven by stellar irradiation and by the planet's own heat. This is one framework with several regimes, described below.
+2. **Impact-driven erosion**: the impulsive removal of atmosphere by a single giant collision during accretion, a separate channel with its own prescription (see [giant impacts](impacts.md)).
 
 ## The continuous channel: one framework, six regimes
 
@@ -68,8 +68,6 @@ A giant collision removes part of the target's atmosphere in a single event, on 
 - [Limitations](limitations.md): what each entry point does not model, and what that implies for results.
 - [Troubleshooting the dispatcher](../How-to/troubleshooting.md): what to look at when a flag fires or a label surprises you.
 - [Parameter reference](../Reference/parameters.md), [dispatch results](../Reference/results.md), and [API reference](../Reference/api/index.md).
-
----
 
 [^owenwu]: Owen, J. E., & Wu, Y. (2016). Atmospheres of low-mass planets: the "boil-off". *The Astrophysical Journal, 817*(2), 107.
 

@@ -7,24 +7,24 @@
 [![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/tests.yaml?branch=main&label=Unit%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/tests.yaml)
 [![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/ZEPHYRUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/ZEPHYRUS/actions/workflows/nightly.yml)
 
-**ZEPHYRUS** is the atmospheric escape module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. It computes the rate at which an exoplanet loses its atmosphere to space under high-energy stellar irradiation, and the fraction of its atmosphere removed by a giant impact.
-
-Given a planet's mass and radius, the radius at which XUV radiation is absorbed, the stellar XUV flux at the planet, and an escape efficiency, ZEPHYRUS returns the energy-limited mass-loss rate. An optional tidal correction after Erkaev et al. (2007) enhances the rate for close-in or eccentric orbits, and two forms of the XUV-heated cross section are available. The stellar XUV flux is typically supplied by [MORS](https://proteus-framework.org/MORS/) evolution tracks. For giant impacts during accretion, ZEPHYRUS returns the eroded fraction of the target's atmosphere from the collision speed, masses, densities, and impact angle, following the scaling law of Kegerreis et al. (2020).
+**ZEPHYRUS** is the atmospheric escape module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. It computes the rate at which a rocky or sub-Neptune planet loses its atmosphere to space, how that loss is shared between chemical species, and the fraction of the atmosphere a giant impact removes.
 
 Named after Zephyrus, the Greek god of the west wind and a messenger of spring. Pronounced *ZEF-ir-us*.
 
 ## Escape model
 
-Energy-limited (EL) escape: the deposited XUV power divided by the gravitational binding energy of the escaping gas, with an optional tidal enhancement `K_tide`. The XUV cross section scales as `Rp * Rxuv**2` (default) or `Rxuv**3`, and the tidal factor applies only outside the Roche lobe, measured from whichever radius the scaling selects: `R_Hill / Rp > 1` for the default `Rp * Rxuv**2` form and `R_Hill / Rxuv > 1` for `Rxuv**3`.
+The escape model is the regime dispatcher, `zephyrus.dispatch`. It takes one planetary state (mass, radius, orbit, stellar fluxes, and an atmosphere profile), decides which escape physics applies, and returns a regime label, the mass-loss rate, the rate of each element, flags, and diagnostics. The six regimes are boil-off, three limits on an XUV-driven hydrodynamic wind (energy-limited, recombination-limited, and photon-limited), hydrostatic Jeans escape with diffusion-limited supply, and Roche-lobe overflow. A hydrodynamic wind is split over species by a fractionation closure, so heavy species can lag the flow or stay behind.
+
+`zephyrus.escape.EL_escape` applies the energy-limited rate alone, with an optional tidal correction after Erkaev et al. (2007), to every state without checking which regime applies. PROTEUS calls this entry point until its coupling to the dispatcher lands. For giant impacts, `zephyrus.collision.impact_loss` returns the eroded fraction of the atmosphere from the scaling laws of Kegerreis et al. (2020) and Roche et al. (2026).
 
 ## Documentation
 
 Full documentation is at **[proteus-framework.org/ZEPHYRUS](https://proteus-framework.org/ZEPHYRUS/)**, including:
 
 - [Getting started](https://proteus-framework.org/ZEPHYRUS/getting_started.html): installation and the quickest path to a first run.
-- [Tutorial](https://proteus-framework.org/ZEPHYRUS/Tutorials/first_run.html): a first escape calculation for the Sun-Earth system.
+- [Tutorials](https://proteus-framework.org/ZEPHYRUS/Tutorials/dispatch.html): dispatching escape regimes on synthetic atmospheres, and a first energy-limited calculation for the Sun-Earth system.
 - [How-to guides](https://proteus-framework.org/ZEPHYRUS/How-to/installation.html): install, run the tests, build the documentation.
-- [Explanations](https://proteus-framework.org/ZEPHYRUS/Explanations/model.html): model overview, coupling to PROTEUS, limitations, and the testing suite.
+- [Explanations](https://proteus-framework.org/ZEPHYRUS/Explanations/model.html): model overview, the escape regimes, fractionation, giant impacts, coupling to PROTEUS, limitations, and the testing suite.
 - [API reference](https://proteus-framework.org/ZEPHYRUS/Reference/api/index.html) and [validation anchors](https://proteus-framework.org/ZEPHYRUS/Validation/escape.html): every public function with NumPy-style docstrings, plus the reference-pinned test inventory.
 
 ## Installation
@@ -55,29 +55,32 @@ mors download all
 ## Quick start
 
 ```python
-import numpy as np
-import mors
-from zephyrus.escape import EL_escape
-from zephyrus.constants import au2cm, au2m, ergcm2stoWm2
-from zephyrus.planets_parameters import Me, Re, a_earth, e_earth
+import math
 
-# XUV flux at Earth from a solar-mass star, over its evolution (MORS tracks)
-star = mors.Star(Mstar=1.0, Omega=1.0)
-Lxuv = star.Tracks['Lx'] + star.Tracks['Leuv']          # erg s-1
-Fxuv = Lxuv / (4 * np.pi * (a_earth * au2cm) ** 2)      # erg s-1 cm-2
-Fxuv_SI = Fxuv * ergcm2stoWm2                           # W m-2
+from scipy.constants import Stefan_Boltzmann as sigma_sb
 
-# Energy-limited mass-loss rate [kg s-1] across the star's history.
-# a, e and Ms only enter the tidal branch (tidal_contribution=True).
-mdot = EL_escape(
-    tidal_contribution=False,
-    a=a_earth * au2m, e=e_earth,
-    Mp=Me, Ms=1.0, epsilon=0.15,
-    Rp=Re, Rxuv=Re, Fxuv=Fxuv_SI,
-)   # aligned with star.Tracks['Age']
+from zephyrus import EscapeInputs, dispatch
+from zephyrus.constants import au2m
+from zephyrus.planets_parameters import Ls, Me, Ms, Re
+from zephyrus.profiles import isothermal_profile
+
+# An Earth-mass, Earth-radius planet with a pure CO2 atmosphere at 0.0775 au
+a = 0.0775 * au2m
+T_eq = (Ls / (16 * math.pi * sigma_sb * a**2)) ** 0.25        # 1000 K
+state = EscapeInputs(
+    M_p=Me, R_p=Re, M_star=Ms, a=a, e=0.0, T_eq=T_eq,
+    F_xuv=10.0,                                  # XUV flux at the planet [W m-2]
+    F_bol=Ls / (4 * math.pi * a**2),             # bolometric flux [W m-2]
+    F_int=1.0,                                   # interior heat flux [W m-2]
+    kappa_photo=0.01,                            # grey photospheric opacity [m2 kg-1]
+    profile=isothermal_profile(Me, Re, T_eq, {'CO2': 1.0}, 1e7, 1e-5),
+)
+result = dispatch(state)
+print(result.regime, f'{result.mdot:.3e} kg/s')   # hydrodynamic:EL 2.348e+06 kg/s
+print({el: f'{r:.3e}' for el, r in result.per_species.items()})
 ```
 
-See the [first-run tutorial](https://proteus-framework.org/ZEPHYRUS/Tutorials/first_run.html) for the full walkthrough.
+The [dispatcher tutorial](https://proteus-framework.org/ZEPHYRUS/Tutorials/dispatch.html) builds on this state step by step, and the [first-run tutorial](https://proteus-framework.org/ZEPHYRUS/Tutorials/first_run.html) applies `EL_escape` along a MORS stellar history.
 
 ## License
 

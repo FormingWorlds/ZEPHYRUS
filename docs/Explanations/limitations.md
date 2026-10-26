@@ -2,8 +2,6 @@
 
 Every prescription in ZEPHYRUS is a deliberate simplification of a richer physical problem. This page collects what each entry point does not model and what that implies for results; the physics each one does model is defined on the [energy-limited escape](energy_limited.md), [escape regimes](regimes.md), [fractionation](fractionation.md), and [giant impacts](impacts.md) pages.
 
----
-
 ## The energy-limited default (`EL_escape`)
 
 The released entry point applies one prescription unconditionally, so every limitation of that prescription passes through to coupled PROTEUS runs until the regime framework is wired in:
@@ -56,8 +54,6 @@ The XUV flux $F_\mathrm{XUV}$ entering every XUV-driven rate carries large intri
 - Avoid $\epsilon > 0.3$ for rocky planets without a specific reason; $\epsilon \approx 0.15$ is the conservative baseline, and for strongly bound planets consider the fitted-efficiency option of the regime framework.
 - For close-in planets around M dwarfs, where fractionation is expected, bulk-removal rates bound the growth of the atmospheric mean molecular weight from below; use the regime framework with fractionation on when the composition history matters.
 - Treat single-prescription mass-loss histories as scenario calculations rather than predictions: the regime diagnostics reported beside every framework verdict are the tool for judging how sensitive a given history is to the boundary placements.
-
----
 
 [^caldiroli]: Caldiroli, A., Haardt, F., Gallo, E., Spinelli, R., Malsky, I., & Rauscher, E. (2022). Irradiation-driven escape of primordial planetary atmospheres II. Evaporation efficiency of sub-Neptunes through hot Jupiters. *Astronomy & Astrophysics, 663*, A122. https://doi.org/10.1051/0004-6361/202142763
 

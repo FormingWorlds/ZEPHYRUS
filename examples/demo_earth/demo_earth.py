@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import mors
 import numpy as np
@@ -50,5 +52,6 @@ ylims = ax1.get_ylim()
 ax2.set_ylim((ylims[0]/ s2yr) / Me,(ylims[1] / s2yr) / Me)
 ax2.set_yscale('log')
 ax2.set_ylabel(r'Mass loss rate [$M_{\oplus}$ $yr^{-1}$]', fontsize=15)
+os.makedirs('output', exist_ok=True)
 plt.savefig('output/demo_earth_escape_vs_time_MORS.pdf', dpi=180)
 

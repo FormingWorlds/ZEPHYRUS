@@ -42,6 +42,8 @@ The split follows the branch and not the label, which matters under `roche_overf
 
 $$g = \frac{G M_\mathrm{p}}{R_\mathrm{base}^2}, \qquad \phi = \frac{\dot{M}}{4\pi R_\mathrm{base}^2}. \tag{3}$$
 
+The solver itself works in cgs units, those of the tabulated diffusion parameters ($b_{ij}$ in cm⁻¹ s⁻¹): $\phi$ in g cm⁻² s⁻¹, masses in g, $g$ in cm s⁻², and number fluxes in cm⁻² s⁻¹. `closure_per_species` converts $g$ and $\phi$ on the way in and returns rates in kg s⁻¹, so the dispatcher sees SI only.
+
 **The linear system on a fixed partition.** Write $\mathcal{A}$ for the escaping (active) set, with $n = |\mathcal{A}|$ members $a_1 < a_2 < \dots < a_n$ in mass order, $\mathcal{R}$ for the retained set, and $\beta_j \equiv m_j g / (k_\mathrm{B} T)$ for the inverse scale height species $j$ would have on its own. The unknowns are the $n$ drift variables of the escaping species and $\bar{H}^{-1}$; retained species have $w_k = 0$ by definition. `solve_fixed_active` assembles Eq. (1) for every escaping species, with $\bar{H}^{-1}$ moved to the left side, and Eq. (2) into one linear system of size $n + 1$,
 
 $$\begin{pmatrix} L_{11} & \cdots & L_{1n} & 1\\ \vdots & \ddots & \vdots & \vdots\\ L_{n1} & \cdots & L_{nn} & 1\\ m_{a_1} X_{a_1} & \cdots & m_{a_n} X_{a_n} & 0 \end{pmatrix} \begin{pmatrix} w_{a_1}\\ \vdots\\ w_{a_n}\\ \bar{H}^{-1} \end{pmatrix} \;=\; \begin{pmatrix} \beta_{a_1}\\ \vdots\\ \beta_{a_n}\\ \phi \end{pmatrix}, \tag{4}$$
@@ -165,8 +167,6 @@ Helium starts to escape at $1.175 \times 10^{5}$ kg s$^{-1}$. At $2 \times 10^{5
 - **A hard zero below threshold.** A retained species carries zero flux. The continuous forms of Zahnle & Kasting (1986, their Eqs. 14 and 16) and of Zahnle et al. (1990, their Eq. 39) keep a small nonzero escape rate at and just below a species' threshold flux, so the code underestimates the fluxes of species close to their thresholds. Hunten et al. (1987) have the same sharp threshold.
 - **One level, no radial integration.** The closure is algebra at the wind base. Zahnle et al. (1990) integrate the minor species' composition with height (their Eqs. 37 to 39) and solve the limiting-flux problem as a transonic wind; under constant composition every term of Eq. (1) scales with the same power of radius for co-escaping species, so one level suffices for them, while retained species enter only through their mole fractions at the base.
 - **Atoms, not molecules.** Zahnle et al. (1990) work with molecular H$_2$, CO$_2$, and N$_2$; the closure runs on the atomized composition at the wind base (see [where it applies](#where-it-applies)).
-
----
 
 [^attia]: Attia, M., & Lichtenberg, T. (2026). Atmospheric escape fractionates secondary but not primary atmospheres. *arXiv e-prints*, arXiv:2608.30106. https://doi.org/10.48550/arXiv.2608.30106
 

@@ -2,8 +2,6 @@
 
 The [parameter reference](parameters.md) documents what goes into `zephyrus.dispatch`. This page documents what comes out: the result fields, every flag the framework can raise, and every group in the diagnostics container. The physics behind each quantity is on the [escape regimes](../Explanations/regimes.md) page, and the [tutorial](../Tutorials/dispatch.md) shows the reading order in practice. For a flag that fired on a result you did not expect, the [troubleshooting guide](../How-to/troubleshooting.md) is faster than this page.
 
----
-
 ## The result
 
 `dispatch` returns an `EscapeResult` with five fields.
@@ -23,15 +21,13 @@ Every physically posed state returns a result. A `ValueError` means the state or
 | Label | Physics | Rate |
 |---|---|---|
 | `boiloff` | Bolometrically driven outflow from an atmosphere too weakly bound to hold itself, which the restricted Jeans parameter tests; below the threshold the label goes to the larger of this outflow and the XUV wind. The launch level can sit inside or outside the sonic radius; when it is outside, the Mach number is clamped to 1 and `bondi_inflated` says so. | Closed-form transonic Parker wind, Bondi-capped; past the activation gate the same machinery is luminosity-capped and dispatched only when the `residual_mode` setting admits it. |
-| `hydrodynamic:EL` | A collisional XUV-driven wind whose rate is set by the energy budget. | The smaller of the two hydrodynamic limits, the energy-limited one winning. |
+| `hydrodynamic:EL` | A collisional XUV-driven wind whose rate is set by the energy budget. | The smallest of the three hydrodynamic limits (energy-limited, recombination-limited, photon-limited), the energy-limited one winning. |
 | `hydrodynamic:RR` | The same wind, with the recombination-limited rate winning the minimum. | Read `rr_chain['barometric_factor']` to see whether the rate is set by the recombination-limited base ionization (factor near 1) or by the wind failing to reach the sonic point (factor decades below 1). |
 | `hydrodynamic:PL` | The same wind in a shallow well, where one particle per intercepted ionizing photon is fewer than the energy budget would lift. | The photon-limited rate of Owen & Alvarez (2016) [^owenalvarez] Eq. (10); binds when the efficiency exceeds `efficiency_photon_limit`. An estimate rather than a bound, and possibly low where it binds (see the limitations page). |
 | `hydrostatic` | Too rarefied for a wind; per-species Jeans escape from the exobase, capped by diffusive resupply. | Natively per-species; heavy-element rates are lower limits. |
 | `roche_overflow` | Either the active flow radius reaches the periapsis Hill radius, so the flow is not bound to the planet, or the tidally driven transfer through L1 outruns every bound candidate. | Two readings, separated by `diagnostics['roche']['rate_branch']`. When the geometric screen renamed a bound branch, the rate is that branch's own, a bound-flow estimate, and a lower limit on the tidal transfer only where the nozzle candidate sat outside its applicability criterion; where it was applicable and lost, `diagnostics['nozzle']['rate_kg_s']` is below the dispatched rate. When `rate_branch` reads `roche_overflow`, the rate is the L1 transfer rate of Jackson et al. (2017) [^jackson17] itself, dispatched because it won the final comparison; that boundary is a rate crossing, so the dispatched rate is continuous across it. |
 
-A sixth label, `impact`, is reserved for the [giant-impact channel](../Explanations/impacts.md), which the caller invokes directly rather than through the dispatcher.
-
----
+A seventh label, `impact`, is reserved for the [giant-impact channel](../Explanations/impacts.md), which the caller invokes directly rather than through the dispatcher.
 
 ## Flags
 
@@ -96,8 +92,6 @@ The `effect` column says whether the returned rate already reflects the flag or 
 
 Every flag describes the branch whose rate was dispatched. The hydrodynamic candidates are computed on every call, because the diagnostics report them at every dispatch, so their cautions (`subcritical_sonic`, `thermostat_clamped`, `efficiency_fallback_fixed`, and the fitted-efficiency guards) appear only when a hydrodynamic branch won, and the bolometric residual clears them again when it displaces that winner. What the losing candidate did is in `diagnostics['hydrodynamic']` either way.
 
----
-
 ## Diagnostics
 
 Nineteen groups on a typical call. Nothing in the dispatch control flow reads any of them, and there is no option to switch them off: the regime boundaries carry genuine physical uncertainty, and reporting the translation quantities beside every verdict is how the framework handles that.
@@ -125,15 +119,11 @@ Nineteen groups on a typical call. Nothing in the dispatch control flow reads an
 | `documentation` | criterion bands and published exponents | The bands themselves, so a stored result is self-describing: the collisionality band, the boil-off activation band, the numerical against analytic flux exponents of the wind limits, and the dayside-heating reduction factors. |
 | `contested_ion` | both branch rates and a note | Present only when the two escape-temperature conventions disagree, which turns on ion physics this version does not model. |
 
----
-
 ## Two conventions worth adopting
 
 **A rate floor.** The framework computes what the physics gives it, including rates like $10^{-123}$ kg s⁻¹ from a strongly bound heavy atmosphere. One proton crossing the planet's surface per year, about $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate with physical content; below that, report no escape. The convention belongs to the caller, and the module does not apply it, but it does report it: `diagnostics['rate_floor']` carries the number and whether this call cleared it, so a caller need not keep its own copy. Read it before trusting a regime label on a slow state, because a label decided by the ordering of two rates far below the floor is decided by nothing.
 
 **A relevance test, separately.** Clearing the floor does not make a rate matter: a hundred decades above it can still be grams per year. Use `diagnostics['self_consistency']`, which divides the supplied inventory by the dispatched rate and compares against the supplied age, as the yardstick for whether a rate is worth carrying.
-
----
 
 [^owenalvarez]: Owen, J. E., & Alvarez, M. A. (2016). UV Driven Evaporation of Close-in Planets: Energy-limited, Recombination-limited, and Photon-limited Flows. *The Astrophysical Journal, 816*(1), 34. https://doi.org/10.3847/0004-637X/816/1/34
 

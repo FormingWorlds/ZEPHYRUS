@@ -1,13 +1,11 @@
 # Troubleshooting the dispatcher
 
-A regime verdict looks wrong, or a flag fired and you want to know whether it matters. It is the shortest path from a symptom to the thing to look at. Every flag and diagnostics key is defined in the [dispatch results reference](../Reference/results.md), and the physics is on the [escape regimes](../Explanations/regimes.md) page; this page sits between them and starts from what you observed.
+A regime verdict looks wrong, or a flag fired and you want to know whether it matters. On this page, each section starts from a symptom and points to what to check. Every flag and diagnostics key is defined in the [dispatch results reference](../Reference/results.md), and the physics is on the [escape regimes](../Explanations/regimes.md) page; this page sits between them and starts from what you observed.
 
 Start with the two questions that dispose of most surprises:
 
 1. **Is the rate physically meaningful at all?** One proton per year through the surface, about $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate with content. Below it, the label is describing an outflow that does not exist.
-2. **Was the state near a boundary?** `diagnostics['knudsen']['counterfactual_labels']` gives the label at both edges of the collisionality criterion. When those disagree with each other, the verdict is a choice the criterion made, not a measurement, and the rest of this page is about which choice.
-
----
+2. **Was the state near a regime boundary?** `diagnostics['knudsen']['counterfactual_labels']` gives the label the state would get at each edge of the collisionality criterion's band. If the two agree, the verdict is robust. If they disagree, the state sits inside a transition band and the label depends on where the threshold is set, not on the planet.
 
 ## The rate is zero, or absurdly small
 
@@ -31,7 +29,7 @@ Start with the two questions that dispose of most surprises:
 
 **Cause.** The local heating against cooling balance had no root in the bracket. At a dense wind base this is physical: electron densities far above the critical densities of the forbidden lines quench the line coolants collisionally, so nothing balances the heating and the wind runs hot.
 
-**What to do.** Read `diagnostics['hydrodynamic']['T_wind']` and decide whether that temperature is one you are willing to carry. It propagates: the sound speed, the barometric exponent, and the recombination coefficient all depend on it, so it moves the boundary between the two hydrodynamic sub-labels. The thermostat evaluates one level and does not model the temperature structure through the sonic region, which is the limitation behind the clamp.
+**What to do.** Read `diagnostics['hydrodynamic']['T_wind']` and decide whether that temperature is one you are willing to carry. It propagates: the sound speed, the barometric exponent, and the recombination coefficient all depend on it, so it moves the boundaries between the hydrodynamic sub-labels. The thermostat evaluates one level and does not model the temperature structure through the sonic region, which is the limitation behind the clamp.
 
 ## `subcritical_sonic` fired
 
@@ -39,7 +37,7 @@ Start with the two questions that dispose of most surprises:
 
 **Cause.** The isothermal sonic radius $R_\mathrm{s} = G M_\mathrm{p} / (2 c_\mathrm{s}^2)$ came out below the wind base, which happens when the base Jeans parameter $\lambda_\mathrm{b} = G M_\mathrm{p} / (R_\mathrm{base} c_\mathrm{s}^2)$ drops below 2. The gas at the base is then already unbound in the isothermal sense: there is no subsonic region above the base for a wind to accelerate through, so there is no transonic point to anchor a rate on. Below $\lambda_\mathrm{b} = 3/2$ it is worse, because the barometric factor $e^{3/2 - \lambda_\mathrm{b}}$ exceeds 1 and the formula would carry density outward rather than thinning it. The branch responds by flooring the sonic radius at the base and dropping the barometric factor, which keeps the rate finite and monotone, and flags that it did.
 
-Physically, a state in that corner is not an XUV wind launched at an ionization front. It is the blow-off corner, where the whole upper atmosphere streams away, the transonic point sits below the base, and the rate is set by the energy supplied rather than by radiation. The framework has a branch for that, tested before this one on the restricted Jeans parameter, and most states that raise this flag are labeled `boiloff` or `roche_overflow` for that reason.
+Physically, a state in that corner is not an XUV wind launched at an ionization front. It is the blow-off corner, where the whole upper atmosphere streams away, the transonic point sits below the base, and the rate is set by the energy supplied rather than by radiation. The boil-off branch, admitted by the restricted Jeans parameter, describes that corner, and most states that raise this flag are labeled `boiloff` or `roche_overflow` for that reason.
 
 **What to do.** Read `diagnostics['hydrodynamic']['rr_chain']['lambda_b']` and `diagnostics['hydrodynamic']['selection_mechanism']` together, then split by which candidate won:
 
@@ -50,7 +48,7 @@ Physically, a state in that corner is not an XUV wind launched at an ionization 
 
 **Symptom.** A recombination-limited verdict, and the question of whether recombination is what limited it.
 
-**Cause.** The minimum over the two hydrodynamic candidates can select the recombination-limited rate for two physically different reasons. One is genuine saturation: the base ion density follows photoionization against recombination balance, so the rate grows as $\sqrt{F_\mathrm{XUV}}$ while the energy-limited rate grows linearly, and the former wins at high flux. The other is barometric suppression: at large $\lambda_\mathrm{b}$ the isothermal wind is exponentially throttled between the base and the sonic point, and the smallness has nothing to do with radiation.
+**Cause.** The minimum over the hydrodynamic limits can select the recombination-limited rate for two physically different reasons. One is genuine saturation: the base ion density follows photoionization against recombination balance, so the rate grows as $\sqrt{F_\mathrm{XUV}}$ while the energy-limited rate grows linearly, and the former wins at high flux. The other is barometric suppression: at large $\lambda_\mathrm{b}$ the isothermal wind is exponentially throttled between the base and the sonic point, and the smallness has nothing to do with radiation.
 
 **What to do.** Read `diagnostics['hydrodynamic']['rr_chain']['barometric_factor']`, which is $e^{3/2 - \lambda_\mathrm{b}}$, the fraction of the base density that survives to the sonic point. Near 1 the sonic-point density is the base density and the rate is set by the recombination-limited base ionization, which is the mechanism the label names. Several decades below 1 the rate is small mostly because the isothermal wind cannot carry material that far, and attributing the smallness to recombination misplaces it.
 
@@ -70,19 +68,28 @@ The flux scaling will not separate them either: the base ion density follows $\s
 
 **Symptom.** The overflow label on a small or quiescent planet, sometimes at a rate that is negligible in absolute terms, and sometimes flipping to another label under a small change in an input or a setting.
 
-**Cause.** The label reports a geometry, not a rate. The screen tests the flow radius of the branch that won the rate comparison, and when the bolometric residual wins, which it can do only where `residual_mode = 'luminosity_capped'` admits it, that radius is its sonic radius $R_\mathrm{B} = \Lambda R_\mathrm{p} 2^{1/4} / 2$, which grows with the Jeans parameter. A tightly bound heavy atmosphere therefore puts it several Hill radii out while the atmosphere itself sits deep inside, which is the opposite of overflowing. The flipping under a small change is the other half: the label boundary is a comparison between two rate candidates, so wherever the two are within a few percent of each other, a small input change moves the label. The rate does not move with it, because the screen never changes the rate.
+**Cause.** The label has two readings. A nozzle win is a rate: the transfer through the inner Lagrange point L1 beat every bound candidate. A rename by the Roche screen is a geometry: the flow radius of the winning branch reached the periapsis Hill radius, and the rate is still that branch's own.
 
-**What to do.** Read four things: `diagnostics['roche']['rate_branch']` (which branch the rate came from; `roche_overflow` means the L1 transfer itself was dispatched, and any other value under that label means the geometric screen renamed a state whose rate that branch produced), `r_atmosphere` against `R_hill_periapsis` in the same group (does the atmosphere itself reach the lobe, which is what `roche_subflag` reports as `dynamical`), `diagnostics['rate_floor']['above_floor']` (is the rate a number at all), and `flags['bolometric_residual']`.
+The geometric reading is where surprises come from. When the bolometric residual wins, which it can do only where `residual_mode = 'luminosity_capped'` admits it, the tested radius is the bolometric sonic radius $R_\mathrm{B} = \Lambda R_\mathrm{ph}\, 2^{1/4} / 2$, which grows with the Jeans parameter $\Lambda$. A tightly bound heavy atmosphere therefore puts it several Hill radii out while the atmosphere itself sits deep inside, which is the opposite of overflowing.
 
-The four cases that produces:
+The flipping under a small change has a separate cause. The radius the screen tests belongs to the candidate that won the rate comparison, so wherever two candidates are within a few percent of each other, a small input change swaps the tested radius and with it the label. The rate does not move with it, because the screen never changes the rate.
 
-- `rate_branch` reading `roche_overflow`: the rate is the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017 [^jackson17]), dispatched because it beat every bound candidate inside its applicability criteria: the sonic radius reaching L1, and a fluid at L1 (`kn_L1` in `diagnostics['nozzle']` at most `kn_crit`), without which a deeply bound planet's vanishing L1 leak would take the label. It is a real transfer rate rather than a rename; `diagnostics['nozzle']` carries the barrier, the saturation state, and the lift power against the available luminosities. The subflag beside it reads `dynamical` when the atmosphere's own extent passes the lobe and `neither` when it does not, so it describes the geometry and not the mechanism. On an eccentric orbit the rate is an orbit average duty-cycled over the arc where the description applies; read `applicable_orbit_fraction`, and treat a value below one as a rate that omits the wind driven on the rest of the orbit.
-- Subflag `dynamical` on a bound branch and a rate above the floor: the atmosphere reaches its Roche lobe while the nozzle candidate lost or sat outside its criterion, the rate is the bound-flow estimate, and the real rate is higher by whatever the tidal flow would carry. Treat it as a lower limit.
-- Subflag `no_transonic` with `r_atmosphere` well inside the Hill radius: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly-bound case above, not an overflow; the [regimes page](../Explanations/regimes.md) explains why the two look alike to the screen.
+**What to do.** Read four things:
+
+- `diagnostics['roche']['rate_branch']`: `roche_overflow` means the L1 transfer itself was dispatched, and any other value means the geometric screen renamed a state whose rate that branch produced.
+- `diagnostics['roche']['r_atmosphere']` against `diagnostics['nozzle']['r_lobe']`: whether the atmosphere itself reaches its Roche lobe, which `roche_subflag` reports as `dynamical`.
+- `diagnostics['rate_floor']['above_floor']`: whether the rate is a number at all.
+- `flags['bolometric_residual']`: whether the residual carried the rate.
+
+They sort the state into one of five cases:
+
+- `rate_branch` reading `roche_overflow`: the rate is the tidally driven transfer through L1 (Jackson et al. 2017 [^jackson17]). It won inside its two applicability criteria, the sonic radius reaching L1 and a fluid at L1 (`kn_L1` in `diagnostics['nozzle']` at most `kn_crit`). It is a real transfer rate, and `diagnostics['nozzle']` carries the barrier, the saturation state, and the lift power against the available luminosities. The subflag reads `dynamical` when the atmosphere's own extent passes the lobe and `neither` when it does not, so it describes the geometry and not the mechanism. On an eccentric orbit the rate is an orbit average over the arc where the description applies: read `applicable_orbit_fraction`, and treat a value below one as a rate that omits the wind driven on the rest of the orbit.
+- Subflag `dynamical` on a bound branch and a rate above the floor: the atmosphere reaches its Roche lobe while the nozzle candidate lost or did not apply. The rate is the bound-flow estimate, and the real rate is higher by whatever the tidal flow would carry. Treat it as a lower limit.
+- Subflag `no_transonic` with `r_atmosphere` well inside the lobe: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly bound case above, not an overflow; the [Roche screen](../Explanations/regimes.md#the-roche-screen) explains why the two look alike to it.
 - `above_floor` false: the label is decided by the ordering of two rates with no numerical content. Report no escape and treat the geometry as a note.
-- A rate above the floor but far below anything that matters. The floor marks what is distinguishable from zero in floating point, one proton per Julian year, which is many decades below a rate that could change an atmosphere. Read `diagnostics['self_consistency']` beside it: what settles whether a rate matters is the depletion timescale against the age you passed in, not the floor.
+- A rate above the floor but far below anything that matters. The floor, one proton per Julian year, marks what is distinguishable from zero in floating point, many decades below a rate that could change an atmosphere. Read `diagnostics['self_consistency']` beside it: the depletion timescale against the age you passed in settles whether a rate matters, not the floor.
 
-Points whose flow radius exceeds two thirds of the Hill radius raise `near_roche` instead of the label, and the tidal factor is steep there, so a rate from that region carries the tidal correction's sensitivity with it.
+Points whose flow radius exceeds two thirds of the Hill radius raise `near_roche` instead of the label. The tidal factor is steep there, so a rate from that region carries the tidal correction's sensitivity with it.
 
 ## `contested_ion` fired
 
@@ -96,9 +103,9 @@ Points whose flow radius exceeds two thirds of the Hill radius raise `near_roche
 
 **Symptom.** A parameter grid or a time series whose label alternates.
 
-**Cause.** Either the state is sitting inside the collisionality band, where the criterion does not decide the label, or the two candidate rates are within a hair of each other and the minimum keeps changing hands.
+**Cause.** Either the state is sitting inside the collisionality band, where the criterion does not decide the label, or two candidate rates are within a hair of each other and the comparison keeps changing hands.
 
-**What to do.** For an evolutionary track, supply `prev_regime` from the previous step. That opens a hysteresis window around the threshold, so the previous label wins inside it and a track cannot chatter on numerical noise; `hysteresis_active` confirms it was in use and `diagnostics['knudsen']['threshold_applied']` shows the shifted threshold. For a static grid, quote the boundary with the width its criterion implies rather than as a line: re-dispatch at `kn_crit` of 0.1 and 3 and report the range. The [tutorial](../Tutorials/dispatch.md) measures such a band as a factor of 4.3 in boundary flux for one planet.
+**What to do.** For an evolutionary track, supply `prev_regime` from the previous step. That opens a hysteresis window around the threshold, so the previous label wins inside it and a track cannot chatter on numerical noise; `hysteresis_active` confirms it was in use and `diagnostics['knudsen']['threshold_applied']` shows the shifted threshold. For a static grid, quote the boundary with the width its criterion implies rather than as a line: re-dispatch at `kn_crit` of 0.1 and 3 and report the range. The [tutorial](../Tutorials/dispatch.md) measures such a band as a factor of 4.5 in boundary flux for one planet.
 
 ## The per-species rates look like a bulk split
 
@@ -124,12 +131,8 @@ Points whose flow radius exceeds two thirds of the Hill radius raise `near_roche
 
 **What to do.** Below the fit's flux bound the value is rejected outright and `caldiroli_below_flux_bound` plus `efficiency_fallback_fixed` tell you the fixed setting was used instead. Outside the potential box, prefer a swept fixed efficiency over the extrapolated fit, and report the sweep range rather than one value.
 
----
-
 ## When none of the above applies
 
 Print the whole container for the offending call and read it in the order the [tutorial](../Tutorials/dispatch.md) uses: which branch and how close, what set the rate, whether the heating could drive a flow at all, how the verdict translates into other taxonomies, and whether the snapshot is self-consistent. If the verdict still looks wrong after that, the input state is the next suspect: check the profile spans the pressures the branches need, that the composition is what you meant, and that every scalar is in SI.
-
----
 
 [^jackson17]: Jackson, B., Arras, P., Penev, K., Peacock, S., & Marchant, P. (2017). A new model of Roche lobe overflow for short-period gaseous planets and binary stars. *The Astrophysical Journal, 835*(2), 145. https://doi.org/10.3847/1538-4357/835/2/145

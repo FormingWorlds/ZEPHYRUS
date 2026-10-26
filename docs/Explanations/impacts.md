@@ -141,9 +141,7 @@ Physical effects operate in both directions:
 
 ## Partition across species
 
-The returned fraction applies to the target's atmosphere as a whole. Consistent with the bulk-removal treatment of the continuous channel's unfractionated splits, the caller partitions the lost mass across atmospheric species without elemental fractionation.
-
----
+The returned fraction applies to the target's atmosphere as a whole. The caller splits the lost mass over species in proportion to the atmospheric composition (no fractionation).
 
 [^kegerreis]: Kegerreis, J. A., Eke, V. R., Catling, D. C., Massey, R. J., Teodoro, L. F. A., & Zahnle, K. J. (2020). Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density. *The Astrophysical Journal Letters, 901*(2), L31. https://doi.org/10.3847/2041-8213/abb5fb
 
