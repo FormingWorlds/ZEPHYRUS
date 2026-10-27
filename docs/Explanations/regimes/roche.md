@@ -30,7 +30,7 @@ $$\Psi(r) \;=\; -\left(\frac{G M_\star}{d} + \frac{G M_\star^2}{2 d (M_\mathrm{p
 
 This is the potential of the equipotential enclosing the volume of a sphere of radius $r$, with $\Psi_\mathrm{L1} = \Psi(R_\mathrm{lobe})$ and $\Psi_\mathrm{launch} = \Psi(R_\mathrm{launch})$.
 
-**The rate.** A Bernoulli integral from the launch level, where the flow is slow, to L1, where it is sonic, gives the density at L1 (their Eqs. 11 to 13, the source of the factor $e^{-1/2}$). The gas crosses the elliptical nozzle that the curvature at L1 admits (their Eqs. 8 and 9) at the sound speed. The transfer rate is their Eq. (3):
+**The rate.** A Bernoulli integral from the launch level, where the flow is slow, to L1, where it is sonic, gives the density at L1 (their Eqs. (11) to (13), the source of the factor $e^{-1/2}$). The gas crosses the elliptical nozzle that the curvature at L1 admits (their Eqs. (8) and (9)) at the sound speed. The transfer rate is their Eq. (3):
 
 $$\dot{M}_\mathrm{L1}(d) \;=\; e^{-1/2}\, \rho_\mathrm{launch}\, \exp\!\left(-\frac{\Psi_\mathrm{L1} - \Psi_\mathrm{launch}}{v_\mathrm{th}^2}\right) v_\mathrm{th}\; A_\mathrm{noz}, \qquad A_\mathrm{noz} = \frac{2\pi\, v_\mathrm{th}^2}{\Omega^2 \sqrt{A (A - 1)}} \tag{4}$$
 
@@ -70,7 +70,7 @@ Every candidate except the transfer through L1 assumes the flow is bound to the 
 
 $$\xi_\mathrm{flow} \;=\; \frac{R_\mathrm{Hill}}{R_\mathrm{flow}}, \qquad R_\mathrm{flow} = \begin{cases} R_\mathrm{B}, & \text{boil-off rate or residual} \\ \max\left(R_\mathrm{XUV},\ R_\mathrm{s}\right), & \text{hydrodynamic rate} \\ R_\mathrm{exo}, & \text{hydrostatic rate} \end{cases} \tag{8}$$
 
-with $R_\mathrm{B}$ from [boil-off](boiloff.md), Eq. (2), $R_\mathrm{s}$ from [the wind](wind.md), Eq. (4), and $R_\mathrm{exo}$ from [hydrostatic escape](hydrostatic.md), Eq. (2). When the transfer through L1 wins, $R_\mathrm{flow}$ keeps the value of the branch it beat.
+with $R_\mathrm{B}$ from [boil-off](boiloff.md), Eq. (2), $R_\mathrm{s}$ from [the hydrodynamic wind](wind.md), Eq. (4), and $R_\mathrm{exo}$ from [hydrostatic escape](hydrostatic.md), Eq. (2). When the transfer through L1 wins, $R_\mathrm{flow}$ keeps the value of the branch it beat.
 
 A state with $\xi_\mathrm{flow} \le 1$, or with $\xi \le 1$ for the planet itself, is spilling over the gravitational boundary rather than escaping through a bound outflow, and it is renamed `roche_overflow`. `zephyrus.dispatcher.roche_label` implements the screen. The second test decides alone only when the flow radius lies inside the planet. No profile that `isothermal_profile` builds gets there, but the test keeps a planet larger than its own Hill sphere from being reported as bound.
 

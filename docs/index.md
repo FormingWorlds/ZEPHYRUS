@@ -11,7 +11,7 @@
 - **Continuous thermal escape**, in six regimes with per-species fractionation: boil-off, energy-limited, recombination-limited, and photon-limited winds, hydrostatic Jeans escape, and Roche-lobe overflow. The regime dispatcher decides which regime applies to each planetary state.
 - **Impulsive erosion** by giant impacts during accretion.
 
-The single-prescription energy-limited rate remains available, and PROTEUS calls it until its coupling to the dispatcher lands. Start with [the ZEPHYRUS model](Explanations/model.md) for the complete picture.
+Start with [the ZEPHYRUS model](Explanations/model.md) for the complete picture.
 
 ![ZEPHYRUS banner](assets/ZEPHYRUS_logo_white.png#only-light)
 ![ZEPHYRUS banner](assets/ZEPHYRUS_logo_black.png#only-dark)

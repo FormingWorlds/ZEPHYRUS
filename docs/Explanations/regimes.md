@@ -1,7 +1,7 @@
 # Escape regimes
 
 !!! info "Which entry point this section covers"
-    This section describes `zephyrus.dispatch`, the escape model of ZEPHYRUS. It decides which escape physics applies to a planetary state before computing a rate. The single-prescription entry point `zephyrus.escape.EL_escape` applies the energy-limited rate to every state without that decision, and it is described on the [energy-limited escape](energy_limited.md) page. PROTEUS calls `EL_escape` until its coupling to the dispatcher lands, so the pages of this section describe the dispatcher run standalone.
+    This section describes `zephyrus.dispatch`, the escape model of ZEPHYRUS. It decides which escape physics applies to a planetary state before computing a rate. The single-prescription entry point `zephyrus.escape.EL_escape` applies the energy-limited rate to every state without that decision, and it is described on the [energy-limited escape](energy_limited.md) page.
 
 One call to `zephyrus.dispatch` takes one planetary state and returns one verdict. The state is a set of scalars (masses, radii, orbit, stellar fluxes, the interior heat flux, a grey photospheric opacity) and an atmosphere profile given level by level from the base to the top of the modelled atmosphere: pressure, radius, temperature, species mixing ratios, and mean molecular mass. In PROTEUS the profile comes from the atmosphere model, and standalone `zephyrus.profiles.isothermal_profile` builds one. The [parameter reference](../Reference/parameters.md) lists every input and setting. The verdict is one of six regime labels (`boiloff`, `hydrodynamic:EL`, `hydrodynamic:RR`, `hydrodynamic:PL`, `hydrostatic`, `roche_overflow`), a bulk mass-loss rate $\dot{M}$, per-species rates that sum to it, flags that record every approximation the call made, and a diagnostics container reporting how close the state sat to each regime boundary. The [dispatch results reference](../Reference/results.md) lists every field.
 
@@ -31,9 +31,9 @@ Equations are numbered per page, and a reference to another page names the page.
 Four levels of the atmosphere recur on every page:
 
 - **The photospheric working level**, at pressure $P_\mathrm{ph}$ (the setting `P_photo`, default 2000 Pa, that is, 20 mbar, the photosphere-type level of Baumeister et al. 2023 [^baumeister]). Its radius, temperature, density, and mean molecular mass are interpolated linearly in log pressure on the profile. When the profile does not span $P_\mathrm{ph}$, the nearest end level is used and the flag `photo_clamped` is raised. This one level is the XUV-absorbing radius of the energy-limited and photon-limited rates, the surface the boil-off criterion is evaluated on, the launch level of the boil-off wind, and the default launch level of the L1 transfer. Their published calibrations refer to different surfaces, so sharing one level is a simplification of the model, not a property of the physics.
-- **The wind base**, radius $R_\mathrm{base}$, where XUV photons deposit their energy and the hydrodynamic wind starts, near a nanobar ([wind](regimes/wind.md), Eq. 1).
+- **The wind base**, radius $R_\mathrm{base}$, where XUV photons deposit their energy and the hydrodynamic wind starts, near a nanobar ([the hydrodynamic wind](regimes/wind.md), Eq. (1)).
 - **The profile top**, the last level the atmosphere model supplies, at pressure $P_\mathrm{top}$ and radius $R_0$. The hydrostatic branch extends the structure upward from it.
-- **The exobase**, radius $R_\mathrm{exo}$, on that extension, where the mean free path reaches the scale height ([hydrostatic](regimes/hydrostatic.md), Eq. 2).
+- **The exobase**, radius $R_\mathrm{exo}$, on that extension, where the mean free path reaches the scale height ([hydrostatic escape](regimes/hydrostatic.md), Eq. (2)).
 
 Three more radii belong to the orbit and the outflows: the sonic radius of each wind ($R_\mathrm{s}$ for the XUV wind, $R_\mathrm{B}$ for the boil-off wind), the Roche lobe $R_\mathrm{lobe}$, and the Hill radius $R_\mathrm{Hill}$. The inner Lagrange point L1 is the saddle of the combined gravitational and centrifugal potential between the planet and the star, on the line joining them, just inside the Hill radius. Gas that reaches it can pass to the star. The L1 nozzle is the narrow cross section of that saddle through which the transferred gas flows ([Roche overflow](regimes/roche.md)).
 
@@ -59,45 +59,45 @@ Units are SI throughout. Mean molecular masses written $\mu$ with a level subscr
 | Symbol | Meaning | Defined in |
 |---|---|---|
 | $P_\mathrm{ph}$, $R_\mathrm{ph}$, $T_\mathrm{ph}$, $\rho_\mathrm{ph}$, $\mu_\mathrm{ph}$ | Photospheric working level: pressure, radius, temperature, density, mean molecular mass | [above](#where-each-rate-is-computed) |
-| $R_\mathrm{XUV}$ | XUV-absorbing radius of the energy-limited and photon-limited rates, equal to $R_\mathrm{ph}$ | [wind](regimes/wind.md), Eq. 3 |
-| $P_\mathrm{base}$, $R_\mathrm{base}$ | Wind base | [wind](regimes/wind.md), Eq. 1 |
+| $R_\mathrm{XUV}$ | XUV-absorbing radius of the energy-limited and photon-limited rates, equal to $R_\mathrm{ph}$ | [The hydrodynamic wind](regimes/wind.md), Eq. (3) |
+| $P_\mathrm{base}$, $R_\mathrm{base}$ | Wind base | [The hydrodynamic wind](regimes/wind.md), Eq. (1) |
 | $P_\mathrm{top}$, $R_0$, $T_\mathrm{top}$ | Profile top | [above](#where-each-rate-is-computed) |
-| $R_\mathrm{exo}$, $T_\mathrm{exo}$, $n_\mathrm{exo}$ | Exobase radius, temperature, number density | [hydrostatic](regimes/hydrostatic.md), Eq. 2 |
-| $R_\mathrm{s}$ | Sonic radius of the XUV wind | [wind](regimes/wind.md), Eq. 4 |
-| $R_\mathrm{B}$ | Sonic (Bondi) radius of the boil-off wind | [boil-off](regimes/boiloff.md), Eq. 2 |
+| $R_\mathrm{exo}$, $T_\mathrm{exo}$, $n_\mathrm{exo}$ | Exobase radius, temperature, number density | [Hydrostatic escape](regimes/hydrostatic.md), Eq. (2) |
+| $R_\mathrm{s}$ | Sonic radius of the XUV wind | [The hydrodynamic wind](regimes/wind.md), Eq. (4) |
+| $R_\mathrm{B}$ | Sonic (Bondi) radius of the boil-off wind | [Boil-off](regimes/boiloff.md), Eq. (2) |
 | $R_\mathrm{Hill}$ | Hill radius at periapsis | Eq. (1) |
-| $R_\mathrm{lobe}$ | Roche-lobe radius | [Roche overflow](regimes/roche.md), Eq. 2 |
-| $R_\mathrm{L1}$ | Distance from the planet to L1 | [Roche overflow](regimes/roche.md), Eq. 5 |
-| $R_\mathrm{flow}$ | Flow radius of the winning branch, tested against $R_\mathrm{Hill}$ | [Roche overflow](regimes/roche.md), Eq. 8 |
+| $R_\mathrm{lobe}$ | Roche-lobe radius | [Roche overflow](regimes/roche.md), Eq. (2) |
+| $R_\mathrm{L1}$ | Distance from the planet to L1 | [Roche overflow](regimes/roche.md), Eq. (5) |
+| $R_\mathrm{flow}$ | Flow radius of the winning branch, tested against $R_\mathrm{Hill}$ | [Roche overflow](regimes/roche.md), Eq. (8) |
 
 **Rates.** Every rate is a mass-loss rate in kg s⁻¹.
 
 | Symbol | Meaning | Defined in |
 |---|---|---|
 | $\dot{M}$ | Dispatched rate | Eq. (3) |
-| $\dot{M}_\mathrm{P}$ | Parker (boil-off) wind | [boil-off](regimes/boiloff.md), Eq. 3 |
-| $\dot{M}_\mathrm{B}$ | Bondi cap on the boil-off wind | [boil-off](regimes/boiloff.md), Eq. 4 |
-| $\dot{M}_\mathrm{E}$ | Interior-luminosity cap | [boil-off](regimes/boiloff.md), Eq. 5 |
-| $\dot{M}_\mathrm{bol}$ | Bolometric candidate | [boil-off](regimes/boiloff.md), Eq. 6 |
-| $\dot{M}_\mathrm{EL}$, $\dot{M}_\mathrm{RR}$, $\dot{M}_\mathrm{PL}$ | Energy-limited, recombination-limited, and photon-limited rates | [wind](regimes/wind.md), Eqs. 3, 7, 8 |
-| $\dot{M}_\mathrm{hyd}$ | Hydrodynamic candidate, the smallest of the three | [wind](regimes/wind.md), Eq. 10 |
-| $\dot{M}_\mathrm{hs}$ | Hydrostatic (Jeans) rate | [hydrostatic](regimes/hydrostatic.md), Eq. 9 |
-| $\langle\dot{M}_\mathrm{L1}\rangle$ | Transfer through L1, averaged over the orbit | [Roche overflow](regimes/roche.md), Eq. 7 |
+| $\dot{M}_\mathrm{P}$ | Parker (boil-off) wind | [Boil-off](regimes/boiloff.md), Eq. (3) |
+| $\dot{M}_\mathrm{B}$ | Bondi cap on the boil-off wind | [Boil-off](regimes/boiloff.md), Eq. (4) |
+| $\dot{M}_\mathrm{E}$ | Interior-luminosity cap | [Boil-off](regimes/boiloff.md), Eq. (5) |
+| $\dot{M}_\mathrm{bol}$ | Bolometric candidate | [Boil-off](regimes/boiloff.md), Eq. (6) |
+| $\dot{M}_\mathrm{EL}$, $\dot{M}_\mathrm{RR}$, $\dot{M}_\mathrm{PL}$ | Energy-limited, recombination-limited, and photon-limited rates | [The hydrodynamic wind](regimes/wind.md), Eqs. (3), (7), (8) |
+| $\dot{M}_\mathrm{hyd}$ | Hydrodynamic candidate, the smallest of the three | [The hydrodynamic wind](regimes/wind.md), Eq. (10) |
+| $\dot{M}_\mathrm{hs}$ | Hydrostatic (Jeans) rate | [Hydrostatic escape](regimes/hydrostatic.md), Eq. (9) |
+| $\langle\dot{M}_\mathrm{L1}\rangle$ | Transfer through L1, averaged over the orbit | [Roche overflow](regimes/roche.md), Eq. (7) |
 | $\dot{M}_\mathrm{floor}$ | One proton per Julian year, $m_\mathrm{p} / (1\ \mathrm{yr})$ | [below](#the-rate-floor) |
 
 **Criteria and parameters.**
 
 | Symbol | Meaning | Defined in |
 |---|---|---|
-| $\Lambda$, $\Lambda_\mathrm{c}$ | Restricted Jeans parameter at the photospheric level, and its threshold (`lambda_crit`, default 20) | [boil-off](regimes/boiloff.md), Eq. 1 |
-| $T_\mathrm{w}$ | Wind temperature | [wind](regimes/wind.md), Eq. 2 |
-| $\epsilon$ | Escape efficiency (`efficiency`, default 0.1) | [wind](regimes/wind.md), Eq. 3 |
-| $\lambda_\mathrm{b}$ | Jeans parameter at the wind base | [wind](regimes/wind.md), Eq. 4 |
-| $\mathrm{Kn}_\mathrm{s}$, $\mathrm{Kn}_\mathrm{c}$ | Knudsen number at the sonic point, and its threshold (`kn_crit`, default 1) | [collisionality](regimes/collisionality.md), Eq. 1 |
-| $\sigma_\mathrm{C}$ | Collision cross section of the gas mixture | [collisionality](regimes/collisionality.md), Eq. 2 |
-| $T_\mathrm{esc}$, $T_\mathrm{esc,+}$ | Neutral and plasma escape temperatures | [hydrostatic](regimes/hydrostatic.md), Eq. 10 |
+| $\Lambda$, $\Lambda_\mathrm{c}$ | Restricted Jeans parameter at the photospheric level, and its threshold (`lambda_crit`, default 20) | [Boil-off](regimes/boiloff.md), Eq. (1) |
+| $T_\mathrm{w}$ | Wind temperature | [The hydrodynamic wind](regimes/wind.md), Eq. (2) |
+| $\epsilon$ | Escape efficiency (`efficiency`, default 0.1) | [The hydrodynamic wind](regimes/wind.md), Eq. (3) |
+| $\lambda_\mathrm{b}$ | Jeans parameter at the wind base | [The hydrodynamic wind](regimes/wind.md), Eq. (4) |
+| $\mathrm{Kn}_\mathrm{s}$, $\mathrm{Kn}_\mathrm{c}$ | Knudsen number at the sonic point, and its threshold (`kn_crit`, default 1) | [The collisionality switch](regimes/collisionality.md), Eq. (1) |
+| $\sigma_\mathrm{C}$ | Collision cross section of the gas mixture | [The collisionality switch](regimes/collisionality.md), Eq. (2) |
+| $T_\mathrm{esc}$, $T_\mathrm{esc,+}$ | Neutral and plasma escape temperatures | [Hydrostatic escape](regimes/hydrostatic.md), Eq. (10) |
 | $\xi$, $K$ | Hill radius over $R_\mathrm{p}$, and the tidal factor on the potential barrier | Eq. (2) |
-| $\mathrm{Kn}_\mathrm{L1}$ | Knudsen number of the transferred gas at L1 | [Roche overflow](regimes/roche.md), Eq. 6 |
+| $\mathrm{Kn}_\mathrm{L1}$ | Knudsen number of the transferred gas at L1 | [Roche overflow](regimes/roche.md), Eq. (6) |
 
 Symbols used on one page only are defined where they appear.
 
@@ -132,9 +132,9 @@ with $\xi$ measured from the interior radius $R_\mathrm{p}$. That is the radius 
 
 Every candidate is computed at every call. Three conditions on the state then decide which candidates compete:
 
-- **The boil-off criterion**: the restricted Jeans parameter is below its threshold, $\Lambda < \Lambda_\mathrm{c}$ ([boil-off](regimes/boiloff.md), Eq. 1).
-- **A collisional wind**: the Knudsen number at the sonic point is at or below its threshold, $\mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c}$ ([collisionality](regimes/collisionality.md), Eq. 1). When the previous regime label is supplied, the threshold moves by a hysteresis factor.
-- **An unstable exosphere**: the exobase temperature exceeds half the escape temperature that the `gate` setting selects ([hydrostatic](regimes/hydrostatic.md), Eq. 10).
+- **The boil-off criterion**: the restricted Jeans parameter is below its threshold, $\Lambda < \Lambda_\mathrm{c}$ ([boil-off](regimes/boiloff.md), Eq. (1)).
+- **A collisional wind**: the Knudsen number at the sonic point is at or below its threshold, $\mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c}$ ([the collisionality switch](regimes/collisionality.md), Eq. (1)). When the previous regime label is supplied, the threshold moves by a hysteresis factor.
+- **An unstable exosphere**: the exobase temperature exceeds half the escape temperature that the `gate` setting selects ([hydrostatic escape](regimes/hydrostatic.md), Eq. (10)).
 
 | Boil-off criterion met | Wind collisional | Exosphere unstable | Admitted |
 |---|---|---|---|
@@ -143,7 +143,7 @@ Every candidate is computed at every call. Three conditions on the state then de
 | no | no | yes | `hydrostatic`, `hydrodynamic` |
 | no | no | no | `hydrostatic` |
 
-Two more candidates can join on any row: `residual` when the boil-off criterion fails and the setting `residual_mode = 'luminosity_capped'` admits it, and `nozzle` where the transfer through L1 applies on some part of the orbit ([Roche overflow](regimes/roche.md), Eqs. 5 and 6). The dispatched rate is the largest admitted one,
+Two more candidates can join on any row: `residual` when the boil-off criterion fails and the setting `residual_mode = 'luminosity_capped'` admits it, and `nozzle` where the transfer through L1 applies on some part of the orbit ([Roche overflow](regimes/roche.md), Eqs. (5) and (6)). The dispatched rate is the largest admitted one,
 
 $$\dot{M} \;=\; \max_{c \,\in\, \mathcal{A}} \dot{M}_c \tag{3}$$
 
@@ -181,7 +181,7 @@ flowchart TD
     class CAND,A1,A2,A3,A4,A5,A6,MAX stage
 ```
 
-The [model overview](model.md) keeps a simpler chart that leaves out the exosphere stability test (`Q3`), the residual (`Q4`), and the nozzle (`QN`).
+The [model overview](model.md) keeps a simpler chart that leaves out the exosphere stability test, the residual, and the nozzle.
 
 **The label.** The label follows the candidate that carries the rate. A `hydrodynamic` win takes the wind's sub-label (`hydrodynamic:EL`, `:RR`, or `:PL`). A residual win takes the label `boiloff` with the flag `bolometric_residual`. A nozzle win takes `roche_overflow` with the transfer rate itself. Last, the Roche screen tests the flow radius of the winning branch against the Hill radius and renames an overflowing state `roche_overflow`, keeping its rate ([Roche overflow](regimes/roche.md#the-roche-screen)).
 
@@ -198,7 +198,7 @@ The one-proton-per-Julian-year floor $\dot{M}_\mathrm{floor} = m_\mathrm{p} / (1
 The per-species rates follow the branch that produced the rate, not the label:
 
 - A hydrodynamic rate is split by the [fractionation closure](fractionation.md) at the wind temperature and base radius, unless `fractionate = False`.
-- The hydrostatic branch computes its rates species by species ([hydrostatic](regimes/hydrostatic.md), Eq. 9).
+- The hydrostatic branch computes its rates species by species ([hydrostatic escape](regimes/hydrostatic.md), Eq. (9)).
 - A boil-off, nozzle, or unfractionated hydrodynamic rate is split over elements in proportion to the supplied reservoir masses. When none are supplied, the mass fractions of the atomised wind-base composition are used and the flag `split_from_base_composition` is raised.
 
 A state the Roche screen renamed keeps the split of its branch, so a wind relabelled `roche_overflow` keeps its fractionation. The per-species rates sum to $\dot{M}$ in every case.

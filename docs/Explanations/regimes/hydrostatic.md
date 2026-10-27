@@ -28,7 +28,7 @@ where $\lambda_i$ is the species Jeans parameter. Direct simulation Monte Carlo 
 
 $$C(\lambda) \;=\; \begin{cases} 1.7, & \lambda \le 6 \\ 1.7 - 0.3\,(\lambda - 6)/9, & 6 < \lambda < 15 \\ 1.4, & \lambda \ge 15 \end{cases} \tag{4}$$
 
-holding the end values outside the simulated range and flagging it (`volkov_extrapolated`). The effusion flux, per unit area of the sphere of radius $R_0$ (Yelle 2024, their Eq. 15), is
+holding the end values outside the simulated range and flagging it (`volkov_extrapolated`). The effusion flux, per unit area of the sphere of radius $R_0$ (Yelle 2024, their Eq. (15)), is
 
 $$\tilde{\Phi}_{\mathrm{J},i} \;=\; \left(\frac{R_\mathrm{exo}}{R_0}\right)^2 C(\lambda_i)\; w_{\mathrm{J},i}\; \tilde{X}_i(\zeta_\mathrm{exo})\; n_\mathrm{exo} \tag{5}$$
 
@@ -64,7 +64,7 @@ Two escape temperatures decide whether the exobase can stay hydrostatic at all:
 
 $$T_\mathrm{esc} \;=\; \frac{G M_\mathrm{p}\, \mu_0}{2\, k_\mathrm{B}\, R_\mathrm{exo}}, \qquad T_\mathrm{esc,+} = \frac{T_\mathrm{esc}}{2} \tag{10}$$
 
-The neutral escape temperature $T_\mathrm{esc}$ is where thermal energy rivals binding energy. The plasma escape temperature $T_\mathrm{esc,+}$ is half of it, because in an ionised exosphere the ambipolar electric field shares each ion's binding energy with its electron (Chatterjee & Pierrehumbert 2026, their Eq. 34 [^cp26]). An exobase with $T_\mathrm{exo}$ above half the selected escape temperature is unstable by their Figure 10 criterion.
+The neutral escape temperature $T_\mathrm{esc}$ is where thermal energy rivals binding energy. The plasma escape temperature $T_\mathrm{esc,+}$ is half of it, because in an ionised exosphere the ambipolar electric field shares each ion's binding energy with its electron (Chatterjee & Pierrehumbert 2026, their Eq. (34) [^cp26]). An exobase with $T_\mathrm{exo}$ above half the selected escape temperature is unstable by their Figure 10 criterion.
 
 In such states the [hydrodynamic candidate](wind.md#the-hydrodynamic-candidate) competes with the Jeans rate, the larger one is dispatched with its own label, and the state is flagged `gate_rerouted`. Taking the larger keeps the dispatched rate from falling as the exosphere heats past the threshold. Neither candidate describes the outflow of an unstable exosphere, as the [limitations page](../limitations.md) explains.
 

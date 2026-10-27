@@ -25,7 +25,7 @@ Both forms reduce to $R_\mathrm{p}^3$ when $R_\mathrm{XUV} = R_\mathrm{p}$, the 
 
 ## Tidal correction
 
-When the `tidal_contribution` flag is `True`, the effective potential barrier is reduced by the host star's tidal field, following Erkaev et al. (2007), their Eq. 17 [^erkaev]:
+When the `tidal_contribution` flag is `True`, the effective potential barrier is reduced by the host star's tidal field, following Erkaev et al. (2007), their Eq. (17) [^erkaev]:
 
 $$K_\mathrm{tide} = 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R} \tag{2}$$
 

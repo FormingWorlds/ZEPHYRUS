@@ -73,15 +73,15 @@ Tests that pin behaviour against an external anchor are tagged `@pytest.mark.ref
 
 | Source | Anchor | Test |
 |---|---|---|
-| `escape.py` | Erkaev et al. (2007) [^erkaev], A&A 472:329, Eq. 21: closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
-| `escape.py` | Lehmer & Catling (2017) [^lehmer], ApJ 845:130, Eq. 1: closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
-| `collision.py` | Kegerreis et al. (2020) [^kegerreis], ApJL 901:L31, Eq. 1: closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
+| `escape.py` | Erkaev et al. (2007) [^erkaev], A&A 472:329, Eq. (21): closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
+| `escape.py` | Lehmer & Catling (2017) [^lehmer], ApJ 845:130, Eq. (1): closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
+| `collision.py` | Kegerreis et al. (2020) [^kegerreis], ApJL 901:L31, Eq. (1): closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
 | `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Tables 1 and 2: simulated loss fractions of the SPH suite | `tests/test_collision.py::test_scaling_law_reproduces_kegerreis_table2_simulations` |
-| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqs. 4-11, Table C1-C3: 12 reference oracle rows from `scaling_law.csv` | `tests/test_collision.py::test_roche2026_oracle_reproduction` |
+| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqs. (4) to (11), Table C1-C3: 12 reference oracle rows from `scaling_law.csv` | `tests/test_collision.py::test_roche2026_oracle_reproduction` |
 | `collision.py` | Roche et al. (2026), Zenodo doi:10.5281/zenodo.23192423: 8 reference oracle rows on 1 $M_\oplus$ targets through `impact_loss` | `tests/test_collision.py::test_roche2026_oracle_set_a_impact_loss` |
 | `collision.py` | Roche et al. (2026), Zenodo doi:10.5281/zenodo.23192423: 4 reference oracle rows on 0.35 to 4.98 $M_\oplus$ targets through `impact_loss` | `tests/test_collision.py::test_roche2026_oracle_set_b_impact_loss` |
-| `collision.py` | Roche et al. (2025), PSJ 6, 149, Eqs. 13-18: modified specific impact energy $Q'_\mathrm{R}$ | `tests/test_collision.py::test_roche2026_specific_impact_energy_calculation` |
-| `collision.py` | Roche et al. (2026), Eq. 1: mutual escape speed $v_\mathrm{esc}$ using total target mass | `tests/test_collision.py::test_roche2026_mutual_escape_speed_calculation` |
+| `collision.py` | Roche et al. (2025), PSJ 6, 149, Eqs. (13) to (18): modified specific impact energy $Q'_\mathrm{R}$ | `tests/test_collision.py::test_roche2026_specific_impact_energy_calculation` |
+| `collision.py` | Roche et al. (2026), Eq. (1): mutual escape speed $v_\mathrm{esc}$ using total target mass | `tests/test_collision.py::test_roche2026_mutual_escape_speed_calculation` |
 
 Self-consistency checks for the Roche scaling law (such as the velocity floor property `test_roche2026_velocity_floor_property`, grazing continuity `test_roche2026_grazing_continuity_and_value`, and the Table D1 Moon-forming scenario regression pin `test_roche2026_table_d1_moon_forming_scenarios`) test implementation invariants and regression values computed by this code rather than external reference oracle rows.
 

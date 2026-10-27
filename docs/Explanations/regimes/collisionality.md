@@ -1,6 +1,6 @@
 # The collisionality switch
 
-A fluid wind exists only if the gas is still collisional where it becomes supersonic. Where it is not, molecules leave one by one from an exobase and the [hydrostatic branch](hydrostatic.md) gives the rate. The switch between the two compares the mean free path with the scale height at the sonic point of the [hydrodynamic wind](wind.md). It is not applied while the [boil-off criterion](boiloff.md) holds. Symbols shared across the section are in the [notation tables](../regimes.md#notation).
+A fluid wind exists only if the gas is still collisional where it becomes supersonic. Where it is not, molecules leave one by one from an exobase and the [hydrostatic branch](hydrostatic.md) gives the rate. The switch between the two compares the mean free path with the scale height at the sonic point of the [the hydrodynamic wind](wind.md). It is not applied while the [boil-off criterion](boiloff.md) holds. Symbols shared across the section are in the [notation tables](../regimes.md#notation).
 
 ## The Knudsen number at the sonic point
 
@@ -14,8 +14,8 @@ $$\sigma_\mathrm{C} \;=\; \sum_j y_j\, \sigma_j(T_\mathrm{w}) \tag{2}$$
 
 Each element's cross section comes from the first available source in a fixed order:
 
-1. tabulated collision integrals, as the momentum-transfer cross section $\pi \sigma^2 \Omega^{(1,1)*}$ (Laricchiuta et al. 2009, their Eqs. 2 to 4 [^laricchiuta]), validated against measured viscosities
-2. for hydrogen, an inversion of the diffusion coefficient (Zahnle et al. 1990, their Eq. 30 [^z90], on the compilation of Zahnle & Kasting 1986 [^zk86])
+1. tabulated collision integrals, as the momentum-transfer cross section $\pi \sigma^2 \Omega^{(1,1)*}$ (Laricchiuta et al. 2009, their Eqs. (2) to (4) [^laricchiuta]), validated against measured viscosities
+2. for hydrogen, an inversion of the diffusion coefficient (Zahnle et al. 1990, their Eq. (30) [^z90], on the compilation of Zahnle & Kasting 1986 [^zk86])
 3. a geometric hard sphere, whose bias is documented and flagged.
 
 Six elements (Al, P, Cl, K, Ca, Ti) have no tabulated radius yet and fall back on an assumed one, flagged with their own provenance class. The sources of every radius are listed on the [knudsen validation page](../../Validation/knudsen.md).

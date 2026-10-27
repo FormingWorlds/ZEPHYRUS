@@ -6,7 +6,7 @@ ZEPHYRUS provides two scaling laws for the eroded fraction, selected with `zephy
 
 ## The Kegerreis et al. (2020) law
 
-`zephyrus.collision.mass_loss` implements the scaling law of Kegerreis et al. (2020), their Eq. 1 [^kegerreis]:
+`zephyrus.collision.mass_loss` implements the scaling law of Kegerreis et al. (2020), their Eq. (1) [^kegerreis]:
 
 $$X \;=\; \min\!\left\{0.64 \left[ \left(\frac{v_\mathrm{c}}{v_\mathrm{esc}}\right)^2 \left(\frac{M_\mathrm{i}}{M_\mathrm{tot}}\right)^{1/2} \left(\frac{\rho_\mathrm{i}}{\rho_\mathrm{t}}\right)^{1/2} f_M(b) \right]^{0.65},\; 1\right\} \tag{1}$$
 
@@ -68,7 +68,7 @@ with $Q'_\mathrm{R}$ expressed in $\mathrm{MJ\,kg^{-1}}$. Part of the far-field 
 
 Below $f_\mathrm{atm} = 0.01$ this positive zero-energy region expands. Consequently, the `'X_FF_zero_energy'` diagnostic flag can be raised for scenarios within the fitted range, as in two of the authors' reference impacts: one with $\gamma = 0.5$ at $f_\mathrm{atm} = 0.01$ on a $1\,M_\oplus$ target and one with $\gamma = 0.4$ at $f_\mathrm{atm} = 0.05$ on a $0.35\,M_\oplus$ target. ZEPHYRUS evaluates the authors' fit and reports this zero-energy far-field contribution in `diagnostics['X_FF_zero_energy']` and the `'X_FF_zero_energy'` flag. For the authors' own Moon-forming impact scenarios (Table D1 of Roche et al. 2026, evaluated with radii scaling as $M^{1/4}\,R_\oplus$), the law gives the following loss fractions at $f_\mathrm{atm} = 10^{-4}$: CA01 0.208, R12 0.310, CS12 0.467, C12 0.466, LS18a 0.613, and LS18b 0.363. For $f_\mathrm{atm}$ from $10^{-4}$ to $10^{-6}$ the law gives CA01 0.208 to 0.296 and LS18a 0.613 to 0.764; Roche et al. (2026, Sect. 4.3) estimate about 20% to 30% for the canonical impact (CA01) and about 70% to 80% for the most energetic synestia-forming scenario (Lock et al. 2018) for an atmosphere of 100 bar or less. The law reaches 0.70 for LS18a between $f_\mathrm{atm} = 10^{-5}$ and $10^{-6}$ (0.688, 0.764), yielding 0.613 at $10^{-4}$. For CA01 at $f_\mathrm{atm} = 10^{-4}$, the zero-energy far-field part is 0.057 of 0.208 (27.5% of the loss, 75% of the far-field part). Over the 790 fitting rows, the mean and maximum absolute misfits against simulation data are 0.0396 and 0.2224.
 
-The forms on this page follow the authors' published code, which reproduces their Fig. 3. The printed Roche et al. (2026), Eq. 6 has $\zeta_3 R - \zeta_2$ in the exponent, the printed Roche et al. (2026), Eq. 10 has $M_\mathrm{t}^\mathrm{tot}$ in the mass ratio, and the $X_\mathrm{NF}$ floor at $v_\mathrm{c} = v_\mathrm{esc}$ is in the code and not in the paper; Table C prints some values with only 2 significant digits ($s_{15}, k_{15}, s_{25}, s_{33}$), and the constant term $q_{41}$ of $\zeta_4$ (161.057) and $\zeta_5$ (-161.022) almost cancel, so values from the published dataset are needed.
+The forms on this page follow the authors' published code, which reproduces their Fig. 3. The printed Roche et al. (2026), Eq. (6) has $\zeta_3 R - \zeta_2$ in the exponent, the printed Roche et al. (2026), Eq. (10) has $M_\mathrm{t}^\mathrm{tot}$ in the mass ratio, and the $X_\mathrm{NF}$ floor at $v_\mathrm{c} = v_\mathrm{esc}$ is in the code and not in the paper; Table C prints some values with only 2 significant digits ($s_{15}, k_{15}, s_{25}, s_{33}$), and the constant term $q_{41}$ of $\zeta_4$ (161.057) and $\zeta_5$ (-161.022) almost cancel, so values from the published dataset are needed.
 
 ### Impact energy and escape speed definitions
 

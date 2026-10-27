@@ -15,7 +15,7 @@ Named after Zephyrus, the Greek god of the west wind and a messenger of spring. 
 
 The escape model is the regime dispatcher, `zephyrus.dispatch`. It takes one planetary state (mass, radius, orbit, stellar fluxes, and an atmosphere profile), decides which escape physics applies, and returns a regime label, the mass-loss rate, the rate of each element, flags, and diagnostics. The six regimes are boil-off, three limits on an XUV-driven hydrodynamic wind (energy-limited, recombination-limited, and photon-limited), hydrostatic Jeans escape with diffusion-limited supply, and Roche-lobe overflow. A hydrodynamic wind is split over species by a fractionation closure, so heavy species can lag the flow or stay behind.
 
-`zephyrus.escape.EL_escape` applies the energy-limited rate alone, with an optional tidal correction after Erkaev et al. (2007), to every state without checking which regime applies. PROTEUS calls this entry point until its coupling to the dispatcher lands. For giant impacts, `zephyrus.collision.impact_loss` returns the eroded fraction of the atmosphere from the scaling laws of Kegerreis et al. (2020) and Roche et al. (2026).
+`zephyrus.escape.EL_escape` applies the energy-limited rate alone, with an optional tidal correction after Erkaev et al. (2007), to every state without checking which regime applies. For giant impacts, `zephyrus.collision.impact_loss` returns the eroded fraction of the atmosphere from the scaling laws of Kegerreis et al. (2020) and Roche et al. (2026).
 
 ## Documentation
 

@@ -3,7 +3,7 @@
 ZEPHYRUS computes the atmospheric mass loss of rocky and sub-Neptune exoplanets. It runs standalone or as the escape module of the [PROTEUS](https://proteus-framework.org) coupled atmosphere and interior framework, where it is called at every time step with the current planetary state and returns the mass-loss rate that depletes the volatile inventory.
 
 !!! info "Two entry points"
-    The escape model of ZEPHYRUS is the regime dispatcher, `zephyrus.dispatch`, which decides which escape physics applies to a state before computing a rate. The older entry point `zephyrus.escape.EL_escape` applies one prescription, the energy-limited rate, to every state without that decision. PROTEUS calls `EL_escape` until its coupling to the dispatcher lands. Energy-limited escape is also one of the dispatcher's regimes, `hydrodynamic:EL`, so the name appears in both places.
+    The escape model of ZEPHYRUS is the regime dispatcher, `zephyrus.dispatch`, which decides which escape physics applies to a state before computing a rate. The older entry point `zephyrus.escape.EL_escape` applies one prescription, the energy-limited rate, to every state without that decision. Energy-limited escape is also one of the dispatcher's regimes, `hydrodynamic:EL`, so the name appears in both places.
 
 Mass loss happens through two physically distinct channels, and ZEPHYRUS models both:
 
@@ -42,7 +42,13 @@ flowchart TD
     class Q1,QB,Q2,Q3 decision
 ```
 
-The figure shows the logic, not the full machinery. Each branch carries its own rate physics, limits, and checks, and three refinements are left out: an unstable exosphere lets the wind rate compete with the Jeans rate, a setting can let the bolometric wind compete after boil-off ends, and the transfer through L1 competes wherever it applies, taking the overflow label with its own rate when it wins. The [escape regimes](regimes.md) section walks through every step with its equations and thresholds, and its admission table is the reference for the routing.
+The figure shows the logic, not the full machinery. Each branch carries its own rate physics, limits, and checks, and three refinements are left out:
+
+- An unstable exosphere lets the wind rate compete with the Jeans rate.
+- A setting can let the bolometric wind compete after boil-off ends.
+- The transfer through L1 competes wherever it applies, and takes the overflow label with its own rate when it wins.
+
+The [escape regimes](regimes.md) section walks through every step with its equations and thresholds, and its admission table is the reference for the routing.
 
 The regime boundaries are not sharp lines in nature. Each threshold carries a physical band: the collisionality threshold spans a factor of 30 across heating geometries, and the boil-off threshold a factor of about two across the literature. Beside every verdict, ZEPHYRUS reports how close the state sat to each boundary and what the label would have been at the edges of the band.
 
@@ -50,7 +56,7 @@ Whichever regime sets the bulk rate, the loss is also split over chemical specie
 
 ## The energy-limited entry point
 
-`zephyrus.escape.EL_escape` is the energy-limited rate on its own, with its two radius scalings and its tidal correction, defined on the [energy-limited escape](energy_limited.md) page. It does not check whether the state sustains a collisional XUV wind, which is the regime where the rate applies and which dominates the loss during roughly the first $10^6$ to $10^8$ years of a close-in planet's life. It is the entry point PROTEUS calls today, and a standalone study that wants one prescription applied everywhere can use it.
+`zephyrus.escape.EL_escape` is the energy-limited rate on its own, with its two radius scalings and its tidal correction, defined on the [energy-limited escape](energy_limited.md) page. It does not check whether the state sustains a collisional XUV wind, which is the regime where the rate applies and which dominates the loss during roughly the first $10^6$ to $10^8$ years of a close-in planet's life. A study that wants one prescription applied everywhere can use it.
 
 ## The impact channel
 
