@@ -22,6 +22,12 @@ Equations are numbered per page, and a reference to another page names the page.
 
 **Figure 1.** The levels at which each regime computes its rate, one sector per regime. Radii are not to scale, and the default settings are drawn. The figure's $R_\mathrm{photo}$, $R_\mathrm{int}$, $R_\mathrm{sonic}$, and $R_\mathrm{Bondi}$ are $R_\mathrm{ph}$, $R_\mathrm{p}$, $R_\mathrm{s}$, and $R_\mathrm{B}$ in the notation below. The interior heat flux $F_\mathrm{int}$ heats the envelope in a coupled run, where it shapes the profile and with it the photospheric level the boil-off rate reads. The default boil-off rate does not read $F_\mathrm{int}$ itself. The Roche sector draws the transfer through L1. The other reading of the `roche_overflow` label, a renamed bound flow, is not drawn. Schematic by Emma Postolec.
 
+!!! note "Animated version"
+    The same schematic built up one sector at a time, with the particles in motion (26 s, looping).
+
+    ![Animated schematic of the levels at which each escape rate is computed](../assets/dispatcher_levels_light.gif#only-light){ loading=lazy }
+    ![Animated schematic of the levels at which each escape rate is computed](../assets/dispatcher_levels_dark.gif#only-dark){ loading=lazy }
+
 Four levels of the atmosphere recur on every page:
 
 - **The photospheric working level**, at pressure $P_\mathrm{ph}$ (the setting `P_photo`, default 2000 Pa, that is, 20 mbar, the photosphere-type level of Baumeister et al. 2023 [^baumeister]). Its radius, temperature, density, and mean molecular mass are interpolated linearly in log pressure on the profile. When the profile does not span $P_\mathrm{ph}$, the nearest end level is used and the flag `photo_clamped` is raised. This one level is the XUV-absorbing radius of the energy-limited and photon-limited rates, the surface the boil-off criterion is evaluated on, the launch level of the boil-off wind, and the default launch level of the L1 transfer. Their published calibrations refer to different surfaces, so sharing one level is a simplification of the model, not a property of the physics.
