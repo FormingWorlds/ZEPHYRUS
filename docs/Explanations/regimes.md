@@ -17,16 +17,10 @@ Equations are numbered per page, and a reference to another page names the page.
 
 ## Where each rate is computed
 
-![Schematic of the levels at which each escape rate is computed](../assets/dispatcher_levels_light.png#only-light)
-![Schematic of the levels at which each escape rate is computed](../assets/dispatcher_levels_dark.png#only-dark)
+![Animated schematic of the levels at which each escape rate is computed](../assets/dispatcher_levels_light.gif#only-light){ loading=lazy }
+![Animated schematic of the levels at which each escape rate is computed](../assets/dispatcher_levels_dark.gif#only-dark){ loading=lazy }
 
-**Figure 1.** The levels at which each regime computes its rate, one sector per regime. Radii are not to scale, and the default settings are drawn. The figure's $R_\mathrm{photo}$, $R_\mathrm{int}$, $R_\mathrm{sonic}$, and $R_\mathrm{Bondi}$ are $R_\mathrm{ph}$, $R_\mathrm{p}$, $R_\mathrm{s}$, and $R_\mathrm{B}$ in the notation below. The interior heat flux $F_\mathrm{int}$ heats the envelope in a coupled run, where it shapes the profile and with it the photospheric level the boil-off rate reads. The default boil-off rate does not read $F_\mathrm{int}$ itself. The Roche sector draws the transfer through L1. The other reading of the `roche_overflow` label, a renamed bound flow, is not drawn. Schematic by Emma Postolec.
-
-!!! note "Animated version"
-    The same schematic built up one sector at a time, with the particles in motion (26 s, looping).
-
-    ![Animated schematic of the levels at which each escape rate is computed](../assets/dispatcher_levels_light.gif#only-light){ loading=lazy }
-    ![Animated schematic of the levels at which each escape rate is computed](../assets/dispatcher_levels_dark.gif#only-dark){ loading=lazy }
+**Figure 1.** The levels at which each regime computes its rate, one sector per regime, built up one sector at a time (26 s, looping). Radii are not to scale, and the default settings are drawn. The interior heat flux $F_\mathrm{int}$ heats the envelope in a coupled run, where it shapes the profile and with it the photospheric level the boil-off rate reads. The default boil-off rate does not read $F_\mathrm{int}$ itself. The Roche sector draws the transfer through L1. The other reading of the `roche_overflow` label, a renamed bound flow, is not drawn. Schematic by Emma Postolec.
 
 Four levels of the atmosphere recur on every page:
 
