@@ -8,7 +8,7 @@ This page tracks the `@pytest.mark.reference_pinned` test that anchors the assem
 
 ## Notes
 
-The totality contract (200 random physically posed inputs returning one label, finite non-negative rates, and per-species sums equal to the bulk rate) and the boxedness of the diagnostics container are asserted as physics invariants in the same file; every branch of the routing is exercised by dedicated scenario tests.
+The totality contract (200 random physically posed inputs returning one label, finite non-negative rates, and per-species sums equal to the bulk rate) and the boxedness of the diagnostics container are asserted as physics invariants in the same file. Every branch of the routing is exercised by dedicated scenario tests.
 
 ## Anchor type
 

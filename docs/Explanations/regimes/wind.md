@@ -12,14 +12,14 @@ about a nanobar, with $\mu_\mathrm{base}$ the profile's mean molecular mass at t
 
 Two settings change the base:
 
-- `base_out_of_range`: when the profile top is deeper than $P_\mathrm{base}$, the default clamps the base to the profile top and records the clamp distance in decades of pressure (`base_clamped`). The value `'extend'` evaluates the base on the extended upper structure of the [hydrostatic branch](hydrostatic.md) instead (`base_extended`).
+- `base_out_of_range`: when the profile top is deeper than $P_\mathrm{base}$, the default clamps the base, that is, it uses the nearest level the profile supplies, the profile top, in its place. The flag `base_clamped` records it, with the distance moved in decades of pressure. The value `'extend'` evaluates the base on the extended upper structure of the [hydrostatic branch](hydrostatic.md) instead (`base_extended`).
 - `base_method`: a fixed pressure, or the XUV radius of the BOREAS solver, in place of Eq. (1).
 
 ## The wind temperature
 
-The wind temperature $T_\mathrm{w}$ is not assumed to be the canonical $10^4$ K. A thermostat balances local photoionisation heating against radiative cooling at the base density $n_\mathrm{base}$ and the atomised base composition (element mole fractions $y_j$). $T_\mathrm{w}$ is the root of
+The wind temperature $T_\mathrm{w}$ is not assumed to be the canonical $10^4$ K. A thermostat balances local photoionisation heating against radiative cooling at the base density $n_\mathrm{base}$ and the atomised base composition: every molecule at the base is split into its atoms, and $y_j$ is the resulting mole fraction of element $j$. $T_\mathrm{w}$ is the root of
 
-$$(1 - f_+)\, n_\mathrm{base}\, \sigma_{\nu_0}\, \frac{F_\mathrm{XUV}}{h\nu_0}\, \left(h\nu_0 - E_\mathrm{ion}\right) \;=\; Q_\mathrm{lines} + Q_{\mathrm{CO_2}} + Q_\mathrm{O} + \tfrac{3}{2}\, k_\mathrm{B} T_\mathrm{w}\, \alpha_\mathrm{rec}(T_\mathrm{w})\, f_+^2\, n_\mathrm{base}^2 \tag{2}$$
+$$\begin{aligned} (1 - f_+)\, n_\mathrm{base}\, \sigma_{\nu_0}\, \frac{F_\mathrm{XUV}}{h\nu_0}\, \left(h\nu_0 - E_\mathrm{ion}\right) \;=\;& Q_\mathrm{lines} + Q_{\mathrm{CO_2}} + Q_\mathrm{O} \\ &+ \tfrac{3}{2}\, k_\mathrm{B} T_\mathrm{w}\, \alpha_\mathrm{rec}(T_\mathrm{w})\, f_+^2\, n_\mathrm{base}^2 \end{aligned} \tag{2}$$
 
 **Heating.** The left side is the photoionisation heating rate per unit volume in the monochromatic-front approximation. Each ionisation leaves $h\nu_0 - E_\mathrm{ion}$ in the gas, with $h\nu_0$ the front's photon energy, $E_\mathrm{ion}$ its ionisation potential, and $\sigma_{\nu_0}$ its photoionisation cross section. $f_+$ is the ionisation fraction from local photoionisation-recombination balance, $f_+^2 / (1 - f_+) = \sigma_{\nu_0} F_\mathrm{XUV} / (h\nu_0\, \alpha_\mathrm{rec}\, n_\mathrm{base})$. The front follows the composition:
 
@@ -33,7 +33,7 @@ $$(1 - f_+)\, n_\mathrm{base}\, \sigma_{\nu_0}\, \frac{F_\mathrm{XUV}}{h\nu_0}\,
 - $Q_\mathrm{O}$ (`cool_o_finestructure`): the atomic oxygen fine-structure lines at 63 and 147 micron, from the same source.
 - The last term (`cool_recombination`): the continuum part of recombination cooling, with $\alpha_\mathrm{rec}$ the radiative recombination fit of Badnell (2006) for nitrogen-dominated gas [^badnell] and the composition-weighted case B coefficient of Eq. (5) otherwise.
 
-**The root.** The balance is scanned upward from $T_\mathrm{eq}$ to $5 \times 10^4$ K, and the first downward crossing of heating through cooling is taken, which selects the lowest stable root. A balance with no root in that range is clamped to the nearer edge and flagged `thermostat_clamped`. A high clamp is expected at dense bases, where electron densities far above the critical densities of the forbidden lines quench the line coolants and the wind runs hot. The upper edge is a validity limit: raising it finds a root near $10^5$ K, but the coolants are neutral three-level systems and gas at that temperature is fully ionised, so that root is outside the model. A clamped temperature is therefore the edge of the range, not a solution, and every rate below that is built on $T_\mathrm{w}$ inherits that.
+**The root.** The balance is scanned upward from $T_\mathrm{eq}$ to $50\,000$ K, and the first downward crossing of heating through cooling is taken, which selects the lowest stable root. A balance with no root in that range is clamped to the nearer edge and flagged `thermostat_clamped`. A high clamp is expected at dense bases, where electron densities far above the critical densities of the forbidden lines quench the line coolants and the wind runs hot. The upper edge is a validity limit: raising it finds a root near $10^5$ K, but the coolants are neutral three-level systems and gas at that temperature is fully ionised, so that root is outside the model. A clamped temperature is therefore the edge of the range, not a solution, and every rate below that is built on $T_\mathrm{w}$ inherits that.
 
 ## The energy-limited rate
 
@@ -49,7 +49,7 @@ The efficiency $\epsilon$ is the setting `efficiency` (default 0.1). Under `effi
 
 At high flux the energy absorbed at the base is spent ionising and is re-radiated on recombination, so the base ionisation, not the energy budget, sets the rate. The calculation is the analytic one of Murray-Clay et al. (2009), their Section 3.2 [^mc09], generalised to any atomised composition with the mean-mass rule of Lopez (2017) [^lopez2017]. With hydrogen fully ionised, the heavier atoms singly ionised, and the electrons counted among the particles, the wind's mean mass per ion and per particle, its sound speed, sonic radius, and base Jeans parameter are
 
-$$\mu_+ = \sum_j y_j A_j, \qquad \mu_\mathrm{w} = \frac{\mu_+}{2}, \qquad c_\mathrm{s} = \sqrt{\frac{k_\mathrm{B} T_\mathrm{w}}{\mu_\mathrm{w} m_\mathrm{p}}}, \qquad R_\mathrm{s} = \frac{G M_\mathrm{p}}{2 c_\mathrm{s}^2}, \qquad \lambda_\mathrm{b} = \frac{G M_\mathrm{p}}{R_\mathrm{base}\, c_\mathrm{s}^2} \tag{4}$$
+$$\begin{gathered} \mu_+ = \sum_j y_j A_j, \qquad \mu_\mathrm{w} = \frac{\mu_+}{2}, \\ c_\mathrm{s} = \sqrt{\frac{k_\mathrm{B} T_\mathrm{w}}{\mu_\mathrm{w} m_\mathrm{p}}}, \qquad R_\mathrm{s} = \frac{G M_\mathrm{p}}{2 c_\mathrm{s}^2}, \qquad \lambda_\mathrm{b} = \frac{G M_\mathrm{p}}{R_\mathrm{base}\, c_\mathrm{s}^2} \end{gathered} \tag{4}$$
 
 with $A_j$ the atomic mass of element $j$ in atomic mass units. The code multiplies by the proton mass where Lopez writes the hydrogen atom mass. The recombination coefficient is the mole-fraction-weighted case B set,
 

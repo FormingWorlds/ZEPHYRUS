@@ -18,7 +18,7 @@ The cubic radius term in Eq. (1) is selected at runtime by the `scaling` argumen
 
 | `scaling` | $R^3$ | Description |
 |---|---|---|
-| `2` | $R_\mathrm{p}\,R^2_\mathrm{XUV}$ | Default; the XUV-absorbing cross section paired with the potential measured at the surface radius, the form of Erkaev et al. (2007) [^erkaev] |
+| `2` | $R_\mathrm{p}\,R^2_\mathrm{XUV}$ | Default: the XUV-absorbing cross section paired with the potential measured at the surface radius, the form of Erkaev et al. (2007) [^erkaev] |
 | `3` | $R^3_\mathrm{XUV}$ | All three powers taken at the XUV radius, the single-radius form of Lopez, Fortney & Miller (2012) [^lfm2012] and Lehmer & Catling (2017) [^lehmer] |
 
 Both forms reduce to $R_\mathrm{p}^3$ when $R_\mathrm{XUV} = R_\mathrm{p}$, the conservative lower bound adopted by Luger & Barnes (2015) [^luger] and Moore et al. (2023) [^moore]. Allowing $R_\mathrm{XUV} > R_\mathrm{p}$ increases the effective XUV-absorbing area and therefore the escape rate.

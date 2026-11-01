@@ -1,6 +1,6 @@
 # The collisionality switch
 
-A fluid wind exists only if the gas is still collisional where it becomes supersonic. Where it is not, molecules leave one by one from an exobase and the [hydrostatic branch](hydrostatic.md) gives the rate. The switch between the two compares the mean free path with the scale height at the sonic point of the [the hydrodynamic wind](wind.md). It is not applied while the [boil-off criterion](boiloff.md) holds. Symbols shared across the section are in the [notation tables](../regimes.md#notation).
+A fluid wind exists only if the gas is still collisional where it becomes supersonic. Where it is not, molecules leave one by one from an exobase and the [hydrostatic branch](hydrostatic.md) gives the rate. The switch between the two compares the mean free path with the scale height at the sonic point of the [hydrodynamic wind](wind.md). It is not applied while the [boil-off criterion](boiloff.md) holds. Symbols shared across the section are in the [notation tables](../regimes.md#notation).
 
 ## The Knudsen number at the sonic point
 
@@ -11,6 +11,8 @@ $$\mathrm{Kn}_\mathrm{s} \;=\; \frac{\ell_\mathrm{s}}{H_\mathrm{s}}, \qquad \ell
 where $\ell_\mathrm{s}$ is the Maxwell mean free path, $H_\mathrm{s}$ the scale height at the sonic radius $R_\mathrm{s}$, $n_\mathrm{s}$ the heavy-particle density at the sonic point from the sonic-point density $\rho_\mathrm{s}$ of the [recombination-limited rate](wind.md#the-recombination-limited-rate), and $\gamma$ the polytropic index (`gamma_wind`, 1 for an isothermal wind). $\sigma_\mathrm{C}$ is the collision cross section of the atomised mixture at the wind temperature, their Eq. (25),
 
 $$\sigma_\mathrm{C} \;=\; \sum_j y_j\, \sigma_j(T_\mathrm{w}) \tag{2}$$
+
+where $y_j$ is the mole fraction of element $j$ in the atomised composition of the wind base (every molecule split into its atoms), and $\sigma_j(T_\mathrm{w})$ is the collision cross section of element $j$ at the wind temperature.
 
 Each element's cross section comes from the first available source in a fixed order:
 

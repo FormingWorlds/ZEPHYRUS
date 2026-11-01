@@ -8,7 +8,7 @@ The atmosphere profile usually stops well below the exobase, so the branch build
 
 $$T(\zeta) \;=\; T_\infty - \left(T_\infty - T_\mathrm{top}\right) e^{-\gamma_\mathrm{B} \zeta}, \qquad \frac{\mathrm{d}r}{\mathrm{d}\zeta} = \frac{k_\mathrm{B}\, T\, r^2}{G M_\mathrm{p}\, \mu_0}, \qquad n = \frac{P_\mathrm{top}\, e^{-\zeta}}{k_\mathrm{B} T} \tag{1}$$
 
-with $r(0) = R_0$, the shape parameter $\gamma_\mathrm{B}$ (`gamma_bates`, default 0.75), and the exospheric temperature $T_\infty$ that the profile approaches (`T_exo_value`, default 1000 K). The integration stops where the local Jeans parameter falls below 2, since the structure is unbound beyond that point, and the flag `extension_unbound` is raised. The exobase is the first level of this structure where
+with $r(\zeta = 0) = R_0$, the shape parameter $\gamma_\mathrm{B}$ (`gamma_bates`, default 0.75), and the exospheric temperature $T_\infty$ that the profile approaches (`T_exo_value`, default 1000 K). The integration stops where the local Jeans parameter falls below 2, since the structure is unbound beyond that point, and the flag `extension_unbound` is raised. The exobase is the first level of this structure where
 
 $$\frac{1}{\sqrt{2}\,\sigma_\mathrm{C}\, n} \;\ge\; \frac{k_\mathrm{B}\, T\, r^2}{G M_\mathrm{p}\, \mu_0} \tag{2}$$
 
@@ -38,9 +38,9 @@ with $\tilde{X}_i(\zeta_\mathrm{exo})$ the mole fraction at the exobase from Eq.
 
 Below the exobase each species diffuses through the frozen background with molecular diffusion coefficient $D_i = b_i / n$ and eddy diffusion coefficient $K_{zz}$ (the profile's top value, or the setting `kzz`, default 300 m² s⁻¹). The mixture diffusion parameter follows Blanc's law, $b_i = (1 - X_i) / \sum_{k \ne i} (X_k / b_{ik})$, over binary parameters $b_{ik}$ that each carry a provenance class. Thermal diffusion enters through an effective mass, Yelle (2024) Eq. (4), with the thermal diffusion factor $\alpha_\mathrm{T} = -0.25$ that Yelle adopts for light species. The mole fraction in diffusive equilibrium, their Eq. (9), is
 
-$$\tilde{X}_i(\zeta) \;=\; X_i(0)\, \exp\!\left[\int_0^{\zeta} \left(1 - \frac{\tilde{m}_i}{\mu_0}\right) \frac{D_i}{D_i + K_{zz}}\, \mathrm{d}\zeta'\right], \qquad \tilde{m}_i = m_i + \alpha_\mathrm{T}\, \mu_0\, \frac{\mathrm{d}\ln T}{\mathrm{d}\zeta} \tag{6}$$
+$$\begin{gathered} \tilde{X}_i(\zeta) \;=\; X_i(\zeta = 0)\, \exp\!\left[\int_0^{\zeta} \left(1 - \frac{\tilde{m}_i}{\mu_0}\right) \frac{D_i}{D_i + K_{zz}}\, \mathrm{d}\zeta'\right], \\ \tilde{m}_i = m_i + \alpha_\mathrm{T}\, \mu_0\, \frac{\mathrm{d}\ln T}{\mathrm{d}\zeta} \end{gathered} \tag{6}$$
 
-with $X_i(0)$ the species mole fraction at the profile top. The limiting flux of their Eqs. (10) and (11), the largest flux diffusion can deliver to the exobase, is
+with $X_i(\zeta = 0)$ the species mole fraction at the profile top. The limiting flux of their Eqs. (10) and (11), the largest flux diffusion can deliver to the exobase, is
 
 $$\Phi_{\mathrm{l},i} \;=\; \left[\int_0^{\zeta_\mathrm{exo}} \frac{k_\mathrm{B}\, T\, R_0^2}{G M_\mathrm{p}\, \mu_0\, \tilde{X}_i\, n\, (D_i + K_{zz})}\, \mathrm{d}\zeta\right]^{-1} \tag{7}$$
 
@@ -52,7 +52,7 @@ The two bottlenecks combine by the harmonic mean of Yelle (2024), their Eq. (14)
 
 $$\Phi_i \;=\; \frac{\tilde{\Phi}_{\mathrm{J},i}\; \Phi_{\mathrm{l},i}}{\tilde{\Phi}_{\mathrm{J},i} + \Phi_{\mathrm{l},i}} \tag{8}$$
 
-The most abundant species at the profile top supplies itself: it takes $\tilde{X}_i = X_i(0)$ and the Jeans flux alone, $\Phi_i = \tilde{\Phi}_{\mathrm{J},i}$. So does any species whose Jeans rate is already below the [rate floor](../regimes.md#the-rate-floor), since the harmonic mean could only be smaller. Such species are marked `pruned` in the per-species detail. Every flux is per unit area of the sphere of radius $R_0$, so the hydrostatic rate is
+The most abundant species at the profile top supplies itself: it takes $\tilde{X}_i = X_i(\zeta = 0)$ and the Jeans flux alone, $\Phi_i = \tilde{\Phi}_{\mathrm{J},i}$. So does any species whose Jeans rate is already below the [rate floor](../regimes.md#the-rate-floor), since the harmonic mean could only be smaller. Such species are marked `pruned` in the per-species detail. Every flux on this page is per unit area of one reference sphere, the profile top at radius $R_0$, following Yelle (2024). The two bottlenecks live at different heights (effusion at the exobase, diffusion between the profile top and the exobase), and Eq. (8) can only combine them once both are per unit area of the same sphere, which is why Eq. (5) rescales the exobase flux by $(R_\mathrm{exo}/R_0)^2$. The choice of sphere does not change the result: in a steady outflow the same number of particles crosses every sphere, so the flux times the sphere's area, which is the rate, is the same at $R_0$ as at $R_\mathrm{exo}$. The hydrostatic rate is
 
 $$\dot{M}_\mathrm{hs} \;=\; \sum_i 4\pi R_0^2\, m_i\, \Phi_i \tag{9}$$
 

@@ -45,7 +45,7 @@ Units are SI throughout. Mean molecular masses written $\mu$ with a level subscr
 | $T_\mathrm{eq}$ | Equilibrium temperature | `T_eq` |
 | $F_\mathrm{XUV}$ | XUV flux at the planet | `F_xuv` |
 | $F_\mathrm{bol}$ | Bolometric flux at the planet | `F_bol` |
-| $F_\mathrm{int}$ | Interior heat flux; $L_\mathrm{int} = 4\pi R_\mathrm{p}^2 F_\mathrm{int}$ | `F_int` |
+| $F_\mathrm{int}$ | Interior heat flux, with $L_\mathrm{int} = 4\pi R_\mathrm{p}^2 F_\mathrm{int}$ | `F_int` |
 | $\kappa$ | Grey photospheric opacity | `kappa_photo` |
 
 **Levels and radii.**
@@ -101,7 +101,7 @@ Symbols used on one page only are defined where they appear.
 |---|---|
 | Candidate | One of the five rates the dispatcher can return: hydrostatic, boil-off, hydrodynamic, residual, and nozzle. Every candidate is computed at every call. |
 | Admitted | Allowed into the final comparison by a condition on the state. Only admitted candidates compete. |
-| Branch | The physics that produced the dispatched rate; it names the label. |
+| Branch | The physics that produced the dispatched rate. It names the label. |
 | Criterion | A test on the state that admits or excludes a candidate, such as $\Lambda < \Lambda_\mathrm{c}$. The code calls some of these gates (the `gate` setting, the `gate_rerouted` flag). |
 | Band | The physically plausible range of a criterion's threshold. The diagnostics report the label at both ends of the band. |
 | Clamp | Replacing a value the code cannot evaluate with the nearest one it can, and raising a flag that says so. |

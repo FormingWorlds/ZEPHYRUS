@@ -1,6 +1,6 @@
 # Troubleshooting the dispatcher
 
-A regime verdict looks wrong, or a flag fired and you want to know whether it matters. On this page, each section starts from a symptom and points to what to check. Every flag and diagnostics key is defined in the [dispatch results reference](../Reference/results.md), and the physics is on the [escape regimes](../Explanations/regimes.md) page; this page sits between them and starts from what you observed.
+A regime verdict looks wrong, or a flag fired and you want to know whether it matters. On this page, each section starts from a symptom and points to what to check. Every flag and diagnostics key is defined in the [dispatch results reference](../Reference/results.md), and the physics is on the [escape regimes](../Explanations/regimes.md) page. This page sits between them and starts from what you observed.
 
 Start with the two questions that dispose of most surprises:
 
@@ -25,7 +25,7 @@ Start with the two questions that dispose of most surprises:
 
 ## `thermostat_clamped` fired
 
-**Symptom.** The wind temperature sits at a bracket edge, usually $5 \times 10^{4}$ K.
+**Symptom.** The wind temperature sits at a bracket edge, usually $50\,000$ K.
 
 **Cause.** The local heating against cooling balance had no root in the bracket. At a dense wind base this is physical: electron densities far above the critical densities of the forbidden lines quench the line coolants collisionally, so nothing balances the heating and the wind runs hot.
 
@@ -62,7 +62,7 @@ The flux scaling will not separate them either: the base ion density follows $\s
 
 **Cause.** The profile does not extend to the pressure where XUV photons are absorbed, near a nanobar. An isothermal hydrogen envelope, in particular, becomes unbound and truncates well below that.
 
-**What to do.** The base level is $\mu g / \sigma_{\nu_0}$, so where it sits depends on the state: tens of nanobars on an Earth-mass carbon dioxide planet, and below a nanobar on a low-gravity hydrogen envelope, where a profile stopping at a nanobar still misses it. Extend the profile past the `p_physical` the diagnostics report for the state at hand rather than trusting one number for all of them. Otherwise decide by branch: on `boiloff` the clamp is harmless, because that branch launches from the photospheric level. On a hydrodynamic verdict it is not, because the base density sets the sonic-point density and therefore the collisionality switch itself, so a clamped base moves the boundary. The `base_out_of_range = 'extend'` setting evaluates the base on the extended upper structure instead; `base_extension_truncated` means even that did not reach it.
+**What to do.** The base level is $\mu g / \sigma_{\nu_0}$, so where it sits depends on the state: tens of nanobars on an Earth-mass carbon dioxide planet, and below a nanobar on a low-gravity hydrogen envelope, where a profile stopping at a nanobar still misses it. Extend the profile past the `p_physical` the diagnostics report for the state at hand rather than trusting one number for all of them. Otherwise decide by branch: on `boiloff` the clamp is harmless, because that branch launches from the photospheric level. On a hydrodynamic verdict it is not, because the base density sets the sonic-point density and therefore the collisionality switch itself, so a clamped base moves the boundary. The `base_out_of_range = 'extend'` setting evaluates the base on the extended upper structure instead. `base_extension_truncated` means even that did not reach it.
 
 ## `roche_overflow` on a state that should not be overflowing
 
@@ -85,7 +85,7 @@ They sort the state into one of five cases:
 
 - `rate_branch` reading `roche_overflow`: the rate is the tidally driven transfer through L1 (Jackson et al. 2017 [^jackson17]). It won inside its two applicability criteria, the sonic radius reaching L1 and a fluid at L1 (`kn_L1` in `diagnostics['nozzle']` at most `kn_crit`). It is a real transfer rate, and `diagnostics['nozzle']` carries the barrier, the saturation state, and the lift power against the available luminosities. The subflag reads `dynamical` when the atmosphere's own extent passes the lobe and `neither` when it does not, so it describes the geometry and not the mechanism. On an eccentric orbit the rate is an orbit average over the arc where the description applies: read `applicable_orbit_fraction`, and treat a value below one as a rate that omits the wind driven on the rest of the orbit.
 - Subflag `dynamical` on a bound branch and a rate above the floor: the atmosphere reaches its Roche lobe while the nozzle candidate lost or did not apply. The rate is the bound-flow estimate, and the real rate is higher by whatever the tidal flow would carry. Treat it as a lower limit.
-- Subflag `no_transonic` with `r_atmosphere` well inside the lobe: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly bound case above, not an overflow; the [Roche screen](../Explanations/regimes/roche.md#the-roche-screen) explains why the two look alike to it.
+- Subflag `no_transonic` with `r_atmosphere` well inside the lobe: only the would-be sonic surface passes the lobe. On a heavy bound atmosphere this is the tightly bound case above, not an overflow. The [Roche screen](../Explanations/regimes/roche.md#the-roche-screen) explains why the two look alike to it.
 - `above_floor` false: the label is decided by the ordering of two rates with no numerical content. Report no escape and treat the geometry as a note.
 - A rate above the floor but far below anything that matters. The floor, one proton per Julian year, marks what is distinguishable from zero in floating point, many decades below a rate that could change an atmosphere. Read `diagnostics['self_consistency']` beside it: the depletion timescale against the age you passed in settles whether a rate matters, not the floor.
 
@@ -105,15 +105,15 @@ Points whose flow radius exceeds two thirds of the Hill radius raise `near_roche
 
 **Cause.** Either the state is sitting inside the collisionality band, where the criterion does not decide the label, or two candidate rates are within a hair of each other and the comparison keeps changing hands.
 
-**What to do.** For an evolutionary track, supply `prev_regime` from the previous step. That opens a hysteresis window around the threshold, so the previous label wins inside it and a track cannot chatter on numerical noise; `hysteresis_active` confirms it was in use and `diagnostics['knudsen']['threshold_applied']` shows the shifted threshold. For a static grid, quote the boundary with the width its criterion implies rather than as a line: re-dispatch at `kn_crit` of 0.1 and 3 and report the range. The [tutorial](../Tutorials/dispatch.md) measures such a band as a factor of 4.5 in boundary flux for one planet.
+**What to do.** For an evolutionary track, supply `prev_regime` from the previous step. That opens a hysteresis window around the threshold, so the previous label wins inside it and a track cannot chatter on numerical noise. `hysteresis_active` confirms it was in use and `diagnostics['knudsen']['threshold_applied']` shows the shifted threshold. For a static grid, quote the boundary with the width its criterion implies rather than as a line: re-dispatch at `kn_crit` of 0.1 and 3 and report the range. The [tutorial](../Tutorials/dispatch.md) measures such a band as a factor of 4.5 in boundary flux for one planet.
 
 ## The per-species rates look like a bulk split
 
 **Symptom.** Element shares that match their reservoir mass fractions.
 
-**Cause.** Either fractionation is off, or the verdict is not a confirmed wind. The closure runs only on a hydrodynamic verdict with `fractionate` on; every other branch splits by reservoir mass fractions, except the hydrostatic branch, which is natively per-species.
+**Cause.** Either fractionation is off, or the verdict is not a confirmed wind. The closure runs only on a hydrodynamic verdict with `fractionate` on. Every other branch splits by reservoir mass fractions, except the hydrostatic branch, which is natively per-species.
 
-**What to do.** Check the label and the `fractionate` setting, and look for `split_from_base_composition`, which says the split fell back to the wind-base composition because no reservoirs were supplied. A 3% departure from the mass fractions is a real result for a well-coupled heavy wind, not a sign the closure failed to run; `diagnostics['closure']` carries the active set and the mass residual if you need to confirm it did.
+**What to do.** Check the label and the `fractionate` setting, and look for `split_from_base_composition`, which says the split fell back to the wind-base composition because no reservoirs were supplied. A 3% departure from the mass fractions is a real result for a well-coupled heavy wind, not a sign the closure failed to run. `diagnostics['closure']` carries the active set and the mass residual if you need to confirm it did.
 
 ## The rate is large and the planet should not have survived
 

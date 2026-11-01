@@ -1,6 +1,6 @@
 # Boil-off
 
-A freshly formed or strongly heated planet can hold an atmosphere so distended that its outer layers approach the sonic point of a thermal wind. The gas then flows out on the planet's own thermal energy, with the stellar continuum keeping it near isothermal, before XUV heating matters. This page defines the criterion that recognises such a state, the rate of the resulting bolometric wind, its two caps, and what happens to the same rate once the criterion no longer holds. Symbols shared across the section are in the [notation tables](../regimes.md#notation).
+A freshly formed or strongly heated planet can hold an atmosphere so distended that its outer layers approach the sonic point of a thermal wind. The gas then flows out on the planet's own thermal energy, with the stellar continuum keeping it near isothermal, before XUV heating matters. The energy that drives this outflow is the star's total (bolometric) irradiation and the planet's own heat, not its XUV flux, so these pages call it the bolometric wind, and its rate the bolometric candidate. This page defines the criterion that recognises such a state, the rate of the bolometric wind, its two caps, and what happens to the same rate once the criterion no longer holds. Symbols shared across the section are in the [notation tables](../regimes.md#notation).
 
 ## The boil-off criterion
 
@@ -46,9 +46,9 @@ $$\frac{\dot{M}_\mathrm{B}}{\dot{M}_\mathrm{P}} = \tau_\mathrm{ph}\, \frac{T_\ma
 
 with $\tau_\mathrm{ph}$ the plane-parallel optical depth of the launch level to the supplied opacity. The cap therefore binds only on a launch level optically thin to that opacity, below an optical depth of about 0.6 on a level at the wind temperature. `tau_launch` and `binding_cap` in `diagnostics['bolometric']` say which case a state is in.
 
-## After boil-off: the residual
+## After boil-off
 
-Once $\Lambda \ge \Lambda_\mathrm{c}$ the atmosphere has contracted. The same wind is still computed, with one more cap: the outflow can no longer draw on the envelope's own inflation and is limited by the heat the interior supplies. Dividing the interior luminosity by the work per unit mass needed to lift gas out of the well gives the cap of Gupta & Schlichting (2019), the cooling-luminosity term of their Eq. (8) [^gs19]:
+Once $\Lambda \ge \Lambda_\mathrm{c}$ the atmosphere has contracted. The dispatcher still computes the bolometric wind, and its rate past the threshold is called the residual. It carries one more cap: the outflow can no longer draw on the envelope's own inflation and is limited by the heat the interior supplies. Dividing the interior luminosity by the work per unit mass needed to lift gas out of the well gives the cap of Gupta & Schlichting (2019), the cooling-luminosity term of their Eq. (8) [^gs19]:
 
 $$\dot{M}_\mathrm{E} \;=\; \frac{L_\mathrm{int}}{g_\mathrm{p}\,R_\mathrm{p}\,K}, \qquad L_\mathrm{int} = 4\pi R_\mathrm{p}^2 F_\mathrm{int}, \qquad g_\mathrm{p} = \frac{G M_\mathrm{p}}{R_\mathrm{p}^2} \tag{5}$$
 
@@ -58,7 +58,7 @@ The bolometric candidate is the minimum of the caps in force,
 
 $$\dot{M}_\mathrm{bol} \;=\; \begin{cases} \min\left(\dot{M}_\mathrm{P},\ \dot{M}_\mathrm{B}\right), & \Lambda < \Lambda_\mathrm{c} \\ \min\left(\dot{M}_\mathrm{P},\ \dot{M}_\mathrm{B},\ \dot{M}_\mathrm{E}\right), & \Lambda \ge \Lambda_\mathrm{c} \end{cases} \tag{6}$$
 
-and is reported in `diagnostics['bolometric']` on every call. Past the threshold it is called the residual. Whether the residual competes for the rate is the `residual_mode` setting:
+and is reported in `diagnostics['bolometric']` on every call. Whether the residual competes for the rate is the `residual_mode` setting:
 
 - `'off'` (default): it is reported and does not compete.
 - `'luminosity_capped'`: it enters the final comparison, and if it is the largest admitted rate it takes the rate and the label `boiloff`, with the flag `bolometric_residual`.
@@ -78,7 +78,7 @@ The termination timescale of Tang et al. (their Eq. (8)) is computed on the clos
 
 ## Competition with the XUV wind
 
-While $\Lambda < \Lambda_\mathrm{c}$, the [the hydrodynamic wind](wind.md) competes with the bolometric wind and the larger rate is dispatched with its own label. Owen & Schlichting (2024) give the mass loss to photoevaporation when XUV photons are absorbed inside the Bondi radius and drive the stronger outflow, and to the bolometric wind otherwise [^owensch]. The dispatcher applies the rate comparison and does not test where the photons are absorbed, a simplification the [limitations page](../limitations.md) states. The collisionality switch is not applied while the criterion holds, because a bolometric outflow is penetrated by XUV photons before it turns collisionless (their Eq. (7)).
+While $\Lambda < \Lambda_\mathrm{c}$, the [hydrodynamic wind](wind.md) competes with the bolometric wind and the larger rate is dispatched with its own label. Owen & Schlichting (2024) give the mass loss to photoevaporation when XUV photons are absorbed inside the Bondi radius and drive the stronger outflow, and to the bolometric wind otherwise [^owensch]. The dispatcher applies the rate comparison and does not test where the photons are absorbed, a simplification the [limitations page](../limitations.md) states. The collisionality switch is not applied while the criterion holds, because a bolometric outflow is penetrated by XUV photons before it turns collisionless (their Eq. (7)).
 
 ## Measured behaviour
 

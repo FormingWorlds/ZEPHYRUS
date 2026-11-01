@@ -12,7 +12,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the hydro
 
 ## Notes
 
-Murray-Clay et al. fit their numerical models with flux exponents 0.6 (radiation-recombination limited) and 0.9 (energy limited) where the analytic chains carry 0.5 and 1.0; rate-level comparisons against their models must budget that difference, which the diagnostics module documents as reporting constants.
+Murray-Clay et al. fit their numerical models with flux exponents 0.6 (radiation-recombination limited) and 0.9 (energy limited) where the analytic chains carry 0.5 and 1.0. Rate-level comparisons against their models must budget that difference, which the diagnostics module documents as reporting constants.
 
 ## Anchor type
 

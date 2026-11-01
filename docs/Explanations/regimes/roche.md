@@ -26,13 +26,13 @@ $$R_\mathrm{lobe} \;=\; d\, \frac{0.49\, q^{2/3}}{0.6\, q^{2/3} + \ln(1 + q^{1/3
 
 **The barrier.** The barrier is the difference between two values of their volume-averaged Roche potential, their Eq. (14), written $\Psi$ here (they write $\Phi$):
 
-$$\Psi(r) \;=\; -\left(\frac{G M_\star}{d} + \frac{G M_\star^2}{2 d (M_\mathrm{p} + M_\star)}\right) - \frac{G M_\mathrm{p}}{r}\left[1 + \frac{M_\mathrm{p} + M_\star}{3 M_\mathrm{p}} \left(\frac{r}{d}\right)^3 + \frac{4}{45}\, \frac{(M_\mathrm{p} + M_\star)^2 + 9 M_\star^2 + 3 M_\star (M_\mathrm{p} + M_\star)}{M_\mathrm{p}^2} \left(\frac{r}{d}\right)^6\right] \tag{3}$$
+$$\begin{aligned} \Psi(r) \;=\;& -\left(\frac{G M_\star}{d} + \frac{G M_\star^2}{2 d (M_\mathrm{p} + M_\star)}\right) \\ &- \frac{G M_\mathrm{p}}{r}\Bigg[1 + \frac{M_\mathrm{p} + M_\star}{3 M_\mathrm{p}} \left(\frac{r}{d}\right)^3 \\ &\qquad + \frac{4}{45}\, \frac{(M_\mathrm{p} + M_\star)^2 + 9 M_\star^2 + 3 M_\star (M_\mathrm{p} + M_\star)}{M_\mathrm{p}^2} \left(\frac{r}{d}\right)^6\Bigg] \end{aligned} \tag{3}$$
 
 This is the potential of the equipotential enclosing the volume of a sphere of radius $r$, with $\Psi_\mathrm{L1} = \Psi(R_\mathrm{lobe})$ and $\Psi_\mathrm{launch} = \Psi(R_\mathrm{launch})$.
 
 **The rate.** A Bernoulli integral from the launch level, where the flow is slow, to L1, where it is sonic, gives the density at L1 (their Eqs. (11) to (13), the source of the factor $e^{-1/2}$). The gas crosses the elliptical nozzle that the curvature at L1 admits (their Eqs. (8) and (9)) at the sound speed. The transfer rate is their Eq. (3):
 
-$$\dot{M}_\mathrm{L1}(d) \;=\; e^{-1/2}\, \rho_\mathrm{launch}\, \exp\!\left(-\frac{\Psi_\mathrm{L1} - \Psi_\mathrm{launch}}{v_\mathrm{th}^2}\right) v_\mathrm{th}\; A_\mathrm{noz}, \qquad A_\mathrm{noz} = \frac{2\pi\, v_\mathrm{th}^2}{\Omega^2 \sqrt{A (A - 1)}} \tag{4}$$
+$$\begin{gathered} \dot{M}_\mathrm{L1}(d) \;=\; e^{-1/2}\, \rho_\mathrm{launch}\, \exp\!\left(-\frac{\Psi_\mathrm{L1} - \Psi_\mathrm{launch}}{v_\mathrm{th}^2}\right) v_\mathrm{th}\; A_\mathrm{noz}, \\ A_\mathrm{noz} = \frac{2\pi\, v_\mathrm{th}^2}{\Omega^2 \sqrt{A (A - 1)}} \end{gathered} \tag{4}$$
 
 with $A_\mathrm{noz}$ the nozzle area. The expansion behind Eq. (3) converges only inside the lobe, so a launch level at or beyond the lobe, $R_\mathrm{launch} \ge R_\mathrm{lobe}$, sets the exponential to 1. That is their lobe-filling case (their Figure 5), flagged `nozzle_saturated`, and a lower bound on the transfer.
 
@@ -58,11 +58,11 @@ The source treats a circular, synchronously rotating planet and has no eccentric
 
 $$\langle \dot{M}_\mathrm{L1} \rangle \;=\; \frac{\sum_k (1 - e \cos E_k)\; \chi_k\; \dot{M}_\mathrm{L1}\!\left(d(E_k)\right)}{\sum_k (1 - e \cos E_k)}, \qquad E_k = \frac{2\pi (k + 1/2)}{64} \tag{7}$$
 
-with $\chi_k = 1$ on the phases that satisfy Eqs. (5) and (6) and 0 elsewhere, over 64 midpoint nodes. On a circular orbit the average is the instantaneous rate. The applicable arc surrounds periapsis, because the distance to L1 grows with separation while the sonic radius does not. The flags `nozzle_orbit_averaged` and `nozzle_partial_orbit` mark an eccentric result, and the average without $\chi_k$ is kept in the diagnostics so the rate stays comparable with the source's published values.
+The sums run over 64 orbital phases, numbered $k = 0$ to 63 and spaced evenly in eccentric anomaly at the midpoints $E_k$. The weight $1 - e \cos E_k$ turns equal steps in eccentric anomaly into equal steps in time, so a phase near apoapsis, where the planet moves slowly, counts for more. $\chi_k$ is 1 on the phases that satisfy Eqs. (5) and (6) and 0 elsewhere. On a circular orbit the average is the instantaneous rate. The applicable arc surrounds periapsis, because the distance to L1 grows with separation while the sonic radius does not. The flags `nozzle_orbit_averaged` and `nozzle_partial_orbit` mark an eccentric result, and the average without $\chi_k$ is kept in the diagnostics so the rate stays comparable with the source's published values.
 
 ### Energy
 
-The flow carries no energy limit, as in the source, which assumes isothermality and names the radiative balance along the outflow as the physics it neglects. The diagnostics report instead the heat the flow demands, $\dot{M}_\mathrm{L1} [\max(\Psi_\mathrm{L1} - \Psi_\mathrm{launch}, 0) + v_\mathrm{th}^2/2]$ with the barrier as applied, beside the interior luminosity $L_\mathrm{int}$ and the intercepted instellation $\pi R_\mathrm{p}^2 F_\mathrm{bol}$. That figure describes the candidate rather than the dispatched rate, both averaged over the applicable arc and over the full orbit, so a state where the candidate lost still says what the transfer would have cost. The [limitations page](../limitations.md) lists the further conventions and omissions of this rate.
+The transfer rate has no energy limit. Like the source, it assumes the gas keeps one temperature all the way to L1, and it does not model the heating that would keep it there. To show where that assumption is strained, the diagnostics report the power the flow would need, to lift the gas over the barrier and to accelerate it to the sound speed, beside the two sources that could supply it: the planet's interior luminosity and the starlight the planet intercepts. Where the required power exceeds both, the gas cannot stay at that temperature, and the transfer rate is likely an overestimate. The required power is computed for the transfer rate whether or not it won, so a state where it lost still shows what it would have cost. The [limitations page](../limitations.md) lists the other conventions and omissions of this rate.
 
 ## The Roche screen
 
