@@ -123,10 +123,10 @@ A star's XUV output falls by orders of magnitude as it ages, so a sweep in flux 
 ```text
 === Step 3: sweep the XUV flux across two regime boundaries ===
 F_xuv [W m-2]  regime           mdot [kg/s]     Kn_sc  label at Kn_crit 0.1 | 3
-         0.01  hydrostatic       4.989e-123   4.5e+18  hydrostatic | hydrostatic
-       0.0389  hydrostatic       4.989e-123  2.28e+18  hydrostatic | hydrostatic
-        0.151  hydrostatic       4.989e-123  5.26e+08  hydrostatic | hydrostatic
-        0.587  hydrostatic       4.989e-123      2.99  hydrostatic | hydrodynamic
+         0.01  hydrostatic       4.992e-123   4.5e+18  hydrostatic | hydrostatic
+       0.0389  hydrostatic       4.992e-123  2.28e+18  hydrostatic | hydrostatic
+        0.151  hydrostatic       4.992e-123  5.26e+08  hydrostatic | hydrostatic
+        0.587  hydrostatic       4.992e-123      2.99  hydrostatic | hydrodynamic
          2.28  hydrodynamic:EL    5.356e+05     0.117  hydrostatic | hydrodynamic
          8.87  hydrodynamic:EL    2.082e+06    0.0329  hydrodynamic | hydrodynamic
          34.5  hydrodynamic:EL    8.090e+06    0.0127  hydrodynamic | hydrodynamic
@@ -213,7 +213,7 @@ The two flags are expected. The isothermal envelope becomes unbound before it re
 regime            roche_overflow
 mdot              8.968e+06 kg/s, from the boiloff rate
 flow radius       1.132 Hill radii
-atmosphere        1.361 Roche-lobe radii
+atmosphere        1.350 Roche-lobe radii
 roche_subflag     dynamical
 ```
 
@@ -309,13 +309,13 @@ The hydrostatic branch does not compute the exobase temperature. It takes a pres
 
 ```text
 T_exo [K]  regime       mdot [kg/s]   H [kg/s]   C [kg/s]
-     1000  hydrostatic        348.1      348.1   7.75e-10
-     2000  hydrostatic        354.3      354.2     0.0354
-     4000  hydrostatic         1556      360.6        326
-H2 at 4000 K: lambda_exo 0.283, Jeans flux / diffusion supply 55.7
+     1000  hydrostatic        346.9      346.9   7.76e-10
+     2000  hydrostatic          353      352.8     0.0356
+     4000  hydrostatic         1580      355.5        334
+H2 at 4000 K: lambda_exo 0.282, Jeans flux / diffusion supply 56.7
 ```
 
-From $1000$ to $4000\,\mathrm{K}$ the bulk rate rises by a factor of 4.5, while the carbon rate rises by more than 11 orders of magnitude. The two elements are limited differently. Hydrogen escapes easily (its exobase Jeans parameter is 0.28 at $4000\,\mathrm{K}$), and its Jeans flux is 56 times what diffusion through the $\mathrm{CO_2}$ can supply from below. So the supply sets its rate, which changes by only 3.6% across the sweep. Carbon and oxygen are limited by the Jeans flux itself and carry the full exponential. The hydrostatic rate combines the two limits per species[^yelle], so a bulk rate can hide two very different mechanisms.
+From $1000$ to $4000\,\mathrm{K}$ the bulk rate rises by a factor of 4.6, while the carbon rate rises by more than 11 orders of magnitude. The two elements are limited differently. Hydrogen escapes easily (its exobase Jeans parameter is 0.28 at $4000\,\mathrm{K}$), and its Jeans flux is 57 times what diffusion through the $\mathrm{CO_2}$ can supply from below. So the supply sets its rate, which changes by only 2.5% across the sweep. Carbon and oxygen are limited by the Jeans flux itself and carry the full exponential. The hydrostatic rate combines the two limits per species[^yelle], so a bulk rate can hide two very different mechanisms.
 
 The sweep starts at $1000\,\mathrm{K}$ because that is the temperature at the top of this profile. A lower prescription would describe an upper atmosphere that cools with height, so the dispatcher clamps it to the profile top temperature and flags it.
 
@@ -393,11 +393,11 @@ age [Myr]   F_xuv  regime           mdot [kg/s]     Kn_sc  consistent
       1.0    58.4  hydrodynamic:EL    1.274e+07   0.00938  True
      45.0    1.62  hydrodynamic:EL    3.546e+05     0.246  True
     310.1     1.4  hydrodynamic:EL    3.048e+05     0.347  False
-   1138.9   0.852  hydrostatic        5.110e-02      2.81  True
-   3039.5   0.495  hydrostatic        5.110e-02  1.04e+03  True
-   6189.6    0.34  hydrostatic        5.110e-02  5.77e+05  True
-   9439.6   0.324  hydrostatic        5.110e-02  1.42e+06  True
-label changes between 939 and 1139 Myr: 2.062e+05 to 5.110e-02 kg/s
+   1138.9   0.852  hydrostatic        4.902e-02      2.81  True
+   3039.5   0.495  hydrostatic        4.902e-02  1.04e+03  True
+   6189.6    0.34  hydrostatic        4.902e-02  5.77e+05  True
+   9439.6   0.324  hydrostatic        4.902e-02  1.42e+06  True
+label changes between 939 and 1139 Myr: 2.062e+05 to 4.902e-02 kg/s
 ```
 
 !!! warning "Snapshots, not an evolution"
@@ -416,7 +416,7 @@ What the track shows:
 - The label belongs to the state, not to the planet. Nothing about the planet changed. The star became quieter, the Knudsen number rose through the threshold, and near $1\,\mathrm{Gyr}$ the escape changed from a wind to Jeans escape.
 - The rate drops by almost seven orders of magnitude at the crossing, from $2.1 \times 10^{5}$ to $5.1 \times 10^{-2}\,\mathrm{kg\,s^{-1}}$. There is no smoothing between branches, so the size of this jump is a result you can quote. It measures how much the two descriptions disagree at the same state.
 - What escapes changes too (lower panel). The wind carries carbon and oxygen away with the hydrogen. After the crossing hydrogen escapes alone, and the carbon and oxygen rates drop to about $10^{-139}\,\mathrm{kg\,s^{-1}}$, off the bottom of the plot.
-- The hydrostatic rate stays at $5.1 \times 10^{-2}\,\mathrm{kg\,s^{-1}}$ for the remaining eight billion years. That branch contains no XUV physics: a prescribed exobase temperature, a frozen profile, and a diffusion-limited supply that does not see the star. The flat line shows what the branch leaves out. It is also why hydrostatic rates of heavy elements are flagged as lower limits: the non-thermal processes that remove heavy species from real upper atmospheres are not modelled.
+- The hydrostatic rate stays at $4.9 \times 10^{-2}\,\mathrm{kg\,s^{-1}}$ for the remaining eight billion years. That branch contains no XUV physics: a prescribed exobase temperature, a frozen profile, and a diffusion-limited supply that does not see the star. The flat line shows what the branch leaves out. It is also why hydrostatic rates of heavy elements are flagged as lower limits: the non-thermal processes that remove heavy species from real upper atmospheres are not modelled.
 - The consistency check fails between $65$ and $939\,\mathrm{Myr}$ (shaded). At those ages the wind would have emptied the inventory faster than the star aged, so those snapshots cannot describe a planet of that age. After the crossing the check passes again, but only because escape has almost stopped.
 
 Each call receives the previous label, as a time-stepping run would, so the crossing age depends slightly on the sampling. The hysteresis window of step 6 bounds that dependence.

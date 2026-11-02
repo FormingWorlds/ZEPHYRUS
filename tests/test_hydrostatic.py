@@ -28,6 +28,7 @@ from zephyrus.composition import species_mass_amu
 from zephyrus.constants import G, amu, kb
 from zephyrus.hydrostatic import (
     bates_extension,
+    bates_state,
     find_exobase,
     gate_unstable,
     hydrostatic_rates,
@@ -35,6 +36,7 @@ from zephyrus.hydrostatic import (
     jeans_effusion_velocity,
     volkov_flat_factor,
 )
+from zephyrus.knudsen import sigma_mixture
 from zephyrus.profiles import Profile
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
@@ -230,17 +232,20 @@ def test_extension_truncates_when_unbound_and_flags():
     """The Bates extension stops, flagged, where the structure unbinds.
 
     A very hot exobase temperature on a small planet drives the local Jeans
-    parameter below 2 within the extension; the arrays must stop there with
-    ``unbound`` set rather than integrating an unbound structure. A cool
-    case runs the full requested span. Radii grow strictly monotonically in
-    both cases.
+    parameter below 2 within the extension; the structure must end where it
+    reaches 2, with ``unbound`` set, rather than continue into an unbound
+    tail. A cool case runs the full requested span. Radii grow strictly
+    monotonically in both cases.
     """
     prof = _mars_profile()
     hot = bates_extension(prof, M_MARS, 4000.0)
     assert hot['unbound'] is True
-    assert len(hot['zeta']) < 400
+    assert hot['zeta_end'] < 40.0
+    lam_end = G * M_MARS * hot['mu'] / (kb * hot['T'][-1] * hot['r'][-1])
+    assert lam_end == pytest.approx(2.0, rel=1e-9, abs=0.0)
     cool = bates_extension(prof, M_MARS, 200.0)
     assert cool['unbound'] is False
+    assert cool['zeta_end'] == pytest.approx(40.0, rel=1e-15, abs=0.0)
     assert len(cool['zeta']) == 400
     for ext in (hot, cool):
         assert np.all(np.diff(ext['r']) > 0)
@@ -249,29 +254,79 @@ def test_extension_truncates_when_unbound_and_flags():
     assert cool['T'][0] == pytest.approx(100.0, rel=1e-9, abs=0.0)
 
 
-def test_exobase_locator_contract():
-    """The exobase locator returns an interior index with sane flags.
+@pytest.mark.physics_invariant
+def test_bates_structure_is_the_closed_form_hydrostatic_solution():
+    """The extension satisfies dr/dzeta = H at any resolution.
 
-    On the Mars model the exobase lies inside the extension (no flags); on
-    an artificially truncated extension the top level is used with
-    ``exobase_not_reached``; an exobase at the anchor keeps one interval
-    with ``exobase_at_anchor``.
+    The closed form 1/r = 1/r0 - kB/(G M mu) integral of T dzeta is exact,
+    so a fine finite-difference derivative of r matches the local scale
+    height to the differencing error, and two resolutions agree node for
+    node where they share a zeta. A step error, as an Euler integration
+    would carry, fails both.
+    """
+    prof = _mars_profile()
+    fine = bates_extension(prof, M_MARS, 300.0, n_levels=4001)
+    h = kb * fine['T'] * fine['r'] ** 2 / (G * M_MARS * fine['mu'])
+    drdz = np.gradient(fine['r'], fine['zeta'])
+    np.testing.assert_allclose(drdz[1:-1], h[1:-1], rtol=1e-4, atol=0.0)
+    coarse = bates_extension(prof, M_MARS, 300.0, n_levels=41)
+    np.testing.assert_allclose(coarse['r'], fine['r'][::100], rtol=1e-13, atol=0.0)
+
+
+@pytest.mark.physics_invariant
+def test_exobase_locator_contract():
+    """The exobase is where the mean free path equals the scale height.
+
+    On the Mars model the exobase lies inside the extension (no flags) and
+    the two lengths agree there to the root-finding tolerance. An extension
+    that ends below the crossing returns its end with
+    ``exobase_not_reached``; an anchor already rarefied enough returns
+    zeta = 0 with ``exobase_at_anchor``.
     """
     prof = _mars_profile()
     ext = bates_extension(prof, M_MARS, 300.0)
-    i_x, flags = find_exobase(ext, M_MARS)
-    assert 0 < i_x < len(ext['zeta'])
+    z_x, flags = find_exobase(ext, M_MARS)
+    assert 0.0 < z_x < ext['zeta_end']
     assert flags == {}
-    truncated = {k: (v[:5] if isinstance(v, np.ndarray) else v) for k, v in ext.items()}
-    i_t, flags_t = find_exobase(truncated, M_MARS)
+    r, t, n, _inv = bates_state(ext, z_x)
+    sigma, _prov = sigma_mixture(ext['vmr'], float(t))
+    mfp = 1.0 / (math.sqrt(2.0) * sigma * float(n))
+    h = kb * float(t) * float(r) ** 2 / (G * M_MARS * ext['mu'])
+    assert mfp == pytest.approx(h, rel=1e-9, abs=0.0)
+    short = bates_extension(prof, M_MARS, 300.0, zeta_max=0.5 * z_x)
+    z_t, flags_t = find_exobase(short, M_MARS)
     assert flags_t.get('exobase_not_reached') is True
-    assert i_t == 4
+    assert z_t == pytest.approx(0.5 * z_x, rel=1e-12, abs=0.0)
     # A very rarefied anchor puts the exobase at the anchor itself.
     thin = dict(ext)
-    thin['n'] = ext['n'] * 1e-12
-    i_a, flags_a = find_exobase(thin, M_MARS)
+    thin['p0'] = ext['p0'] * 1e-12
+    z_a, flags_a = find_exobase(thin, M_MARS)
     assert flags_a.get('exobase_at_anchor') is True
-    assert i_a == 1
+    assert z_a == 0.0
+
+
+@pytest.mark.physics_invariant
+def test_exobase_and_rate_do_not_move_with_the_quadrature_grid():
+    """The quadrature grid sets the integration error and nothing else.
+
+    The exobase state is identical at every grid, and the bulk rate on a
+    trace-hydrogen carbon dioxide profile, where the supply integrals set
+    the hydrogen rate, converges monotonically with the first-order error
+    halving per doubling. An exobase snapped to the nearest grid level made
+    the exobase move with the grid and let two grids agree by chance.
+    """
+    prof = _co2_hydrogen_profile(0.01)
+    rates, exo = [], set()
+    for n_levels in (100, 141, 200, 283, 400, 800):
+        per, det = hydrostatic_rates(prof, M_MARS, 1000.0, n_levels=n_levels)
+        rates.append(sum(per.values()))
+        exo.add((det['zeta_exo'], det['r_exo'], det['T_exo'], det['n_exo']))
+    assert len(exo) == 1
+    assert all(b < a for a, b in zip(rates[:-1], rates[1:]))
+    # Doublings 100 -> 200 -> 400 -> 800: the change halves each time.
+    d1, d2, d3 = rates[0] - rates[2], rates[2] - rates[4], rates[4] - rates[5]
+    assert d1 / d2 == pytest.approx(2.0, rel=0.05, abs=0.0)
+    assert d2 / d3 == pytest.approx(2.0, rel=0.05, abs=0.0)
 
 
 def test_trace_species_below_floor_are_pruned_not_dropped():

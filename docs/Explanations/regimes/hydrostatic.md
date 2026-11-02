@@ -8,7 +8,11 @@ The atmosphere profile usually stops well below the exobase, so the branch build
 
 $$T(\zeta) \;=\; T_\infty - \left(T_\infty - T_\mathrm{top}\right) e^{-\gamma_\mathrm{B} \zeta}, \qquad \frac{\mathrm{d}r}{\mathrm{d}\zeta} = \frac{k_\mathrm{B}\, T\, r^2}{G M_\mathrm{p}\, \mu_0}, \qquad n = \frac{P_\mathrm{top}\, e^{-\zeta}}{k_\mathrm{B} T} \tag{1}$$
 
-with $r(\zeta = 0) = R_0$, the shape parameter $\gamma_\mathrm{B}$ (`gamma_bates`, default 0.75), and the exospheric temperature $T_\infty$ that the profile approaches (`T_exo_value`, default 1000 K). The integration stops where the local Jeans parameter falls below 2, since the structure is unbound beyond that point, and the flag `extension_unbound` is raised. The exobase is the first level of this structure where
+with $r(\zeta = 0) = R_0$, the shape parameter $\gamma_\mathrm{B}$ (`gamma_bates`, default 0.75), and the exospheric temperature $T_\infty$ that the profile approaches (`T_exo_value`, default 1000 K). Because the Bates profile integrates analytically, so does the radius,
+
+$$\frac{1}{r(\zeta)} \;=\; \frac{1}{R_0} - \frac{k_\mathrm{B}}{G M_\mathrm{p}\, \mu_0} \left[T_\infty\, \zeta - \left(T_\infty - T_\mathrm{top}\right) \frac{1 - e^{-\gamma_\mathrm{B} \zeta}}{\gamma_\mathrm{B}}\right],$$
+
+so the structure carries no step error. It ends where the local Jeans parameter reaches 2, since the structure is unbound beyond that point, and the flag `extension_unbound` is raised. The exobase is the lowest point of this structure where
 
 $$\frac{1}{\sqrt{2}\,\sigma_\mathrm{C}\, n} \;\ge\; \frac{k_\mathrm{B}\, T\, r^2}{G M_\mathrm{p}\, \mu_0} \tag{2}$$
 
@@ -44,7 +48,7 @@ with $X_i(\zeta = 0)$ the species mole fraction at the profile top. The limiting
 
 $$\Phi_{\mathrm{l},i} \;=\; \left[\int_0^{\zeta_\mathrm{exo}} \frac{k_\mathrm{B}\, T\, R_0^2}{G M_\mathrm{p}\, \mu_0\, \tilde{X}_i\, n\, (D_i + K_{zz})}\, \mathrm{d}\zeta\right]^{-1} \tag{7}$$
 
-Both integrals are first order in the log-pressure step. The quadrature grid is therefore doubled from `hydrostatic_levels_min` until the bulk rate changes by less than `hydrostatic_rtol` (default 1%) or `hydrostatic_levels_max` is reached. The levels used and the last change are reported in the diagnostics, and the finest grid's values are returned, never an extrapolation.
+The exobase is located by root finding on the closed-form structure, so it does not move with the quadrature grid of these integrals. Both integrals are first order in the log-pressure step. The quadrature grid is therefore doubled from `hydrostatic_levels_min` until two successive refinements each change the bulk rate by less than `hydrostatic_rtol` (default 1%), so that one chance agreement between two grids does not end the refinement, or until `hydrostatic_levels_max` is reached. The levels used and the last change are reported in the diagnostics, and the finest grid's values are returned, never an extrapolation.
 
 ## The combined rate
 

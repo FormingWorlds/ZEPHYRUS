@@ -67,8 +67,8 @@ The `effect` column says whether the returned rate already reflects the flag or 
 |---|---|---|---|
 | `hydrostatic_lower_limit` | `True` | Always set on this branch: the nonthermal channels that dominate heavy-species loss from real exospheres are not modelled, so heavy-element rates are lower limits. | Reporting only |
 | `volkov_extrapolated` | `True` | A species sits outside the Jeans-parameter range 6 to 15 over which the kinetic enhancement factor was measured, so the factor was held at the nearer endpoint. The two sides differ in cost: above 15 the factor is falling toward 1 and holding 1.4 overstates the flux slightly, while below 6 it is rising and holding 1.7 understates it, and the low side is the one a trace light species on a heavy background actually reaches. | The rate reflects it |
-| `exobase_not_reached` | `True` | The extended structure never reaches the level where the mean free path equals the scale height, so its top level was used as the exobase. | The rate reflects it |
-| `exobase_at_anchor` | `True` | The exobase landed on the profile top itself. One integration interval was kept so the supply integrals exist. | The rate reflects it |
+| `exobase_not_reached` | `True` | The extended structure never reaches the level where the mean free path equals the scale height, so its end was used as the exobase. | The rate reflects it |
+| `exobase_at_anchor` | `True` | The exobase lies at the profile top itself, so there is no diffusive column below it: every species takes its Jeans flux at its mole fraction there, with no supply limit. | The rate reflects it |
 | `extension_unbound` | `True` | The extended upper structure became unbound before the integration finished. | The rate reflects it |
 
 ### The screens and the split

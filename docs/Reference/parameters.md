@@ -119,7 +119,7 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 | `gamma_wind` | 1.0 | $1 \leq \gamma \leq 5/3$ | Polytropic index at the sonic point (1 for an isothermal wind). |
 | `hydrostatic_levels_min` | 200 | integer $\geq 2$ | First quadrature grid of the diffusion-limited supply integrals. |
 | `hydrostatic_levels_max` | 3200 | integer $\geq$ `hydrostatic_levels_min` | Refinement ceiling. Reaching it without meeting the target is reported, not raised. |
-| `hydrostatic_rtol` | 0.01 | $> 0$ | Target relative change in the bulk hydrostatic rate between a grid and its refinement. The integrals are first order in the log-pressure step, so that change also estimates what is left to converge. |
+| `hydrostatic_rtol` | 0.01 | $> 0$ | Target relative change in the bulk hydrostatic rate between a grid and its refinement, to be met on two successive refinements. The integrals are first order in the log-pressure step, so that change also estimates what is left to converge. |
 
 ## Dispatcher inputs (`dispatcher.EscapeInputs`)
 

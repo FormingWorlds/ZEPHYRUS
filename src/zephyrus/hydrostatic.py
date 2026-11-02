@@ -10,6 +10,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from scipy.optimize import brentq
 
 from zephyrus.composition import ELEMENT_AMU, parse_formula, species_mass_amu
 from zephyrus.constants import G, amu, kb
@@ -23,11 +24,11 @@ from zephyrus.knudsen import sigma_mixture
 # - Upper structure: the Bates temperature profile
 #   T(zeta) = T_exo - (T_exo - T_top) exp(-gamma zeta), in the form Yelle
 #   (2024, Icarus 416, 116099, their Eq. 19) uses, anchored at the topmost
-#   supplied profile level and integrated hydrostatically in
-#   zeta = ln(p_top/p), with composition and mean mass frozen at the
+#   supplied profile level and integrated hydrostatically, in closed form,
+#   in zeta = ln(p_top/p), with composition and mean mass frozen at the
 #   anchor. The exobase quantities are read on this inflated structure,
 #   never on photospheric values (Johnson et al. 2013, ApJL 768, L4).
-# - Exobase: the first level where the Maxwell mean free path
+# - Exobase: the lowest point where the Maxwell mean free path
 #   1/(sqrt(2) sigma n) reaches the local scale height (the convention of
 #   Volkov et al. 2011), with the mixture cross section of the Knudsen
 #   switch.
@@ -98,16 +99,21 @@ def bates_extension(
 ) -> dict:
     """Bates upper structure above the topmost profile level.
 
-    Integrates the hydrostatic relation on the Bates temperature profile in
-    ``zeta = ln(p_top / p)`` with composition and mean mass frozen at the
-    anchor. The integration stops, flagged ``unbound``, where the local
-    Jeans parameter drops below 2: an isothermal-tail structure is unbound
-    beyond that point and the geometry belongs to the overflow and boil-off
-    machinery, not to a hydrostatic exosphere.
+    The hydrostatic relation on the Bates temperature profile in
+    ``zeta = ln(p_top / p)``, with composition and mean mass frozen at the
+    anchor, integrates in closed form: ``d(1/r)/dzeta = -kB T / (G M mu)``
+    and the Bates profile integrates analytically, so the structure carries
+    no step error at any resolution. It ends, flagged ``unbound``, where the
+    local Jeans parameter falls to 2: an isothermal-tail structure is
+    unbound beyond that point and the geometry belongs to the overflow and
+    boil-off machinery, not to a hydrostatic exosphere.
 
-    Returns a dict of arrays over the extension (``zeta``, ``p``, ``r``,
-    ``T``, ``n``) plus the frozen ``mu`` [kg], the normalized species
-    ``vmr``, the anchor values ``p0`` and ``r0``, and ``unbound``.
+    Returns a dict of arrays on ``n_levels`` points spanning the extension
+    (``zeta``, ``p`` [Pa], ``r`` [m], ``T`` [K], ``n`` [m^-3]), the end
+    point ``zeta_end``, the frozen ``mu`` [kg], the normalized species
+    ``vmr``, the anchor values ``p0`` and ``r0``, the Bates parameters
+    (``T_exo``, ``T_top``, ``gamma``, ``M_p``), and ``unbound``.
+    ``bates_state`` evaluates the same structure at any ``zeta``.
     """
     p0 = float(profile.p[-1])
     r0 = float(profile.r[-1])
@@ -130,64 +136,98 @@ def bates_extension(
     if tot <= 0.0:
         raise ValueError('no species present at the profile top')
     vmr = {sp: x / tot for sp, x in vmr.items()}
-    zeta = np.linspace(0.0, zeta_max, n_levels)
-    T = T_exo - (T_exo - t_top) * np.exp(-gamma * zeta)
-    r = np.empty(n_levels)
-    r[0] = r0
-    unbound = False
-    last = n_levels - 1
-    for i in range(n_levels - 1):
-        H = kb * T[i] * r[i] ** 2 / (G * M_p * mu)
-        r[i + 1] = r[i] + H * (zeta[i + 1] - zeta[i])
-        lam_next = G * M_p * mu / (kb * T[i + 1] * r[i + 1])
-        if lam_next < 2.0:
-            unbound = True
-            last = i + 1
-            break
-    zeta, T, r = zeta[: last + 1], T[: last + 1], r[: last + 1]
-    p = p0 * np.exp(-zeta)
-    n = p / (kb * T)
-    return dict(
+    ext = dict(mu=mu, vmr=vmr, p0=p0, r0=r0, T_exo=T_exo, T_top=t_top, gamma=gamma, M_p=M_p)
+
+    def excess_lambda(z: float) -> float:
+        _r, t, _n, inv_r = _bates_point(ext, z)
+        return G * M_p * mu * inv_r / (kb * t) - 2.0
+
+    if excess_lambda(zeta_max) >= 0.0:
+        zeta_end, unbound = zeta_max, False
+    elif excess_lambda(0.0) <= 0.0:
+        zeta_end, unbound = 0.0, True
+    else:
+        # The Jeans parameter falls monotonically with zeta (1/r falls and
+        # T does not), so the crossing is unique.
+        zeta_end = brentq(excess_lambda, 0.0, zeta_max, xtol=1e-12, rtol=1e-12)
+        unbound = True
+    zeta = np.linspace(0.0, zeta_end, n_levels) if zeta_end > 0.0 else np.zeros(1)
+    r, T, n, _inv = bates_state(ext, zeta)
+    ext.update(
         zeta=zeta,
-        p=p,
+        p=p0 * np.exp(-zeta),
         r=r,
         T=T,
         n=n,
-        mu=mu,
-        vmr=vmr,
-        p0=p0,
-        r0=r0,
+        zeta_end=float(zeta_end),
         unbound=unbound,
         t_exo_floored=floored,
     )
+    return ext
 
 
-def find_exobase(ext: dict, M_p: float) -> tuple[int, dict]:
-    """Exobase index on the extension: mean free path equals scale height.
+def _bates_point(ext: dict, zeta: float) -> tuple[float, float, float, float]:
+    """Scalar form of ``bates_state``: ``(r, T, n, 1/r)`` at one ``zeta``."""
+    r, T, n, inv_r = bates_state(ext, np.asarray(zeta, dtype=float))
+    return float(r), float(T), float(n), float(inv_r)
 
-    Maxwell mean free path with the mixture cross section, against the
-    local scale height ``kB T r^2 / (G M mu)``. When the extension never
-    reaches that point the top level is used, flagged
-    ``exobase_not_reached``; an exobase at the anchor itself keeps one
-    integration interval so the supply integrals exist, flagged
+
+def bates_state(ext: dict, zeta):
+    """Radius [m], temperature [K], number density [m^-3], and 1/r at ``zeta``.
+
+    ``T = T_exo - (T_exo - T_top) exp(-gamma zeta)`` integrates to
+    ``T_exo zeta - (T_exo - T_top)(1 - exp(-gamma zeta)) / gamma``, which
+    gives ``1/r`` exactly. Beyond the point where ``1/r`` reaches zero the
+    radius is infinite; ``bates_extension`` stops well before it.
+    """
+    zeta = np.asarray(zeta, dtype=float)
+    t_exo, t_top, gamma = ext['T_exo'], ext['T_top'], ext['gamma']
+    decay = np.exp(-gamma * zeta)
+    T = t_exo - (t_exo - t_top) * decay
+    t_int = t_exo * zeta - (t_exo - t_top) * (1.0 - decay) / gamma
+    inv_r = 1.0 / ext['r0'] - kb * t_int / (G * ext['M_p'] * ext['mu'])
+    with np.errstate(divide='ignore'):
+        r = np.where(inv_r > 0.0, 1.0 / np.where(inv_r > 0.0, inv_r, 1.0), np.inf)
+    n = ext['p0'] * np.exp(-zeta) / (kb * T)
+    return r, T, n, inv_r
+
+
+def find_exobase(ext: dict, M_p: float, n_scan: int = 201) -> tuple[float, dict]:
+    """Exobase on the extension, as ``(zeta_exo, flags)``.
+
+    The level where the Maxwell mean free path ``1/(sqrt(2) sigma n)`` with
+    the mixture cross section equals the local scale height
+    ``kB T r^2 / (G M mu)``, located by a bracketing root find on the
+    closed-form structure rather than snapped to a grid level, so the
+    exobase state does not depend on any quadrature resolution. ``n_scan``
+    points bracket the first crossing. When the extension never reaches
+    that point its end is used, flagged ``exobase_not_reached``; an exobase
+    at the anchor itself returns ``zeta_exo = 0``, flagged
     ``exobase_at_anchor``.
     """
     flags: dict = {}
-    idx = None
-    for i in range(len(ext['zeta'])):
-        sigma, _prov = sigma_mixture(ext['vmr'], float(ext['T'][i]))
-        mfp = 1.0 / (math.sqrt(2.0) * sigma * ext['n'][i])
-        H = kb * ext['T'][i] * ext['r'][i] ** 2 / (G * M_p * ext['mu'])
-        if mfp >= H:
-            idx = i
-            break
-    if idx is None:
-        idx = len(ext['zeta']) - 1
-        flags['exobase_not_reached'] = True
-    if idx == 0:
+    zeta_end = float(ext['zeta_end'])
+
+    def excess(z: float) -> float:
+        r, t, n, _inv = _bates_point(ext, z)
+        sigma, _prov = sigma_mixture(ext['vmr'], t)
+        mfp = 1.0 / (math.sqrt(2.0) * sigma * n)
+        return mfp / (kb * t * r**2 / (G * M_p * ext['mu'])) - 1.0
+
+    if excess(0.0) >= 0.0:
         flags['exobase_at_anchor'] = True
-        idx = 1
-    return idx, flags
+        return 0.0, flags
+    if zeta_end <= 0.0:
+        flags['exobase_not_reached'] = True
+        return 0.0, flags
+    grid = np.linspace(0.0, zeta_end, max(2, int(n_scan)))
+    lo = 0.0
+    for z in grid[1:]:
+        if excess(float(z)) >= 0.0:
+            return float(brentq(excess, lo, float(z), xtol=1e-12, rtol=1e-12)), flags
+        lo = float(z)
+    flags['exobase_not_reached'] = True
+    return zeta_end, flags
 
 
 def hydrostatic_rates(
@@ -217,7 +257,8 @@ def hydrostatic_rates(
 
     ``n_levels`` sets the quadrature resolution of the supply integrals,
     which are first-order accurate in the log-pressure step;
-    ``hydrostatic_rates_refined`` refines it to a target.
+    ``hydrostatic_rates_refined`` refines it to a target. The exobase does
+    not depend on it.
 
     Returns ``(per_element, detail)``; the detail dict carries the exobase
     state, both escape temperatures, the ``dominant`` species that supplies
@@ -225,13 +266,28 @@ def hydrostatic_rates(
     provenance, and flags (including ``hydrostatic_lower_limit``, which is
     always on: nonthermal loss channels are absent).
     """
-    ext = bates_extension(profile, M_p, T_exo, gamma=gamma_bates, n_levels=n_levels)
-    i_x, flags = find_exobase(ext, M_p)
+    structure = _exobase_structure(profile, M_p, T_exo, gamma_bates)
+    return _rates_on_structure(profile, M_p, structure, kzz_default, n_levels)
+
+
+def _exobase_structure(profile, M_p: float, T_exo: float, gamma_bates: float) -> tuple:
+    """The extension, the exobase on it, and the structure flags."""
+    ext = bates_extension(profile, M_p, T_exo, gamma=gamma_bates, n_levels=2)
+    zeta_x, flags = find_exobase(ext, M_p)
     if ext['t_exo_floored']:
         flags['t_exo_floored_to_profile_top'] = True
-    if ext.get('unbound'):
+    if ext['unbound']:
         flags['extension_unbound'] = True
-    r_x, t_x, n_x = float(ext['r'][i_x]), float(ext['T'][i_x]), float(ext['n'][i_x])
+    return ext, zeta_x, flags
+
+
+def _rates_on_structure(
+    profile, M_p: float, structure: tuple, kzz_default: float, n_levels: int
+) -> tuple[dict, dict]:
+    """Per-species rates on a fixed exobase structure, at one quadrature grid."""
+    ext, zeta_x, structure_flags = structure
+    flags = dict(structure_flags)
+    r_x, t_x, n_x, _inv = _bates_point(ext, zeta_x)
     r_0 = float(ext['r0'])
     comp = ext['vmr']
     m_bar = ext['mu']
@@ -242,9 +298,14 @@ def hydrostatic_rates(
     else:
         k_eddy = kzz_default
 
-    zeta = ext['zeta'][: i_x + 1]
-    T = ext['T'][: i_x + 1]
-    n = ext['n'][: i_x + 1]
+    # Quadrature nodes from the anchor to the exobase itself, so the grid
+    # sets only the integration error and never where the exobase sits.
+    if zeta_x > 0.0:
+        zeta = np.linspace(0.0, zeta_x, max(2, int(n_levels)))
+    else:
+        zeta = np.zeros(1)
+    _r, T, n, _ = bates_state(ext, zeta)
+    dtdz_all = ext['gamma'] * (ext['T_exo'] - ext['T_top']) * np.exp(-ext['gamma'] * zeta)
 
     per_species_rate: dict = {}
     detail_species: dict = {}
@@ -280,7 +341,7 @@ def hydrostatic_rates(
                 bmk, prov = b_mixture(sp, comp, t_k)
                 b_prov.update(prov)
                 d_mol = bmk / n_k
-                dtdz = (float(T[k + 1]) - t_k) / dz
+                dtdz = float(dtdz_all[k])
                 m_tilde = m_i + ALPHA_THERMAL * dtdz * (m_bar / t_k)
                 int1 += (1.0 - m_tilde / m_bar) * (d_mol / (d_mol + k_eddy)) * dz
                 x_tilde = x0 * math.exp(min(int1, 700.0))
@@ -323,6 +384,7 @@ def hydrostatic_rates(
 
     detail = dict(
         r_exo=r_x,
+        zeta_exo=zeta_x,
         T_exo=t_x,
         n_exo=n_x,
         r_anchor=r_0,
@@ -354,38 +416,35 @@ def hydrostatic_rates_refined(
 ) -> tuple[dict, dict]:
     """Hydrostatic rates refined until the quadrature stops moving them.
 
-    The supply integrals are first-order accurate in the log-pressure step,
-    so the change between a grid and its refinement estimates the remaining
-    error. The resolution doubles from ``n_levels_min`` until the relative
-    change in the bulk rate falls below ``rtol`` or ``n_levels_max`` is
-    reached.
+    The exobase is located once, on the closed-form structure, so only the
+    supply integrals depend on the grid. They are first-order accurate in
+    the log-pressure step, so the change between a grid and its refinement
+    estimates the remaining error. The resolution doubles from
+    ``n_levels_min`` until two successive relative changes in the bulk rate
+    fall below ``rtol``, so a single chance agreement between two grids does
+    not end the refinement, or until ``n_levels_max`` is reached.
     The finest grid's rates are returned, never an extrapolation.
 
     The detail dict gains a ``convergence`` entry recording the levels used,
     the last relative change in the bulk rate and the worst one across the
-    species, and whether the target was met. A call that exhausts
-    ``n_levels_max`` without meeting it reports ``converged`` False rather
-    than raising: the rate is still the best available and the caller can
-    see how far from the target it is.
+    species, the grid history, and whether the target was met. A call that
+    exhausts ``n_levels_max`` without meeting it reports ``converged`` False
+    rather than raising: the rate is still the best available and the
+    caller can see how far from the target it is.
     """
+    structure = _exobase_structure(profile, M_p, T_exo, gamma_bates)
     n = max(2, int(n_levels_min))
     n_max = max(n, int(n_levels_max))
-    per_element, detail = hydrostatic_rates(
-        profile, M_p, T_exo, gamma_bates=gamma_bates, kzz_default=kzz_default, n_levels=n
-    )
+    per_element, detail = _rates_on_structure(profile, M_p, structure, kzz_default, n)
     history = [(n, sum(per_element.values()))]
     rel_bulk = math.inf
     rel_species = math.inf
+    below = 0
     converged = False
     while n < n_max:
         n_fine = min(2 * n, n_max)
-        per_fine, detail_fine = hydrostatic_rates(
-            profile,
-            M_p,
-            T_exo,
-            gamma_bates=gamma_bates,
-            kzz_default=kzz_default,
-            n_levels=n_fine,
+        per_fine, detail_fine = _rates_on_structure(
+            profile, M_p, structure, kzz_default, n_fine
         )
         rel_bulk = _relative_change(sum(per_element.values()), sum(per_fine.values()))
         rel_species = max(
@@ -397,7 +456,8 @@ def hydrostatic_rates_refined(
         )
         per_element, detail, n = per_fine, detail_fine, n_fine
         history.append((n, sum(per_element.values())))
-        if rel_bulk <= rtol:
+        below = below + 1 if rel_bulk <= rtol else 0
+        if below >= 2:
             converged = True
             break
     detail['convergence'] = dict(
