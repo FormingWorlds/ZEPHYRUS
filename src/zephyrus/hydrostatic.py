@@ -63,8 +63,8 @@ from zephyrus.knudsen import sigma_mixture
 
 ALPHA_THERMAL = -0.25  # thermal diffusion factor (Yelle 2024, after Banks & Kockarts)
 
-# Species whose supply-free Jeans rate is below the rate floor skip the
-# diffusion integrals, since their harmonic-mean rate could only be smaller.
+# Species whose Jeans rate at their profile-top fraction is below the rate
+# floor skip the diffusion integrals and keep that rate, an estimate.
 
 
 def volkov_flat_factor(lam: float) -> float:
@@ -251,9 +251,12 @@ def hydrostatic_rates(
     The eddy diffusion coefficient comes from the profile's top level when
     a ``kzz`` column is present, else ``kzz_default`` [m^2/s]. Species
     whose supply-free Jeans rate already falls below one proton mass per
-    year skip the supply integrals (``pruned`` in the per-species detail):
-    the harmonic mean could only be smaller, and the cost of the integrals
-    dominates the branch on many-species profiles.
+    year skip the supply integrals (``pruned`` in the per-species detail)
+    and return that rate at their profile-top mole fraction. It is an
+    estimate, not a bound, since diffusive enrichment can raise a light
+    species' full rate above it (2.0 to 2.6 times on trace hydrogen and
+    helium profiles). The shortcut exists because the integrals dominate
+    the cost of the branch on many-species profiles.
 
     ``n_levels`` sets the quadrature resolution of the supply integrals,
     which are first-order accurate in the log-pressure step;
@@ -325,8 +328,8 @@ def _rates_on_structure(
             x_tilde_x = x0
             phi_l = math.inf
         elif area * m_i * phi_jeans_unlimited < RATE_FLOOR_KG_S:
-            # The supply-free rate is already numerically negligible; the
-            # harmonic mean with any supply limit is smaller still.
+            # Not a bound: diffusive enrichment can raise a light species'
+            # full rate above this one by a few times.
             x_tilde_x = x0
             phi_l = math.inf
             pruned = True
