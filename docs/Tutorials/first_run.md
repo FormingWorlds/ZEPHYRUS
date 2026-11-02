@@ -14,7 +14,7 @@ If you haven't installed ZEPHYRUS yet, follow the [installation guide](../How-to
 
 ## The full script
 
-The complete example lives at `examples/demo_earth/demo_earth.py` in the repository. Run it from the repository root, so that it writes to the same `output/` folder as the [dispatcher tutorial](dispatch.md); the script creates the folder if it does not exist.
+The complete example lives at `examples/demo_earth/demo_earth.py` in the repository. Run it from the repository root, so that it writes to the same `output/` folder as the [dispatcher tutorial](dispatch.md). The script creates the folder if it does not exist.
 
 Then run it:
 

@@ -31,7 +31,7 @@ This page tracks the tests that anchor the behaviour of `zephyrus.collision` aga
 X = min(0.64 * [ (v_c/v_esc)^2 * (M_i/M_tot)^(1/2) * (rho_i/rho_t)^(1/2) * f_M(b) ]^0.65, 1)
 ```
 
-with the mutual escape speed `v_esc = sqrt(2 G (M_t + M_i) / (R_t + R_i))` and the fractional interacting mass `f_M` of the paper's Eqn. B1: density-weighted spherical caps of common height `d = (R_t + R_i)(1 - b)`, normalised by the density-weighted body volumes. At equal bulk densities `f_M` reduces exactly to the interacting volume `f_V` of Eqn. B2, which the test suite verifies as a property; a dedicated pin separates the two forms for an iron-rich impactor, where they differ by 0.0056 in `X` against a pin tolerance two orders of magnitude tighter.
+with the mutual escape speed `v_esc = sqrt(2 G (M_t + M_i) / (R_t + R_i))` and the fractional interacting mass `f_M` of the paper's Eqn. B1: density-weighted spherical caps of common height `d = (R_t + R_i)(1 - b)`, normalised by the density-weighted body volumes. At equal bulk densities `f_M` reduces to the interacting volume `f_V` of Eqn. B2, which the test suite verifies as a property; a dedicated pin separates the two forms for an iron-rich impactor, where they differ by 0.0056 in `X` against a pin tolerance two orders of magnitude tighter.
 
 The closed-form pin uses identical twin bodies so every bracket ratio except `M_i/M_tot = 1/2` is unity, giving `X = 0.64 * 0.5^0.325 = 0.510911` at contact speed equal to the mutual escape speed. The discrimination guards re-evaluate the law with the historical wrong mass-ratio denominator (`M_i/M_t`, giving 0.640000), a wrong outer exponent (0.5, giving 0.807261 at 1.5 `v_esc`), and a wrong velocity exponent (1, giving 0.664974); each sits far outside the `rel = 1e-4` pin.
 

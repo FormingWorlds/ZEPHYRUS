@@ -9,7 +9,7 @@ Tests verify that the code does what was written; physical correctness is judged
 
 This page describes the suite as a whole and how to run it.
 
-## Test quality contract
+## Test quality rules
 
 Five layers enforce test rigour across the suite:
 
@@ -57,7 +57,7 @@ The timeout is a defensive ceiling, not a target. A unit test that takes 25 s of
 Every physics source (the thirteen modules listed in `PHYSICS_SOURCES` of `tools/check_test_quality.py`, from `atomic_data.py` to `thermostat.py`) needs at least one test that asserts one of four invariant families. Stated for the energy-limited rate, they read:
 
 - **Conservation**: the mass-loss rate equals the deposited XUV power divided by the gravitational binding energy per unit mass, up to the geometric and efficiency factors of the formula; in a coupled step the removed mass never exceeds the available atmospheric mass.
-- **Positivity or boundedness**: the escape rate is non-negative for valid inputs; the tidal factor `K_tide` lies in `(0, 1)` when $\xi = R_\mathrm{Hill} / R > 1$, with $R = R_\mathrm{p}$ under `scaling=2` and $R_\mathrm{XUV}$ under `scaling=3`, rising toward 1 as the orbit widens, and the tidal branch raises `ValueError` for $\xi \le 1$; radii, masses, and semi-major axis are strictly positive; the XUV flux and efficiency are non-negative.
+- **Positivity or boundedness**: the escape rate is non-negative for valid inputs. The tidal factor `K_tide` lies in `(0, 1)` when $\xi = R_\mathrm{Hill} / R > 1$, with $R = R_\mathrm{p}$ under `scaling=2` and $R_\mathrm{XUV}$ under `scaling=3`, rising toward 1 as the orbit widens, and the tidal branch raises `ValueError` for $\xi \le 1$. Radii, masses, and semi-major axis are strictly positive, and the XUV flux and efficiency are non-negative.
 - **Monotonicity or symmetry**: the rate is linear in the XUV flux at fixed geometry; it scales as `1 / Mp`; it is larger with the tidal correction than without (`K_tide < 1`) for a close-in orbit; it is zero when the flux is zero.
 - **Pinned numeric value with a discrimination guard**: a closed-form value pinned via `pytest.approx`, plus explicit assertions that a wrong exponent, a wrong scaling branch, a sign flip, or a unit slip would each differ from the correct value by more than the tolerance.
 

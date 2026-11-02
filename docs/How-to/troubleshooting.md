@@ -5,7 +5,7 @@ A regime verdict looks wrong, or a flag fired and you want to know whether it ma
 Start with the two questions that dispose of most surprises:
 
 1. **Is the rate physically meaningful at all?** One proton per year through the surface, about $5.3 \times 10^{-35}$ kg s⁻¹, is the smallest rate with content. Below it, the label is describing an outflow that does not exist.
-2. **Was the state near a regime boundary?** `diagnostics['knudsen']['counterfactual_labels']` gives the label the state would get at each edge of the collisionality criterion's band. If the two agree, the verdict is robust. If they disagree, the state sits inside a transition band and the label depends on where the threshold is set, not on the planet.
+2. **Was the state near a regime boundary?** `diagnostics['knudsen']['counterfactual_labels']` gives the label the state would get at each edge of the collisionality criterion's band. If the two agree, the verdict does not depend on where in the band the threshold sits. If they disagree, the state sits inside a transition band and the label depends on where the threshold is set, not on the planet.
 
 ## The rate is zero, or absurdly small
 
@@ -72,7 +72,7 @@ The flux scaling will not separate them either: the base ion density follows $\s
 
 The geometric reading is where surprises come from. When the bolometric residual wins, which it can do only where `residual_mode = 'luminosity_capped'` admits it, the tested radius is the bolometric sonic radius $R_\mathrm{B} = \Lambda R_\mathrm{ph}\, 2^{1/4} / 2$, which grows with the Jeans parameter $\Lambda$. A tightly bound heavy atmosphere therefore puts it several Hill radii out while the atmosphere itself sits deep inside, which is the opposite of overflowing.
 
-The flipping under a small change has a separate cause. The radius the screen tests belongs to the candidate that won the rate comparison, so wherever two candidates are within a few per cent of each other, a small input change swaps the tested radius and with it the label. The rate does not move with it, because the screen never changes the rate.
+The flipping under a small change has a separate cause. The radius the screen tests belongs to the candidate that won the rate comparison, so wherever two candidates are within a few % of each other, a small input change swaps the tested radius and with it the label. The rate does not move with it, because the screen never changes the rate.
 
 **What to do.** Read four things:
 

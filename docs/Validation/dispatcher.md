@@ -8,10 +8,10 @@ This page tracks the `@pytest.mark.reference_pinned` test that anchors the assem
 
 ## Notes
 
-The totality contract (200 random physically posed inputs returning one label, finite non-negative rates, and per-species sums equal to the bulk rate) and the boxedness of the diagnostics container are asserted as physics invariants in the same file. Every branch of the routing is exercised by dedicated scenario tests.
+The guarantee that every physically posed input returns one result (200 random inputs, each returning one label, finite non-negative rates, and per-species sums equal to the bulk rate) and the boxedness of the diagnostics container are asserted as physics invariants in the same file. Eighteen of the twenty-two routing paths the admission rule opens have a witness state in the tests. The other four, a bolometric residual winning while the wind is rarefied, were not found in a search and are listed as unwitnessed.
 
 ## Anchor type
 
-Cross-implementation cross-check against the package's released energy-limited contract.
+Cross-implementation cross-check against the package's released energy-limited function, `EL_escape`.
 
 Date of last comparison against the sources: 2026-08-20.
