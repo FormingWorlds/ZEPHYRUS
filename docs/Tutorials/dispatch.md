@@ -217,7 +217,7 @@ atmosphere        1.350 Roche-lobe radii
 roche_subflag     dynamical
 ```
 
-Admitted, this outflow wins, and its flow reaches 1.13 Hill radii. The dispatcher then renames the state `roche_overflow`. The rate is unchanged by the renaming: it is still the boil-off rate, which is why the output names that rate. Read it as a lower limit on what tides would remove. The subflag `dynamical` says the atmosphere itself extends past the Roche lobe, to 1.36 lobe radii. The [troubleshooting guide](../How-to/troubleshooting.md) explains the other subflag values.
+Admitted, this outflow wins, and its flow reaches 1.13 Hill radii. The dispatcher then renames the state `roche_overflow`. The rate is unchanged by the renaming: it is still the boil-off rate, which is why the output names that rate. Read it as a lower limit on what tides would remove. The subflag `dynamical` says the atmosphere itself extends past the Roche lobe, to 1.35 lobe radii. The [troubleshooting guide](../How-to/troubleshooting.md) explains the other subflag values.
 
 Now dispatch the same state with the default settings:
 
@@ -234,7 +234,7 @@ bolometric        8.968e+06 kg/s, competes: False
 L1 transfer       6.749e+08 kg/s, competes: False (R_sonic / R_L1 = 0.957)
 ```
 
-The XUV wind now sets the rate, at $4.4 \times 10^{4}\,\mathrm{kg\,s^{-1}}$, two hundred times below the admitted outflow. The suffix PL means the rate is limited by the number of ionising photons arriving (step 6). The wind reaches 0.82 Hill radii, inside the lobe, so the state keeps its label and only the `near_roche` warning fires.
+The XUV wind now sets the rate, at $4.4 \times 10^{4}\,\mathrm{kg\,s^{-1}}$, two hundred times below the admitted outflow. The suffix PL means the rate is limited by the number of ionising photons arriving (step 6). The wind reaches 0.82 Hill radii. That is past the Roche lobe, at about 0.70 Hill radii, but the screen tests the Hill radius, so the state keeps its label and only the `near_roche` warning fires.
 
 The last line is a third candidate. L1, the inner Lagrange point, is the point between planet and star where their gravity balances. Gas can flow through it towards the star as through a nozzle. The dispatcher computes that transfer rate on every call, here $6.7 \times 10^{8}\,\mathrm{kg\,s^{-1}}$, but lets it compete only when the wind's sonic point reaches L1. Here the sonic point stops just short of it (`R_sonic / R_L1` = 0.957), so a spherical wind forms first and the transfer rate does not count.
 
