@@ -99,7 +99,15 @@ def admitted(
 
 
 def select(candidates: tuple[str, ...], rates: dict[str, float]) -> str:
-    """The candidate with the largest rate, the earliest one on a tie."""
+    """The candidate with the largest rate, the earliest one on a tie.
+
+    Raises ``ValueError`` when an admitted rate is not finite and
+    non-negative, since a NaN loses every comparison and would otherwise
+    keep whichever candidate came first.
+    """
+    for name in candidates:
+        if not (math.isfinite(rates[name]) and rates[name] >= 0.0):
+            raise ValueError(f'candidate {name!r} returned the rate {rates[name]!r}')
     best = candidates[0]
     for name in candidates[1:]:
         if rates[name] > rates[best]:

@@ -1358,6 +1358,22 @@ def test_selection_takes_the_largest_admitted_rate():
     assert not any({'boiloff', 'residual'} <= set(admitted(*cond)) for cond in CONDITIONS)
 
 
+def test_selection_refuses_a_rate_that_is_not_finite():
+    """An admitted NaN, infinite, or negative rate raises instead of winning.
+
+    A NaN fails every comparison, so a first-listed NaN candidate would keep
+    the label against any finite rival and ship a NaN bulk rate.
+    """
+    adm = ('hydrostatic', 'hydrodynamic')
+    for bad in (math.nan, math.inf, -1.0):
+        with pytest.raises(ValueError, match="candidate 'hydrostatic'"):
+            select(adm, {'hydrostatic': bad, 'hydrodynamic': 5.0})
+    # A candidate that is not admitted is not inspected.
+    assert select(('hydrodynamic',), {'hydrostatic': math.nan, 'hydrodynamic': 5.0}) == (
+        'hydrodynamic'
+    )
+
+
 @pytest.mark.physics_invariant
 def test_roche_label_over_its_inputs():
     """The Roche screen renames on geometry or a nozzle win, never otherwise.

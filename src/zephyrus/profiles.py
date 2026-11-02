@@ -57,7 +57,8 @@ class Profile:
 
         Pressure must decrease and radius increase strictly with index;
         temperature is unconstrained beyond positivity. Every mixing-ratio
-        array must share the level count, be finite, and be non-negative.
+        array must share the level count, be finite, and be non-negative, and
+        so must the eddy diffusion column when one is supplied.
 
         Finiteness is checked before the sign comparisons, since a NaN passes
         every comparison. Mixing ratios below zero by less than
@@ -83,6 +84,14 @@ class Profile:
                 raise ValueError(f'vmr[{sp}] carries a non-finite value')
             if np.any(arr < -VMR_NOISE_FLOOR):
                 raise ValueError(f'vmr[{sp}] is negative beyond solver noise')
+        if self.kzz is not None:
+            kzz = np.asarray(self.kzz, dtype=float)
+            if kzz.shape != p.shape:
+                raise ValueError('kzz must share the level count of p')
+            if not np.all(np.isfinite(kzz)):
+                raise ValueError('kzz carries a non-finite value')
+            if np.any(kzz < 0.0):
+                raise ValueError('kzz must be non-negative')
         if self.vmr:
             total = sum(
                 np.clip(np.asarray(x, dtype=float), 0.0, None) for x in self.vmr.values()

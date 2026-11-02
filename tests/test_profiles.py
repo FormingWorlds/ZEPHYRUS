@@ -402,3 +402,15 @@ def test_validate_rejects_non_finite_and_negative_entries():
         Profile(**{**base, 'vmr': {'CO2': np.zeros(n), 'H2': np.zeros(n)}}).validate()
     # Solver noise passes, and the consumers ignore it.
     Profile(**{**base, 'vmr': {'CO2': np.full(n, 1.0), 'H2': np.full(n, -1e-16)}}).validate()
+    # The eddy diffusion column feeds the supply integrals and gets the same
+    # checks: a NaN there once returned a labeled NaN rate.
+    Profile(**{**base, 'kzz': np.full(n, 3.0e2)}).validate()
+    Profile(**{**base, 'kzz': np.zeros(n)}).validate()
+    for bad, match in (
+        (np.array([3e2, 3e2, np.nan, 3e2, 3e2]), 'kzz carries a non-finite'),
+        (np.array([3e2, 3e2, 3e2, 3e2, np.inf]), 'kzz carries a non-finite'),
+        (np.array([3e2, 3e2, 3e2, 3e2, -1.0]), 'kzz must be non-negative'),
+        (np.full(3, 3e2), 'kzz must share the level count'),
+    ):
+        with pytest.raises(ValueError, match=match):
+            Profile(**{**base, 'kzz': bad}).validate()
