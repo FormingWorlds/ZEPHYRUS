@@ -62,9 +62,9 @@ flowchart TD
 
     Distribute["<b><code>calc_unfract_fluxes</code></b><br/>distributes bulk rate across elements by mass mixing ratio"]
 
-    Integrate["<b><code>calc_new_elements</code></b><br/>for each element except oxygen"]
+    Cap["<b><code>limit_escape_step</code></b><br/>caps the mass one step removes<br/>at <code>escape.step_max_frac</code> of the reservoir"]
 
-    SkipO["Oxygen skipped<br/>(set by <code>fO2</code>)"]
+    Integrate["<b><code>calc_new_elements</code></b><br/>for every element"]
 
     Threshold{"Updated inventory<br/>below threshold?"}
 
@@ -79,8 +79,8 @@ flowchart TD
     Pull2 --> Call
     Call --> Store
     Store --> Distribute
-    Distribute --> Integrate
-    Integrate -.-> SkipO
+    Distribute --> Cap
+    Cap --> Integrate
     Integrate --> Threshold
     Threshold -->|yes| Zero
     Threshold -->|no| Keep
@@ -90,8 +90,10 @@ flowchart TD
 
 The wrapper logs the bulk rate and each non-zero elemental rate to the PROTEUS log.
 
-!!! info "fO2"
-    Oxygen is excluded from the loss calculation regardless of reservoir: the wrapper preserves it because it is set by the prescribed mantle redox state (`outgas.fO2_shift_IW`).
+Before any inventory changes, `limit_escape_step` caps the mass one step may remove at `escape.step_max_frac` of the escapable reservoir (default 0.25) and records the requested share as `esc_clamp_frac`, since the bulk rate is set without reference to how much mass is left.
+
+!!! info "Oxygen"
+    Oxygen is debited like every other element, in proportion to its share of the reservoir. The outgassing module can reset `O_kg_total` on its next call, because the prescribed mantle redox state (`outgas.fO2_shift_IW`) sets it.
 
 
 ---
@@ -149,7 +151,7 @@ Alongside the continuous escape channel above, ZEPHYRUS provides `collision.impa
 ## Caveats 
 
 !!! warning "Unit handling at the wrapper boundary"
-    PROTEUS feeds `EL_escape` stellar mass in **kilograms** directly from `config.star.mass`, which sidesteps the units footgun that standalone callers can hit (see the [first-run tutorial](../Tutorials/first_run.md)). If you bypass the wrapper and call `EL_escape` yourself with PROTEUS-style inputs, replicate this convention.
+    PROTEUS converts the stellar mass from `config.star.mass`, which is in solar masses, to kilograms (`config.star.mass * M_sun`) before calling `EL_escape`, which sidesteps the units footgun that standalone callers can hit (see the [first-run tutorial](../Tutorials/first_run.md)). If you bypass the wrapper and call `EL_escape` yourself with PROTEUS-style inputs, replicate this convention.
 
-!!! warning "Fractionation is not supported by ZEPHYRUS"
-    ZEPHYRUS is always unfractionating: the bulk rate is partitioned by mass mixing ratio in the chosen reservoir, but light and heavy elements are not preferentially separated in the outflow. This feature will be implemented in the future. 
+!!! warning "The PROTEUS coupling does not fractionate"
+    `run_zephyrus` calls `EL_escape` and partitions the bulk rate by mass mixing ratio in the chosen reservoir, so light and heavy elements are not separated in the outflow. ZEPHYRUS itself fractionates through the [dispatcher](regimes.md), which PROTEUS does not call yet. 
