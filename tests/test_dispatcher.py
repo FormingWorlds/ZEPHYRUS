@@ -940,6 +940,42 @@ def test_nozzle_power_diagnostic_reports_the_lift_cost():
         assert noz['L_bol_intercepted_W'] > 0.0
 
 
+@pytest.mark.physics_invariant
+def test_counterfactual_labels_are_what_a_dispatch_at_the_edge_returns():
+    """The label reported at each band edge is the label a re-dispatch gets.
+
+    Re-dispatching with the switch threshold at each edge of the Knudsen
+    band must return the reported label, on a hand-picked set that includes
+    a gate-open state renamed roche_overflow (where the switch decides
+    nothing) and on 60 random states. The labels once mapped the edge
+    straight to hydrodynamic or hydrostatic, ignoring the gate, the
+    unstable-exosphere row, the nozzle, and the Roche screen.
+    """
+    states = [
+        _inputs(3 * Me, 2.0 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=1e-3, a=0.0775 * AU),
+        _inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=0.72, a=0.0775 * AU),
+    ]
+    rng = np.random.default_rng(3)
+    while len(states) < 62:
+        draw = _random_inputs(rng)
+        if draw is not None:
+            states.append(dataclasses.replace(draw, prev_regime=None))
+    straddling = 0
+    for state in states:
+        reported = dispatch(state).diagnostics['knudsen']['counterfactual_labels']
+        for edge, label in reported.items():
+            settings = DispatchSettings(kn_crit=edge)
+            assert dispatch(dataclasses.replace(state, settings=settings)).regime == label
+        straddling += reported[0.1] != reported[3.0]
+    first = dispatch(states[0])
+    assert first.regime == 'roche_overflow'
+    assert set(first.diagnostics['knudsen']['counterfactual_labels'].values()) == {
+        'roche_overflow'
+    }
+    # The band decides the label somewhere in the sample, so the check is not vacuous.
+    assert straddling >= 2
+
+
 def test_a_result_cannot_change_the_next_one():
     """Editing a returned result leaves the module and later results intact.
 

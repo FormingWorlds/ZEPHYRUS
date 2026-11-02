@@ -484,9 +484,6 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         threshold_applied=threshold,
         sigma_c=sigma_c,
         provenance=sigma_prov,
-        counterfactual_labels={
-            edge: ('hydrodynamic' if kn_sc <= edge else 'hydrostatic') for edge in kn.KN_BAND
-        },
     )
     if threshold != st.kn_crit:
         flags['hysteresis_active'] = True
@@ -561,21 +558,23 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # A nozzle win keeps the bound winner's flow radius: the lobe radius
     # would pin xi_flow at the fixed lobe-to-Hill ratio.
     bound = select(tuple(c for c in admit if c != 'nozzle'), rates)
-    flow_radius = {
+    flow_radii = {
         'hydrostatic': hsd['r_exo'],
         'boiloff': bolo['R_sonic'],
         'hydrodynamic': max(r_xuv, rr['R_s']),
         'residual': bolo['R_sonic'],
-    }[bound]
+    }
+    flow_radius = flow_radii[bound]
     rate = rates[winner]
     per_species = dict(hs_per_element) if winner == 'hydrostatic' else None
-    branch = {
+    branch_of = {
         'hydrostatic': 'hydrostatic',
         'boiloff': 'boiloff',
         'hydrodynamic': hydro_label,
         'residual': 'boiloff',
         'nozzle': 'roche_overflow',
-    }[winner]
+    }
+    branch = branch_of[winner]
     if winner == 'nozzle':
         winner_flags = _nozzle_flags(noz, inputs.e)
     else:
@@ -610,15 +609,27 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # Two routes into the label, geometric or a nozzle win, with a geometric
     # subflag under either; ``near_roche`` warns about a bound rate's tidal
     # inflation, so it is not raised on a labeled state.
-    renamed, subflag, near = roche_label(
-        xi_flow, xi_ktide, winner == 'nozzle', r_atm >= noz['r_lobe']
-    )
+    reaches_lobe = r_atm >= noz['r_lobe']
+    renamed, subflag, near = roche_label(xi_flow, xi_ktide, winner == 'nozzle', reaches_lobe)
     if renamed:
         label = 'roche_overflow'
         flags['roche_overflow'] = True
         flags['roche_subflag'] = subflag
     elif near:
         flags['near_roche'] = True
+
+    # The label at either edge of the collisionality band, through the same
+    # admission, selection, and screen as the verdict itself.
+    counterfactual = {}
+    for edge in kn.KN_BAND:
+        adm = admitted(gate_open, kn_sc <= edge, unstable, bolo['competes'], nozzle_applicable)
+        bound_e = select(tuple(c for c in adm if c != 'nozzle'), rates)
+        radius = flow_radii[bound_e]
+        xi_e = r_hill / radius if radius > 0 else math.inf
+        won = select(adm, rates)
+        renamed_e = roche_label(xi_e, xi_ktide, won == 'nozzle', reaches_lobe)[0]
+        counterfactual[edge] = 'roche_overflow' if renamed_e else branch_of[won]
+    diag['knudsen']['counterfactual_labels'] = counterfactual
 
     # Per-species split, by the branch that produced the rate.
     if per_species is None:

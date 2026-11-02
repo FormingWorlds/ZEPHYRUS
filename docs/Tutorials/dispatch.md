@@ -126,13 +126,13 @@ F_xuv [W m-2]  regime           mdot [kg/s]     Kn_sc  label at Kn_crit 0.1 | 3
          0.01  hydrostatic       4.992e-123   4.5e+18  hydrostatic | hydrostatic
        0.0389  hydrostatic       4.992e-123  2.28e+18  hydrostatic | hydrostatic
         0.151  hydrostatic       4.992e-123  5.26e+08  hydrostatic | hydrostatic
-        0.587  hydrostatic       4.992e-123      2.99  hydrostatic | hydrodynamic
-         2.28  hydrodynamic:EL    5.356e+05     0.117  hydrostatic | hydrodynamic
-         8.87  hydrodynamic:EL    2.082e+06    0.0329  hydrodynamic | hydrodynamic
-         34.5  hydrodynamic:EL    8.090e+06    0.0127  hydrodynamic | hydrodynamic
-          134  hydrodynamic:EL    3.144e+07   0.00558  hydrodynamic | hydrodynamic
-          520  hydrodynamic:EL    1.222e+08   0.00265  hydrodynamic | hydrodynamic
-     2.02e+03  hydrodynamic:RR    2.572e+08   0.00131  hydrodynamic | hydrodynamic
+        0.587  hydrostatic       4.992e-123      2.99  hydrostatic | hydrodynamic:RR
+         2.28  hydrodynamic:EL    5.356e+05     0.117  hydrostatic | hydrodynamic:EL
+         8.87  hydrodynamic:EL    2.082e+06    0.0329  hydrodynamic:EL | hydrodynamic:EL
+         34.5  hydrodynamic:EL    8.090e+06    0.0127  hydrodynamic:EL | hydrodynamic:EL
+          134  hydrodynamic:EL    3.144e+07   0.00558  hydrodynamic:EL | hydrodynamic:EL
+          520  hydrodynamic:EL    1.222e+08   0.00265  hydrodynamic:EL | hydrodynamic:EL
+     2.02e+03  hydrodynamic:RR    2.572e+08   0.00131  hydrodynamic:RR | hydrodynamic:RR
 ```
 
 The label changes twice. At low flux the planet is `hydrostatic`: there is no wind, and particles escape one at a time from the exobase (Jeans escape). Above about $1\,\mathrm{W\,m^{-2}}$ it is a wind. At the highest fluxes the wind's rate is set by the recombination-limited formula (`hydrodynamic:RR`) instead of the energy-limited one.
@@ -252,7 +252,7 @@ The result of step 2 carries 19 groups of diagnostics. The dispatcher never read
 === Step 5: read the diagnostics ===
 Which branch, and how close was the switch?
   Kn_sc 0.03 against threshold 1
-  label at the band edges: {0.1: 'hydrodynamic', 3.0: 'hydrodynamic'}
+  label at the band edges: {0.1: 'hydrodynamic:EL', 3.0: 'hydrodynamic:EL'}
 What set the rate?
   EL 2.348e+06, RR 1.149e+07, PL 6.137e+06 kg/s
   EL-selected, T_wind 8434 K, barometric factor 0.0096
