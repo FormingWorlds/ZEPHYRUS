@@ -90,7 +90,7 @@ The comparison for `dynamical` uses the Roche lobe, the critical surface, which 
 
 Numbers measured with this code, on the states named:
 
-- An Earth-mass steam atmosphere at 1000 K with no XUV puts $4 \times 10^{-28}$ particles per cubic metre at L1, a Knudsen number of $6 \times 10^{37}$, and returns `hydrostatic`.
+- An Earth-mass steam atmosphere at 1000 K with no XUV puts $4 \times 10^{-28}$ particles per cubic metre at L1, a Knudsen number of $1.4 \times 10^{38}$, and returns `hydrostatic`.
 - The fluid condition of Eq. (6) is a criterion boundary. On an 8 Earth-mass, 3 Earth-radius hydrogen envelope at $F_\mathrm{XUV} = 10^{-4}$ W m⁻², at 1000 K, the dispatched rate drops by a factor of 45 where it fails, at 0.0526 au, to the hydrostatic rate.
 - Under `nozzle_temperature = 'wind'`, the rate holds to 0.5% across a factor of four in launch radius along the wind's isothermal column, and moves by a factor of eleven along the profile's colder one. On a mildly inverted profile, the rate varies by a factor of 2.4 across three decades of launch level, against 1.14 on an isothermal one.
 
