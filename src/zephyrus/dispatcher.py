@@ -377,7 +377,9 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     hydro_flags: dict = dict(base_flags)
     if thermo.get('clamped'):
         hydro_flags['thermostat_clamped'] = thermo['clamped']
-    rr = hy.rr_chain(inputs.M_p, inputs.F_xuv, base['r'], t_wind, elements)
+    # Surface-averaged flux, the full-surface geometry of the EL and PL rates;
+    # Murray-Clay et al. (2009) put the substellar flux over the whole sphere.
+    rr = hy.rr_chain(inputs.M_p, 0.25 * inputs.F_xuv, base['r'], t_wind, elements)
     if rr['subcritical']:
         hydro_flags['subcritical_sonic'] = True
 

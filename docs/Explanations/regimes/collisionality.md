@@ -41,7 +41,7 @@ For a time-stepping caller, supplying the previous result's `rate_branch` as `pr
 
 ## Measured behaviour
 
-- The recombination-limited calculation reports base ionisation fractions reaching 0.86 on heavy compositions, which is where the neutral cross sections matter most.
+- The recombination-limited calculation reports base ionisation fractions above 0.99 on heavy compositions at high flux (a 0.1 Earth-mass nitrogen and oxygen atmosphere at $10^5$ W m⁻²), which is where the neutral cross sections matter most.
 
 [^cp26]: Chatterjee, R. D., & Pierrehumbert, R. T. (2026). Novel Physics of Escaping Secondary Atmospheres May Shape the Cosmic Shoreline. *The Astrophysical Journal, 998*(2), 236. https://doi.org/10.3847/1538-4357/ae2ffa
 

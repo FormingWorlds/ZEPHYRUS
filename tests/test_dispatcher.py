@@ -312,8 +312,8 @@ def test_recombination_limit_removes_the_rr_candidate_only():
     """With ``recombination_limit`` off the wind is min(EL, PL), and nothing else moves.
 
     A one Earth-mass carbon dioxide atmosphere under 1e4 W m^-2 is
-    recombination-limited by default, at a quarter of its energy-limited
-    rate. Switching the candidate off returns that energy-limited rate and
+    recombination-limited by default, at about a ninth of its
+    energy-limited rate. Switching the candidate off returns that energy-limited rate and
     label, while the sonic-point Knudsen number, which the chain still
     supplies, is unchanged. On a five Earth-mass hydrogen and helium wind
     that is photon-limited, removing RR leaves the verdict alone and
@@ -332,7 +332,7 @@ def test_recombination_limit_removes_the_rr_candidate_only():
     assert off.mdot > 3.0 * on.mdot
     assert off.diagnostics['hydrodynamic']['mdot_rr'] == math.inf
     assert off.diagnostics['knudsen']['kn_sc'] == on.diagnostics['knudsen']['kn_sc']
-    hhe = dict(comp={'H2': 0.9, 'He': 0.1}, F_xuv=1.0e4, a=0.05 * AU)
+    hhe = dict(comp={'H2': 0.9, 'He': 0.1}, F_xuv=1.0e3, a=0.05 * AU)
     pl = dispatch(_inputs(5 * Me, 1.8 * Re, 1100.0, **hhe))
     no_rr = dispatch(
         _inputs(
@@ -1003,6 +1003,32 @@ def test_wind_thermostat_sees_the_co2_column_above_the_base():
     assert t_wind > t_open + 500.0
 
 
+@pytest.mark.physics_invariant
+def test_recombination_limited_rate_uses_the_surface_averaged_flux():
+    """The RR candidate is the chain at F_xuv / 4, the full-surface geometry.
+
+    The energy- and photon-limited rates spread the power a disk intercepts
+    over the whole sphere; the recombination-limited chain matches that at a
+    quarter of the substellar flux. Its rate scales as the square root of
+    the flux, so the substellar value would be twice as large, which the
+    pin discriminates.
+    """
+    from zephyrus import hydrodynamic as hy
+    from zephyrus.composition import atomize
+    from zephyrus.profiles import wind_base_level
+
+    state = _inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=1.0e4, a=0.05 * AU)
+    out = dispatch(state)
+    hydro = out.diagnostics['hydrodynamic']
+    base, _flags = wind_base_level(state.profile, state.M_p)
+    elements = atomize(base['vmr'])
+    t_wind = hydro['T_wind']
+    quarter = hy.rr_chain(state.M_p, 0.25 * state.F_xuv, base['r'], t_wind, elements)
+    full = hy.rr_chain(state.M_p, state.F_xuv, base['r'], t_wind, elements)
+    assert hydro['mdot_rr'] == pytest.approx(quarter['mdot_rr'], rel=1e-12, abs=0.0)
+    assert full['mdot_rr'] == pytest.approx(2.0 * quarter['mdot_rr'], rel=1e-9, abs=0.0)
+
+
 def test_a_result_cannot_change_the_next_one():
     """Editing a returned result leaves the module and later results intact.
 
@@ -1100,10 +1126,10 @@ def test_hysteresis_remembers_a_wind_the_roche_screen_renamed():
     """A wind renamed roche_overflow is remembered as a wind.
 
     An 8 Earth-mass, 1.43 Earth-radius steam and hydrogen envelope on an
-    eccentric 0.0135 au orbit: its energy-limited wind passes the Hill
-    radius and is renamed, with a sonic-point Knudsen number of 0.152. At a
-    switch threshold of 0.12 the wind is rarefied without memory, so the
-    hysteresis window (0.18) is what keeps it. The memory is the result's
+    eccentric 0.0135 au orbit: its recombination-limited wind passes the
+    Hill radius and is renamed, with a sonic-point Knudsen number of 0.303.
+    At a switch threshold of 0.24 the wind is rarefied without memory, so
+    the hysteresis window (0.36) is what keeps it. The memory is the result's
     rate_branch; the renamed label carried none, and the state dropped to a
     hydrostatic rate seventeen decades below the wind.
     """
@@ -1123,14 +1149,14 @@ def test_hysteresis_remembers_a_wind_the_roche_screen_renamed():
         p_top=1.46e-6,
     )
     wind = dispatch(state)
-    assert (wind.regime, wind.rate_branch) == ('roche_overflow', 'hydrodynamic:EL')
+    assert (wind.regime, wind.rate_branch) == ('roche_overflow', 'hydrodynamic:RR')
     assert wind.rate_branch == wind.diagnostics['roche']['rate_branch']
-    assert 0.12 < wind.diagnostics['knudsen']['kn_sc'] < 0.18
-    settings = DispatchSettings(kn_crit=0.12)
+    assert 0.24 < wind.diagnostics['knudsen']['kn_sc'] < 0.36
+    settings = DispatchSettings(kn_crit=0.24)
     kept = dispatch(dataclasses.replace(state, settings=settings, prev_regime=wind.rate_branch))
-    assert (kept.regime, kept.rate_branch) == ('roche_overflow', 'hydrodynamic:EL')
+    assert (kept.regime, kept.rate_branch) == ('roche_overflow', 'hydrodynamic:RR')
     assert kept.flags.get('hysteresis_active') is True
-    assert kept.diagnostics['knudsen']['threshold_applied'] == pytest.approx(0.18)
+    assert kept.diagnostics['knudsen']['threshold_applied'] == pytest.approx(0.36)
     forgot = dispatch(dataclasses.replace(state, settings=settings, prev_regime=wind.regime))
     assert forgot.regime == 'hydrostatic'
     assert 'hysteresis_active' not in forgot.flags
@@ -1753,7 +1779,7 @@ ROUTING_WITNESSES = [
         1.5,
         1000.0,
         {'H2': 0.9, 'He': 0.1},
-        0.0001,
+        0.01,
         0.0775,
         0.0,
         600.0,

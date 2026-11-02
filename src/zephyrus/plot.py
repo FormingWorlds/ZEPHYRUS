@@ -317,7 +317,7 @@ def plot_track(
                 ax.axvline(crossing, color=RULE_COLOR, linestyle='--', lw=1.0)
             ax_rate.annotate(
                 f'{regimes[i]} ends near {crossing:.0f} Myr',
-                xy=(crossing, 0.06),
+                xy=(crossing, 0.5),
                 xycoords=ax_rate.get_xaxis_transform(),
                 xytext=(-6, 0),
                 textcoords='offset points',

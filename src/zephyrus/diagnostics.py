@@ -30,8 +30,8 @@ MURRAY_CLAY_EXPONENTS = {
     'EL_numerical': 0.9,
     'EL_analytic_inherited': 1.0,
 }
-# Their regime-dependent dayside-heating reduction factors relative to
-# full-surface redistribution, for sensitivity analyses.
+# Their regime-dependent dayside-heating reductions of the spherically
+# symmetric rate (substellar flux over 4 pi), for sensitivity analyses.
 DAYSIDE_FACTORS = {'energy_limited': 0.26, 'recombination_limited': 0.31}
 
 # Threshold gravitational potentials, log10(-phi) in cgs (erg/g), with

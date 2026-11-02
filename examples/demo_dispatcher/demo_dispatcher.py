@@ -291,7 +291,7 @@ print(
 # --8<-- [start:step6_efficiency]
 print(f'{"epsilon":>7}  {"F_xuv":>6}  {"regime":<16} {"EL":>9}  {"RR":>9}  {"PL":>9}  [kg/s]')
 for eps in (0.1, 0.3, 0.6):
-    for f_xuv in (10.0, 1.0e3):
+    for f_xuv in (3.0, 300.0):
         out = dispatch(build_state('CO2', 1.0, 1.0, f_xuv, DispatchSettings(efficiency=eps)))
         hy = out.diagnostics['hydrodynamic']
         print(
@@ -315,7 +315,7 @@ for fractionate in (True, False):
 
 # --8<-- [start:step6_hysteresis]
 print(f'{"F_xuv":>5}  {"previous label":<16} {"regime":<16} {"Kn_sc":>6}  threshold')
-for f_xuv in (0.23, 0.28):
+for f_xuv in (0.38, 0.48):
     for previous in (None, 'hydrostatic', 'hydrodynamic:EL'):
         hysteresis_state = build_state('CO2', 1.0, 1.0, f_xuv)
         hysteresis_state.prev_regime = previous

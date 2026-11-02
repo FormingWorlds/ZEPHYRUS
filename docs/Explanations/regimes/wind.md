@@ -59,9 +59,9 @@ with hydrogen's $2.7 \times 10^{-13}$ cm³ s⁻¹ and its $T^{-0.9}$ scaling fro
 
 Balancing photoionisation of the unit-optical-depth column against recombination removes the cross section and fixes the base ion density,
 
-$$n_+ \;=\; \sqrt{\frac{F_\mathrm{XUV}\, G M_\mathrm{p}}{h\nu_0\, \alpha_\mathrm{B}\, c_\mathrm{s}^2\, R_\mathrm{base}^2}} \tag{6}$$
+$$n_+ \;=\; \sqrt{\frac{(F_\mathrm{XUV}/4)\, G M_\mathrm{p}}{h\nu_0\, \alpha_\mathrm{B}\, c_\mathrm{s}^2\, R_\mathrm{base}^2}} \tag{6}$$
 
-with $h\nu_0$ the front energy of Eq. (2). An isothermal Parker wind carries the base mass density $n_+\, \mu_+\, m_\mathrm{p}$ to the sonic point, and the rate is the mass flux there over the sonic sphere:
+with $h\nu_0$ the front energy of Eq. (2). The flux is averaged over the surface, $F_\mathrm{XUV}/4$, so this rate shares the full-surface geometry of Eqs. (3) and (8), which spread the power intercepted by a disk over the whole sphere. Murray-Clay et al. apply the substellar flux over the whole sphere instead, which gives a rate twice as large, since it scales as the square root of the flux. The collisionality switch reads the sonic density of this chain, so its Knudsen number carries the same geometry. An isothermal Parker wind carries the base mass density $n_+\, \mu_+\, m_\mathrm{p}$ to the sonic point, and the rate is the mass flux there over the sonic sphere:
 
 $$\dot{M}_\mathrm{RR} \;=\; 4\pi\, \rho_\mathrm{s}\, c_\mathrm{s}\, R_\mathrm{s}^2, \qquad \rho_\mathrm{s} = n_+\, \mu_+\, m_\mathrm{p}\; e^{\,3/2 - \lambda_\mathrm{b}} \tag{7}$$
 
