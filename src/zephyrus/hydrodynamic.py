@@ -17,7 +17,7 @@ from zephyrus.atomic_data import (
     alpha_case_b,
 )
 from zephyrus.composition import ELEMENT_AMU
-from zephyrus.constants import G, ev2joule, kb, m_p
+from zephyrus.constants import G, ergcm2stoWm2, ev2joule, gcm3tokgm3, kb, m_p
 
 # The branch computes both hydrodynamic limits and takes their minimum:
 #
@@ -43,8 +43,8 @@ from zephyrus.constants import G, ev2joule, kb, m_p
 # separate code paths so a cross-implementation test guards the plumbing.
 # zephyrus.escape re-exports EL_escape for the released import path.
 
-RHO_UNIT_CGS = 1e-3  # kg m^-3 -> g cm^-3
-FLUX_UNIT_CGS = 1e3  # W m^-2 -> erg s^-1 cm^-2
+RHO_UNIT_CGS = 1.0 / gcm3tokgm3  # kg m^-3 -> g cm^-3
+FLUX_UNIT_CGS = 1.0 / ergcm2stoWm2  # W m^-2 -> erg s^-1 cm^-2
 
 
 def hill_radius_periapsis(M_p: float, M_star: float, a: float, e: float) -> float:

@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 
 from zephyrus.composition import BONDI_VDW_RADIUS_A, parse_formula
-from zephyrus.constants import kb, kb_cgs
+from zephyrus.constants import amu, ev2joule, kb, kb_cgs
 
 SQRT2 = math.sqrt(2.0)
 
@@ -78,8 +78,8 @@ LARICCHIUTA_PAIRS = {
 # mean of that table's in-H over in-H2 column ratios.
 _B11_H2H2 = 4.96e17  # cm^-1 s^-1 prefactor of b11 = 4.96e17 T^0.75
 _H_COLUMN_SCALE = 1.91  # ZK86 Table I in-H2 -> in-H column scaling
-_M_H2_G = 2.016 * 1.66053907e-24  # g
-_M_H_G = 1.008 * 1.66053907e-24  # g
+_M_H2_G = 2.016 * amu * 1e3  # g
+_M_H_G = 1.008 * amu * 1e3  # g
 
 
 def _lar_ai(beta: float, which: str) -> list[float]:
@@ -90,7 +90,7 @@ def lar_omega_star(pair: tuple, T: float, which: str = 'omega11') -> float:
     """Reduced collision integral Omega^(l,s)* (Laricchiuta et al. 2009, Eqs. 2-3)."""
     beta, eps0_mev, _re = LARICCHIUTA_PAIRS[pair]
     a1, a2, a3, a4, a5, a6, a7 = _lar_ai(beta, which)
-    x = math.log(kb * T / (eps0_mev * 1e-3 * 1.602176634e-19))
+    x = math.log(kb * T / (eps0_mev * 1e-3 * ev2joule))
     s1 = 1.0 / (1.0 + math.exp(-2.0 * (x - a3) / a4))
     s2 = 1.0 / (1.0 + math.exp(-2.0 * (x - a6) / a7))
     return math.exp((a1 + a2 * x) * s1 + a5 * s2)

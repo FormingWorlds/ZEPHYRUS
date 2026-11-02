@@ -25,7 +25,7 @@ from zephyrus.atomic_data import (
     co2_band_cooling,
     o_finestructure_cooling,
 )
-from zephyrus.constants import kb_cgs
+from zephyrus.constants import erg2joule, ergcm2stoWm2, kb_cgs
 
 # The thermostat sets the hydrodynamic wind temperature by a local balance
 # of photoionization heating against radiative cooling at the wind-base
@@ -70,9 +70,9 @@ def three_level_populations(species: str, n_tot: float, n_e: float, T: float):
     data = THREE_LEVEL[species]
     (_t1, g1, e1), (_t2, g2, e2), (_t3, g3, e3) = data['levels']
     energy = {
-        (1, 2): HC_CM * (e2 - e1) * 1e7,  # J -> erg
-        (1, 3): HC_CM * (e3 - e1) * 1e7,
-        (2, 3): HC_CM * (e3 - e2) * 1e7,
+        (1, 2): HC_CM * (e2 - e1) / erg2joule,  # J -> erg
+        (1, 3): HC_CM * (e3 - e1) / erg2joule,
+        (2, 3): HC_CM * (e3 - e2) / erg2joule,
     }
     g = {1: g1, 2: g2, 3: g3}
     c_up, c_dn, a_rad = {}, {}, {}
@@ -109,7 +109,7 @@ def three_level_cooling(species: str, n_tot: float, n_e: float, T: float) -> flo
     for (lo, up), (a_ul, _gam) in data['transitions'].items():
         if a_ul <= 0.0:
             continue
-        e = HC_CM * (levels[up - 1][2] - levels[lo - 1][2]) * 1e7
+        e = HC_CM * (levels[up - 1][2] - levels[lo - 1][2]) / erg2joule
         q += n[up] * a_ul * e
     return q
 
@@ -174,7 +174,7 @@ def balance_at(
     ionization fraction, both totals, and the per-channel parts.
     """
     n_cgs = base['n'] * 1e-6
-    F_cgs = F_xuv * 1e3
+    F_cgs = F_xuv / ergcm2stoWm2
     hnu, e_ion, sigma = front_constants(element_fractions)
     alpha = recombination_alpha(element_fractions, T)
     f_plus = ionization_fraction(n_cgs, T, F_cgs, hnu, sigma, alpha)

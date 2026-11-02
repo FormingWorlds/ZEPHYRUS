@@ -160,3 +160,40 @@ def test_proton_and_atomic_mass_constants_are_consistent():
     assert m_p / amu == pytest.approx(1.007276467, rel=1e-6, abs=0.0)
     # Discrimination: the two constants must not be interchangeable.
     assert m_p > amu
+
+
+def test_no_source_retypes_a_physical_constant():
+    """Physical constants are imported from ``constants.py``, never retyped.
+
+    Two retyped values of one constant differ at round-off, or more when a
+    digit is dropped, and hide real differences between code paths. The
+    leading digits of each SI constant must not appear in any other source
+    file; ``planets_parameters.py`` holds planetary data, not constants.
+    """
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[1] / 'src' / 'zephyrus'
+    digits = ('1.380649', '6.6743', '2.99792458', '6.62607015', '1.67262192', '1.66053906')
+    digits += ('1.66053907', '1.602176634')
+    offenders = []
+    for path in sorted(src.glob('*.py')):
+        if path.name in ('constants.py', 'planets_parameters.py', '_version.py'):
+            continue
+        text = path.read_text()
+        offenders += [f'{path.name}: {d}' for d in digits if d in text]
+    assert offenders == []
+    # The guard reads real files: the constants module itself carries them.
+    assert '1.602176634' in (src / 'constants.py').read_text()
+
+
+def test_density_conversion_matches_the_unit_definitions():
+    """``gcm3tokgm3`` is one gram per cubic centimetre in kilograms per cubic metre.
+
+    1 g = 1e-3 kg and 1 cm^3 = 1e-6 m^3, so the factor is 1e3; its inverse
+    is the factor that takes an SI density into cgs. Discrimination: the
+    common slip, the length factor cubed the wrong way, gives 1e-3 or 1e9.
+    """
+    from zephyrus.constants import gcm3tokgm3
+
+    assert gcm3tokgm3 == pytest.approx(1e-3 / 1e-6, rel=1e-15, abs=0.0)
+    assert gcm3tokgm3 not in (pytest.approx(1e-3), pytest.approx(1e9))

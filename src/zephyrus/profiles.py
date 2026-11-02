@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from zephyrus.atomic_data import SIGMA_NU0_H
 from zephyrus.composition import atomize, species_mass_amu
 from zephyrus.constants import G, amu, kb
 
@@ -22,7 +23,7 @@ VMR_NOISE_FLOOR = 1.0e-12
 # Murray-Clay et al. (2009, ApJ 693, 23) photoionization cross section at
 # their representative 20 eV photon energy: sigma_nu0 = 6e-18 (h nu / 13.6
 # eV)^-3 cm^2. Converted to m^2. Used by the Lopez (2017) wind-base pressure.
-SIGMA_NU0 = 6.0e-18 * (20.0 / 13.6) ** -3 * 1e-4  # [m^2]
+SIGMA_NU0 = SIGMA_NU0_H * 1e-4  # [m^2]
 
 
 @dataclass

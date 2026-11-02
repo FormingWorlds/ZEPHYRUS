@@ -19,7 +19,7 @@ from zephyrus import knudsen as kn
 from zephyrus import nozzle as nz
 from zephyrus import thermostat as th
 from zephyrus.composition import atomize, mean_particle_mass
-from zephyrus.constants import G, ev2joule, kb, m_p
+from zephyrus.constants import G, ergcm2stoWm2, ev2joule, kb, m_p
 from zephyrus.fractionation import closure_per_species, unfractionated_split
 from zephyrus.profiles import Profile, photospheric_level, wind_base_level
 
@@ -508,7 +508,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     f_plus_exo = th.ionization_fraction(
         hsd['n_exo'] * 1e-6,
         hsd['T_exo'],
-        inputs.F_xuv * 1e3,
+        inputs.F_xuv / ergcm2stoWm2,
         hnu,
         sigma_front,
         th.recombination_alpha(elements, hsd['T_exo']),

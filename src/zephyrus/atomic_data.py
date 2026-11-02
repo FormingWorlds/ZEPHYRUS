@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 
 from zephyrus.constants import c as C_LIGHT
-from zephyrus.constants import h_planck
+from zephyrus.constants import erg2joule, ev2joule, h_planck
 
 # hc in J cm: converts a wavenumber in cm^-1 to an energy in J.
 HC_CM = h_planck * C_LIGHT * 100.0
@@ -197,7 +197,7 @@ def o_finestructure_cooling(n_o: float, T: float) -> float:
 # Monochromatic front constants: hydrogen after Murray-Clay et al. (2009),
 # sigma_nu0 = 6e-18 (h nu0 / 13.6 eV)^-3 cm^2 at 20 eV; the nitrogen-like
 # front of Chatterjee & Pierrehumbert (2026), N I potential from NIST.
-EV_ERG = 1.602176634e-12
+EV_ERG = ev2joule / erg2joule
 HNU0_H_EV = 20.0
 E_ION_H_EV = 13.6
 SIGMA_NU0_H = 6.0e-18 * (HNU0_H_EV / 13.6) ** -3  # cm^2
