@@ -32,6 +32,7 @@ import pytest
 
 from zephyrus.constants import kb_cgs
 from zephyrus.fractionation import (
+    TRACE_FRACTION,
     closure_per_species,
     first_threshold,
     solve_closure,
@@ -477,6 +478,62 @@ def test_per_species_shim_conserves_mass():
     # its base mass fraction when heavies are near their thresholds.
     m_frac_h = 0.85 * 1.008 / (0.85 * 1.008 + 0.10 * 4.0026 + 0.05 * 15.999)
     assert per['H'] / 1.0e6 >= m_frac_h - 1e-9
+
+
+@pytest.mark.physics_invariant
+def test_trace_species_take_the_test_particle_limit():
+    """A trace species below the cut gets the X -> 0 limit of its equation.
+
+    Light hydrogen in a nitrogen and oxygen background with one universal
+    b: the hydrogen drift velocity w = Phi / X does not depend on its own
+    mole fraction in the trace limit, so the value solved with the majors
+    at 1e-9 and the test-particle value at 1e-11 and 1e-13 agree, at fluxes
+    below and above oxygen entrainment. A heavy trace that settles stays
+    retained either way, and the mass constraint holds to round-off.
+    """
+    assert TRACE_FRACTION == pytest.approx(1e-10, rel=1e-12, abs=0.0)
+    m = np.array([1.008, 14.007, 15.999]) * AMU_G
+    b = np.full((3, 3), 1.0e19)
+    np.fill_diagonal(b, np.inf)
+    for phi in (1e-14, 1e-12, 1e-10):
+        w_trace = []
+        for x_trace in (1e-9, 1e-11, 1e-13):
+            X = np.array([x_trace, 0.7, 0.3 - x_trace])
+            flux = solve_closure(phi, X, m, 3000.0, 1000.0, b)
+            assert float(np.sum(m * flux)) == pytest.approx(phi, rel=1e-12, abs=0.0)
+            w_trace.append(flux[0] / x_trace)
+        np.testing.assert_allclose(w_trace[1:], w_trace[0], rtol=1e-6, atol=0.0)
+    m_xe = np.array([1.008, 14.007, 131.29]) * AMU_G
+    for x_trace in (1e-9, 1e-11):
+        X = np.array([0.7, 0.3 - x_trace, x_trace])
+        flux, _ih, active = solve_closure(1e-14, X, m_xe, 3000.0, 1000.0, b, return_diag=True)
+        assert flux[2] == 0.0 and active == frozenset({0})
+
+
+def test_entrained_flow_with_a_trace_species_returns_a_split():
+    """A fully entrained wind with a 2e-17 hydrogen trace returns, not raises.
+
+    The base state of a physically posed dispatch (16 Earth masses, nitrogen
+    and magnesium with carbon monoxide and methane traces, 5e4 K wind). Every
+    species drifts at nearly one velocity, so the retention residual of the
+    hydrogen trace was cancellation noise and the active set cycled until the
+    iteration limit raised. The split now conserves the bulk rate, and the
+    lightest species drifts at least as fast as the others.
+    """
+    fractions = {
+        'N': 0.2896999999032402,
+        'Mg': 0.7102999997627598,
+        'C': 1.6700000504422202e-10,
+        'O': 1.6699999994422201e-10,
+        'H': 2.0399999993186398e-17,
+    }
+    mdot = 9.658265126871185e9
+    per, diag, _flags = closure_per_species(mdot, fractions, 5.0e4, 9.734686e25, 2.832770459e7)
+    assert sum(per.values()) == pytest.approx(mdot, rel=1e-12, abs=0.0)
+    assert set(diag['active_set']) == set(fractions)
+    amu_of = {'H': 1.008, 'C': 12.011, 'N': 14.007, 'O': 15.999, 'Mg': 24.305}
+    drift = {el: per[el] / (fractions[el] * amu_of[el]) for el in per}
+    assert drift['H'] >= max(drift[el] for el in ('C', 'N', 'O', 'Mg'))
 
 
 def test_shim_low_flux_and_rock_former_flag():

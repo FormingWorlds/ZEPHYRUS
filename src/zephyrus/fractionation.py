@@ -38,9 +38,19 @@ from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g, subs
 # universal-b closed form; and the Hunten et al. (1987) Earth, Mars, and
 # Venus anchors.
 #
+# Species below TRACE_FRACTION are test particles: they do not enter the
+# active-set solve, and each takes the X -> 0 limit of its own momentum
+# equation, w_k = max(r_k, 0) / sum_{i != k} X_i / b_ik, with r_k the
+# retention residual. In a fully entrained flow that residual is
+# cancellation noise far above any absolute tolerance, and a trace species
+# solved with the majors flipped in and out of the active set forever.
+#
 # Solver units are cgs: phi in g cm^-2 s^-1, m in g, g0 in cm s^-2, b in
 # cm^-1 s^-1, fluxes in cm^-2 s^-1. The per-species interface converts at
 # the SI boundary.
+
+
+TRACE_FRACTION = 1.0e-10  # mole fraction below which a species is a test particle
 
 
 def _validate_inputs(phi, X, m, T, g0, b):
@@ -149,8 +159,10 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
         if return_diag:
             return flux, np.min(m) * g0 / kT, frozenset()
         return flux
-    active = set(range(n))
+    majors = [k for k in range(n) if X[k] >= TRACE_FRACTION]
+    active = set(majors)
     wscale = phi / np.min(m)  # crude magnitude scale for the tolerances
+    seen: set = set()
     for _ in range(4 * n + 8):
         w, inv_h_bar = solve_fixed_active(phi, X, m, T, g0, b, active)
         neg = {j for j in active if w[j] < -1e-12 * wscale}
@@ -159,25 +171,44 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
             if not active:
                 raise RuntimeError('empty active set')
             continue
-        # Retention check for the inactive species.
+        seen.add(frozenset(active))
+        # Retention check for the inactive major species.
         viol, worst = None, 0.0
-        for k in range(n):
+        for k in majors:
             if k in active:
                 continue
-            r_k = sum(X[i] * w[i] / b[i, k] for i in active) - (m[k] * g0 / kT - inv_h_bar)
+            r_k = _retention_residual(k, X, m, g0, kT, b, w, active, inv_h_bar)
             if r_k > 1e-12 * abs(m[k] * g0 / kT) and r_k > worst:
                 viol, worst = k, r_k
-        if viol is None:
+        # A set already solved means the violation is roundoff that the
+        # solve itself undoes, so the species stays retained.
+        if viol is None or frozenset(active | {viol}) in seen:
             # Clamp within-tolerance negative drifts (magnitudes below the
             # solver's own tolerance) so the returned fluxes honor w >= 0.
             np.maximum(w, 0.0, out=w)
+            w[[k for k in range(n) if k not in active]] = 0.0
+            escaping = set(active)
+            for k in range(n):
+                if k not in majors:
+                    r_k = _retention_residual(k, X, m, g0, kT, b, w, active, inv_h_bar)
+                    drag = sum(X[i] / b[i, k] for i in range(n) if i != k)
+                    w[k] = max(r_k, 0.0) / drag
+                    if w[k] > 0.0:
+                        escaping.add(k)
             flux = X * w
-            flux[list(set(range(n)) - active)] = 0.0
+            # Test particles carry a share of order their mole fraction; the
+            # rescale restores the mass constraint to round-off.
+            flux *= phi / float(np.sum(m * flux))
             if return_diag:
-                return flux, inv_h_bar, frozenset(active)
+                return flux, inv_h_bar, frozenset(escaping)
             return flux
         active.add(viol)
     raise RuntimeError('active-set iteration did not converge')
+
+
+def _retention_residual(k, X, m, g0, kT, b, w, active, inv_h_bar) -> float:
+    """Drift the escaping species impose on species k, minus its settling."""
+    return sum(X[i] * w[i] / b[i, k] for i in active) - (m[k] * g0 / kT - inv_h_bar)
 
 
 def first_threshold(X, m, T, g0, b):

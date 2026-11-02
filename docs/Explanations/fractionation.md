@@ -74,19 +74,19 @@ and retention requires $R_k \le 0$. A partition is the solution when both condit
 
 1. Validate the inputs. The flux $\phi$ must be non-negative, the mole fractions non-negative and summing to 1 within $10^{-6}$, the masses, temperature, and gravity positive, and every off-diagonal $b_{ij}$ finite, positive, and symmetric entry by entry. Any failure raises `ValueError`. The diagonal of $b$ is ignored (the coefficient library fills it with infinity).
 2. If $\phi = 0$, return zero fluxes, an empty escaping set, and $\bar{H}^{-1} = \min_j \beta_j$, the limit of the solution as $\phi \to 0^+$, where only the lightest species escapes.
-3. Start with every species escaping, $\mathcal{A} = \{1, \dots, N\}$, and fix two tolerances: $\varepsilon_w = 10^{-12}\, \phi / \min_i m_i$ for drifts and $\varepsilon_k = 10^{-12}\, \beta_k$ for the residual of species $k$.
+3. Set aside every species with $y_k < 10^{-10}$ (`TRACE_FRACTION`) as a test particle, start with every other species escaping, and fix two tolerances: $\varepsilon_w = 10^{-12}\, \phi / \min_i m_i$ for drifts and $\varepsilon_k = 10^{-12}\, \beta_k$ for the residual of species $k$.
 4. Solve Eq. (4), or Eq. (6) when $\mathcal{A}$ has one member, for $w$ and $\bar{H}^{-1}$.
 5. Drop: if any escaping species has $w_j < -\varepsilon_w$, move all such species to $\mathcal{R}$ at once and return to step 4. If this empties $\mathcal{A}$, raise `RuntimeError`.
-6. Re-admit: evaluate Eq. (7) for every retained species. If any has $R_k > \varepsilon_k$, move the one with the largest residual, and only that one, back to $\mathcal{A}$ and return to step 4.
-7. Accept: set every escaping drift to $\max(w_j, 0)$, which zeroes negative values smaller in magnitude than $\varepsilon_w$, and return $\Phi_j = y_j w_j$ for escaping species and $\Phi_k = 0$ for retained ones.
+6. Re-admit: evaluate Eq. (7) for every retained species. If any has $R_k > \varepsilon_k$, move the one with the largest residual, and only that one, back to $\mathcal{A}$ and return to step 4, unless that would recreate a partition already solved: then the residual is round-off that the solve itself undoes, and the species stays retained.
+7. Accept: set every escaping drift to $\max(w_j, 0)$, which zeroes negative values smaller in magnitude than $\varepsilon_w$, and return $\Phi_j = y_j w_j$ for escaping species and $\Phi_k = 0$ for retained ones. Each test particle takes the trace limit of its own Eq. (1), $w_k = \max(R_k, 0) / \sum_{i \ne k} y_i / b_{ik}$, and the fluxes are rescaled by a factor within about $10^{-10}$ of unity so that Eq. (2) holds to round-off.
 
-Steps 4 to 6 run at most $4N + 8$ times, after which the solver raises `RuntimeError`. Dropping comes before re-admitting, so the residuals of step 6 are only evaluated on a partition whose drifts are all non-negative. Re-admitting a single species per pass, the worst violator, is there to stop the iteration alternating between two labelings of a species that sits at its threshold, where escaping with zero flux and retained with zero residual describe the same state. The code runs no uniqueness check of its own, but the test suite enumerates every candidate partition of random systems of three to five species and finds a single one satisfying both conditions, the partition the solver returns.
+Steps 4 to 6 run at most $4N + 8$ times, after which the solver raises `RuntimeError`. Dropping comes before re-admitting, so the residuals of step 6 are only evaluated on a partition whose drifts are all non-negative. Re-admitting a single species per pass, the worst violator, is there to stop the iteration alternating between two labelings of a species that sits at its threshold, where escaping with zero flux and retained with zero residual describe the same state. Test particles are set aside because in a fully entrained flow every escaping species drifts at nearly one velocity, so the residual of a species at a mole fraction of $10^{-17}$ is cancellation noise many orders of magnitude above $\varepsilon_k$, and solved with the majors such a species moved between the sets until the iteration limit. Their back-reaction on the majors is of the order of their mole fraction. The code runs no uniqueness check of its own, but the test suite enumerates every candidate partition of random systems of three to five species and finds a single one satisfying both conditions, the partition the solver returns.
 
 ```mermaid
 flowchart TD
     IN(["Bulk flux, composition,<br/>masses, T, g, b"]) --> Z{"Is the bulk<br/>flux zero?"}
     Z -- yes --> ZERO(["Zero fluxes,<br/>nothing escapes"])
-    Z -- no --> INIT["Start with every<br/>species escaping"]
+    Z -- no --> INIT["Set traces aside,<br/>start with every other<br/>species escaping"]
     INIT --> SOLVE["Solve Eq. (4),<br/>or Eq. (6) for one species"]
     SOLVE --> NEG{"Any escaping drift<br/>negative beyond<br/>tolerance?"}
     NEG -- yes --> DROP["Retain all of them"]
@@ -94,7 +94,7 @@ flowchart TD
     NEG -- no --> RES{"Any retained species<br/>with a positive<br/>residual, Eq. (7)?"}
     RES -- yes --> ADD["Re-admit the one with<br/>the largest residual"]
     ADD --> SOLVE
-    RES -- no --> OUT(["Clamp drifts at zero,<br/>return the fluxes"])
+    RES -- no --> OUT(["Clamp drifts at zero,<br/>add the test particles,<br/>return the fluxes"])
     class ZERO,OUT regime
     class Z,NEG,RES decision
     class INIT,SOLVE,DROP,ADD stage
