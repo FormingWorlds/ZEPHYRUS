@@ -4,11 +4,12 @@ The [parameter reference](parameters.md) documents what goes into `zephyrus.disp
 
 ## The result
 
-`dispatch` returns an `EscapeResult` with five fields.
+`dispatch` returns an `EscapeResult` with six fields.
 
 | Field | Type | What it guarantees |
 |---|---|---|
 | `regime` | str | One of the six labels below. Always set. |
+| `rate_branch` | str | The label of the branch whose rate won, before the Roche screen renamed it, so it differs from `regime` only on a renamed state. The same value as `diagnostics['roche']['rate_branch']`. Pass it as the next step's `prev_regime`. |
 | `mdot` | float | Bulk mass-loss rate in kg s⁻¹, finite and non-negative. |
 | `per_species` | dict | Element symbol to rate in kg s⁻¹, non-negative, summing to `mdot` at machine precision. |
 | `flags` | dict | Everything that clamped, fell back, or was screened. Empty when there is nothing to report. |
@@ -25,7 +26,7 @@ Every physically posed state returns a result. A `ValueError` means the state or
 | `hydrodynamic:RR` | The same wind, with the recombination-limited rate winning the minimum. | Read `rr_chain['barometric_factor']` to see whether the rate is set by the recombination-limited base ionisation (factor near 1) or by the wind failing to reach the sonic point (factor decades below 1). |
 | `hydrodynamic:PL` | The same wind in a shallow well, where one particle per intercepted ionising photon is fewer than the energy budget would lift. | The photon-limited rate of Owen & Alvarez (2016) [^owenalvarez] Eq. (10). Binds when the efficiency exceeds `efficiency_photon_limit`. An estimate rather than a bound, and possibly low where it binds (see the limitations page). |
 | `hydrostatic` | Too rarefied for a wind: per-species Jeans escape from the exobase, capped by diffusive resupply. | Natively per-species. Heavy-element rates are lower limits. |
-| `roche_overflow` | Either the active flow radius reaches the periapsis Hill radius, so the flow is not bound to the planet, or the tidally driven transfer through L1 outruns every bound candidate. | Two readings, separated by `diagnostics['roche']['rate_branch']`. When the Roche screen renamed a bound branch, the rate is that branch's own, a bound-flow estimate, and a lower limit on the tidal transfer only where the nozzle candidate sat outside its applicability criterion. Where it was applicable and lost, `diagnostics['nozzle']['rate_kg_s']` is below the dispatched rate. When `rate_branch` reads `roche_overflow`, the rate is the L1 transfer rate of Jackson et al. (2017) [^jackson17] itself, dispatched because it won the final comparison. That boundary is a rate crossing, so the dispatched rate is continuous across it. |
+| `roche_overflow` | Either the active flow radius reaches the periapsis Hill radius, so the flow is not bound to the planet, or the tidally driven transfer through L1 outruns every bound candidate. | Two readings, separated by `rate_branch`. When the Roche screen renamed a bound branch, the rate is that branch's own, a bound-flow estimate, and a lower limit on the tidal transfer only where the nozzle candidate sat outside its applicability criterion. Where it was applicable and lost, `diagnostics['nozzle']['rate_kg_s']` is below the dispatched rate. When `rate_branch` reads `roche_overflow`, the rate is the L1 transfer rate of Jackson et al. (2017) [^jackson17] itself, dispatched because it won the final comparison. That boundary is a rate crossing, so the dispatched rate is continuous across it. |
 
 A seventh label, `impact`, is reserved for the [giant-impact channel](../Explanations/impacts.md), which the caller invokes directly rather than through the dispatcher.
 
@@ -59,7 +60,7 @@ The `effect` column says whether the returned rate already reflects the flag or 
 | `bolometric_residual` | `True` | The luminosity-capped bolometric residual, admitted by `residual_mode = 'luminosity_capped'`, beat the branch that won above and took the label. Never raised under the default setting, which reports the candidate without dispatching it. | The rate reflects it |
 | `gate_rerouted` | `True` | The exobase was too hot to stay hydrostatic, so the wind rate competed with the Jeans rate and the larger one carries the rate and the label. A `hydrostatic` label with this flag is a Jeans rate on an unstable exosphere, outside the Jeans formula's own domain. | The rate reflects it |
 | `contested_ion` | `True` | The neutral and plasma escape-temperature conventions disagree about the branch. Both rates are recorded in `diagnostics['contested_ion']`. | Reporting only |
-| `hysteresis_active` | `True` | A previous regime label was supplied, so the hysteresis window was available. It says the memory was offered, not that it changed anything: read `diagnostics['knudsen']['threshold_applied']` against `kn_crit` to see whether the window actually moved the threshold on this call. | The rate reflects it |
+| `hysteresis_active` | `True` | The previous rate branch was a wind or a hydrostatic state, so the hysteresis window moved the threshold of the collisionality switch on this call. Compare `diagnostics['knudsen']['threshold_applied']` with `kn_sc` to see whether that changed the verdict. Not raised after a boil-off or an L1 transfer, where the switch stays sharp. | The rate reflects it |
 
 ### The hydrostatic branch
 

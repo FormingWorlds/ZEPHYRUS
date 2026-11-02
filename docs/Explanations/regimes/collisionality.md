@@ -37,7 +37,7 @@ The diagnostics report the label at both band edges beside every verdict (`diagn
 
 ## Hysteresis
 
-For a time-stepping caller, supplying the previous regime label opens a hysteresis window. The threshold becomes $h\,\mathrm{Kn}_\mathrm{c}$ while leaving a hydrodynamic state and $\mathrm{Kn}_\mathrm{c}/h$ while leaving a hydrostatic one, with $h$ the setting `kn_hysteresis` (default 1.5). An evolutionary track then cannot switch back and forth between branches on numerical noise. `hysteresis_active` and `diagnostics['knudsen']['threshold_applied']` report it.
+For a time-stepping caller, supplying the previous result's `rate_branch` as `prev_regime` opens a hysteresis window. The threshold becomes $h\,\mathrm{Kn}_\mathrm{c}$ while leaving a hydrodynamic state and $\mathrm{Kn}_\mathrm{c}/h$ while leaving a hydrostatic one, with $h$ the setting `kn_hysteresis` (default 1.5). An evolutionary track then cannot switch back and forth between branches on numerical noise. The branch, not the label, carries the memory, because a wind renamed `roche_overflow` by the Roche screen is still a wind. After a boil-off or an L1 transfer the switch stays sharp. `hysteresis_active` and `diagnostics['knudsen']['threshold_applied']` report it.
 
 ## Measured behaviour
 

@@ -132,7 +132,7 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 | `kappa_photo` | m² kg⁻¹ | Grey photospheric opacity. The boil-off rate scales as its inverse. No default. The tutorial passes $10^{-2}$ m² kg⁻¹ as a typical value. A coupled run should pass the mean opacity of the atmosphere model at the photospheric level (AGNI, in PROTEUS). |
 | `profile` | not applicable | `profiles.Profile`: pressure, radius, temperature, per-species mixing ratios, and mean molecular mass per level, base to top. |
 | `settings` | not applicable | The `DispatchSettings` block above. |
-| `prev_regime` | not applicable | Optional previous regime label, which activates the hysteresis window. |
+| `prev_regime` | not applicable | Optional `rate_branch` of the previous step's result, which activates the hysteresis window after a wind or a hydrostatic state. |
 | `atm_converged` | not applicable | Optional data-quality flag, surfaced as `stale_input`. |
 | `age`, `reservoirs` | s, kg | Optional, consumed only by the snapshot self-consistency screen and the unfractionated split. |
 | `dt` | s | Optional, carried for the caller's supply cap, never used by the dispatcher itself. |

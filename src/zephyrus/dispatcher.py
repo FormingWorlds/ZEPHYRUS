@@ -253,7 +253,7 @@ class EscapeInputs:
     kappa_photo: float  # m^2 kg^-1, photospheric opacity
     profile: Profile
     settings: DispatchSettings = field(default_factory=DispatchSettings)
-    prev_regime: str | None = None  # hysteresis memory for evolutionary use
+    prev_regime: str | None = None  # previous result's rate_branch, for evolutionary use
     atm_converged: bool | None = None  # data-quality passthrough
     age: float | None = None  # s; consumed only by the snapshot screen
     reservoirs: dict | None = None  # element -> kg; screens and the split
@@ -278,6 +278,7 @@ class EscapeResult:
     """One dispatch call's outcome."""
 
     regime: str  # one of REGIME_LABELS
+    rate_branch: str  # label of the branch whose rate won, before the Roche rename
     mdot: float  # kg/s bulk rate, >= 0
     per_species: dict  # element -> kg/s, non-negative, summing to mdot
     flags: dict  # dispatch flags (clamps, screens, fallbacks)
@@ -487,7 +488,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
             edge: ('hydrodynamic' if kn_sc <= edge else 'hydrostatic') for edge in kn.KN_BAND
         },
     )
-    if inputs.prev_regime is not None:
+    if threshold != st.kn_crit:
         flags['hysteresis_active'] = True
 
     # Step 4: hydrostatic branch (always evaluated: its exobase quantities
@@ -684,7 +685,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     if tot > 0.0 and rate > 0.0 and abs(tot - rate) / rate > 1e-9:
         per_species = {el: v * rate / tot for el, v in per_species.items()}
     return EscapeResult(
-        regime=label, mdot=rate, per_species=per_species, flags=flags, diagnostics=diag
+        regime=label,
+        rate_branch=branch,
+        mdot=rate,
+        per_species=per_species,
+        flags=flags,
+        diagnostics=diag,
     )
 
 

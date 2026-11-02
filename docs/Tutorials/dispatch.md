@@ -359,7 +359,7 @@ Carbon, the lighter element, is enriched by 3%. That is a small effect, as expec
 
 ### Hysteresis, for time-stepping
 
-A time-stepping run passes the previous step's label as `prev_regime`, and the dispatcher then shifts the Knudsen threshold to favour that label. The shift is set by `kn_hysteresis`, a factor of 1.5 by default. After a hydrostatic step a wind needs `Kn_sc` below `kn_crit / kn_hysteresis` = 1 / 1.5 = 0.667, and after a wind step the wind persists until `Kn_sc` exceeds `kn_crit * kn_hysteresis` = 1.5. A track therefore cannot flip between branches on numerical noise:
+A time-stepping run passes the previous result's `rate_branch` as `prev_regime`, and the dispatcher then shifts the Knudsen threshold to favour that branch. The branch is the label before any Roche renaming, so a wind renamed `roche_overflow` is still remembered as a wind. The shift is set by `kn_hysteresis`, a factor of 1.5 by default. After a hydrostatic step a wind needs `Kn_sc` below `kn_crit / kn_hysteresis` = 1 / 1.5 = 0.667, and after a wind step the wind persists until `Kn_sc` exceeds `kn_crit * kn_hysteresis` = 1.5. A track therefore cannot flip between branches on numerical noise:
 
 ```python
 --8<-- "examples/demo_dispatcher/demo_dispatcher.py:step6_hysteresis"
@@ -419,7 +419,7 @@ What the track shows:
 - The hydrostatic rate stays at $4.9 \times 10^{-2}\,\mathrm{kg\,s^{-1}}$ for the remaining eight billion years. That branch contains no XUV physics: a prescribed exobase temperature, a frozen profile, and a diffusion-limited supply that does not see the star. The flat line shows what the branch leaves out. It is also why hydrostatic rates of heavy elements are flagged as lower limits: the non-thermal processes that remove heavy species from real upper atmospheres are not modelled.
 - The consistency check fails between $65$ and $939\,\mathrm{Myr}$ (shaded). At those ages the wind would have emptied the inventory faster than the star aged, so those snapshots cannot describe a planet of that age. After the crossing the check passes again, but only because escape has almost stopped.
 
-Each call receives the previous label, as a time-stepping run would, so the crossing age depends slightly on the sampling. The hysteresis window of step 6 bounds that dependence.
+Each call receives the previous rate branch, as a time-stepping run would, so the crossing age depends slightly on the sampling. The hysteresis window of step 6 bounds that dependence.
 
 ---
 

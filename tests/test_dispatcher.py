@@ -29,6 +29,7 @@ mocks). The properties under test:
 See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 """
 
+import dataclasses
 import itertools
 import math
 import re
@@ -1024,6 +1025,53 @@ def test_hysteresis_memory_moves_the_threshold():
     remembered = dispatch(inp2)
     assert remembered.flags.get('hysteresis_active') is True
     assert remembered.diagnostics['knudsen']['threshold_applied'] == pytest.approx(1.5)
+    # After a boil-off the switch stays sharp, and the flag says so.
+    after_boiloff = dispatch(
+        _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, prev_regime='boiloff')
+    )
+    assert 'hysteresis_active' not in after_boiloff.flags
+    assert after_boiloff.diagnostics['knudsen']['threshold_applied'] == pytest.approx(1.0)
+
+
+def test_hysteresis_remembers_a_wind_the_roche_screen_renamed():
+    """A wind renamed roche_overflow is remembered as a wind.
+
+    An 8 Earth-mass, 1.43 Earth-radius steam and hydrogen envelope on an
+    eccentric 0.0135 au orbit: its energy-limited wind passes the Hill
+    radius and is renamed, with a sonic-point Knudsen number of 0.152. At a
+    switch threshold of 0.12 the wind is rarefied without memory, so the
+    hysteresis window (0.18) is what keeps it. The memory is the result's
+    rate_branch; the renamed label carried none, and the state dropped to a
+    hydrostatic rate seventeen decades below the wind.
+    """
+    state = _inputs(
+        8.02 * Me,
+        1.431 * Re,
+        1794.0,
+        {'H2': 0.5, 'H2O': 0.5},
+        F_xuv=25.0,
+        a=0.0135 * AU,
+        e=0.328,
+        F_bol=3.47e5,
+        F_int=3.23,
+        kappa_photo=0.00166,
+        M_star=0.953 * Ms,
+        p_surf=8.34e7,
+        p_top=1.46e-6,
+    )
+    wind = dispatch(state)
+    assert (wind.regime, wind.rate_branch) == ('roche_overflow', 'hydrodynamic:EL')
+    assert wind.rate_branch == wind.diagnostics['roche']['rate_branch']
+    assert 0.12 < wind.diagnostics['knudsen']['kn_sc'] < 0.18
+    settings = DispatchSettings(kn_crit=0.12)
+    kept = dispatch(dataclasses.replace(state, settings=settings, prev_regime=wind.rate_branch))
+    assert (kept.regime, kept.rate_branch) == ('roche_overflow', 'hydrodynamic:EL')
+    assert kept.flags.get('hysteresis_active') is True
+    assert kept.diagnostics['knudsen']['threshold_applied'] == pytest.approx(0.18)
+    forgot = dispatch(dataclasses.replace(state, settings=settings, prev_regime=wind.regime))
+    assert forgot.regime == 'hydrostatic'
+    assert 'hysteresis_active' not in forgot.flags
+    assert forgot.mdot < 1e-9 * kept.mdot
 
 
 def test_base_out_of_range_extend_mode():

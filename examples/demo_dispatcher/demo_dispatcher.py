@@ -349,7 +349,7 @@ for i in np.unique(np.linspace(0, age_myr.size - 1, 40).astype(int)):
         prev_regime=previous,
     )
     out = dispatch(snapshot)
-    previous = out.regime
+    previous = out.rate_branch
     track.append(dict(age_myr=age_myr[i], F_xuv=snapshot.F_xuv, result=out))
 
 print(

@@ -257,11 +257,15 @@ def kn_sonic(
 def effective_threshold(kn_crit: float, kn_hysteresis: float, prev_regime: str | None) -> float:
     """The switch threshold, with a hysteresis window for evolutionary use.
 
-    With no previous regime label the threshold is ``kn_crit`` (sharp
-    switch). When a previous label is supplied, the threshold moves to
-    ``kn_crit * kn_hysteresis`` while leaving a hydrodynamic state and to
+    ``prev_regime`` is the previous result's ``rate_branch``, the label of
+    the branch whose rate won before the Roche screen renamed it, since a
+    wind renamed ``roche_overflow`` is still a wind. With none the threshold
+    is ``kn_crit`` (sharp switch). The threshold moves to
+    ``kn_crit * kn_hysteresis`` while leaving a hydrodynamic wind and to
     ``kn_crit / kn_hysteresis`` while leaving a hydrostatic state, so a
     time-stepping track cannot chatter between branches on numerical noise.
+    After a boil-off or an L1 transfer the switch is sharp, since neither
+    sits on one side of it.
     """
     if prev_regime is None:
         return kn_crit
