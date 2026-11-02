@@ -756,7 +756,8 @@ def _resolve_wind_base(inputs: EscapeInputs, t_exo: float) -> tuple[dict, dict]:
     )
     if flags.get('base_clamped') and st.base_out_of_range == 'extend':
         p_target = base.get('p_physical')
-        if p_target is not None:
+        # Only a base above the profile top lies on the extension.
+        if p_target is not None and p_target < float(inputs.profile.p[-1]):
             ext = hs.bates_extension(inputs.profile, inputs.M_p, t_exo, gamma=st.gamma_bates)
             p_ext = np.asarray(ext['p'])
             if p_target >= p_ext[-1]:

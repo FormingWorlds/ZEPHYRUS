@@ -232,7 +232,9 @@ def test_wind_base_level_lopez_converges_and_clamps():
     pressure the level reports and no clamp flag is raised. On a profile
     truncated at 1e-2 Pa the physical base lies above the top, so the level
     clamps to the top with the clamp distance recorded in pressure decades,
-    and the unclamped target stays readable on the level itself.
+    and the unclamped target stays readable on the level itself. On a
+    tenuous atmosphere the base lies below the surface and clamps to the
+    bottom level the same way.
     """
     prof = _n2_profile(p_top=1e-6)
     lev, flags = wind_base_level(prof, 5 * Me, method='lopez')
@@ -253,6 +255,16 @@ def test_wind_base_level_lopez_converges_and_clamps():
     expected_decades = np.log10(deep.p[-1] / lev_d['p_physical'])
     assert flags_d['base_clamp_decades'] == pytest.approx(expected_decades, rel=1e-9, abs=0.0)
     assert flags_d['base_clamp_decades'] > 0.0
+    # A tenuous atmosphere, 1e-6 Pa at the surface, absorbs the XUV only
+    # below its own surface: the base clamps to the bottom level, flagged.
+    thin = isothermal_profile(0.1 * Me, 0.5 * Re, 300.0, {'N2': 1.0}, 1e-6, 1e-12)
+    lev_t, flags_t = wind_base_level(thin, 0.1 * Me, method='lopez')
+    assert flags_t.get('base_clamped') is True
+    assert lev_t['p'] == pytest.approx(1e-6, rel=1e-12, abs=0.0)
+    assert lev_t['p_physical'] > lev_t['p']
+    expected_thin = np.log10(lev_t['p_physical'] / 1e-6)
+    assert flags_t['base_clamp_decades'] == pytest.approx(expected_thin, rel=1e-9, abs=0.0)
+    assert 2.0 < flags_t['base_clamp_decades'] < 4.0
 
 
 def test_wind_base_level_fixed_pressure_method():

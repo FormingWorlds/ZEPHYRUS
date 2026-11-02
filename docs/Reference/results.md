@@ -42,7 +42,7 @@ The five `base_` flags describe the XUV wind base. They reach `flags` when the X
 
 | Flag | Value | Meaning | Effect |
 |---|---|---|---|
-| `base_clamped` | `True` | The physical wind-base pressure lies above the profile top, so the base was clamped to the topmost level. | The rate reflects it |
+| `base_clamped` | `True` | The physical wind-base pressure lies outside the profile, so the base was clamped to the nearer end level: above the top when the profile stops short of it, below the bottom when the atmosphere is too thin to absorb the XUV before the surface. | The rate reflects it |
 | `base_clamp_decades` | float | How far that clamp moved the base, in pressure decades. | Reporting only |
 | `base_extended` | `True` | With `base_out_of_range = 'extend'`, the base was evaluated on the extended upper structure instead of clamping. | The rate reflects it |
 | `base_extension_truncated` | `True` | The extension became unbound before reaching the base pressure, so the clamp stands after all. | The rate reflects it |

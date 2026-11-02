@@ -2021,6 +2021,39 @@ def test_t_exo_thermostat_mode_estimates_and_reports_itself():
         assert sum(res.per_species.values()) == pytest.approx(res.mdot, rel=1e-6, abs=0.0)
 
 
+def test_a_base_below_the_surface_is_clamped_not_extended():
+    """A wind base below the profile bottom clamps there under either policy.
+
+    A 0.1 Earth-mass nitrogen atmosphere with 1e-6 Pa at the surface
+    absorbs the XUV only below its surface. The base clamps to the bottom
+    level, flagged with its distance, and the extend policy, whose
+    extension lies above the profile top, leaves that clamp alone instead
+    of reporting a base on the extension.
+    """
+    for policy in ('clamp', 'extend'):
+        settings = DispatchSettings(base_out_of_range=policy)
+        out = dispatch(
+            _inputs(
+                0.1 * Me,
+                0.5 * Re,
+                300.0,
+                {'N2': 1.0},
+                F_xuv=1.0,
+                p_surf=1e-6,
+                p_top=1e-12,
+                settings=settings,
+            )
+        )
+        base = out.diagnostics['base_level']
+        assert base['flags'].get('base_clamped') is True
+        assert 'base_extended' not in base['flags']
+        assert base['p_Pa'] == pytest.approx(1e-6, rel=1e-12, abs=0.0)
+        assert base['p_physical_Pa'] > 1e-4
+        assert base['clamp_decades'] == pytest.approx(
+            np.log10(base['p_physical_Pa'] / 1e-6), rel=1e-9, abs=0.0
+        )
+
+
 def test_extend_mode_truncated_extension_keeps_the_clamp():
     """When the extension itself unbinds, the clamp stands, flagged.
 

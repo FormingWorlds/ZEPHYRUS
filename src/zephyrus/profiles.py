@@ -260,7 +260,10 @@ def wind_base_level(
       above the profile top (``P_base < p_top``), the level clamps to the
       topmost level, the ``base_clamped`` flag is raised, and the clamp
       distance in pressure decades is recorded; callers wanting the base on
-      an extended upper structure evaluate it there instead.
+      an extended upper structure evaluate it there instead. A base below
+      the profile bottom, on an atmosphere too thin to reach unit XUV
+      optical depth above the surface, clamps to the bottom level with the
+      same flags.
     - ``'fixed_pressure'``: the level at ``fixed_pressure`` [Pa].
     - ``'boreas'``: the base radius from the BOREAS mass-loss solver
       (optional dependency), translated to a profile pressure; falls back
@@ -318,6 +321,12 @@ def wind_base_level(
         flags['base_clamped'] = True
         flags['base_clamp_decades'] = float(np.log10(profile.p[-1] / p_phys))
         p_target = float(profile.p[-1])
+    elif p_phys > profile.p[0] * (1.0 + 1e-9):
+        # The atmosphere is too thin to reach unit XUV optical depth above
+        # the surface, so the base clamps to the bottom level.
+        flags['base_clamped'] = True
+        flags['base_clamp_decades'] = float(np.log10(p_phys / profile.p[0]))
+        p_target = float(profile.p[0])
     level = interp_at_pressure(profile, p_target)
     level['p_physical'] = float(p_phys)
     return level, flags
