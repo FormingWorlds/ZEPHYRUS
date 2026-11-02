@@ -196,12 +196,12 @@ regime     boiloff
 mdot       1.348e+14 kg/s
 Lambda     2.89
 threshold  20, band (15.0, 35.0)
-flags      ['base_clamp_decades', 'base_clamped']
+flags      []
 ```
 
 At $1\,M_\oplus$ and $1.5\,R_\oplus$, this hydrogen and helium envelope has $\Lambda = 2.89$, far below 20, and loses $1.3 \times 10^{14}\,\mathrm{kg\,s^{-1}}$. Boil-off is the regime of the first few million years, while young planets are still hot and inflated. The threshold itself has a literature range of 15 to 35, printed beside it.
 
-The two flags are expected. The isothermal envelope becomes unbound before it reaches $1\,\mathrm{nbar}$, so the profile stops early and the XUV wind base is clamped to the profile top. The boil-off outflow starts from the photosphere, not the wind base, so this does not affect the rate.
+No flag fires, although the XUV wind base was clamped: the isothermal envelope becomes unbound before it reaches $1\,\mathrm{nbar}$, so the profile stops early and the base sits at the profile top. The boil-off outflow starts from the photosphere, not the wind base, so the clamp does not affect the rate, and the flags describe only what the dispatched rate depends on. `diagnostics['base_level']['flags']` records the clamp on every call.
 
 **Roche overflow.** A planet's gravity dominates the star's only out to the Hill radius. Gas that reaches beyond the Roche lobe, a smaller surface at about 0.70 Hill radii, is no longer bound to the planet. Take a puffier envelope, with $3\,M_\oplus$ and $1.7\,R_\oplus$, at $0.1\,\mathrm{W\,m^{-2}}$. It has contracted just past the boil-off threshold. A boil-off outflow is still computed for it, with an upper limit set by the heat escaping from the planet's interior (the interior heat flux of step 1). An outflow sustained by that heat is core-powered mass loss (CPML)[^gs19]. Whether CPML continues once the envelope has contracted, with $\Lambda$ above 20, is disputed. Gupta & Schlichting find that it persists for billions of years[^gs19], while Tang et al. find that it removes at most 0.1% of the envelope once boil-off is modelled self-consistently[^tang]. By default the dispatcher therefore reports this outflow but does not let it compete for the rate. The `residual_mode` setting lets it compete:
 

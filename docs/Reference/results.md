@@ -38,6 +38,8 @@ The `effect` column says whether the returned rate already reflects the flag or 
 
 ### The working levels
 
+The five `base_` flags describe the XUV wind base. They reach `flags` when the XUV wind won the rate, or the L1 transfer launched on the wind's own column (`nozzle_temperature = 'wind'`), since no other candidate stands on that level, and `diagnostics['base_level']['flags']` carries them on every call.
+
 | Flag | Value | Meaning | Effect |
 |---|---|---|---|
 | `base_clamped` | `True` | The physical wind-base pressure lies above the profile top, so the base was clamped to the topmost level. | The rate reflects it |
@@ -115,7 +117,7 @@ Nineteen groups on a typical call. Nothing in the dispatch control flow reads an
 | `tang_timescale` | `evaluated`, `t_mdot_s`, `t_cool_s`, `terminated` | The Tang et al. (2024) [^tang] termination check on the closed-form bolometric wind, the smaller of `mdot_parker` and `mdot_bondi`, before the luminosity cap and whichever rate was dispatched, so its verdict changes neither with `residual_mode` nor with `tidal`. |
 | `self_consistency` | `evaluated`, `t_deplete_s`, `age_s`, `inconsistent` | Whether the dispatched rate would have destroyed the supplied inventory within the supplied age. Reports `evaluated: False` without an age or reservoirs. |
 | `rate_floor` | `floor_kg_s`, `above_floor` | Whether the dispatched rate has any numerical content, against one proton per Julian year. Reporting only: the module never applies the floor. |
-| `base_level` | `p_Pa`, `p_physical_Pa`, `r_m`, `T_K`, `clamp_decades` | Where the wind was launched, and the pressure the base method asked for before any clamp. |
+| `base_level` | `p_Pa`, `p_physical_Pa`, `r_m`, `T_K`, `clamp_decades`, `flags` | Where the wind was launched, the pressure the base method asked for before any clamp, and the `base_` flags of that search whichever candidate won. |
 | `documentation` | criterion bands and published exponents | The bands themselves, so a stored result is self-describing: the collisionality band, the boil-off activation band, the numerical against analytic flux exponents of the wind limits, and the dayside-heating reduction factors. |
 | `contested_ion` | both branch rates and a note | Present only when the two escape-temperature conventions disagree, which turns on ion physics this version does not model. |
 

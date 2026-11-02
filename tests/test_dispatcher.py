@@ -1145,10 +1145,18 @@ def test_base_out_of_range_extend_mode():
     decades); the extend policy evaluates the base on the extended upper
     structure instead, replacing the clamp flag with ``base_extended`` and
     placing the base at a lower pressure than the profile top. Either way
-    the diagnostics report the pressure the base method requested.
+    the diagnostics report the pressure the base method requested. The
+    flags reach the result only when the wind, which stands on that base,
+    won the rate: at 1 W m-2 the same state is hydrostatic and the clamp is
+    reported in the diagnostics alone.
     """
-    inp_clamp = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, p_top=1e-2)
+    quiet = dispatch(_inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, p_top=1e-2))
+    assert quiet.regime == 'hydrostatic'
+    assert not any(k.startswith('base_') for k in quiet.flags)
+    assert quiet.diagnostics['base_level']['flags'].get('base_clamped') is True
+    inp_clamp = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=10.0, p_top=1e-2)
     res_clamp = dispatch(inp_clamp)
+    assert res_clamp.regime == 'hydrodynamic:EL'
     assert res_clamp.flags.get('base_clamped') is True
     assert res_clamp.flags['base_clamp_decades'] > 0.0
     # The clamped base sits at the profile top, above its own target, and
@@ -1161,7 +1169,7 @@ def test_base_out_of_range_extend_mode():
     assert decades == pytest.approx(res_clamp.flags['base_clamp_decades'], rel=1e-9, abs=0.0)
     settings = DispatchSettings(base_out_of_range='extend')
     inp_ext = _inputs(
-        5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, p_top=1e-2, settings=settings
+        5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=10.0, p_top=1e-2, settings=settings
     )
     res_ext = dispatch(inp_ext)
     assert res_ext.flags.get('base_extended') is True
@@ -2033,9 +2041,12 @@ def test_extend_mode_truncated_extension_keeps_the_clamp():
         settings=settings,
     )
     res = dispatch(inp)
-    assert res.flags.get('base_extension_truncated') is True
-    assert res.flags.get('base_clamped') is True
-    assert res.regime in REGIME_LABELS
+    base_flags = res.diagnostics['base_level']['flags']
+    assert base_flags.get('base_extension_truncated') is True
+    assert base_flags.get('base_clamped') is True
+    # The boil-off outflow wins and does not stand on the wind base.
+    assert res.regime == 'boiloff'
+    assert not any(k.startswith('base_') for k in res.flags)
     assert math.isfinite(res.mdot)
 
 
@@ -2056,7 +2067,7 @@ def test_stale_input_and_boreas_fallback_flags(monkeypatch):
     )
     res = dispatch(inp)
     assert res.flags.get('stale_input') is True
-    assert res.flags.get('base_method_fallback') == 'lopez'
+    assert res.diagnostics['base_level']['flags'].get('base_method_fallback') == 'lopez'
     assert res.regime in REGIME_LABELS
     bad = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0)
     bad.F_xuv = -1.0
@@ -2143,7 +2154,7 @@ def test_one_exobase_temperature_per_call():
         )
     )
     prof = isothermal_profile(m_p, r_p, t_eq, {'CO2': 1.0}, 1e7, 1.0)
-    assert res.flags.get('base_extended') is True
+    assert res.diagnostics['base_level']['flags'].get('base_extended') is True
     t_branch = res.diagnostics['hydrostatic']['T_exo']
     t_base = res.diagnostics['base_level']['T_K']
     t_top = float(prof.T[-1])
@@ -2290,13 +2301,13 @@ FLAG_CASES = (
     (
         'base_clamp_decades',
         dict(
-            M_p=10 * Me,
-            R_p=1.8 * Re,
+            M_p=5 * Me,
+            R_p=1.5 * Re,
             T_eq=800.0,
-            comp={'CO2': 1.0},
-            F_xuv=1.0,
-            a=0.5,
-            p_top=1.0,
+            comp={'N2': 1.0},
+            F_xuv=10.0,
+            a=0.1,
+            p_top=1e-2,
         ),
         dict(M_p=Me, R_p=Re, T_eq=1000.0, comp={'CO2': 1.0}, F_xuv=10.0, a=0.0775),
     ),

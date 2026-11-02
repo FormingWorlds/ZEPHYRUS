@@ -360,8 +360,9 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # Resolved once so the hydrostatic upper structure and the extended wind
     # base are built at the same exobase temperature.
     t_exo = _resolve_t_exo(inputs, channels)
-    base, f = _resolve_wind_base(inputs, t_exo)
-    flags.update(f)
+    # The wind base sets only the XUV wind and a nozzle launched on its
+    # column, so its flags travel with those candidates.
+    base, base_flags = _resolve_wind_base(inputs, t_exo)
     elements = atomize(base['vmr'])
     t_wind, thermo = th.solve_wind_temperature(
         inputs.T_eq,
@@ -373,7 +374,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     )
     # Held aside and merged only if a hydrodynamic candidate wins; a losing
     # candidate's record stays in diag['hydrodynamic'].
-    hydro_flags: dict = {}
+    hydro_flags: dict = dict(base_flags)
     if thermo.get('clamped'):
         hydro_flags['thermostat_clamped'] = thermo['clamped']
     rr = hy.rr_chain(inputs.M_p, inputs.F_xuv, base['r'], t_wind, elements)
@@ -582,6 +583,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     branch = branch_of[winner]
     if winner == 'nozzle':
         winner_flags = _nozzle_flags(noz, inputs.e)
+        if st.nozzle_temperature == 'wind':
+            winner_flags.update(base_flags)
     else:
         winner_flags = {
             'hydrostatic': hs_flags,
@@ -690,7 +693,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         p_physical_Pa=base.get('p_physical'),
         r_m=base['r'],
         T_K=base['T'],
-        clamp_decades=flags.get('base_clamp_decades'),
+        clamp_decades=base_flags.get('base_clamp_decades'),
+        flags=dict(base_flags),
     )
 
     # Output contract: non-negative bulk rate, per-species rates summing to
