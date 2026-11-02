@@ -25,7 +25,7 @@ from zephyrus.atomic_data import (
     co2_band_cooling,
     o_finestructure_cooling,
 )
-from zephyrus.constants import erg2joule, ergcm2stoWm2, kb_cgs
+from zephyrus.constants import G, erg2joule, ergcm2stoWm2, kb_cgs
 
 # The thermostat sets the hydrodynamic wind temperature by a local balance
 # of photoionization heating against radiative cooling at the wind-base
@@ -164,14 +164,18 @@ def balance_at(
     cool_co2_band: bool = True,
     cool_o_finestructure: bool = True,
     cool_recombination: bool = True,
+    col_co2: float = 0.0,
 ) -> tuple[float, dict]:
     """Heating minus cooling [erg s^-1 cm^-3] at temperature T.
 
     Evaluated on the wind-base level ``base`` (a level dict with ``n``
     [m^-3] and ``vmr``; densities converted to cgs internally), for the
     atomized composition ``element_fractions`` under the XUV flux ``F_xuv``
-    [W m^-2]. Returns ``(residual, detail)`` with the detail carrying the
-    ionization fraction, both totals, and the per-channel parts.
+    [W m^-2]. ``col_co2`` is the CO2 column above the level [cm^-2], which
+    sets the escape probability of the 15 micron band (zero evaluates the
+    band at its zero-column ceiling). Returns ``(residual, detail)`` with the
+    detail carrying the ionization fraction, both totals, and the per-channel
+    parts.
     """
     n_cgs = base['n'] * 1e-6
     F_cgs = F_xuv / ergcm2stoWm2
@@ -202,7 +206,7 @@ def balance_at(
         colliders = {
             sp: vmr.get(sp, 0.0) * n_cgs for sp in ('O', 'O2', 'N2', 'CO2', 'He', 'Ar')
         }
-        q_co2 = co2_band_cooling(n_co2, colliders, T) if n_co2 > 0.0 else 0.0
+        q_co2 = co2_band_cooling(n_co2, colliders, T, col_co2) if n_co2 > 0.0 else 0.0
         parts['co2_band'] = q_co2
         q_cool += q_co2
     if cool_o_finestructure:
@@ -230,6 +234,7 @@ def solve_wind_temperature(
     cool_o_finestructure: bool = True,
     cool_recombination: bool = True,
     n_scan: int = 120,
+    col_co2: float = 0.0,
 ) -> tuple[float, dict]:
     """Thermostat root-find on the bracket [T_eq, 5e4 K].
 
@@ -247,7 +252,9 @@ def solve_wind_temperature(
     coolants are neutral and the gas there is fully ionized, and every
     quantity built on the clamped value (the sound speed, the sonic radius,
     the recombination-limited rate, the sonic-point Knudsen number)
-    inherits that. Returns ``(T_wind, detail)``.
+    inherits that. ``col_co2`` is passed to ``balance_at``; see
+    ``overlying_co2_column`` for the hydrostatic value. Returns
+    ``(T_wind, detail)``.
 
     Raises
     ------
@@ -262,6 +269,7 @@ def solve_wind_temperature(
         cool_co2_band=cool_co2_band,
         cool_o_finestructure=cool_o_finestructure,
         cool_recombination=cool_recombination,
+        col_co2=col_co2,
     )
     lo, hi = T_eq, T_BRACKET_HIGH
     if lo >= hi:
@@ -292,3 +300,16 @@ def solve_wind_temperature(
     t_w = 0.5 * (a + b)
     _, d = balance_at(t_w, base, element_fractions, F_xuv, **channels)
     return t_w, dict(clamped=None, **d)
+
+
+def overlying_co2_column(level: dict, M_p: float) -> float:
+    """CO2 column above a level [cm^-2], in hydrostatic balance.
+
+    ``x_CO2 p / (mu g)`` with ``g = G M_p / r^2`` at the level, for a level
+    dict with ``p`` [Pa], ``r`` [m], ``mmw`` [kg], and ``vmr``: the column
+    Johnstone et al. (2018) Eq. (38) reads the escape probability from,
+    with the mixing ratio held at its value at the level.
+    """
+    x_co2 = float(level['vmr'].get('CO2', 0.0))
+    g = G * M_p / level['r'] ** 2
+    return x_co2 * level['p'] / (level['mmw'] * g) * 1e-4

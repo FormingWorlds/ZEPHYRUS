@@ -29,7 +29,7 @@ $$\begin{aligned} (1 - f_+)\, n_\mathrm{base}\, \sigma_{\nu_0}\, \frac{F_\mathrm
 **Cooling.** Four terms stand on the right, each with its own setting, and at least one must stay on:
 
 - $Q_\mathrm{lines}$ (`cool_atomic`): atomic line cooling by H, C, C$^+$, N, N$^+$, O, and O$^+$, in three-level statistical equilibrium under electron impact, with every emitted photon escaping. This is the treatment of Chatterjee & Pierrehumbert (2026), their Eqs. (26) to (30), on the atomic data of Nakayama et al. (2022) [^nakayama]. The hydrogen system carries Lyman alpha.
-- $Q_{\mathrm{CO_2}}$ (`cool_co2_band`): the CO$_2$ 15 micron band (Johnstone et al. 2018 [^johnstone]). It is a coolant of the region near the base, evaluated on molecular abundances.
+- $Q_{\mathrm{CO_2}}$ (`cool_co2_band`): the CO$_2$ 15 micron band (Johnstone et al. 2018 [^johnstone]). It is a coolant of the region near the base, evaluated on molecular abundances, with the photon escape probability of their Eq. (38) taken for the CO$_2$ column above the base in hydrostatic balance, $x_{\mathrm{CO_2}} P_\mathrm{base} / (\mu g)$.
 - $Q_\mathrm{O}$ (`cool_o_finestructure`): the atomic oxygen fine-structure lines at 63 and 147 micron, from the same source.
 - The last term (`cool_recombination`): the continuum part of recombination cooling, with $\alpha_\mathrm{rec}$ the radiative recombination fit of Badnell (2006) for nitrogen-dominated gas [^badnell] and the composition-weighted case B coefficient of Eq. (5) otherwise.
 
@@ -99,7 +99,7 @@ The barometric factor, reported as `rr_chain['barometric_factor']`, separates th
 Numbers measured with this code, on the states named:
 
 - $\epsilon_\mathrm{PL}$ is 0.034 for a 1 Earth-mass, 1.05 Earth-radius hydrogen and helium envelope, and 0.055 at 2 Earth masses and 1.3 Earth radii, so at the default efficiency of 0.1 both winds are photon-limited. A 1 Earth-mass carbon dioxide atmosphere reaches it at 0.26.
-- The CO$_2$ band carries a few per cent of the cooling at the temperatures the thermostat selects, and most of it at a base of 1000 to 3000 K.
+- On a 1 Earth-mass CO$_2$ atmosphere the band carries 11% of the cooling at the wind temperature the thermostat selects at $F_\mathrm{XUV} = 0.3$ W m⁻², falling to 0.4% at 10 and 0.01% at 1000 W m⁻², and 14 to 23% at a base of 1000 to 3000 K. Without the overlying column its escape probability would sit at the ceiling of 0.5, about a hundred times too high at the default wind base, and the band would carry 63 to 71% at those base temperatures.
 
 [^lopez2017]: Lopez, E. D. (2017). Born dry in the photoevaporation desert: Kepler's ultra-short-period planets formed water-poor. *Monthly Notices of the Royal Astronomical Society, 472*(1), 245–253.
 

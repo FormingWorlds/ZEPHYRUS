@@ -296,3 +296,41 @@ def test_recombination_cooling_coefficient():
     n2_cgs = dense['n'] * 1e-6
     electron_ratio = (det2['f_plus'] * n2_cgs) ** 2 / (det['f_plus'] * n_cgs) ** 2
     assert ratio == pytest.approx(electron_ratio, rel=1e-6, abs=0.0)
+
+
+@pytest.mark.physics_invariant
+def test_co2_band_reads_the_overlying_column():
+    """The CO2 band takes its escape probability from the column above the base.
+
+    ``overlying_co2_column`` is the hydrostatic column x p / (mu g): for pure
+    CO2 at 3.3e-3 Pa on an Earth-mass, Earth-radius planet that is about
+    4.6e17 cm^-2, a sigma N near 3e3, and an escape probability near 5e-3
+    by Johnstone et al. (2018) Eq. (38), a hundred times below the
+    zero-column ceiling of 0.5. The balance passes the column to the band,
+    so its cooling drops at that column and the residual rises with it;
+    the dispatcher once left it at zero for every state.
+    """
+    from zephyrus.atomic_data import SIGMA_CO2_15UM, co2_band_cooling
+    from zephyrus.constants import G
+    from zephyrus.planets_parameters import Me, Re
+    from zephyrus.thermostat import overlying_co2_column
+
+    mu = 44.0095 * 1.66053906660e-27  # kg
+    level = {'p': 3.3e-3, 'r': Re, 'mmw': mu, 'n': 3.3e-3 / (1.380649e-23 * 3000.0)}
+    level['vmr'] = {'CO2': 1.0}
+    column = overlying_co2_column(level, Me)
+    g = G * Me / Re**2
+    assert column == pytest.approx(3.3e-3 / (mu * g) * 1e-4, rel=1e-12, abs=0.0)
+    assert 4.0e17 < column < 5.2e17
+    eps = 0.7202 * (SIGMA_CO2_15UM * column) ** -0.613
+    assert 3e-3 < eps < 7e-3
+    # A trace of CO2 scales the column with its mixing ratio.
+    trace = dict(level, vmr={'N2': 0.99, 'CO2': 0.01})
+    assert overlying_co2_column(trace, Me) == pytest.approx(0.01 * column, rel=1e-12, abs=0.0)
+    _r0, open_sky = balance_at(3000.0, level, {'C': 1 / 3, 'O': 2 / 3}, 10.0)
+    _r1, covered = balance_at(3000.0, level, {'C': 1 / 3, 'O': 2 / 3}, 10.0, col_co2=column)
+    n_cgs = level['n'] * 1e-6
+    expected = co2_band_cooling(n_cgs, {'CO2': n_cgs}, 3000.0, column)
+    assert covered['parts']['co2_band'] == pytest.approx(expected, rel=1e-12, abs=0.0)
+    assert covered['parts']['co2_band'] < 0.5 * open_sky['parts']['co2_band']
+    assert _r1 > _r0

@@ -93,7 +93,7 @@ Dispatch the carbon dioxide planet of step 1, with $1\,M_\oplus$ and $1\,R_\oplu
 === Step 2: dispatch one state and read the result ===
 regime       hydrodynamic:EL
 mdot         2.3477e+06 kg/s
-  C          6.6097e+05 kg/s
+  C          6.6092e+05 kg/s
   O          1.6868e+06 kg/s
 closure      True
 flags        {}
@@ -124,18 +124,18 @@ A star's XUV output falls by orders of magnitude as it ages, so a sweep in flux 
 === Step 3: sweep the XUV flux across two regime boundaries ===
 F_xuv [W m-2]  regime           mdot [kg/s]     Kn_sc  label at Kn_crit 0.1 | 3
          0.01  hydrostatic       4.992e-123   4.5e+18  hydrostatic | hydrostatic
-       0.0389  hydrostatic       4.992e-123  2.28e+18  hydrostatic | hydrostatic
-        0.151  hydrostatic       4.992e-123  5.26e+08  hydrostatic | hydrostatic
-        0.587  hydrostatic       4.992e-123      2.99  hydrostatic | hydrodynamic:RR
-         2.28  hydrodynamic:EL    5.356e+05     0.117  hydrostatic | hydrodynamic:EL
-         8.87  hydrodynamic:EL    2.082e+06    0.0329  hydrodynamic:EL | hydrodynamic:EL
-         34.5  hydrodynamic:EL    8.090e+06    0.0127  hydrodynamic:EL | hydrodynamic:EL
-          134  hydrodynamic:EL    3.144e+07   0.00558  hydrodynamic:EL | hydrodynamic:EL
-          520  hydrodynamic:EL    1.222e+08   0.00265  hydrodynamic:EL | hydrodynamic:EL
-     2.02e+03  hydrodynamic:RR    2.572e+08   0.00131  hydrodynamic:RR | hydrodynamic:RR
+       0.0389  hydrostatic       4.992e-123       298  hydrostatic | hydrostatic
+        0.151  hydrostatic       4.992e-123      2.41  hydrostatic | hydrodynamic:EL
+        0.587  hydrodynamic:EL    1.378e+05     0.336  hydrostatic | hydrodynamic:EL
+         2.28  hydrodynamic:EL    5.356e+05    0.0899  hydrodynamic:EL | hydrodynamic:EL
+         8.87  hydrodynamic:EL    2.082e+06     0.031  hydrodynamic:EL | hydrodynamic:EL
+         34.5  hydrodynamic:EL    8.090e+06    0.0125  hydrodynamic:EL | hydrodynamic:EL
+          134  hydrodynamic:EL    3.144e+07   0.00555  hydrodynamic:EL | hydrodynamic:EL
+          520  hydrodynamic:EL    1.222e+08   0.00264  hydrodynamic:EL | hydrodynamic:EL
+     2.02e+03  hydrodynamic:RR    2.576e+08    0.0013  hydrodynamic:RR | hydrodynamic:RR
 ```
 
-The label changes twice. At low flux the planet is `hydrostatic`: there is no wind, and particles escape one at a time from the exobase (Jeans escape). Above about $1\,\mathrm{W\,m^{-2}}$ it is a wind. At the highest fluxes the wind's rate is set by the recombination-limited formula (`hydrodynamic:RR`) instead of the energy-limited one.
+The label changes twice. At low flux the planet is `hydrostatic`: there is no wind, and particles escape one at a time from the exobase (Jeans escape). Above about $0.3\,\mathrm{W\,m^{-2}}$ it is a wind. At the highest fluxes the wind's rate is set by the recombination-limited formula (`hydrodynamic:RR`) instead of the energy-limited one.
 
 The column `Kn_sc` is the Knudsen number at the sonic point: the mean free path of a particle divided by the local scale height. When it is small, particles collide often and the gas behaves as a fluid, so a wind can exist. The dispatcher calls the state a wind when `Kn_sc` is below the threshold `kn_crit`, which defaults to 1. The last column shows the label the state would get at `kn_crit` = 0.1 and 3, the edges of the threshold's physical range.
 
@@ -147,8 +147,8 @@ To find where each label changes, `boundary_flux` repeatedly halves a flux inter
 
 ```text
 CO2
-  regime boundaries       0.746, 566 W m-2
-  wind onset band         0.586 to 2.62 W m-2, a factor 4.5
+  regime boundaries       0.253, 570 W m-2
+  wind onset band         0.135 to 2.02 W m-2, a factor 15
   rate at 0.01 W m-2      4.99e-123 kg/s, above the floor: False
 N2-O2
   regime boundaries       0.103 W m-2
@@ -157,7 +157,7 @@ N2-O2
 rate floor (1 proton/yr)  5.30e-35 kg/s
 ```
 
-On the $\mathrm{CO_2}$ planet the wind sets in at $0.746\,\mathrm{W\,m^{-2}}$, and the recombination-limited rate takes over at $566\,\mathrm{W\,m^{-2}}$. The $\mathrm{N_2}$ and $\mathrm{O_2}$ planet of the same mass and radius starts its wind about seven times lower, at $0.103\,\mathrm{W\,m^{-2}}$, and never reaches the recombination-limited label in this range. Composition moves the boundaries, not only the rates.
+On the $\mathrm{CO_2}$ planet the wind sets in at $0.253\,\mathrm{W\,m^{-2}}$, and the recombination-limited rate takes over at $570\,\mathrm{W\,m^{-2}}$. The $\mathrm{N_2}$ and $\mathrm{O_2}$ planet of the same mass and radius starts its wind about 2.5 times lower, at $0.103\,\mathrm{W\,m^{-2}}$, and never reaches the recombination-limited label in this range. Composition moves the boundaries, not only the rates.
 
 The last block draws both sweeps:
 
@@ -169,7 +169,7 @@ The last block draws both sweeps:
 
 Two features of this figure matter.
 
-**The shaded band.** Kinetic simulations place the transition from fluid to free particles at a Knudsen number near 0.1 when the heating is deposited in a thin layer, and near 1 when it is spread out[^johnson]. So the threshold has a physical range of 0.1 to 3, and the boundary it sets is a band rather than a line. On the $\mathrm{CO_2}$ planet the wind sets in anywhere between $0.586$ and $2.62\,\mathrm{W\,m^{-2}}$, a factor of 4.5. Quote a regime boundary with this width. Every result already carries the labels at both edges, in `diagnostics['knudsen']['counterfactual_labels']`, so you do not need to rerun anything to find it.
+**The shaded band.** Kinetic simulations place the transition from fluid to free particles at a Knudsen number near 0.1 when the heating is deposited in a thin layer, and near 1 when it is spread out[^johnson]. So the threshold has a physical range of 0.1 to 3, and the boundary it sets is a band rather than a line. On the $\mathrm{CO_2}$ planet the wind sets in anywhere between $0.135$ and $2.02\,\mathrm{W\,m^{-2}}$, a factor of 15. Quote a regime boundary with this width. Every result already carries the labels at both edges, in `diagnostics['knudsen']['counterfactual_labels']`, so you do not need to rerun anything to find it.
 
 **The open markers.** The hydrostatic rates, $5.0 \times 10^{-123}\,\mathrm{kg\,s^{-1}}$ for $\mathrm{CO_2}$ and $1.5 \times 10^{-71}\,\mathrm{kg\,s^{-1}}$ for $\mathrm{N_2}$ and $\mathrm{O_2}$, are zero for any practical purpose. Two comparisons help you decide whether a rate matters:
 
@@ -251,11 +251,11 @@ The result of step 2 carries 19 groups of diagnostics. The dispatcher never read
 ```text
 === Step 5: read the diagnostics ===
 Which branch, and how close was the switch?
-  Kn_sc 0.03 against threshold 1
+  Kn_sc 0.0285 against threshold 1
   label at the band edges: {0.1: 'hydrodynamic:EL', 3.0: 'hydrodynamic:EL'}
 What set the rate?
-  EL 2.348e+06, RR 1.149e+07, PL 6.137e+06 kg/s
-  EL-selected, T_wind 8434 K, barometric factor 0.0096
+  EL 2.348e+06, RR 1.207e+07, PL 6.137e+06 kg/s
+  EL-selected, T_wind 8525 K, barometric factor 0.01
 Could the heating drive a transonic flow?
   Q_net / Q_c 10.1
 How does the verdict read in other classifications?
@@ -271,8 +271,8 @@ Where was the wind launched, and where did the cross sections come from?
 
 What each answer says:
 
-- The switch. A Knudsen number of 0.03 is about 30 times below the threshold, and the label is the same at both edges of the band. A value within a few times of the threshold, or edge labels that differ, means the label depends on a choice within the criterion's range.
-- The rate. The hydrodynamic wind rate is the smallest of three limits: energy-limited (EL), recombination-limited (RR), and photon-limited (PL). All three are computed, so you can see the margin. `T_wind` is the wind temperature set by the balance of heating and cooling, $8434\,\mathrm{K}$ here. The barometric factor is the fraction of the gas density at the wind base that survives to the sonic point. When an RR rate wins, it tells you whether recombination at the base or the climb to the sonic point limited the wind (see the [escape regimes](../Explanations/regimes/wind.md) page).
+- The switch. A Knudsen number of 0.0285 is about 35 times below the threshold, and the label is the same at both edges of the band. A value within a few times of the threshold, or edge labels that differ, means the label depends on a choice within the criterion's range.
+- The rate. The hydrodynamic wind rate is the smallest of three limits: energy-limited (EL), recombination-limited (RR), and photon-limited (PL). All three are computed, so you can see the margin. `T_wind` is the wind temperature set by the balance of heating and cooling, $8525\,\mathrm{K}$ here. The barometric factor is the fraction of the gas density at the wind base that survives to the sonic point. When an RR rate wins, it tells you whether recombination at the base or the climb to the sonic point limited the wind (see the [escape regimes](../Explanations/regimes/wind.md) page).
 - The heating. $Q_\mathrm{net}/Q_\mathrm{c}$ compares the absorbed heating with the power needed to drive a flow through the sonic point[^johnson]. Below 1, no wind is possible whatever a rate formula returns. At 10.1 there is an order of magnitude to spare.
 - Other classifications. Papers classify escape with different quantities, and printing them lets a reader check the verdict in their own terms. Three are Jeans parameters, each the gravitational binding energy of a particle over its thermal energy, taken at a different place. `lambda_exo` is taken at the exobase with the exobase temperature, the form that sets the Jeans escape flux[^volkovb]. `lambda_rp` is taken at the planet radius with the equilibrium temperature, the restricted Jeans parameter of Fossati et al.[^fossati], here with the mean molecular mass as in Guo[^guo]. `lambda_star` is that parameter corrected for the star's tides, which Guo uses to tell thermally, tidally, and XUV-driven escape apart[^guo]. The gravitational potential, `log10(-phi)`, is what Salz et al.[^salz] use to separate winds from stable upper atmospheres. The exobase value of 301 is why the hydrostatic rates of step 3 vanish: the Jeans flux falls as $e^{-301}$.
 - Self-consistency. The fluid check reports the largest Knudsen number anywhere below the sonic point, 0.124. The inventory check is the sharp one: at this rate the planet empties one Earth atmosphere in $7 \times 10^{4}\,\mathrm{yr}$, against the age of $100\,\mathrm{Myr}$ supplied with the state. The state is valid input but cannot have lasted. A grid point that fails this check is a problem with the grid, not with the code.
@@ -329,11 +329,11 @@ The energy-limited rate assumes a fraction `efficiency` of the absorbed XUV ener
 
 ```text
 epsilon   F_xuv  regime                  EL         RR         PL  [kg/s]
-    0.1      10  hydrodynamic:EL   2.35e+06   1.15e+07   6.14e+06
+    0.1      10  hydrodynamic:EL   2.35e+06   1.21e+07   6.14e+06
     0.1    1000  hydrodynamic:RR   2.35e+08   1.79e+08   6.14e+08
-    0.3      10  hydrodynamic:PL   7.04e+06   1.15e+07   6.14e+06
+    0.3      10  hydrodynamic:PL   7.04e+06   1.21e+07   6.14e+06
     0.3    1000  hydrodynamic:RR   7.04e+08   1.79e+08   6.14e+08
-    0.6      10  hydrodynamic:PL   1.41e+07   1.15e+07   6.14e+06
+    0.6      10  hydrodynamic:PL   1.41e+07   1.21e+07   6.14e+06
     0.6    1000  hydrodynamic:RR   1.41e+09   1.79e+08   6.14e+08
 photon-limit efficiency 0.261
 ```
@@ -367,12 +367,12 @@ A time-stepping run passes the previous result's `rate_branch` as `prev_regime`,
 
 ```text
 F_xuv  previous label   regime            Kn_sc  threshold
- 0.72  None             hydrostatic       1.137  1
- 0.72  hydrostatic      hydrostatic       1.137  0.667
- 0.72  hydrodynamic:EL  hydrodynamic:EL   1.137  1.5
- 0.78  None             hydrodynamic:EL   0.854  1
- 0.78  hydrostatic      hydrostatic       0.854  0.667
- 0.78  hydrodynamic:EL  hydrodynamic:EL   0.854  1.5
+ 0.23  None             hydrostatic       1.159  1
+ 0.23  hydrostatic      hydrostatic       1.159  0.667
+ 0.23  hydrodynamic:EL  hydrodynamic:EL   1.159  1.5
+ 0.28  None             hydrodynamic:EL   0.861  1
+ 0.28  hydrostatic      hydrostatic       0.861  0.667
+ 0.28  hydrodynamic:EL  hydrodynamic:EL   0.861  1.5
 ```
 
 Inside the window the previous label is kept, in both directions. The `threshold` column shows when it was in use.
@@ -381,7 +381,7 @@ Inside the window the previous label is kept, in both directions. The `threshold
 
 ## Step 7: follow a stellar XUV history
 
-Load a MORS track for a Sun-like star, convert its luminosities to fluxes at $0.2\,\mathrm{au}$, and dispatch one planet at 40 ages. The planet has $1\,M_\oplus$ and $1\,R_\oplus$, $\mathrm{CO_2}$ with 1% hydrogen, and an inventory of 100 Earth atmospheres:
+Load a MORS track for a Sun-like star, convert its luminosities to fluxes at $0.4\,\mathrm{au}$, and dispatch one planet at 40 ages. The planet has $1\,M_\oplus$ and $1\,R_\oplus$, $\mathrm{CO_2}$ with 1% hydrogen, and an inventory of 100 Earth atmospheres:
 
 ```python
 --8<-- "examples/demo_dispatcher/demo_dispatcher.py:step7_track"
@@ -390,14 +390,14 @@ Load a MORS track for a Sun-like star, convert its luminosities to fluxes at $0.
 ```text
 === Step 7: follow a stellar XUV history ===
 age [Myr]   F_xuv  regime           mdot [kg/s]     Kn_sc  consistent
-      1.0    58.4  hydrodynamic:EL    1.274e+07   0.00938  True
-     45.0    1.62  hydrodynamic:EL    3.546e+05     0.246  True
-    310.1     1.4  hydrodynamic:EL    3.048e+05     0.347  False
-   1138.9   0.852  hydrostatic        4.902e-02      2.81  True
-   3039.5   0.495  hydrostatic        4.902e-02  1.04e+03  True
-   6189.6    0.34  hydrostatic        4.902e-02  5.77e+05  True
-   9439.6   0.324  hydrostatic        4.902e-02  1.42e+06  True
-label changes between 939 and 1139 Myr: 2.062e+05 to 4.902e-02 kg/s
+      1.0    14.6  hydrodynamic:EL    3.104e+06    0.0221  True
+     45.0   0.406  hydrodynamic:EL    8.638e+04     0.555  True
+    310.1   0.349  hydrodynamic:EL    7.425e+04     0.686  False
+   1138.9   0.213  hydrostatic        2.043e-02      1.51  True
+   3039.5   0.124  hydrostatic        2.043e-02      4.54  True
+   6189.6  0.0849  hydrostatic        2.043e-02      12.2  True
+   9439.6   0.081  hydrostatic        2.043e-02      14.1  True
+label changes between 939 and 1139 Myr: 5.023e+04 to 2.043e-02 kg/s
 ```
 
 !!! warning "Snapshots, not an evolution"
@@ -414,10 +414,10 @@ The last block draws the track:
 What the track shows:
 
 - The label belongs to the state, not to the planet. Nothing about the planet changed. The star became quieter, the Knudsen number rose through the threshold, and near $1\,\mathrm{Gyr}$ the escape changed from a wind to Jeans escape.
-- The rate drops by almost seven orders of magnitude at the crossing, from $2.1 \times 10^{5}$ to $5.1 \times 10^{-2}\,\mathrm{kg\,s^{-1}}$. There is no smoothing between branches, so the size of this jump is a result you can quote. It measures how much the two descriptions disagree at the same state.
-- What escapes changes too (lower panel). The wind carries carbon and oxygen away with the hydrogen. After the crossing hydrogen escapes alone, and the carbon and oxygen rates drop to about $10^{-139}\,\mathrm{kg\,s^{-1}}$, off the bottom of the plot.
-- The hydrostatic rate stays at $4.9 \times 10^{-2}\,\mathrm{kg\,s^{-1}}$ for the remaining eight billion years. That branch contains no XUV physics: a prescribed exobase temperature, a frozen profile, and a diffusion-limited supply that does not see the star. The flat line shows what the branch leaves out. It is also why hydrostatic rates of heavy elements are flagged as lower limits: the non-thermal processes that remove heavy species from real upper atmospheres are not modelled.
-- The consistency check fails between $65$ and $939\,\mathrm{Myr}$ (shaded). At those ages the wind would have emptied the inventory faster than the star aged, so those snapshots cannot describe a planet of that age. After the crossing the check passes again, but only because escape has almost stopped.
+- The rate drops by more than six orders of magnitude at the crossing, from $5.0 \times 10^{4}$ to $2.0 \times 10^{-2}\,\mathrm{kg\,s^{-1}}$. There is no smoothing between branches, so the size of this jump is a result you can quote. It measures how much the two descriptions disagree at the same state.
+- What escapes changes too (lower panel). The wind carries carbon and oxygen away with the hydrogen. After the crossing hydrogen escapes alone, and the carbon and oxygen rates drop to about $10^{-149}\,\mathrm{kg\,s^{-1}}$, off the bottom of the plot.
+- The hydrostatic rate stays at $2.0 \times 10^{-2}\,\mathrm{kg\,s^{-1}}$ for the remaining eight billion years. That branch contains no XUV physics: a prescribed exobase temperature, a frozen profile, and a diffusion-limited supply that does not see the star. The flat line shows what the branch leaves out. It is also why hydrostatic rates of heavy elements are flagged as lower limits: the non-thermal processes that remove heavy species from real upper atmospheres are not modelled.
+- The consistency check fails between $237$ and $939\,\mathrm{Myr}$ (shaded). At those ages the wind would have emptied the inventory faster than the star aged, so those snapshots cannot describe a planet of that age. After the crossing the check passes again, but only because escape has almost stopped.
 
 Each call receives the previous rate branch, as a time-stepping run would, so the crossing age depends slightly on the sampling. The hysteresis window of step 6 bounds that dependence.
 
@@ -425,7 +425,7 @@ Each call receives the previous rate branch, as a time-stepping run would, so th
 
 ## Things to try
 
-- Move the planet. Run the track at $0.1$ and at $0.4\,\mathrm{au}$, and find the distance at which the planet never leaves the wind regime.
+- Move the planet. Run the track at $0.2$ and at $0.6\,\mathrm{au}$, and find the distance inside which the planet never leaves the wind regime.
 - Change the composition at fixed mass and radius: replace the hydrogen with water, or remove it, and see how the crossing age and the rate after it respond.
 - Sweep the exobase temperature on pure $\mathrm{CO_2}$ at $0.01\,\mathrm{W\,m^{-2}}$. At $1\,M_\oplus$ the rate stays below the rate floor up to $3000\,\mathrm{K}$ and clears it only near $4000\,\mathrm{K}$. A Mars-mass planet ($0.107\,M_\oplus$, $0.53\,R_\oplus$) clears it at every temperature from $1000\,\mathrm{K}$ up.
 - Print the whole container with `pprint(result.diagnostics)` and read the groups this page skipped, such as `bolometric`, `thermostat`, and `documentation`, which carries the criterion bands so a stored result describes itself.

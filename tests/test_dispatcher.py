@@ -976,6 +976,33 @@ def test_counterfactual_labels_are_what_a_dispatch_at_the_edge_returns():
     assert straddling >= 2
 
 
+@pytest.mark.physics_invariant
+def test_wind_thermostat_sees_the_co2_column_above_the_base():
+    """The dispatched wind temperature uses the CO2 column above the base.
+
+    On a 1 Earth-mass CO2 atmosphere at 1 W m-2 the CO2 band cooling the
+    thermostat reports equals the band evaluated with the hydrostatic
+    column over the Lopez wind base, not the zero-column ceiling, and the
+    wind runs hotter than the zero-column balance would leave it.
+    """
+    from zephyrus import thermostat as th
+    from zephyrus.composition import atomize
+    from zephyrus.profiles import wind_base_level
+
+    state = _inputs(Me, Re, 600.0, {'CO2': 1.0}, F_xuv=1.0, a=0.3 * AU)
+    out = dispatch(state)
+    t_wind = out.diagnostics['hydrodynamic']['T_wind']
+    base, _flags = wind_base_level(state.profile, state.M_p)
+    elements = atomize(base['vmr'])
+    column = th.overlying_co2_column(base, state.M_p)
+    assert column > 1e17  # cm^-2, a sigma N of order 1e3
+    _r, covered = th.balance_at(t_wind, base, elements, 1.0, col_co2=column)
+    parts = out.diagnostics['thermostat']['parts']
+    assert parts['co2_band'] == pytest.approx(covered['parts']['co2_band'], rel=1e-9, abs=0.0)
+    t_open, _d = th.solve_wind_temperature(state.T_eq, base, elements, 1.0)
+    assert t_wind > t_open + 500.0
+
+
 def test_a_result_cannot_change_the_next_one():
     """Editing a returned result leaves the module and later results intact.
 

@@ -364,7 +364,12 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     flags.update(f)
     elements = atomize(base['vmr'])
     t_wind, thermo = th.solve_wind_temperature(
-        inputs.T_eq, base, elements, inputs.F_xuv, **channels
+        inputs.T_eq,
+        base,
+        elements,
+        inputs.F_xuv,
+        col_co2=th.overlying_co2_column(base, inputs.M_p),
+        **channels,
     )
     # Held aside and merged only if a hydrodynamic candidate wins; a losing
     # candidate's record stays in diag['hydrodynamic'].
@@ -790,11 +795,20 @@ def _resolve_t_exo(inputs: EscapeInputs, channels: dict) -> float:
     st = inputs.settings
     if st.T_exo_mode != 'thermostat':
         return st.T_exo_value
+    prof = inputs.profile
     top = {
-        'n': float(inputs.profile.p[-1]) / (kb * float(inputs.profile.T[-1])),
-        'vmr': {sp: float(np.asarray(v)[-1]) for sp, v in inputs.profile.vmr.items()},
+        'p': float(prof.p[-1]),
+        'r': float(prof.r[-1]),
+        'mmw': float(prof.mmw[-1]),
+        'n': float(prof.p[-1]) / (kb * float(prof.T[-1])),
+        'vmr': {sp: float(np.asarray(v)[-1]) for sp, v in prof.vmr.items()},
     }
     t_exo, _detail = th.solve_wind_temperature(
-        inputs.T_eq, top, atomize(top['vmr']), inputs.F_xuv, **channels
+        inputs.T_eq,
+        top,
+        atomize(top['vmr']),
+        inputs.F_xuv,
+        col_co2=th.overlying_co2_column(top, inputs.M_p),
+        **channels,
     )
     return t_exo

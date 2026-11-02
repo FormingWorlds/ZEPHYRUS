@@ -315,7 +315,7 @@ for fractionate in (True, False):
 
 # --8<-- [start:step6_hysteresis]
 print(f'{"F_xuv":>5}  {"previous label":<16} {"regime":<16} {"Kn_sc":>6}  threshold')
-for f_xuv in (0.72, 0.78):
+for f_xuv in (0.23, 0.28):
     for previous in (None, 'hydrostatic', 'hydrodynamic:EL'):
         hysteresis_state = build_state('CO2', 1.0, 1.0, f_xuv)
         hysteresis_state.prev_regime = previous
@@ -330,7 +330,7 @@ for f_xuv in (0.72, 0.78):
 # --8<-- [start:step7_track]
 print('=== Step 7: follow a stellar XUV history ===')
 
-A_TRACK = 0.2 * au2m  # [m]
+A_TRACK = 0.4 * au2m  # [m]
 star = mors.Star(Mstar=1.0, Omega=1.0)  # 1 solar mass, spinning at today's solar rate at 1 Myr
 age_myr = np.asarray(star.Tracks['Age'])
 l_xuv = (np.asarray(star.Tracks['Lx']) + np.asarray(star.Tracks['Leuv'])) * 1.0e-7  # erg/s to W
