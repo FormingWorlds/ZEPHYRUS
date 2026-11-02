@@ -939,6 +939,26 @@ def test_nozzle_power_diagnostic_reports_the_lift_cost():
         assert noz['L_bol_intercepted_W'] > 0.0
 
 
+def test_a_result_cannot_change_the_next_one():
+    """Editing a returned result leaves the module and later results intact.
+
+    The documentation group once handed out the module-level dicts
+    themselves, so writing into one result changed every later call.
+    """
+    from zephyrus import diagnostics as dg
+
+    state = _inputs(Me, Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=10.0)
+    first = dispatch(state)
+    doc = first.diagnostics['documentation']
+    doc['murray_clay_exponents']['RR_numerical'] = 999.0
+    doc['dayside_factors']['energy_limited'] = 999.0
+    assert dg.MURRAY_CLAY_EXPONENTS['RR_numerical'] == pytest.approx(0.6, rel=1e-12, abs=0.0)
+    assert dg.DAYSIDE_FACTORS['energy_limited'] == pytest.approx(0.26, rel=1e-12, abs=0.0)
+    again = dispatch(state).diagnostics['documentation']
+    assert again['murray_clay_exponents'] == dg.MURRAY_CLAY_EXPONENTS
+    assert again['dayside_factors'] == dg.DAYSIDE_FACTORS
+
+
 def test_diagnostics_are_boxed(monkeypatch):
     """Sabotaging every diagnostics producer changes no dispatch outcome.
 

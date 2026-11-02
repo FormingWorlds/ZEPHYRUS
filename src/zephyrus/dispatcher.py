@@ -297,8 +297,8 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     flags: dict = {}
     diag: dict = {
         'documentation': {
-            'murray_clay_exponents': dg.MURRAY_CLAY_EXPONENTS,
-            'dayside_factors': dg.DAYSIDE_FACTORS,
+            'murray_clay_exponents': dict(dg.MURRAY_CLAY_EXPONENTS),
+            'dayside_factors': dict(dg.DAYSIDE_FACTORS),
             'kn_band': kn.KN_BAND,
             'lambda_crit_band': bl.LAMBDA_BAND,
         }
