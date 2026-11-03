@@ -186,7 +186,7 @@ def bates_state(ext: dict, zeta):
     T = t_exo - (t_exo - t_top) * np.exp(-gz)
     # (1 - e^-gz) / gamma without its cancellation at small gamma zeta.
     with np.errstate(divide='ignore', invalid='ignore'):
-        rise = np.where(gz > 1e-8, -np.expm1(-gz) / gamma, zeta * (1.0 - 0.5 * gz))
+        rise = np.where(np.abs(gz) > 1e-8, -np.expm1(-gz) / gamma, zeta * (1.0 - 0.5 * gz))
     t_int = t_exo * zeta - (t_exo - t_top) * rise
     inv_r = 1.0 / ext['r0'] - kb * t_int / (G * ext['M_p'] * ext['mu'])
     with np.errstate(divide='ignore'):

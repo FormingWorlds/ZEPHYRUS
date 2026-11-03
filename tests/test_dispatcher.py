@@ -1088,6 +1088,52 @@ def test_a_wind_launched_transfer_carries_the_thermostat_clamp():
         assert 'thermostat_clamped' not in photo.flags
 
 
+@pytest.mark.physics_invariant
+def test_exobase_temperature_estimator_uses_the_surface_averaged_flux():
+    """The thermostat estimate of the exobase temperature is taken at F_xuv / 4.
+
+    With T_exo_mode = 'thermostat' the exobase temperature is the heating and
+    cooling balance at the profile top. Prescribing the balance at a quarter
+    of the flux reproduces the dispatched exobase; prescribing it at the full
+    flux does not.
+    """
+    from zephyrus import thermostat as th
+    from zephyrus.composition import atomize
+
+    state = _inputs(
+        Me,
+        Re,
+        600.0,
+        {'CO2': 0.99, 'H2': 0.01},
+        F_xuv=1.0,
+        a=0.3 * AU,
+        settings=DispatchSettings(T_exo_mode='thermostat'),
+    )
+    prof = state.profile
+    top = {
+        'p': float(prof.p[-1]),
+        'r': float(prof.r[-1]),
+        'mmw': float(prof.mmw[-1]),
+        'n': float(prof.p[-1]) / (kb * float(prof.T[-1])),
+        'vmr': {sp: float(np.asarray(v)[-1]) for sp, v in prof.vmr.items()},
+    }
+    column = th.overlying_co2_column(top, state.M_p)
+    t_quarter, _d = th.solve_wind_temperature(
+        state.T_eq, top, atomize(top['vmr']), 0.25 * state.F_xuv, col_co2=column
+    )
+    t_full, _d = th.solve_wind_temperature(
+        state.T_eq, top, atomize(top['vmr']), state.F_xuv, col_co2=column
+    )
+    assert t_full > t_quarter * 1.01
+    got = dispatch(state).diagnostics['hydrostatic']['T_exo']
+    for t_inf, match in ((t_quarter, True), (t_full, False)):
+        fixed = dataclasses.replace(state, settings=DispatchSettings(T_exo_value=t_inf))
+        same = dispatch(fixed).diagnostics['hydrostatic']['T_exo'] == pytest.approx(
+            got, rel=1e-9, abs=0.0
+        )
+        assert same is match
+
+
 def test_a_result_cannot_change_the_next_one():
     """Editing a returned result leaves the module and later results intact.
 

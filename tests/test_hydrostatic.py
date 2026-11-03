@@ -297,6 +297,31 @@ def test_bates_structure_reaches_the_isothermal_limit_at_small_gamma():
 
 
 @pytest.mark.physics_invariant
+def test_bates_series_and_expm1_branches_meet():
+    """The closed form is exact on both sides of its series switch.
+
+    1/r is checked against the integral written with math.expm1 at gamma
+    zeta from 1e-7 to 1e-3, where a series used too far would err by about
+    (gamma zeta)^2 / 6, and at negative gamma, where the series is wrong at
+    any size.
+    """
+    prof = _mars_profile()
+    base = bates_extension(prof, M_MARS, 300.0, n_levels=3)
+    for gamma in (1e-7, 1e-5, 1e-3, -1e-3, -0.5):
+        ext = dict(base, gamma=gamma)
+        for zeta in (0.5, 1.0, 3.0):
+            _r, _t, _n, inv_r = bates_state(ext, zeta)
+            rise = -math.expm1(-gamma * zeta) / gamma
+            t_int = ext['T_exo'] * zeta - (ext['T_exo'] - ext['T_top']) * rise
+            expected = 1.0 / ext['r0'] - kb * t_int / (G * M_MARS * ext['mu'])
+            assert float(inv_r) == pytest.approx(expected, rel=1e-13, abs=0.0)
+    # Either side of the switch at gamma zeta = 1e-8 the two forms agree.
+    below = bates_state(dict(base, gamma=0.999e-8), 1.0)[3]
+    above = bates_state(dict(base, gamma=1.001e-8), 1.0)[3]
+    assert float(above) == pytest.approx(float(below), rel=1e-12, abs=0.0)
+
+
+@pytest.mark.physics_invariant
 def test_exobase_locator_contract():
     """The exobase is where the mean free path equals the scale height.
 
