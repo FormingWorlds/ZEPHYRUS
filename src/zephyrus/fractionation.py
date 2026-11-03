@@ -174,7 +174,7 @@ def _solve(phi, X, m, T, g0, b):
     failed = False
     shares = {k: float(m[k] * flux[k]) / phi for k in range(n) if k not in majors}
     if sum(shares.values()) > TRACE_SHARE:
-        # The traces carry real mass, so the ones that do join the solve; an
+        # The traces carry real mass, so the ones that do join the solve. An
         # ultra-trace stays a test particle, its residual being pure noise.
         joined = sorted(
             set(majors) | {k for k, sh in shares.items() if sh > 1e-3 * TRACE_SHARE}
@@ -187,7 +187,7 @@ def _solve(phi, X, m, T, g0, b):
 
 
 def _active_set_solve(phi, X, m, T, g0, b, majors):
-    """Active-set loop over ``majors``; every other species is a test particle."""
+    """Active-set loop over ``majors``, with every other species a test particle."""
     kT = kb_cgs * T
     n = len(X)
     active = set(majors)
@@ -227,7 +227,7 @@ def _active_set_solve(phi, X, m, T, g0, b, majors):
                         escaping.add(k)
             flux = X * w
             # Below TRACE_SHARE of test-particle flux the rescale moves the
-            # majors by less; above it the caller re-solves, or flags a failure.
+            # majors by less. Above it the caller re-solves, or flags a failure.
             flux *= phi / float(np.sum(m * flux))
             return flux, inv_h_bar, frozenset(escaping)
         active.add(viol)

@@ -178,7 +178,7 @@ def bates_state(ext: dict, zeta):
     ``T = T_exo - (T_exo - T_top) exp(-gamma zeta)`` integrates to
     ``T_exo zeta - (T_exo - T_top)(1 - exp(-gamma zeta)) / gamma``, which
     gives ``1/r`` exactly. Beyond the point where ``1/r`` reaches zero the
-    radius is infinite; ``bates_extension`` stops well before it.
+    radius is infinite, and ``bates_extension`` stops well before it.
     """
     zeta = np.asarray(zeta, dtype=float)
     t_exo, t_top, gamma = ext['T_exo'], ext['T_top'], ext['gamma']
@@ -204,7 +204,7 @@ def find_exobase(ext: dict, M_p: float, n_scan: int = 201) -> tuple[float, dict]
     closed-form structure rather than snapped to a grid level, so the
     exobase state does not depend on any quadrature resolution. ``n_scan``
     points bracket the first crossing. When the extension never reaches
-    that point its end is used, flagged ``exobase_not_reached``; an exobase
+    that point its end is used, flagged ``exobase_not_reached``. An exobase
     at the anchor itself returns ``zeta_exo = 0``, flagged
     ``exobase_at_anchor``.
     """
@@ -257,8 +257,9 @@ def hydrostatic_rates(
     year skip the supply integrals (``pruned`` in the per-species detail)
     and return that rate at their profile-top mole fraction. It is an
     estimate, not a bound, since diffusive enrichment can raise a light
-    species' full rate above it (2.0 to 2.6 times on trace hydrogen and
-    helium profiles). The shortcut exists because the integrals dominate
+    species' full rate above it (2 to 5 times on the trace hydrogen and
+    helium profiles tested), enough to carry a rate just under the floor
+    above it. The shortcut exists because the integrals dominate
     the cost of the branch on many-species profiles.
 
     ``n_levels`` sets the quadrature resolution of the supply integrals,
@@ -431,7 +432,7 @@ def hydrostatic_rates_refined(
     rate floor, or until ``n_levels_max`` is reached. Two changes, so a
     single chance agreement does not end the refinement, and every element,
     since a trace whose supply integral is still moving can sit under a bulk
-    the dominant species sets alone; meeting the target needs
+    the dominant species sets alone. Meeting the target needs
     ``n_levels_max`` of at least four times ``n_levels_min``.
     The finest grid's rates are returned, never an extrapolation.
 

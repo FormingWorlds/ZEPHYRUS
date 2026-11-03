@@ -294,7 +294,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     Runs the fixed evaluation order documented in the module notes and
     returns an :class:`EscapeResult`. Raises ``ValueError`` on malformed
     input, and on a non-finite candidate rate, which is a defect rather
-    than a physical state; every physically posed state returns a labeled,
+    than a physical state. Every physically posed state returns a labeled,
     finite, non-negative result whose per-species rates sum to the bulk rate.
     """
     inputs.validate()

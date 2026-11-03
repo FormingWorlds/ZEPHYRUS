@@ -58,11 +58,11 @@ The flux scaling will not separate them either: the base ion density follows $\s
 
 ## `base_clamped` fired
 
-**Symptom.** The wind base sits at the profile top, with a clamp distance of several decades.
+**Symptom.** The wind base sits at the profile top, or on a thin atmosphere at the profile bottom, with a clamp distance of several decades. The flag reaches `flags` only when the XUV wind won the rate or the L1 transfer launched on the wind's column, and `diagnostics['base_level']['flags']` reports it on every call.
 
-**Cause.** The profile does not extend to the pressure where XUV photons are absorbed, near a nanobar. An isothermal hydrogen envelope, in particular, becomes unbound and truncates well below that.
+**Cause.** At the top, the profile does not extend to the pressure where XUV photons are absorbed, near a nanobar. An isothermal hydrogen envelope, in particular, becomes unbound and truncates well below that. At the bottom, the atmosphere is too thin to absorb the XUV before the surface, so the base sits on the bottom level.
 
-**What to do.** The base level is $\mu g / \sigma_{\nu_0}$, so where it sits depends on the state: tens of nanobars on an Earth-mass carbon dioxide planet, and below a nanobar on a low-gravity hydrogen envelope, where a profile stopping at a nanobar still misses it. Extend the profile past the `p_physical` the diagnostics report for the state at hand rather than trusting one number for all of them. Otherwise decide by branch: on `boiloff` the clamp is harmless, because that branch launches from the photospheric level. On a hydrodynamic verdict it is not, because the base density sets the sonic-point density and therefore the collisionality switch itself, so a clamped base moves the boundary. The `base_out_of_range = 'extend'` setting evaluates the base on the extended upper structure instead. `base_extension_truncated` means even that did not reach it.
+**What to do.** The base level is $\mu g / \sigma_{\nu_0}$, so where it sits depends on the state: tens of nanobars on an Earth-mass carbon dioxide planet, and below a nanobar on a low-gravity hydrogen envelope, where a profile stopping at a nanobar still misses it. Extend the profile past the `p_physical` the diagnostics report for the state at hand rather than trusting one number for all of them. A clamp at the top matters whenever the flag reaches `flags`, because the base density sets the sonic-point density and therefore the collisionality switch itself, so a clamped base moves the boundary. The `base_out_of_range = 'extend'` setting evaluates the base on the extended upper structure instead. `base_extension_truncated` means even that did not reach it.
 
 ## `roche_overflow` on a state that should not be overflowing
 
