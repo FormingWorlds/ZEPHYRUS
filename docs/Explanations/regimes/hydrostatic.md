@@ -72,7 +72,7 @@ The neutral escape temperature $T_\mathrm{esc}$ is where thermal energy rivals b
 
 In such states the [hydrodynamic candidate](wind.md#the-hydrodynamic-candidate) competes with the Jeans rate, the larger one is dispatched with its own label, and the state is flagged `gate_rerouted`. Taking the larger keeps the dispatched rate from falling as the exosphere heats past the threshold. Neither candidate describes the outflow of an unstable exosphere, as the [limitations page](../limitations.md) explains.
 
-The setting `gate` chooses the neutral (default) or the plasma escape temperature. Both are always computed, with the ionisation fraction at the exobase. States where the two choices disagree are flagged `contested_ion`, with both branch rates recorded, because the ion physics that would decide them is not modelled.
+The setting `gate` chooses the neutral (default) or the plasma escape temperature. Both are always computed, with the ionisation fraction at the exobase under the surface-averaged flux $F_\mathrm{XUV}/4$. States where the two choices disagree are flagged `contested_ion`, with both branch rates recorded, because the ion physics that would decide them is not modelled.
 
 [^yelle]: Yelle, R. V. (2024). Diffusion limited escape of hydrogen from Mars. *Icarus, 416*, 116099.
 

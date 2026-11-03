@@ -101,7 +101,7 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 | `gate` | `'neutral'` | `'neutral'`, `'plasma'` | Which escape temperature the exosphere stability test uses. Both are always computed and disagreements are flagged as contested. |
 | `efficiency` | 0.1 | $0 < \epsilon \leq 1$ | Energy-limited heating efficiency $\epsilon$. |
 | `efficiency_mode` | `'fixed'` | `'fixed'`, `'caldiroli'` | Fixed $\epsilon$, or the Caldiroli et al. (2022) [^caldiroli] fitted efficiency converted to the Erkaev geometry, with a guarded fallback below its validity bound. |
-| `T_exo_mode` | `'prescribed'` | `'prescribed'`, `'thermostat'` | Exobase temperature source. The prescribed value is the hydrostatic branch's dominant sensitivity. The thermostat estimator is biased high by construction. |
+| `T_exo_mode` | `'prescribed'` | `'prescribed'`, `'thermostat'` | Exobase temperature source. The prescribed value is the hydrostatic branch's dominant sensitivity. The thermostat estimator, a heating-cooling balance at the profile top under the surface-averaged flux $F_\mathrm{XUV}/4$, is biased high by construction. |
 | `T_exo_value` | 1000 | K | The prescribed exobase temperature. |
 | `cool_atomic` | `True` | `True`, `False` | Atomic line cooling (H, C, C+, N, N+, O, O+) in the wind thermostat. |
 | `cool_co2_band` | `True` | `True`, `False` | CO2 15 micron band cooling (deexcitation rates measured over roughly 150 to 500 K). |

@@ -133,7 +133,7 @@ def boundary_flux(composition, lo, hi, settings=None):
 
 
 boundaries = {
-    'CO2': [boundary_flux('CO2', 0.1, 10.0), boundary_flux('CO2', 100.0, 2000.0)],
+    'CO2': [boundary_flux('CO2', 0.1, 10.0), boundary_flux('CO2', 10.0, 2000.0)],
     'N2-O2': [boundary_flux('N2-O2', 0.01, 10.0)],
 }
 bands = {  # the wind boundary at the two edges of the Knudsen criterion
@@ -267,8 +267,8 @@ print(f'  cross sections: {kn["provenance"]}')
 print('=== Step 6: settings that move a boundary ===')
 
 for kn_crit in (0.1, 1.0, 3.0):
-    out = dispatch(build_state('CO2', 1.0, 1.0, 1.0, DispatchSettings(kn_crit=kn_crit)))
-    print(f'kn_crit {kn_crit:<4} at 1 W m-2: {out.regime}')
+    out = dispatch(build_state('CO2', 1.0, 1.0, 2.0, DispatchSettings(kn_crit=kn_crit)))
+    print(f'kn_crit {kn_crit:<4} at 2 W m-2: {out.regime}')
 # --8<-- [end:step6_kn]
 
 # --8<-- [start:step6_texo]
@@ -315,7 +315,7 @@ for fractionate in (True, False):
 
 # --8<-- [start:step6_hysteresis]
 print(f'{"F_xuv":>5}  {"previous label":<16} {"regime":<16} {"Kn_sc":>6}  threshold')
-for f_xuv in (0.38, 0.48):
+for f_xuv in (0.9, 1.1):
     for previous in (None, 'hydrostatic', 'hydrodynamic:EL'):
         hysteresis_state = build_state('CO2', 1.0, 1.0, f_xuv)
         hysteresis_state.prev_regime = previous
@@ -330,7 +330,7 @@ for f_xuv in (0.38, 0.48):
 # --8<-- [start:step7_track]
 print('=== Step 7: follow a stellar XUV history ===')
 
-A_TRACK = 0.4 * au2m  # [m]
+A_TRACK = 0.2 * au2m  # [m]
 star = mors.Star(Mstar=1.0, Omega=1.0)  # 1 solar mass, spinning at today's solar rate at 1 Myr
 age_myr = np.asarray(star.Tracks['Age'])
 l_xuv = (np.asarray(star.Tracks['Lx']) + np.asarray(star.Tracks['Leuv'])) * 1.0e-7  # erg/s to W

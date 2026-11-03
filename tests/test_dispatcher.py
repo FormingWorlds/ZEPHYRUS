@@ -453,7 +453,7 @@ def test_roche_subflag_separates_the_two_geometries():
             2.0 * Re,
             1000.0,
             {'CO2': 1.0},
-            F_xuv=1e-2,
+            F_xuv=0.035,
             a=0.03 * AU,
             settings=DispatchSettings(T_exo_value=2000.0),
         )
@@ -1004,17 +1004,21 @@ def test_wind_thermostat_sees_the_co2_column_above_the_base():
 
 
 @pytest.mark.physics_invariant
-def test_recombination_limited_rate_uses_the_surface_averaged_flux():
-    """The RR candidate is the chain at F_xuv / 4, the full-surface geometry.
+def test_wind_state_uses_the_surface_averaged_flux():
+    """The whole wind state is evaluated at F_xuv / 4, the full-surface geometry.
 
     The energy- and photon-limited rates spread the power a disk intercepts
-    over the whole sphere; the recombination-limited chain matches that at a
-    quarter of the substellar flux. Its rate scales as the square root of
-    the flux, so the substellar value would be twice as large, which the
-    pin discriminates.
+    over the whole sphere. The thermostat's wind temperature, the
+    recombination-limited chain, and the exobase ionization of the plasma
+    gate match that at a quarter of the substellar flux. The RR rate scales
+    as the square root of the flux, so the substellar value would be twice
+    as large, and the substellar wind runs hotter (by 16 K here, where the
+    thermostat is near saturation); both discriminate.
     """
     from zephyrus import hydrodynamic as hy
+    from zephyrus import thermostat as th
     from zephyrus.composition import atomize
+    from zephyrus.constants import ergcm2stoWm2
     from zephyrus.profiles import wind_base_level
 
     state = _inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=1.0e4, a=0.05 * AU)
@@ -1027,6 +1031,26 @@ def test_recombination_limited_rate_uses_the_surface_averaged_flux():
     full = hy.rr_chain(state.M_p, state.F_xuv, base['r'], t_wind, elements)
     assert hydro['mdot_rr'] == pytest.approx(quarter['mdot_rr'], rel=1e-12, abs=0.0)
     assert full['mdot_rr'] == pytest.approx(2.0 * quarter['mdot_rr'], rel=1e-9, abs=0.0)
+    column = th.overlying_co2_column(base, state.M_p)
+    t_quarter, _d = th.solve_wind_temperature(
+        state.T_eq, base, elements, 0.25 * state.F_xuv, col_co2=column
+    )
+    t_full, _d = th.solve_wind_temperature(
+        state.T_eq, base, elements, state.F_xuv, col_co2=column
+    )
+    assert t_wind == pytest.approx(t_quarter, rel=1e-9, abs=0.0)
+    assert t_full > t_quarter * (1.0 + 1.0e-3)
+    hsd = out.diagnostics['hydrostatic']
+    hnu, _e, sigma = th.front_constants(elements)
+    f_exo = th.ionization_fraction(
+        hsd['detail']['n_exo'] * 1e-6,
+        hsd['T_exo'],
+        0.25 * state.F_xuv / ergcm2stoWm2,
+        hnu,
+        sigma,
+        th.recombination_alpha(elements, hsd['T_exo']),
+    )
+    assert hsd['f_plus_exo'] == pytest.approx(f_exo, rel=1e-12, abs=0.0)
 
 
 def test_a_result_cannot_change_the_next_one():
@@ -1127,9 +1151,9 @@ def test_hysteresis_remembers_a_wind_the_roche_screen_renamed():
 
     An 8 Earth-mass, 1.43 Earth-radius steam and hydrogen envelope on an
     eccentric 0.0135 au orbit: its recombination-limited wind passes the
-    Hill radius and is renamed, with a sonic-point Knudsen number of 0.303.
-    At a switch threshold of 0.24 the wind is rarefied without memory, so
-    the hysteresis window (0.36) is what keeps it. The memory is the result's
+    Hill radius and is renamed, with a sonic-point Knudsen number of 0.488.
+    At a switch threshold of 0.4 the wind is rarefied without memory, so
+    the hysteresis window (0.6) is what keeps it. The memory is the result's
     rate_branch; the renamed label carried none, and the state dropped to a
     hydrostatic rate seventeen decades below the wind.
     """
@@ -1151,12 +1175,12 @@ def test_hysteresis_remembers_a_wind_the_roche_screen_renamed():
     wind = dispatch(state)
     assert (wind.regime, wind.rate_branch) == ('roche_overflow', 'hydrodynamic:RR')
     assert wind.rate_branch == wind.diagnostics['roche']['rate_branch']
-    assert 0.24 < wind.diagnostics['knudsen']['kn_sc'] < 0.36
-    settings = DispatchSettings(kn_crit=0.24)
+    assert 0.4 < wind.diagnostics['knudsen']['kn_sc'] < 0.6
+    settings = DispatchSettings(kn_crit=0.4)
     kept = dispatch(dataclasses.replace(state, settings=settings, prev_regime=wind.rate_branch))
     assert (kept.regime, kept.rate_branch) == ('roche_overflow', 'hydrodynamic:RR')
     assert kept.flags.get('hysteresis_active') is True
-    assert kept.diagnostics['knudsen']['threshold_applied'] == pytest.approx(0.36)
+    assert kept.diagnostics['knudsen']['threshold_applied'] == pytest.approx(0.6)
     forgot = dispatch(dataclasses.replace(state, settings=settings, prev_regime=wind.regime))
     assert forgot.regime == 'hydrostatic'
     assert 'hysteresis_active' not in forgot.flags
@@ -1174,13 +1198,13 @@ def test_base_out_of_range_extend_mode():
     the diagnostics report the pressure the base method requested. The
     flags reach the result only when the wind, which stands on that base,
     won the rate: at 1 W m-2 the same state is hydrostatic and the clamp is
-    reported in the diagnostics alone.
+    reported in the diagnostics alone, while at 30 W m-2 the wind wins.
     """
     quiet = dispatch(_inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, p_top=1e-2))
     assert quiet.regime == 'hydrostatic'
     assert not any(k.startswith('base_') for k in quiet.flags)
     assert quiet.diagnostics['base_level']['flags'].get('base_clamped') is True
-    inp_clamp = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=10.0, p_top=1e-2)
+    inp_clamp = _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=30.0, p_top=1e-2)
     res_clamp = dispatch(inp_clamp)
     assert res_clamp.regime == 'hydrodynamic:EL'
     assert res_clamp.flags.get('base_clamped') is True
@@ -1195,7 +1219,7 @@ def test_base_out_of_range_extend_mode():
     assert decades == pytest.approx(res_clamp.flags['base_clamp_decades'], rel=1e-9, abs=0.0)
     settings = DispatchSettings(base_out_of_range='extend')
     inp_ext = _inputs(
-        5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=10.0, p_top=1e-2, settings=settings
+        5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=30.0, p_top=1e-2, settings=settings
     )
     res_ext = dispatch(inp_ext)
     assert res_ext.flags.get('base_extended') is True
@@ -2364,7 +2388,7 @@ FLAG_CASES = (
             R_p=1.5 * Re,
             T_eq=800.0,
             comp={'N2': 1.0},
-            F_xuv=10.0,
+            F_xuv=30.0,
             a=0.1,
             p_top=1e-2,
         ),

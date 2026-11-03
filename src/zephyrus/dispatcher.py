@@ -364,11 +364,14 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # column, so its flags travel with those candidates.
     base, base_flags = _resolve_wind_base(inputs, t_exo)
     elements = atomize(base['vmr'])
+    # The wind state is the surface average, F_xuv / 4, the full-surface geometry of
+    # the EL and PL rates; Murray-Clay et al. (2009) use the substellar flux.
+    f_mean = 0.25 * inputs.F_xuv
     t_wind, thermo = th.solve_wind_temperature(
         inputs.T_eq,
         base,
         elements,
-        inputs.F_xuv,
+        f_mean,
         col_co2=th.overlying_co2_column(base, inputs.M_p),
         **channels,
     )
@@ -377,9 +380,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     hydro_flags: dict = dict(base_flags)
     if thermo.get('clamped'):
         hydro_flags['thermostat_clamped'] = thermo['clamped']
-    # Surface-averaged flux, the full-surface geometry of the EL and PL rates;
-    # Murray-Clay et al. (2009) put the substellar flux over the whole sphere.
-    rr = hy.rr_chain(inputs.M_p, 0.25 * inputs.F_xuv, base['r'], t_wind, elements)
+    rr = hy.rr_chain(inputs.M_p, f_mean, base['r'], t_wind, elements)
     if rr['subcritical']:
         hydro_flags['subcritical_sonic'] = True
 
@@ -514,7 +515,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     f_plus_exo = th.ionization_fraction(
         hsd['n_exo'] * 1e-6,
         hsd['T_exo'],
-        inputs.F_xuv / ergcm2stoWm2,
+        f_mean / ergcm2stoWm2,
         hnu,
         sigma_front,
         th.recombination_alpha(elements, hsd['T_exo']),
@@ -795,7 +796,7 @@ def _resolve_t_exo(inputs: EscapeInputs, channels: dict) -> float:
     The default is the prescribed value: the exobase temperature is the
     branch's dominant sensitivity and is owned by the caller. The optional
     thermostat mode evaluates the local heating-cooling balance at the
-    profile top; a conduction-free local balance biases the estimate high
+    profile top under the surface-averaged flux F_xuv / 4; a conduction-free local balance biases the estimate high
     (heating scales with density, the cooling channels with its square),
     so the mode is an estimator, not a default.
     """
@@ -814,7 +815,7 @@ def _resolve_t_exo(inputs: EscapeInputs, channels: dict) -> float:
         inputs.T_eq,
         top,
         atomize(top['vmr']),
-        inputs.F_xuv,
+        0.25 * inputs.F_xuv,
         col_co2=th.overlying_co2_column(top, inputs.M_p),
         **channels,
     )

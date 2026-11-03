@@ -17,11 +17,13 @@ Two settings change the base:
 
 ## The wind temperature
 
+The wind state on this page, its temperature, ionisation, base ion density, and sonic-point Knudsen number, is evaluated at the surface-averaged flux $F_\mathrm{XUV}/4$. That is the full-surface geometry of Eqs. (3) and (8), which spread the power a disk intercepts over the whole sphere. Murray-Clay et al. [^mc09] evaluate the wind at the substellar flux and apply it over the whole sphere, which gives a hotter, more ionised wind and a recombination-limited rate twice as large.
+
 The wind temperature $T_\mathrm{w}$ is not assumed to be the canonical $10^4$ K. A thermostat balances local photoionisation heating against radiative cooling at the base density $n_\mathrm{base}$ and the atomised base composition: every molecule at the base is split into its atoms, and $y_j$ is the resulting mole fraction of element $j$. $T_\mathrm{w}$ is the root of
 
-$$\begin{aligned} (1 - f_+)\, n_\mathrm{base}\, \sigma_{\nu_0}\, \frac{F_\mathrm{XUV}}{h\nu_0}\, \left(h\nu_0 - E_\mathrm{ion}\right) \;=\;& Q_\mathrm{lines} + Q_{\mathrm{CO_2}} + Q_\mathrm{O} \\ &+ \tfrac{3}{2}\, k_\mathrm{B} T_\mathrm{w}\, \alpha_\mathrm{rec}(T_\mathrm{w})\, f_+^2\, n_\mathrm{base}^2 \end{aligned} \tag{2}$$
+$$\begin{aligned} (1 - f_+)\, n_\mathrm{base}\, \sigma_{\nu_0}\, \frac{F_\mathrm{XUV}/4}{h\nu_0}\, \left(h\nu_0 - E_\mathrm{ion}\right) \;=\;& Q_\mathrm{lines} + Q_{\mathrm{CO_2}} + Q_\mathrm{O} \\ &+ \tfrac{3}{2}\, k_\mathrm{B} T_\mathrm{w}\, \alpha_\mathrm{rec}(T_\mathrm{w})\, f_+^2\, n_\mathrm{base}^2 \end{aligned} \tag{2}$$
 
-**Heating.** The left side is the photoionisation heating rate per unit volume in the monochromatic-front approximation. Each ionisation leaves $h\nu_0 - E_\mathrm{ion}$ in the gas, with $h\nu_0$ the front's photon energy, $E_\mathrm{ion}$ its ionisation potential, and $\sigma_{\nu_0}$ its photoionisation cross section. $f_+$ is the ionisation fraction from local photoionisation-recombination balance, $f_+^2 / (1 - f_+) = \sigma_{\nu_0} F_\mathrm{XUV} / (h\nu_0\, \alpha_\mathrm{rec}\, n_\mathrm{base})$. The front follows the composition:
+**Heating.** The left side is the photoionisation heating rate per unit volume in the monochromatic-front approximation. Each ionisation leaves $h\nu_0 - E_\mathrm{ion}$ in the gas, with $h\nu_0$ the front's photon energy, $E_\mathrm{ion}$ its ionisation potential, and $\sigma_{\nu_0}$ its photoionisation cross section. $f_+$ is the ionisation fraction from local photoionisation-recombination balance, $f_+^2 / (1 - f_+) = \sigma_{\nu_0} (F_\mathrm{XUV}/4) / (h\nu_0\, \alpha_\mathrm{rec}\, n_\mathrm{base})$. The front follows the composition:
 
 - the hydrogen front ($h\nu_0 = 20$ eV, $E_\mathrm{ion} = 13.6$ eV, $\sigma_{\nu_0} = \sigma_{\nu_0,\mathrm{H}}$) when the atomised hydrogen fraction is one half or more,
 - the nitrogen-like front of Chatterjee & Pierrehumbert (2026) ($h\nu_0 = 33.6$ eV, $E_\mathrm{ion} = 14.53$ eV, $\sigma_{\nu_0} = 10^{-17}$ cm²) otherwise [^cp26].
@@ -61,7 +63,7 @@ Balancing photoionisation of the unit-optical-depth column against recombination
 
 $$n_+ \;=\; \sqrt{\frac{(F_\mathrm{XUV}/4)\, G M_\mathrm{p}}{h\nu_0\, \alpha_\mathrm{B}\, c_\mathrm{s}^2\, R_\mathrm{base}^2}} \tag{6}$$
 
-with $h\nu_0$ the front energy of Eq. (2). The flux is averaged over the surface, $F_\mathrm{XUV}/4$, so this rate shares the full-surface geometry of Eqs. (3) and (8), which spread the power intercepted by a disk over the whole sphere. Murray-Clay et al. apply the substellar flux over the whole sphere instead, which gives a rate twice as large, since it scales as the square root of the flux. The collisionality switch reads the sonic density of this chain, so its Knudsen number carries the same geometry. An isothermal Parker wind carries the base mass density $n_+\, \mu_+\, m_\mathrm{p}$ to the sonic point, and the rate is the mass flux there over the sonic sphere:
+with $h\nu_0$ the front energy of Eq. (2) and the surface-averaged flux of the section above. An isothermal Parker wind carries the base mass density $n_+\, \mu_+\, m_\mathrm{p}$ to the sonic point, and the rate is the mass flux there over the sonic sphere:
 
 $$\dot{M}_\mathrm{RR} \;=\; 4\pi\, \rho_\mathrm{s}\, c_\mathrm{s}\, R_\mathrm{s}^2, \qquad \rho_\mathrm{s} = n_+\, \mu_+\, m_\mathrm{p}\; e^{\,3/2 - \lambda_\mathrm{b}} \tag{7}$$
 
@@ -99,7 +101,7 @@ The barometric factor, reported as `rr_chain['barometric_factor']`, separates th
 Numbers measured with this code, on the states named:
 
 - $\epsilon_\mathrm{PL}$ is 0.034 for a 1 Earth-mass, 1.05 Earth-radius hydrogen and helium envelope, and 0.055 at 2 Earth masses and 1.3 Earth radii, so at the default efficiency of 0.1 both winds are photon-limited. A 1 Earth-mass carbon dioxide atmosphere reaches it at 0.26.
-- On a 1 Earth-mass CO$_2$ atmosphere the band carries 11% of the cooling at the wind temperature the thermostat selects at $F_\mathrm{XUV} = 0.3$ W m⁻², falling to 0.4% at 10 and 0.01% at 1000 W m⁻², and 14 to 23% at a base of 1000 to 3000 K. Without the overlying column its escape probability would sit at the ceiling of 0.5, about a hundred times too high at the default wind base, and the band would carry 63 to 71% at those base temperatures.
+- On a 1 Earth-mass CO$_2$ atmosphere at $T_\mathrm{eq} = 600$ K, the band carries 13% of the cooling at the wind temperature the thermostat selects under $F_\mathrm{XUV} = 1$ W m⁻², 1.4% under 10, and 0.03% under 1000 W m⁻². At a base held at 1000 to 3000 K under 10 W m⁻² it carries 37 to 54%. Without the overlying column its escape probability would sit at the ceiling of 0.5, about a hundred times too high at the default wind base, and the band would carry 87 to 90% at those base temperatures.
 
 [^lopez2017]: Lopez, E. D. (2017). Born dry in the photoevaporation desert: Kepler's ultra-short-period planets formed water-poor. *Monthly Notices of the Royal Astronomical Society, 472*(1), 245–253.
 
