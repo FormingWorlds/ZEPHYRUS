@@ -506,8 +506,8 @@ def test_refinement_converges_every_element_on_two_changes():
 
     Nitrogen with 4.5% molecular hydrogen on a 0.176 Earth-mass planet at an
     exobase temperature of 3414 K: nitrogen sets the bulk alone and bypasses
-    the supply integral, while the hydrogen rate still moves by 5%, 2.5%,
-    1.2%, and 0.6% per doubling. A bulk-only criterion stopped at 800 levels
+    the supply integral, while the hydrogen rate still moves by about 5%,
+    2.5%, 1.2%, and 0.6% per doubling (first order, so each change halves). A bulk-only criterion stopped at 800 levels
     with hydrogen 2.5% above its fine-grid value. At the default target the
     ceiling of 3200 is reached first and reported; with room to refine, the
     hydrogen rate lands within the target. At a 3% target the second small
@@ -521,6 +521,11 @@ def test_refinement_converges_every_element_on_two_changes():
     conv = det['convergence']
     assert conv['rel_change_bulk'] < 1e-2  # the bulk alone would have stopped
     assert conv['converged'] is False and conv['n_levels'] == 3200
+    h_rates = [
+        hydrostatic_rates(prof, m_p, 3414.0, n_levels=n, **kw)[0]['H'] for n in (200, 400, 800)
+    ]
+    first, second = h_rates[0] / h_rates[1] - 1.0, h_rates[1] / h_rates[2] - 1.0
+    assert 0.04 < first < 0.06 and second == pytest.approx(first / 2.0, rel=0.1, abs=0.0)
     per_more, det_more = hydrostatic_rates_refined(prof, m_p, 3414.0, n_levels_max=6400, **kw)
     assert det_more['convergence']['converged'] is True
     assert per_more['H'] == pytest.approx(fine['H'], rel=1e-2, abs=0.0)

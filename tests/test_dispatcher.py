@@ -1060,7 +1060,9 @@ def test_a_wind_launched_transfer_carries_the_thermostat_clamp():
     temperature, so when the thermostat clamped at its bracket edge the
     winning transfer rate inherits that clamp and the flag must reach the
     result: a dense 8.8 Earth-mass nitrogen planet on an eccentric 0.0103 au
-    orbit, where collisional quenching clamps the wind high.
+    orbit, where collisional quenching clamps the wind high. Under the default
+    photospheric launch the same state is hydrostatic, and the clamp of the
+    wind it does not dispatch stays out of the flags.
     """
     state = _inputs(
         8.837 * Me,
@@ -1082,10 +1084,10 @@ def test_a_wind_launched_transfer_carries_the_thermostat_clamp():
     assert out.diagnostics['roche']['rate_branch'] == 'roche_overflow'
     assert out.diagnostics['thermostat']['clamped'] == 'high'
     assert out.flags.get('thermostat_clamped') == 'high'
-    # Launched on the photospheric level instead, the clamp is not the rate's.
     photo = dispatch(dataclasses.replace(state, settings=DispatchSettings()))
-    if photo.diagnostics['roche']['rate_branch'] == 'roche_overflow':
-        assert 'thermostat_clamped' not in photo.flags
+    assert photo.rate_branch == 'hydrostatic'
+    assert photo.diagnostics['thermostat']['clamped'] == 'high'
+    assert 'thermostat_clamped' not in photo.flags
 
 
 @pytest.mark.physics_invariant
@@ -1225,6 +1227,12 @@ def test_hysteresis_memory_moves_the_threshold():
     )
     assert 'hysteresis_active' not in after_boiloff.flags
     assert after_boiloff.diagnostics['knudsen']['threshold_applied'] == pytest.approx(1.0)
+    # After a hydrostatic state the window narrows the threshold, flagged too.
+    after_jeans = dispatch(
+        _inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, prev_regime='hydrostatic')
+    )
+    assert after_jeans.flags.get('hysteresis_active') is True
+    assert after_jeans.diagnostics['knudsen']['threshold_applied'] == pytest.approx(1.0 / 1.5)
 
 
 def test_hysteresis_remembers_a_wind_the_roche_screen_renamed():
@@ -1236,7 +1244,7 @@ def test_hysteresis_remembers_a_wind_the_roche_screen_renamed():
     At a switch threshold of 0.4 the wind is rarefied without memory, so
     the hysteresis window (0.6) is what keeps it. The memory is the result's
     rate_branch; the renamed label carried none, and the state dropped to a
-    hydrostatic rate seventeen decades below the wind.
+    hydrostatic rate more than nine decades below the wind (seventeen here).
     """
     state = _inputs(
         8.02 * Me,
