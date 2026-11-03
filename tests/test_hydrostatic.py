@@ -439,6 +439,49 @@ def test_supply_quadrature_refines_to_its_target():
     assert det_capped['convergence']['rel_change_bulk'] > 1e-12
 
 
+def _n2_hydrogen_profile(m_p, r_top, t, x_h2):
+    """Three-level isothermal nitrogen profile with a molecular hydrogen admixture."""
+    mu = (1.0 - x_h2) * 28.0134 * amu + x_h2 * 2.016 * amu
+    p = np.array([10.0, 1.0, 0.1])
+    r = np.empty(3)
+    r[2] = r_top
+    for i in (1, 0):
+        H = kb * t * r[i + 1] ** 2 / (G * m_p * mu)
+        r[i] = r[i + 1] - H * math.log(p[i] / p[i + 1])
+    vmr = {'N2': np.full(3, 1.0 - x_h2), 'H2': np.full(3, x_h2)}
+    return Profile(p=p, r=r, T=np.full(3, t), vmr=vmr, mmw=np.full(3, mu), kzz=None)
+
+
+@pytest.mark.physics_invariant
+def test_refinement_converges_every_element_on_two_changes():
+    """Refinement stops on two small changes, in the bulk and in every element.
+
+    Nitrogen with 4.5% molecular hydrogen on a 0.176 Earth-mass planet at an
+    exobase temperature of 3414 K: nitrogen sets the bulk alone and bypasses
+    the supply integral, while the hydrogen rate still moves by 5%, 2.5%,
+    1.2%, and 0.6% per doubling. A bulk-only criterion stopped at 800 levels
+    with hydrogen 2.5% above its fine-grid value. At the default target the
+    ceiling of 3200 is reached first and reported; with room to refine, the
+    hydrogen rate lands within the target. At a 3% target the second small
+    change comes at 1600 levels, where one small change would stop at 800.
+    """
+    m_p = 0.176 * 5.972e24
+    prof = _n2_hydrogen_profile(m_p, 0.176**0.27 * 6.371e6 * 1.02, 162.4, 0.045)
+    kw = dict(kzz_default=49.35)
+    fine, _ = hydrostatic_rates(prof, m_p, 3414.0, n_levels=12800, **kw)
+    per, det = hydrostatic_rates_refined(prof, m_p, 3414.0, **kw)
+    conv = det['convergence']
+    assert conv['rel_change_bulk'] < 1e-2  # the bulk alone would have stopped
+    assert conv['converged'] is False and conv['n_levels'] == 3200
+    per_more, det_more = hydrostatic_rates_refined(prof, m_p, 3414.0, n_levels_max=6400, **kw)
+    assert det_more['convergence']['converged'] is True
+    assert per_more['H'] == pytest.approx(fine['H'], rel=1e-2, abs=0.0)
+    assert abs(per_more['H'] / fine['H'] - 1.0) < abs(per['H'] / fine['H'] - 1.0)
+    _p, det_loose = hydrostatic_rates_refined(prof, m_p, 3414.0, rtol=3e-2, **kw)
+    assert det_loose['convergence']['converged'] is True
+    assert det_loose['convergence']['n_levels'] == 1600
+
+
 @pytest.mark.physics_invariant
 def test_exobase_temperature_floors_at_the_profile_top():
     """A prescribed exobase temperature never builds a falling thermosphere.

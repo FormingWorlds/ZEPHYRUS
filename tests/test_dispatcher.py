@@ -1973,6 +1973,8 @@ def test_settings_and_inputs_error_contract():
         ('gamma_bates', 0.0, 'gamma_bates'),
         ('kn_hysteresis', 0.5, 'kn_hysteresis'),
         ('P_photo', float('nan'), 'P_photo'),
+        ('hydrostatic_levels_min', 1, 'hydrostatic_levels_min'),
+        ('hydrostatic_levels_max', 799, 'hydrostatic_levels_max'),
     ):
         with pytest.raises(ValueError, match=expected):
             DispatchSettings(**{field: value}).validate()
@@ -1984,6 +1986,7 @@ def test_settings_and_inputs_error_contract():
         {'gamma_wind': 5.0 / 3.0},
         {'kn_hysteresis': 1.0},
         {'efficiency': 1.0},
+        {'hydrostatic_levels_max': 800},
         {'efficiency': 0.6},
     ):
         DispatchSettings(**legal).validate()

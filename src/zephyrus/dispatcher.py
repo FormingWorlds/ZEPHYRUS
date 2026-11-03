@@ -219,11 +219,12 @@ class DispatchSettings:
             )
         if (
             self.hydrostatic_levels_min < 2
-            or self.hydrostatic_levels_max < self.hydrostatic_levels_min
+            or self.hydrostatic_levels_max < 4 * self.hydrostatic_levels_min
         ):
+            # Convergence needs two successive changes, so two doublings.
             raise ValueError(
-                'hydrostatic_levels_min must be at least 2 and no greater than '
-                f'hydrostatic_levels_max, got {self.hydrostatic_levels_min!r} and '
+                'hydrostatic_levels_min must be at least 2 and hydrostatic_levels_max '
+                f'at least four times it, got {self.hydrostatic_levels_min!r} and '
                 f'{self.hydrostatic_levels_max!r}'
             )
         # The sonic-point scale height of Chatterjee & Pierrehumbert Eq. (17)

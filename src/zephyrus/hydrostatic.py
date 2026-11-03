@@ -423,14 +423,18 @@ def hydrostatic_rates_refined(
     supply integrals depend on the grid. They are first-order accurate in
     the log-pressure step, so the change between a grid and its refinement
     estimates the remaining error. The resolution doubles from
-    ``n_levels_min`` until two successive relative changes in the bulk rate
-    fall below ``rtol``, so a single chance agreement between two grids does
-    not end the refinement, or until ``n_levels_max`` is reached.
+    ``n_levels_min`` until two successive relative changes fall below
+    ``rtol``, in the bulk rate and in every element whose rate clears the
+    rate floor, or until ``n_levels_max`` is reached. Two changes, so a
+    single chance agreement does not end the refinement, and every element,
+    since a trace whose supply integral is still moving can sit under a bulk
+    the dominant species sets alone; meeting the target needs
+    ``n_levels_max`` of at least four times ``n_levels_min``.
     The finest grid's rates are returned, never an extrapolation.
 
     The detail dict gains a ``convergence`` entry recording the levels used,
     the last relative change in the bulk rate and the worst one across the
-    species, the grid history, and whether the target was met. A call that
+    elements that clear the rate floor, the grid history, and whether the target was met. A call that
     exhausts ``n_levels_max`` without meeting it reports ``converged`` False
     rather than raising: the rate is still the best available and the
     caller can see how far from the target it is.
@@ -454,12 +458,13 @@ def hydrostatic_rates_refined(
             (
                 _relative_change(per_element.get(el, 0.0), per_fine.get(el, 0.0))
                 for el in set(per_element) | set(per_fine)
+                if max(per_element.get(el, 0.0), per_fine.get(el, 0.0)) >= RATE_FLOOR_KG_S
             ),
             default=0.0,
         )
         per_element, detail, n = per_fine, detail_fine, n_fine
         history.append((n, sum(per_element.values())))
-        below = below + 1 if rel_bulk <= rtol else 0
+        below = below + 1 if max(rel_bulk, rel_species) <= rtol else 0
         if below >= 2:
             converged = True
             break
