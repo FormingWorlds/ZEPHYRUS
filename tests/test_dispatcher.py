@@ -947,16 +947,22 @@ def test_counterfactual_labels_are_what_a_dispatch_at_the_edge_returns():
     Re-dispatching with the switch threshold at each edge of the Knudsen
     band must return the reported label, on a hand-picked set that includes
     a gate-open state renamed roche_overflow (where the switch decides
-    nothing) and on 60 random states. The labels once mapped the edge
+    nothing), two states whose Knudsen number at L1 sits inside the band
+    (0.33 and 2.2), so the nozzle's own fluid condition moves with the
+    edge, and on 60 random states. The labels once mapped the edge
     straight to hydrodynamic or hydrostatic, ignoring the gate, the
-    unstable-exosphere row, the nozzle, and the Roche screen.
+    unstable-exosphere row, the nozzle, and the Roche screen, and later
+    held the nozzle's admission at the configured threshold.
     """
+    envelope = (8 * Me, 3 * Re, 1000.0, {'H2': 0.9, 'He': 0.1})
     states = [
         _inputs(3 * Me, 2.0 * Re, 1000.0, {'H2': 0.9, 'He': 0.1}, F_xuv=1e-3, a=0.0775 * AU),
         _inputs(Me, Re, 1000.0, {'CO2': 1.0}, F_xuv=0.72, a=0.0775 * AU),
+        _inputs(*envelope, F_xuv=1e-4, a=0.045 * AU),
+        _inputs(*envelope, F_xuv=1e-4, a=0.06 * AU),
     ]
     rng = np.random.default_rng(3)
-    while len(states) < 62:
+    while len(states) < 64:
         draw = _random_inputs(rng)
         if draw is not None:
             states.append(dataclasses.replace(draw, prev_regime=None))
@@ -972,6 +978,18 @@ def test_counterfactual_labels_are_what_a_dispatch_at_the_edge_returns():
     assert set(first.diagnostics['knudsen']['counterfactual_labels'].values()) == {
         'roche_overflow'
     }
+    # Inside the L1 band the nozzle drops out at the low edge and enters at the high one.
+    inner, outer = (dispatch(states[i]) for i in (2, 3))
+    assert (
+        0.1
+        < inner.diagnostics['nozzle']['kn_L1']
+        < 1.0
+        < outer.diagnostics['nozzle']['kn_L1']
+        < 3.0
+    )
+    assert inner.regime == 'roche_overflow'
+    assert inner.diagnostics['knudsen']['counterfactual_labels'][0.1] != 'roche_overflow'
+    assert outer.diagnostics['knudsen']['counterfactual_labels'][3.0] == 'roche_overflow'
     # The band decides the label somewhere in the sample, so the check is not vacuous.
     assert straddling >= 2
 

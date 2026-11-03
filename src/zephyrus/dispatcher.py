@@ -453,17 +453,15 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         r_nozzle, rho_nozzle = photo['r'], photo['rho']
         vmr_nozzle = photo['vmr']
     sigma_nozzle, _ = kn.sigma_mixture(vmr_nozzle, t_nozzle)
-    nozzle_full, noz = nz.nozzle_candidate(
-        inputs.M_p,
-        inputs.M_star,
-        inputs.a,
-        inputs.e,
+    nozzle_args = dict(
         rho_ph=rho_nozzle,
         r_ph=r_nozzle,
         T=t_nozzle,
         mu_kg=mu_nozzle,
         sigma_m2=sigma_nozzle,
-        kn_crit=st.kn_crit,
+    )
+    nozzle_full, noz = nz.nozzle_candidate(
+        inputs.M_p, inputs.M_star, inputs.a, inputs.e, kn_crit=st.kn_crit, **nozzle_args
     )
     # The competed rate is duty-cycled over the arc where overflow applies;
     # the unguarded average is kept so the closed form stays comparable
@@ -635,14 +633,21 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         flags['near_roche'] = True
 
     # The label at either edge of the collisionality band, through the same
-    # admission, selection, and screen as the verdict itself.
+    # admission, selection, and screen as the verdict itself. The nozzle is
+    # re-evaluated there, since its fluid condition at L1 reads the threshold.
     counterfactual = {}
     for edge in kn.KN_BAND:
-        adm = admitted(gate_open, kn_sc <= edge, unstable, bolo['competes'], nozzle_applicable)
-        bound_e = select(tuple(c for c in adm if c != 'nozzle'), rates)
+        _, noz_e = nz.nozzle_candidate(
+            inputs.M_p, inputs.M_star, inputs.a, inputs.e, kn_crit=edge, **nozzle_args
+        )
+        rates_e = dict(rates, nozzle=noz_e['rate_applicable_kg_s'])
+        adm = admitted(
+            gate_open, kn_sc <= edge, unstable, bolo['competes'], noz_e['applicable']
+        )
+        bound_e = select(tuple(c for c in adm if c != 'nozzle'), rates_e)
         radius = flow_radii[bound_e]
         xi_e = r_hill / radius if radius > 0 else math.inf
-        won = select(adm, rates)
+        won = select(adm, rates_e)
         renamed_e = roche_label(xi_e, xi_ktide, won == 'nozzle', reaches_lobe)[0]
         counterfactual[edge] = 'roche_overflow' if renamed_e else branch_of[won]
     diag['knudsen']['counterfactual_labels'] = counterfactual

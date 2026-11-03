@@ -33,7 +33,7 @@ The default threshold is 1, and its physical band is 0.1 to 3. The two ends come
 - Kinetic simulations place the transition near 0.1 when the heating is deposited in a sharp layer and near 1 when it is distributed (Johnson et al. 2013 [^johnson]). The lower part of the band is the physics of the heating geometry, not tuning freedom.
 - The upper edge is not Johnson's number. Chatterjee & Pierrehumbert (2026) [^cp26] argue, citing the same work, that the energy limit may survive to a sonic Knudsen number of 1 to 3 or beyond, and call how far it survives an open question.
 
-The diagnostics report the label at both band edges beside every verdict (`diagnostics['knudsen']['counterfactual_labels']`). Each is the label a dispatch with the threshold at that edge returns, so a state the switch does not decide, one with the boil-off gate open for instance, reports the same label at both edges.
+The diagnostics report the label at both band edges beside every verdict (`diagnostics['knudsen']['counterfactual_labels']`). Each is the label a dispatch with the threshold at that edge returns when no previous branch is supplied (the L1 transfer's own fluid condition moving with it), so a state the switch does not decide, one with the boil-off gate open for instance, reports the same label at both edges.
 
 ## Hysteresis
 
