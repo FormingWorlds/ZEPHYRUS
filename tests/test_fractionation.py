@@ -537,6 +537,50 @@ def test_a_trace_that_carries_the_flux_joins_the_solve():
     assert TRACE_SHARE == pytest.approx(1e-9, rel=1e-12, abs=0.0)
 
 
+def test_an_ultra_trace_stays_a_test_particle_when_the_traces_join():
+    """Only traces that carry flux join the solve; an ultra-trace stays out.
+
+    Helium near 1e-10 can carry more than TRACE_SHARE of a weak wind and
+    must join the active-set solve, but hydrogen near 1e-18 beside it has a
+    retention residual of pure cancellation noise: promoting it as well made
+    the active set cycle until the iteration limit raised. Both systems
+    return a split that conserves the bulk rate, with every share
+    non-negative and the ultra-trace's share below 1e-15.
+    """
+    cases = (
+        (
+            700.5433239478332,
+            {
+                'C': 0.33333333330826603,
+                'O': 0.6666666666165321,
+                'He': 7.520179583315887e-11,
+                'H': 1.097424731536584e-18,
+            },
+            9185.664202403346,
+            0.27157278869455415 * Me,
+            1.286127441703778 * Re,
+        ),
+        (
+            125046.37766633731,
+            {
+                'He': 6.167239532590705e-11,
+                'H': 7.385946106389996e-18,
+                'Ne': 9.234007182107461e-12,
+                'Ar': 0.9999999999290936,
+            },
+            27712.654734709562,
+            7.92820185646179 * Me,
+            0.7996507084863849 * Re,
+        ),
+    )
+    for mdot, fractions, t_wind, m_p, r_base in cases:
+        per, diag, _flags = closure_per_species(mdot, fractions, t_wind, m_p, r_base)
+        assert sum(per.values()) == pytest.approx(mdot, rel=1e-12, abs=0.0)
+        assert all(v >= 0.0 for v in per.values())
+        assert per['H'] < 1e-15 * mdot
+        assert per['He'] > TRACE_SHARE * 1e-3 * mdot
+
+
 def test_entrained_flow_with_a_trace_species_returns_a_split():
     """A fully entrained wind with a 2e-17 hydrogen trace returns, not raises.
 

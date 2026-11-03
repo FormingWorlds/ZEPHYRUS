@@ -46,7 +46,8 @@ from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g, subs
 # solved with the majors flipped in and out of the active set forever. The
 # limit drops the trace's own share of the mass constraint, so where the
 # traces carry more than TRACE_SHARE of the flux (a weak wind that a light
-# trace can supply alone) every species joins the solve.
+# trace can supply alone) each trace carrying over 1e-3 TRACE_SHARE joins
+# the solve and the rest stay test particles.
 #
 # Solver units are cgs: phi in g cm^-2 s^-1, m in g, g0 in cm s^-2, b in
 # cm^-1 s^-1, fluxes in cm^-2 s^-1. The per-species interface converts at
@@ -165,11 +166,14 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
         return flux
     majors = [k for k in range(n) if X[k] >= TRACE_FRACTION]
     flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, majors)
-    trace_share = sum(float(m[k] * flux[k]) for k in range(n) if k not in majors) / phi
-    if trace_share > TRACE_SHARE:
-        # The traces carry real mass, so they back-react on the majors
-        # through the mass constraint and join the solve.
-        flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, list(range(n)))
+    shares = {k: float(m[k] * flux[k]) / phi for k in range(n) if k not in majors}
+    if sum(shares.values()) > TRACE_SHARE:
+        # The traces carry real mass, so the ones that do join the solve; an
+        # ultra-trace stays a test particle, its residual being pure noise.
+        joined = sorted(
+            set(majors) | {k for k, sh in shares.items() if sh > 1e-3 * TRACE_SHARE}
+        )
+        flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, joined)
     if return_diag:
         return flux, inv_h_bar, escaping
     return flux
