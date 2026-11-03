@@ -156,16 +156,22 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
         active set empty, and ``1/Hbar`` the continuous limit
         ``min_j m_j g0 / kT``.
     """
+    flux, inv_h_bar, escaping, _failed = _solve(phi, X, m, T, g0, b)
+    if return_diag:
+        return flux, inv_h_bar, escaping
+    return flux
+
+
+def _solve(phi, X, m, T, g0, b):
+    """``solve_closure`` with whether the re-solve with the traces failed."""
     X, m, b = _validate_inputs(phi, X, m, T, g0, b)
     kT = kb_cgs * T
     n = len(X)
     if phi == 0.0:
-        flux = np.zeros(n)
-        if return_diag:
-            return flux, np.min(m) * g0 / kT, frozenset()
-        return flux
+        return np.zeros(n), np.min(m) * g0 / kT, frozenset(), False
     majors = [k for k in range(n) if X[k] >= TRACE_FRACTION]
     flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, majors)
+    failed = False
     shares = {k: float(m[k] * flux[k]) / phi for k in range(n) if k not in majors}
     if sum(shares.values()) > TRACE_SHARE:
         # The traces carry real mass, so the ones that do join the solve; an
@@ -176,10 +182,8 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
         try:
             flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, joined)
         except RuntimeError:
-            pass  # keep the test-particle split rather than fail the call
-    if return_diag:
-        return flux, inv_h_bar, escaping
-    return flux
+            failed = True  # keep the test-particle split rather than fail the call
+    return flux, inv_h_bar, escaping, failed
 
 
 def _active_set_solve(phi, X, m, T, g0, b, majors):
@@ -191,13 +195,13 @@ def _active_set_solve(phi, X, m, T, g0, b, majors):
     seen: set = set()
     for _ in range(4 * n + 8):
         w, inv_h_bar = solve_fixed_active(phi, X, m, T, g0, b, active)
+        seen.add(frozenset(active))
         neg = {j for j in active if w[j] < -1e-12 * wscale}
         if neg:
             active -= neg
             if not active:
                 raise RuntimeError('empty active set')
             continue
-        seen.add(frozenset(active))
         # Retention check for the inactive major species.
         viol, worst = None, 0.0
         for k in majors:
@@ -222,8 +226,8 @@ def _active_set_solve(phi, X, m, T, g0, b, majors):
                     if w[k] > 0.0:
                         escaping.add(k)
             flux = X * w
-            # The test particles' share is below TRACE_SHARE here (the caller
-            # re-solves otherwise), so the rescale moves the majors by less.
+            # Below TRACE_SHARE of test-particle flux the rescale moves the
+            # majors by less; above it the caller re-solves, or flags a failure.
             flux *= phi / float(np.sum(m * flux))
             return flux, inv_h_bar, frozenset(escaping)
         active.add(viol)
@@ -296,9 +300,9 @@ def closure_per_species(
     g0_cgs = (G * M_p / r_base**2) * 1e2  # m/s^2 -> cm/s^2
     phi_cgs = (mdot / (4.0 * math.pi * r_base**2)) * 0.1  # kg/m^2/s -> g/cm^2/s
 
-    flux, inv_h_bar, active = solve_closure(
-        phi_cgs, X, m_g, T_wind, g0_cgs, b, return_diag=True
-    )
+    flux, inv_h_bar, active, failed = _solve(phi_cgs, X, m_g, T_wind, g0_cgs, b)
+    if failed:
+        flags['closure_trace_resolve_failed'] = True
     area_cm2 = 4.0 * math.pi * (r_base * 1e2) ** 2
     per_element = {
         el: float(flux[k]) * area_cm2 * float(m_g[k]) * 1e-3 for k, el in enumerate(species)

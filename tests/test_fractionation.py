@@ -539,7 +539,7 @@ def test_a_trace_that_carries_the_flux_joins_the_solve():
     assert TRACE_SHARE == pytest.approx(1e-9, rel=1e-12, abs=0.0)
 
 
-def test_an_ultra_trace_stays_a_test_particle_when_the_traces_join():
+def test_an_ultra_trace_stays_a_test_particle_when_the_traces_join(monkeypatch):
     """Only traces that carry flux join the solve; an ultra-trace stays out.
 
     Helium near 1e-10 can carry more than TRACE_SHARE of a weak wind and
@@ -575,12 +575,29 @@ def test_an_ultra_trace_stays_a_test_particle_when_the_traces_join():
             0.7996507084863849 * Re,
         ),
     )
+    from zephyrus import fractionation as fr
+
+    real = fr._active_set_solve
+    raised = []
+
+    def counting(*args):
+        try:
+            return real(*args)
+        except RuntimeError:
+            raised.append(args[-1])
+            raise
+
+    monkeypatch.setattr(fr, '_active_set_solve', counting)
     for mdot, fractions, t_wind, m_p, r_base in cases:
-        per, diag, _flags = closure_per_species(mdot, fractions, t_wind, m_p, r_base)
+        per, diag, flags = closure_per_species(mdot, fractions, t_wind, m_p, r_base)
         assert sum(per.values()) == pytest.approx(mdot, rel=1e-12, abs=0.0)
         assert all(v >= 0.0 for v in per.values())
         assert per['H'] < 1e-15 * mdot
         assert per['He'] > TRACE_SHARE * 1e-3 * mdot
+        assert 'closure_trace_resolve_failed' not in flags
+    # The re-solve converged: a cycling re-solve would leave the
+    # test-particle split in place and pass every check above.
+    assert raised == []
 
 
 def test_a_cycling_re_solve_keeps_the_test_particle_split(monkeypatch):
@@ -611,6 +628,67 @@ def test_a_cycling_re_solve_keeps_the_test_particle_split(monkeypatch):
     flux = solve_closure(phi, X, m, 300.0, 370.0, b)
     np.testing.assert_array_equal(flux, first['out'][0])
     assert float(np.sum(m * flux)) == pytest.approx(phi, rel=1e-12, abs=0.0)
+
+
+def test_a_failed_re_solve_is_flagged(monkeypatch):
+    """The per-species split reports a re-solve that did not converge.
+
+    On the weak-wind system of the ultra-trace test the traces carry more
+    than TRACE_SHARE, so the closure re-solves with them. Making that
+    second solve raise keeps the test-particle split, and the result must
+    say so through ``closure_trace_resolve_failed``.
+    """
+    from zephyrus import fractionation as fr
+
+    fractions = {
+        'C': 0.33333333330826603,
+        'O': 0.6666666666165321,
+        'He': 7.520179583315887e-11,
+        'H': 1.097424731536584e-18,
+    }
+    args = (700.5433239478332, fractions, 9185.664202403346, 0.27157278869455415 * Me)
+    r_base = 1.286127441703778 * Re
+    _per, _diag, flags = closure_per_species(*args, r_base)
+    assert 'closure_trace_resolve_failed' not in flags
+    calls = []
+    real = fr._active_set_solve
+
+    def once(*a):
+        calls.append(a[-1])
+        if len(calls) > 1:
+            raise RuntimeError('active-set iteration did not converge')
+        return real(*a)
+
+    monkeypatch.setattr(fr, '_active_set_solve', once)
+    per, _diag, flags = closure_per_species(*args, r_base)
+    assert len(calls) == 2
+    assert flags.get('closure_trace_resolve_failed') is True
+    assert sum(per.values()) == pytest.approx(args[0], rel=1e-12, abs=0.0)
+
+
+@pytest.mark.physics_invariant
+def test_a_species_dropped_for_negative_drift_is_not_readmitted_forever():
+    """A partition solved once is not re-entered through the retention test.
+
+    A nitrogen-mass trace at 3e-10 in helium, just above the flux at which
+    it entrains. Solving with both species escaping gives the trace a
+    negative drift of order 1e5 cm/s, far beyond the tolerance, so it is
+    dropped; its retention residual on the helium-only partition is then
+    round-off above zero, and re-admitting it recreated the first partition
+    until the iteration limit raised. Across the threshold the trace's
+    share now stays continuous and below 1e-14.
+    """
+    X = np.array([3.156240471805122e-10, 0.9999999996843759])
+    m = np.array([28.0, 4.0026]) * AMU_G
+    b = np.array([[np.inf, 5.649367376844854e18], [5.649367376844854e18, np.inf]])
+    t, g0 = 9469.848572756997, 8398.089155290254
+    phi_1 = first_threshold(X, m, t, g0, b)
+    for eps in (1e-13, 1e-11, 1e-9, 1e-7):
+        phi = phi_1 * (1.0 + eps)
+        flux = solve_closure(phi, X, m, t, g0, b)
+        assert np.all(flux >= 0.0)
+        assert float(np.sum(m * flux)) == pytest.approx(phi, rel=1e-12, abs=0.0)
+        assert m[0] * flux[0] / phi < 1e-14
 
 
 def test_entrained_flow_with_a_trace_species_returns_a_split():
