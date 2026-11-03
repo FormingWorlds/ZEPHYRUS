@@ -324,9 +324,13 @@ def test_co2_band_reads_the_overlying_column():
     assert 4.0e17 < column < 5.2e17
     eps = 0.7202 * (SIGMA_CO2_15UM * column) ** -0.613
     assert 3e-3 < eps < 7e-3
-    # A trace of CO2 scales the column with its mixing ratio.
-    trace = dict(level, vmr={'N2': 0.99, 'CO2': 0.01})
-    assert overlying_co2_column(trace, Me) == pytest.approx(0.01 * column, rel=1e-12, abs=0.0)
+    # A trace of CO2 in nitrogen scales the column with its mixing ratio,
+    # over the background's mean mass, not the CO2 molecule's (a factor 1.57).
+    mu_n2 = (0.99 * 28.0134 + 0.01 * 44.0095) * 1.66053906660e-27  # kg
+    trace = dict(level, mmw=mu_n2, vmr={'N2': 0.99, 'CO2': 0.01})
+    trace_column = overlying_co2_column(trace, Me)
+    assert trace_column == pytest.approx(0.01 * 3.3e-3 / (mu_n2 * g) * 1e-4, rel=1e-12, abs=0.0)
+    assert trace_column > 1.5 * 0.01 * column
     _r0, open_sky = balance_at(3000.0, level, {'C': 1 / 3, 'O': 2 / 3}, 10.0)
     _r1, covered = balance_at(3000.0, level, {'C': 1 / 3, 'O': 2 / 3}, 10.0, col_co2=column)
     n_cgs = level['n'] * 1e-6
