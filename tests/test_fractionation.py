@@ -581,6 +581,36 @@ def test_an_ultra_trace_stays_a_test_particle_when_the_traces_join():
         assert per['He'] > TRACE_SHARE * 1e-3 * mdot
 
 
+def test_a_cycling_re_solve_keeps_the_test_particle_split(monkeypatch):
+    """If the re-solve with the traces cycles, the test-particle split stands.
+
+    The weak-wind hydrogen trace of the test above triggers the re-solve;
+    making that second solve raise must return the first, test-particle
+    split rather than fail a physically posed call.
+    """
+    from zephyrus import fractionation as fr
+
+    m = np.array([1.008, 44.0095]) * AMU_G
+    b = np.full((2, 2), 1.0e19)
+    np.fill_diagonal(b, np.inf)
+    X = np.array([1.0e-12, 1.0 - 1.0e-12])
+    w_dl = (m[1] - m[0]) * 370.0 * b[0, 1] / (kb_cgs * 300.0)
+    phi = 0.5 * m[0] * X[0] * w_dl
+    first = {}
+    real = fr._active_set_solve
+
+    def once(*args):
+        if first:
+            raise RuntimeError('active-set iteration did not converge')
+        first['out'] = real(*args)
+        return first['out']
+
+    monkeypatch.setattr(fr, '_active_set_solve', once)
+    flux = solve_closure(phi, X, m, 300.0, 370.0, b)
+    np.testing.assert_array_equal(flux, first['out'][0])
+    assert float(np.sum(m * flux)) == pytest.approx(phi, rel=1e-12, abs=0.0)
+
+
 def test_entrained_flow_with_a_trace_species_returns_a_split():
     """A fully entrained wind with a 2e-17 hydrogen trace returns, not raises.
 

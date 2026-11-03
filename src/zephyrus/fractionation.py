@@ -173,7 +173,10 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
         joined = sorted(
             set(majors) | {k for k, sh in shares.items() if sh > 1e-3 * TRACE_SHARE}
         )
-        flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, joined)
+        try:
+            flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, joined)
+        except RuntimeError:
+            pass  # keep the test-particle split rather than fail the call
     if return_diag:
         return flux, inv_h_bar, escaping
     return flux
