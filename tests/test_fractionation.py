@@ -488,8 +488,10 @@ def test_trace_species_take_the_test_particle_limit():
     Light hydrogen in a nitrogen and oxygen background with one universal
     b: the hydrogen drift velocity w = Phi / X does not depend on its own
     mole fraction in the trace limit, so the value solved with the majors
-    at 1e-9 and the test-particle value at 1e-11 and 1e-13 agree, at fluxes
-    below and above oxygen entrainment. A heavy trace that settles stays
+    at 1e-7 and the test-particle value at 1e-11 and 1e-13 agree, at fluxes
+    below and above oxygen entrainment, to the back-reaction of order 1e-7.
+    A reference nearer the cut is no sharper: the full solve resolves a
+    1e-9 trace's drift only to a few parts in 1e6, platform-dependent. A heavy trace that settles stays
     retained either way, and the mass constraint holds to round-off.
     """
     assert TRACE_FRACTION == pytest.approx(1e-10, rel=1e-12, abs=0.0)
@@ -498,7 +500,7 @@ def test_trace_species_take_the_test_particle_limit():
     np.fill_diagonal(b, np.inf)
     for phi in (1e-14, 1e-12, 1e-10):
         w_trace = []
-        for x_trace in (1e-9, 1e-11, 1e-13):
+        for x_trace in (1e-7, 1e-11, 1e-13):
             X = np.array([x_trace, 0.7, 0.3 - x_trace])
             flux = solve_closure(phi, X, m, 3000.0, 1000.0, b)
             assert float(np.sum(m * flux)) == pytest.approx(phi, rel=1e-12, abs=0.0)
