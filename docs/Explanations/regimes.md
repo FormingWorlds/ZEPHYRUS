@@ -127,7 +127,7 @@ with $\xi$ measured from the interior radius $R_\mathrm{p}$. That is the radius 
 Every candidate is computed at every call. Three conditions on the state then decide which candidates compete:
 
 - **The boil-off criterion**: the restricted Jeans parameter is below its threshold, $\Lambda < \Lambda_\mathrm{c}$ ([boil-off](regimes/boiloff.md), Eq. (1)).
-- **A collisional wind**: the Knudsen number at the sonic point is at or below its threshold, $\mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c}$ ([the collisionality switch](regimes/collisionality.md), Eq. (1)). When the previous step's rate branch is supplied, the threshold moves by a hysteresis factor.
+- **A collisional wind**: the Knudsen number at the sonic point is at or below its threshold, $\mathrm{Kn}_\mathrm{s} \le \mathrm{Kn}_\mathrm{c}$ ([the collisionality switch](regimes/collisionality.md), Eq. (1)). When the previous step's rate branch is supplied and was a wind or a hydrostatic state, the threshold moves by a hysteresis factor.
 - **An unstable exosphere**: the exobase temperature exceeds half the escape temperature that the `gate` setting selects ([hydrostatic escape](regimes/hydrostatic.md), Eq. (10)).
 
 | Boil-off criterion met | Wind collisional | Exosphere unstable | Admitted |

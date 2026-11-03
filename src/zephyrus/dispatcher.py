@@ -270,6 +270,8 @@ class EscapeInputs:
             raise ValueError(f'F_xuv must be finite and >= 0, got {self.F_xuv!r}')
         if not (0.0 <= self.e < 1.0):
             raise ValueError('e must be in [0, 1)')
+        if self.prev_regime is not None and self.prev_regime not in REGIME_LABELS:
+            raise ValueError(f'prev_regime must be a regime label, got {self.prev_regime!r}')
         self.settings.validate()
         self.profile.validate()
 

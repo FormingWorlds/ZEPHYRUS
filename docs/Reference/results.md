@@ -15,7 +15,7 @@ The [parameter reference](parameters.md) documents what goes into `zephyrus.disp
 | `flags` | dict | Everything that clamped, fell back, or was screened. Empty when there is nothing to report. |
 | `diagnostics` | dict | Reporting container. Nothing in the dispatch logic reads it, and it has no off switch. |
 
-Every physically posed state returns a result. A `ValueError` means the state or the settings are malformed, not that the physics failed: a non-positive mass, radius, stellar mass, orbital distance, equilibrium temperature, bolometric flux, interior flux, or opacity, a negative XUV flux, an eccentricity outside $[0, 1)$, a profile whose pressure does not decrease or whose radius does not increase with index, fewer than three profile levels, mixing-ratio arrays of the wrong length, an unsupported option string, or all four cooling channels disabled at once.
+Every physically posed state returns a result. A `ValueError` means the state or the settings are malformed, not that the physics failed: a non-positive mass, radius, stellar mass, orbital distance, equilibrium temperature, bolometric flux, interior flux, or opacity, a negative XUV flux, an eccentricity outside $[0, 1)$, a profile whose pressure does not decrease or whose radius does not increase with index, fewer than three profile levels, mixing-ratio arrays of the wrong length, an unsupported option string, a `prev_regime` that is not a regime label, or all four cooling channels disabled at once.
 
 ## The six labels
 

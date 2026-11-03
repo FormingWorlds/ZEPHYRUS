@@ -1251,6 +1251,10 @@ def test_hysteresis_memory_moves_the_threshold():
     )
     assert after_jeans.flags.get('hysteresis_active') is True
     assert after_jeans.diagnostics['knudsen']['threshold_applied'] == pytest.approx(1.0 / 1.5)
+    # A string that is not a label would silently leave the switch sharp.
+    for bad in ('Hydrodynamic:EL', 'hydrodynamic', 'wind'):
+        with pytest.raises(ValueError, match='prev_regime'):
+            dispatch(_inputs(5 * Me, 1.5 * Re, 800.0, {'N2': 1.0}, F_xuv=1.0, prev_regime=bad))
 
 
 def test_hysteresis_remembers_a_wind_the_roche_screen_renamed():

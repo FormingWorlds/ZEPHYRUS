@@ -97,7 +97,7 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 | `P_photo` | 2000 | Pa | Photospheric-type level for the energy-limited geometric factor (20 mbar, after Baumeister et al. 2023 [^baumeister]). |
 | `P_base_fixed` | 5.0 | Pa | Base pressure for the `'fixed_pressure'` method only. |
 | `kn_crit` | 1.0 | $> 0$ | Sonic-point Knudsen threshold of the fluid-to-kinetic switch. The physical band 0.1 to 3 is a diagnostic constant, not a knob. |
-| `kn_hysteresis` | 1.5 | $\geq 1$ (1 disables the window) | Hysteresis window factor around `kn_crit`, consumed only when a previous regime label is supplied. |
+| `kn_hysteresis` | 1.5 | $\geq 1$ (1 disables the window) | Hysteresis window factor around `kn_crit`, consumed only when the previous result's `rate_branch` is supplied as `prev_regime` and is a wind or hydrostatic label. |
 | `gate` | `'neutral'` | `'neutral'`, `'plasma'` | Which escape temperature the exosphere stability test uses. Both are always computed and disagreements are flagged as contested. |
 | `efficiency` | 0.1 | $0 < \epsilon \leq 1$ | Energy-limited heating efficiency $\epsilon$. |
 | `efficiency_mode` | `'fixed'` | `'fixed'`, `'caldiroli'` | Fixed $\epsilon$, or the Caldiroli et al. (2022) [^caldiroli] fitted efficiency converted to the Erkaev geometry, with a guarded fallback below its validity bound. |
