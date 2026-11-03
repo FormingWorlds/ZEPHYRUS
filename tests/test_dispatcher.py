@@ -1053,6 +1053,41 @@ def test_wind_state_uses_the_surface_averaged_flux():
     assert hsd['f_plus_exo'] == pytest.approx(f_exo, rel=1e-12, abs=0.0)
 
 
+def test_a_wind_launched_transfer_carries_the_thermostat_clamp():
+    """An L1 transfer launched on the wind column reports a clamped wind temperature.
+
+    Under nozzle_temperature = 'wind' the transfer runs at the thermostat's
+    temperature, so when the thermostat clamped at its bracket edge the
+    winning transfer rate inherits that clamp and the flag must reach the
+    result: a dense 8.8 Earth-mass nitrogen planet on an eccentric 0.0103 au
+    orbit, where collisional quenching clamps the wind high.
+    """
+    state = _inputs(
+        8.837 * Me,
+        0.7178 * Re,
+        1112.3,
+        {'N2': 1.0},
+        F_xuv=1.0e3,
+        a=0.010296 * AU,
+        e=0.316,
+        F_bol=509.16,
+        F_int=20.49,
+        kappa_photo=0.04014,
+        M_star=1.197 * Ms,
+        p_surf=1.894e7,
+        p_top=8.42e-5,
+        settings=DispatchSettings(nozzle_temperature='wind'),
+    )
+    out = dispatch(state)
+    assert out.diagnostics['roche']['rate_branch'] == 'roche_overflow'
+    assert out.diagnostics['thermostat']['clamped'] == 'high'
+    assert out.flags.get('thermostat_clamped') == 'high'
+    # Launched on the photospheric level instead, the clamp is not the rate's.
+    photo = dispatch(dataclasses.replace(state, settings=DispatchSettings()))
+    if photo.diagnostics['roche']['rate_branch'] == 'roche_overflow':
+        assert 'thermostat_clamped' not in photo.flags
+
+
 def test_a_result_cannot_change_the_next_one():
     """Editing a returned result leaves the module and later results intact.
 

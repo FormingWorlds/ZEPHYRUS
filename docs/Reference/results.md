@@ -92,7 +92,7 @@ The five `base_` flags describe the XUV wind base. They reach `flags` when the X
 | `substituted_bij` | list | Elements with no kinetic diameter (Al, P, Cl, K, Ca, Ti) are present in the closure, so their binary-diffusion coefficients are those of the nearest-mass species that has one, while their own masses still enter the closure. | Reporting only |
 | `stale_input` | `True` | The caller passed `atm_converged=False`, so the profile is from a non-converged atmosphere solve. | Reporting only |
 
-Every flag describes the branch whose rate was dispatched. The hydrodynamic candidates are computed on every call, because the diagnostics report them at every dispatch, so their cautions (`subcritical_sonic`, `thermostat_clamped`, `efficiency_fallback_fixed`, and the fitted-efficiency guards) appear only when a hydrodynamic branch won, and the bolometric residual clears them again when it displaces that winner. What the losing candidate did is in `diagnostics['hydrodynamic']` either way.
+Every flag describes the branch whose rate was dispatched. The hydrodynamic candidates are computed on every call, because the diagnostics report them at every dispatch, so their cautions (`subcritical_sonic`, `thermostat_clamped`, `efficiency_fallback_fixed`, and the fitted-efficiency guards) appear only when a hydrodynamic branch won (and `thermostat_clamped` also when the L1 transfer launched on the wind column won), and the bolometric residual clears them again when it displaces that winner. What the losing candidate did is in `diagnostics['hydrodynamic']` either way.
 
 ## Diagnostics
 

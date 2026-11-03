@@ -290,9 +290,10 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     """Dispatch one atmospheric state to its escape regime and rate.
 
     Runs the fixed evaluation order documented in the module notes and
-    returns an :class:`EscapeResult`. Raises only on malformed input;
-    every physically posed state returns a labeled, finite, non-negative
-    result whose per-species rates sum to the bulk rate.
+    returns an :class:`EscapeResult`. Raises ``ValueError`` on malformed
+    input, and on a non-finite candidate rate, which is a defect rather
+    than a physical state; every physically posed state returns a labeled,
+    finite, non-negative result whose per-species rates sum to the bulk rate.
     """
     inputs.validate()
     st = inputs.settings
@@ -588,7 +589,10 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     if winner == 'nozzle':
         winner_flags = _nozzle_flags(noz, inputs.e)
         if st.nozzle_temperature == 'wind':
+            # Launched on the wind's column at the thermostat's temperature.
             winner_flags.update(base_flags)
+            if thermo.get('clamped'):
+                winner_flags['thermostat_clamped'] = thermo['clamped']
     else:
         winner_flags = {
             'hydrostatic': hs_flags,
