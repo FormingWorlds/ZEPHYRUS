@@ -368,9 +368,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
     # column, so its flags travel with those candidates.
     base, base_flags = _resolve_wind_base(inputs, t_exo)
     elements = atomize(base['vmr'])
-    # The wind state is the surface average, F_xuv / 4, the full-surface geometry of
-    # the EL and PL rates; Murray-Clay et al. (2009) use the substellar flux.
-    f_mean = 0.25 * inputs.F_xuv
+    f_mean = _wind_flux(inputs.F_xuv)
     t_wind, thermo = th.solve_wind_temperature(
         inputs.T_eq,
         base,
@@ -802,14 +800,24 @@ def _resolve_wind_base(inputs: EscapeInputs, t_exo: float) -> tuple[dict, dict]:
     return base, flags
 
 
+def _wind_flux(F_xuv: float) -> float:
+    """The flux that sets the wind state [W m^-2], the surface average F_xuv / 4.
+
+    It is the full-surface geometry of the energy- and photon-limited
+    rates, which spread the power a disk intercepts over the sphere.
+    Murray-Clay et al. (2009) evaluate the wind at the substellar flux.
+    """
+    return 0.25 * F_xuv
+
+
 def _resolve_t_exo(inputs: EscapeInputs, channels: dict) -> float:
     """The hydrostatic exobase temperature per the configured mode.
 
     The default is the prescribed value: the exobase temperature is the
     branch's dominant sensitivity and is owned by the caller. The optional
     thermostat mode evaluates the local heating-cooling balance at the
-    profile top under the surface-averaged flux F_xuv / 4; a conduction-free local balance biases the estimate high
-    (heating scales with density, the cooling channels with its square),
+    profile top under the surface-averaged flux F_xuv / 4. A conduction-free
+    local balance biases the estimate high (heating scales with density, the cooling channels with its square),
     so the mode is an estimator, not a default.
     """
     st = inputs.settings
@@ -827,7 +835,7 @@ def _resolve_t_exo(inputs: EscapeInputs, channels: dict) -> float:
         inputs.T_eq,
         top,
         atomize(top['vmr']),
-        0.25 * inputs.F_xuv,
+        _wind_flux(inputs.F_xuv),
         col_co2=th.overlying_co2_column(top, inputs.M_p),
         **channels,
     )

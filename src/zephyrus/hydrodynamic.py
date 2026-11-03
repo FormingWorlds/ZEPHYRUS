@@ -329,7 +329,10 @@ def rr_chain(
     ``lambda_b``, the base ion density from photoionization-recombination
     balance (proportional to ``sqrt(F_xuv)``), the barometric factor
     ``exp(3/2 - lambda_b)`` to the sonic point, and the rate
-    ``4 pi rho_s c_s R_s^2``.
+    ``4 pi rho_s c_s R_s^2``. ``F_xuv`` [W m^-2] is the flux that ionizes
+    the wind: the dispatcher passes the surface average F_xuv / 4, where
+    Murray-Clay et al. use the substellar flux, which doubles the rate at
+    a fixed wind temperature.
 
     When the computed sonic radius falls below the base (a subcritical
     configuration), the sonic radius is floored at the base and the density

@@ -10,4 +10,5 @@
         - recombination_alpha
         - balance_at
         - solve_wind_temperature
+        - overlying_co2_column
       show_source: true

@@ -171,7 +171,8 @@ def balance_at(
     Evaluated on the wind-base level ``base`` (a level dict with ``n``
     [m^-3] and ``vmr``; densities converted to cgs internally), for the
     atomized composition ``element_fractions`` under the XUV flux ``F_xuv``
-    [W m^-2]. ``col_co2`` is the CO2 column above the level [cm^-2], which
+    [W m^-2] that heats the level (the dispatcher passes the surface
+    average F_xuv / 4 for the wind). ``col_co2`` is the CO2 column above the level [cm^-2], which
     sets the escape probability of the 15 micron band (zero evaluates the
     band at its zero-column ceiling). Returns ``(residual, detail)`` with the
     detail carrying the ionization fraction, both totals, and the per-channel
@@ -252,9 +253,10 @@ def solve_wind_temperature(
     coolants are neutral and the gas there is fully ionized, and every
     quantity built on the clamped value (the sound speed, the sonic radius,
     the recombination-limited rate, the sonic-point Knudsen number)
-    inherits that. ``col_co2`` is passed to ``balance_at``; see
-    ``overlying_co2_column`` for the hydrostatic value. Returns
-    ``(T_wind, detail)``.
+    inherits that. ``F_xuv`` and ``col_co2`` are passed to ``balance_at``,
+    so the flux is the one heating the wind (the dispatcher passes the
+    surface average F_xuv / 4), and ``overlying_co2_column`` gives the
+    hydrostatic column. Returns ``(T_wind, detail)``.
 
     Raises
     ------
