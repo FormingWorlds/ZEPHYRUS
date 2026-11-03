@@ -43,7 +43,10 @@ from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g, subs
 # equation, w_k = max(r_k, 0) / sum_{i != k} X_i / b_ik, with r_k the
 # retention residual. In a fully entrained flow that residual is
 # cancellation noise far above any absolute tolerance, and a trace species
-# solved with the majors flipped in and out of the active set forever.
+# solved with the majors flipped in and out of the active set forever. The
+# limit drops the trace's own share of the mass constraint, so where the
+# traces carry more than TRACE_SHARE of the flux (a weak wind that a light
+# trace can supply alone) every species joins the solve.
 #
 # Solver units are cgs: phi in g cm^-2 s^-1, m in g, g0 in cm s^-2, b in
 # cm^-1 s^-1, fluxes in cm^-2 s^-1. The per-species interface converts at
@@ -51,6 +54,7 @@ from zephyrus.diffusion import ROCK_FORMERS, bmatrix, build_rows, masses_g, subs
 
 
 TRACE_FRACTION = 1.0e-10  # mole fraction below which a species is a test particle
+TRACE_SHARE = 1.0e-9  # test particles' mass share above which they join the solve
 
 
 def _validate_inputs(phi, X, m, T, g0, b):
@@ -160,6 +164,21 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
             return flux, np.min(m) * g0 / kT, frozenset()
         return flux
     majors = [k for k in range(n) if X[k] >= TRACE_FRACTION]
+    flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, majors)
+    trace_share = sum(float(m[k] * flux[k]) for k in range(n) if k not in majors) / phi
+    if trace_share > TRACE_SHARE:
+        # The traces carry real mass, so they back-react on the majors
+        # through the mass constraint and join the solve.
+        flux, inv_h_bar, escaping = _active_set_solve(phi, X, m, T, g0, b, list(range(n)))
+    if return_diag:
+        return flux, inv_h_bar, escaping
+    return flux
+
+
+def _active_set_solve(phi, X, m, T, g0, b, majors):
+    """Active-set loop over ``majors``; every other species is a test particle."""
+    kT = kb_cgs * T
+    n = len(X)
     active = set(majors)
     wscale = phi / np.min(m)  # crude magnitude scale for the tolerances
     seen: set = set()
@@ -196,12 +215,10 @@ def solve_closure(phi, X, m, T, g0, b, return_diag=False):
                     if w[k] > 0.0:
                         escaping.add(k)
             flux = X * w
-            # Test particles carry a share of order their mole fraction; the
-            # rescale restores the mass constraint to round-off.
+            # The test particles' share is below TRACE_SHARE here (the caller
+            # re-solves otherwise), so the rescale moves the majors by less.
             flux *= phi / float(np.sum(m * flux))
-            if return_diag:
-                return flux, inv_h_bar, frozenset(escaping)
-            return flux
+            return flux, inv_h_bar, frozenset(escaping)
         active.add(viol)
     raise RuntimeError('active-set iteration did not converge')
 

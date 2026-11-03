@@ -33,6 +33,7 @@ import pytest
 from zephyrus.constants import kb_cgs
 from zephyrus.fractionation import (
     TRACE_FRACTION,
+    TRACE_SHARE,
     closure_per_species,
     first_threshold,
     solve_closure,
@@ -508,6 +509,32 @@ def test_trace_species_take_the_test_particle_limit():
         X = np.array([0.7, 0.3 - x_trace, x_trace])
         flux, _ih, active = solve_closure(1e-14, X, m_xe, 3000.0, 1000.0, b, return_diag=True)
         assert flux[2] == 0.0 and active == frozenset({0})
+
+
+@pytest.mark.physics_invariant
+def test_a_trace_that_carries_the_flux_joins_the_solve():
+    """A light trace able to supply a weak wind alone is not a test particle.
+
+    Hydrogen at 1e-10 in CO2: below its diffusion-limited flux phi_DL the
+    hydrogen carries everything and CO2 is retained, above it CO2 joins.
+    The split must not jump across the trace cut, since the test-particle
+    limit drops the trace's own share of the mass constraint and once
+    forced the lone major to escape (a third of the flux at 0.5 phi_DL).
+    """
+    m = np.array([1.008, 44.0095]) * AMU_G
+    b = np.full((2, 2), 1.0e19)
+    np.fill_diagonal(b, np.inf)
+    t, g0 = 300.0, 370.0
+    w_dl = (m[1] - m[0]) * g0 * b[0, 1] / (kb_cgs * t)  # trace drift at the diffusion limit
+    for factor, h_share in ((0.5, 1.0), (2.0, 0.5), (10.0, 0.1)):
+        shares = []
+        for x_h in (1.0001e-10, 0.9999e-10, 1.0e-12):
+            phi = factor * m[0] * x_h * w_dl
+            flux = solve_closure(phi, np.array([x_h, 1.0 - x_h]), m, t, g0, b)
+            shares.append(m * flux / phi)
+        np.testing.assert_allclose(shares[1:], [shares[0]] * 2, rtol=1e-6, atol=1e-12)
+        assert shares[0][0] == pytest.approx(h_share, rel=1e-6, abs=0.0)
+    assert TRACE_SHARE == pytest.approx(1e-9, rel=1e-12, abs=0.0)
 
 
 def test_entrained_flow_with_a_trace_species_returns_a_split():
