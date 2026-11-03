@@ -182,9 +182,12 @@ def bates_state(ext: dict, zeta):
     """
     zeta = np.asarray(zeta, dtype=float)
     t_exo, t_top, gamma = ext['T_exo'], ext['T_top'], ext['gamma']
-    decay = np.exp(-gamma * zeta)
-    T = t_exo - (t_exo - t_top) * decay
-    t_int = t_exo * zeta - (t_exo - t_top) * (1.0 - decay) / gamma
+    gz = gamma * zeta
+    T = t_exo - (t_exo - t_top) * np.exp(-gz)
+    # (1 - e^-gz) / gamma without its cancellation at small gamma zeta.
+    with np.errstate(divide='ignore', invalid='ignore'):
+        rise = np.where(gz > 1e-8, -np.expm1(-gz) / gamma, zeta * (1.0 - 0.5 * gz))
+    t_int = t_exo * zeta - (t_exo - t_top) * rise
     inv_r = 1.0 / ext['r0'] - kb * t_int / (G * ext['M_p'] * ext['mu'])
     with np.errstate(divide='ignore'):
         r = np.where(inv_r > 0.0, 1.0 / np.where(inv_r > 0.0, inv_r, 1.0), np.inf)

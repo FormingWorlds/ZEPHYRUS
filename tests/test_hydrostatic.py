@@ -274,6 +274,29 @@ def test_bates_structure_is_the_closed_form_hydrostatic_solution():
 
 
 @pytest.mark.physics_invariant
+def test_bates_structure_reaches_the_isothermal_limit_at_small_gamma():
+    """The closed form stays exact as the shape parameter goes to zero.
+
+    At gamma = 0 the Bates profile is isothermal at the anchor temperature
+    and 1/r = 1/r0 - kB T zeta / (G M mu). The integral (1 - e^-gamma zeta) /
+    gamma cancels catastrophically below gamma zeta of about 1e-16, which
+    once moved the rate fourfold at gamma = 1e-17 and failed at gamma = 0.
+    """
+    prof = _mars_profile()
+    ref, _ = hydrostatic_rates(prof, M_MARS, 3000.0, gamma_bates=1e-12)
+    for gamma in (1e-17, 0.0):
+        per, det = hydrostatic_rates(prof, M_MARS, 3000.0, gamma_bates=gamma)
+        # gamma = 1e-12 itself moves T by about gamma zeta, which the Jeans
+        # exponent of about 300 amplifies to near 1e-8.
+        assert sum(per.values()) == pytest.approx(sum(ref.values()), rel=1e-7, abs=0.0)
+    ext = bates_extension(prof, M_MARS, 3000.0, gamma=0.0, n_levels=11)
+    mu = ext['mu']
+    np.testing.assert_allclose(ext['T'], 100.0, rtol=1e-15, atol=0.0)
+    inv_r = 1.0 / ext['r0'] - kb * 100.0 * ext['zeta'] / (G * M_MARS * mu)
+    np.testing.assert_allclose(1.0 / ext['r'], inv_r, rtol=1e-12, atol=0.0)
+
+
+@pytest.mark.physics_invariant
 def test_exobase_locator_contract():
     """The exobase is where the mean free path equals the scale height.
 
