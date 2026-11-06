@@ -10,3 +10,19 @@ except ImportError:
 
 # Submodules re-exported so `import zephyrus` exposes the package API.
 from zephyrus import collision as collision  # noqa: E402
+from zephyrus import dispatcher as dispatcher  # noqa: E402
+from zephyrus import escape as escape  # noqa: E402
+
+# The regime-dispatcher entry points, re-exported at the package top level.
+from zephyrus.dispatcher import (  # noqa: E402
+    DispatchSettings as DispatchSettings,
+)
+from zephyrus.dispatcher import (  # noqa: E402
+    EscapeInputs as EscapeInputs,
+)
+from zephyrus.dispatcher import (  # noqa: E402
+    EscapeResult as EscapeResult,
+)
+from zephyrus.dispatcher import (  # noqa: E402
+    dispatch as dispatch,
+)

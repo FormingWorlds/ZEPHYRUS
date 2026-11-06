@@ -9,9 +9,9 @@ Tests verify that the code does what was written; physical correctness is judged
 
 This page describes the suite as a whole and how to run it.
 
-## Test quality contract
+## Test quality rules
 
-Five layers enforce test rigor across the suite:
+Five layers enforce test rigour across the suite:
 
 1. A four-marker tier scheme (`unit`, `smoke`, `integration`, `slow`) selects what runs in the PR gate versus the nightly.
 2. Two validation markers (`physics_invariant`, `reference_pinned`) tag tests that carry physical meaning beyond pure code coverage.
@@ -54,10 +54,10 @@ The timeout is a defensive ceiling, not a target. A unit test that takes 25 s of
 
 ## Physics-invariant tiering
 
-A unit test on a physics source (`escape.py`, `collision.py`) must assert at least one of four invariant families:
+Every physics source (the thirteen modules listed in `PHYSICS_SOURCES` of `tools/check_test_quality.py`, from `atomic_data.py` to `thermostat.py`) needs at least one test that asserts one of four invariant families. Stated for the energy-limited rate, they read:
 
 - **Conservation**: the mass-loss rate equals the deposited XUV power divided by the gravitational binding energy per unit mass, up to the geometric and efficiency factors of the formula; in a coupled step the removed mass never exceeds the available atmospheric mass.
-- **Positivity or boundedness**: the escape rate is non-negative for valid inputs; the tidal factor `K_tide` lies in `(0, 1)` when the Hill radius exceeds the XUV radius (`ksi = Rhill / Rxuv > 1`), rising toward 1 as the orbit widens, and the tidal branch raises `ValueError` for `ksi <= 1`; radii, masses, and semi-major axis are strictly positive; the XUV flux and efficiency are non-negative.
+- **Positivity or boundedness**: the escape rate is non-negative for valid inputs. The tidal factor `K_tide` lies in `(0, 1)` when $\xi = R_\mathrm{Hill} / R > 1$, with $R = R_\mathrm{p}$ under `scaling=2` and $R_\mathrm{XUV}$ under `scaling=3`, rising toward 1 as the orbit widens, and the tidal branch raises `ValueError` for $\xi \le 1$. Radii, masses, and semi-major axis are strictly positive, and the XUV flux and efficiency are non-negative.
 - **Monotonicity or symmetry**: the rate is linear in the XUV flux at fixed geometry; it scales as `1 / Mp`; it is larger with the tidal correction than without (`K_tide < 1`) for a close-in orbit; it is zero when the flux is zero.
 - **Pinned numeric value with a discrimination guard**: a closed-form value pinned via `pytest.approx`, plus explicit assertions that a wrong exponent, a wrong scaling branch, a sign flip, or a unit slip would each differ from the correct value by more than the tolerance.
 
@@ -65,23 +65,23 @@ For the collision law the same families read: for Kegerreis et al. (2020), the l
 
 Tests that meet one or more of these are tagged `@pytest.mark.physics_invariant`. The marker is per-function, not module-level: an error-contract test (an unsupported `scaling` raising `ValueError`) does not carry it.
 
-The physics sources in ZEPHYRUS are `escape.py` and `collision.py`. The utility sources (`__init__.py`, `constants.py`, `planets_parameters.py`) are exempt from the invariant requirement but remain subject to the anti-happy-path rules.
+The physics sources in ZEPHYRUS are `atomic_data.py`, `boiloff.py`, `collision.py`, `diagnostics.py`, `diffusion.py`, `dispatcher.py`, `fractionation.py`, `hydrodynamic.py`, `hydrostatic.py`, `knudsen.py`, `nozzle.py`, `profiles.py`, and `thermostat.py`. The utility sources (`__init__.py`, `composition.py`, `constants.py`, `escape.py`, which re-exports `EL_escape` from `hydrodynamic.py`, and `planets_parameters.py`) are exempt from the invariant requirement but remain subject to the anti-happy-path rules.
 
 ## Reference-pinned validation
 
-Tests that pin behaviour against an external anchor are tagged `@pytest.mark.reference_pinned`. The anchor is one of a published benchmark, an analytical limit, or a cross-implementation check. Each physics source carries at least one such test, recorded on the [`escape`](../Validation/escape.md) and [`collision`](../Validation/collision.md) validation pages. The current anchors:
+Tests that pin behaviour against an external anchor are tagged `@pytest.mark.reference_pinned`. The anchor is one of a published benchmark, an analytical limit, or a cross-implementation check. Each physics source carries at least one such test, recorded on its own page of the Validation section of the reference (for example [`dispatcher`](../Validation/dispatcher.md)). The anchors of the energy-limited rate and the collision laws:
 
 | Source | Anchor | Test |
 |---|---|---|
-| `escape.py` | Erkaev et al. (2007), A&A 472:329, Eq. 21: closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
-| `escape.py` | Lehmer & Catling (2017), ApJ 845:130, Eq. 1: closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
-| `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Eq. 1: closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
+| `escape.py` | Erkaev et al. (2007) [^erkaev], A&A 472:329, Eq. (21): closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
+| `escape.py` | Lehmer & Catling (2017) [^lehmer], ApJ 845:130, Eq. (1): closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
+| `collision.py` | Kegerreis et al. (2020) [^kegerreis], ApJL 901:L31, Eq. (1): closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
 | `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Tables 1 and 2: simulated loss fractions of the SPH suite | `tests/test_collision.py::test_scaling_law_reproduces_kegerreis_table2_simulations` |
-| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqs. 4-11, Table C1-C3: 12 reference oracle rows from `scaling_law.csv` | `tests/test_collision.py::test_roche2026_oracle_reproduction` |
+| `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqs. (4) to (11), Table C1-C3: 12 reference oracle rows from `scaling_law.csv` | `tests/test_collision.py::test_roche2026_oracle_reproduction` |
 | `collision.py` | Roche et al. (2026), Zenodo doi:10.5281/zenodo.23192423: 8 reference oracle rows on 1 $M_\oplus$ targets through `impact_loss` | `tests/test_collision.py::test_roche2026_oracle_set_a_impact_loss` |
 | `collision.py` | Roche et al. (2026), Zenodo doi:10.5281/zenodo.23192423: 4 reference oracle rows on 0.35 to 4.98 $M_\oplus$ targets through `impact_loss` | `tests/test_collision.py::test_roche2026_oracle_set_b_impact_loss` |
-| `collision.py` | Roche et al. (2025), PSJ 6, 149, Eqs. 13-18: modified specific impact energy $Q'_\mathrm{R}$ | `tests/test_collision.py::test_roche2026_specific_impact_energy_calculation` |
-| `collision.py` | Roche et al. (2026), Eq. 1: mutual escape speed $v_\mathrm{esc}$ using total target mass | `tests/test_collision.py::test_roche2026_mutual_escape_speed_calculation` |
+| `collision.py` | Roche et al. (2025), PSJ 6, 149, Eqs. (13) to (18): modified specific impact energy $Q'_\mathrm{R}$ | `tests/test_collision.py::test_roche2026_specific_impact_energy_calculation` |
+| `collision.py` | Roche et al. (2026), Eq. (1): mutual escape speed $v_\mathrm{esc}$ using total target mass | `tests/test_collision.py::test_roche2026_mutual_escape_speed_calculation` |
 
 Self-consistency checks for the Roche scaling law (such as the velocity floor property `test_roche2026_velocity_floor_property`, grazing continuity `test_roche2026_grazing_continuity_and_value`, and the Table D1 Moon-forming scenario regression pin `test_roche2026_table_d1_moon_forming_scenarios`) test implementation invariants and regression values computed by this code rather than external reference oracle rows.
 
@@ -93,10 +93,24 @@ Each source module with executable content has a same-named companion in `tests/
 
 | Source | Test |
 |---|---|
-| `src/zephyrus/escape.py` | `tests/test_escape.py` |
+| `src/zephyrus/atomic_data.py` | `tests/test_atomic_data.py` |
+| `src/zephyrus/boiloff.py` | `tests/test_boiloff.py` |
 | `src/zephyrus/collision.py` | `tests/test_collision.py` |
+| `src/zephyrus/composition.py` | `tests/test_composition.py` |
 | `src/zephyrus/constants.py` | `tests/test_constants.py` |
+| `src/zephyrus/diagnostics.py` | `tests/test_diagnostics.py` |
+| `src/zephyrus/diffusion.py` | `tests/test_diffusion.py` |
+| `src/zephyrus/dispatcher.py` | `tests/test_dispatcher.py` |
+| `src/zephyrus/escape.py` | `tests/test_escape.py` |
+| `src/zephyrus/fractionation.py` | `tests/test_fractionation.py` |
+| `src/zephyrus/hydrodynamic.py` | `tests/test_hydrodynamic.py` |
+| `src/zephyrus/hydrostatic.py` | `tests/test_hydrostatic.py` |
+| `src/zephyrus/knudsen.py` | `tests/test_knudsen.py` |
+| `src/zephyrus/nozzle.py` | `tests/test_nozzle.py` |
 | `src/zephyrus/planets_parameters.py` | `tests/test_planets_parameters.py` |
+| `src/zephyrus/plot.py` | `tests/test_plot.py` |
+| `src/zephyrus/profiles.py` | `tests/test_profiles.py` |
+| `src/zephyrus/thermostat.py` | `tests/test_thermostat.py` |
 
 Cross-cutting and companion tests are the documented exception, not the rule:
 
@@ -104,6 +118,10 @@ Cross-cutting and companion tests are the documented exception, not the rule:
 - `tests/test_earth.py`: an Earth-analogue regression that spans the real MORS lookup and the escape formula end to end. It carries the `integration` tier because it downloads the stellar-evolution tracks.
 - `tests/test_escape_properties.py`: the Hypothesis-driven property sweeps for `escape.py`, kept in their own module so the `pytest.importorskip('hypothesis')` skip applies only to these tests and the closed-form pins in `tests/test_escape.py` still run when the develop-extra dependency is absent.
 - `tests/test_collision_properties.py`: the same pattern for `collision.py`: boundedness, speed monotonicity, angle monotonicity at equal densities, and the exact reduction of the interacting mass to the interacting volume.
+- `tests/test_fractionation_ensembles.py`: randomised ensembles of the fractionation closure, in the smoke tier because they take seconds rather than milliseconds.
+- `tests/test_examples.py`: the scripts under `examples/` and the numbers the documentation quotes from them, in the smoke tier.
+- `tests/test_tutorial_track.py`: the tutorial step that needs the real stellar tracks, in the integration tier.
+- `tests/test_nightly_workflow.py`: the data cache steps of `.github/workflows/nightly.yml`.
 
 `__init__.py` holds only the package version string and has no dedicated test file.
 
@@ -186,6 +204,12 @@ Two gates are declared in `pyproject.toml`:
 
 Both gates sit at the 90 % ceiling. The `tools/update_coverage_threshold.py` helper (run manually) raises `fail_under` one-way toward the ceiling and never lets it drop; `ECOSYSTEM_CEILING = 90.0` caps it, and neither gate may be manually decreased. ZEPHYRUS has no compiled dependencies, so the unit and smoke tier already covers the whole package, which is why both gates are already at the ceiling. The PR gate has a pre-flight step that fetches the base branch's `pyproject.toml` and rejects any PR that drops `[tool.coverage.report].fail_under` below `min(base, 90.0)`.
 
+### What the gate measures
+
+The coverage source is the package, `source = ["zephyrus"]`, so `examples/` sits outside both gates, as in PROTEUS and every other submodule.
+
+The example script is tested another way. The dispatcher tutorial includes each section of `examples/demo_dispatcher/demo_dispatcher.py` verbatim, and `tests/test_examples.py` checks that the page includes every section once and in order, runs the sections in that order, and compares what each prints with the output the page quotes (text exactly, floats to a relative $10^{-12}$). The stellar-history step needs the MORS tracks, so `tests/test_tutorial_track.py` checks it in the integration tier.
+
 ## PR validation pipeline
 
 `.github/workflows/tests.yaml` runs on every push and pull request to `main`, and on manual `workflow_dispatch`. Draft PRs run only `ubuntu-latest` with Python 3.12; non-draft events run the full matrix (`ubuntu-latest`, `macos-latest` x Python 3.12). The step sequence:
@@ -202,3 +226,9 @@ Nightly (`.github/workflows/nightly.yml`) runs the full suite, uploads coverage 
 ## Canonical specification
 
 The repository-wide rules that every PROTEUS-ecosystem submodule follows are at [proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/](https://proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/).
+
+[^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
+
+[^lehmer]: Lehmer, O. R., & Catling, D. C. (2017). Rocky worlds limited to 1.8 Earth radii by atmospheric escape during a star's extreme UV saturation. *The Astrophysical Journal, 845*(2), 130.
+
+[^kegerreis]: Kegerreis, J. A., Eke, V. R., Catling, D. C., Massey, R. J., Teodoro, L. F. A., & Zahnle, K. J. (2020). Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density. *The Astrophysical Journal Letters, 901*(2), L31. https://doi.org/10.3847/2041-8213/abb5fb

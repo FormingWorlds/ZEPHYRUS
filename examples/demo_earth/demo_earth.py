@@ -1,10 +1,12 @@
-import numpy as np
+import os
+
 import matplotlib.pyplot as plt
 import mors
+import numpy as np
 
 from zephyrus.constants import *
-from zephyrus.planets_parameters import *
 from zephyrus.escape import EL_escape
+from zephyrus.planets_parameters import *
 
 ########################### Initialization #####################################
 
@@ -16,7 +18,7 @@ tidal_contribution       = False            # Tidal correction factor           
 semi_major_axis          = a_earth*au2m     # Planetary semi-major axis              [m]
 eccentricity             = e_earth          # Planetary eccentricity                 [dimensionless]
 M_planet                 = Me               # Planetary mass                         [kg]
-epsilon                  = 0.15             # Escape efficiency factor               [dimensionless]  
+epsilon                  = 0.15             # Escape efficiency factor               [dimensionless]
 R_earth                  = Re               # Planetary radius                       [m]
 Rxuv                     = Re               # XUV planetary radius                   [m]
 
@@ -50,5 +52,6 @@ ylims = ax1.get_ylim()
 ax2.set_ylim((ylims[0]/ s2yr) / Me,(ylims[1] / s2yr) / Me)
 ax2.set_yscale('log')
 ax2.set_ylabel(r'Mass loss rate [$M_{\oplus}$ $yr^{-1}$]', fontsize=15)
+os.makedirs('output', exist_ok=True)
 plt.savefig('output/demo_earth_escape_vs_time_MORS.pdf', dpi=180)
 
