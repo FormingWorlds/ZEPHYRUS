@@ -4,7 +4,7 @@ A freshly formed or strongly heated planet can hold an atmosphere so distended t
 
 ## The boil-off criterion
 
-The criterion is the restricted Jeans parameter of Fossati et al. (2017) [^cite-fossati2017],
+The criterion is the restricted Jeans parameter of Fossati et al. (2017)[^cite-fossati2017],
 
 $$\Lambda \;=\; \frac{G\,M_\mathrm{p}\,\mu_\mathrm{ph}}{k_\mathrm{B}\,T_\mathrm{eq}\,R_\mathrm{ph}} \tag{1}$$
 
@@ -12,17 +12,17 @@ the ratio of a particle's gravitational binding energy to its thermal energy, ev
 
 The level matters. The threshold below is calibrated at the photosphere. In a coupled run $R_\mathrm{p}$ is the interior radius, which on an inflated envelope sits well below the photosphere, and a parameter built there would end boil-off while the wind is still running.
 
-The mean mass differs from the source. Fossati et al. write their parameter with the atomic hydrogen mass in place of $\mu_\mathrm{ph}$, so their $\Lambda$ and this one differ by the factor $\mu_\mathrm{ph} / m_\mathrm{H}$, and their numbers cannot be compared with these without that conversion. The composition mean mass makes the threshold one number for every composition. For isothermal gas at $T_\mathrm{eq}$, $\Lambda = 2 R_\mathrm{B}' / R_\mathrm{ph}$ identically, where $R_\mathrm{B}' = G M_\mathrm{p} \mu_\mathrm{ph} / (2 k_\mathrm{B} T_\mathrm{eq})$ is the Bondi radius at that temperature. Owen & Wu (2016) find that boil-off ends when the photosphere sits at a tenth of the Bondi radius [^cite-owenwu2016], which is therefore $\Lambda = 20$ whatever the composition. That threshold $\Lambda_\mathrm{c}$ (`lambda_crit`) is the default, and the literature spread of 15 to 35 is reported as its band. Its calibration on hydrogen-rich envelopes is an assumption, which the [limitations page](../limitations.md) states.
+The mean mass differs from the source. Fossati et al. write their parameter with the atomic hydrogen mass in place of $\mu_\mathrm{ph}$, so their $\Lambda$ and this one differ by the factor $\mu_\mathrm{ph} / m_\mathrm{H}$, and their numbers cannot be compared with these without that conversion. The composition mean mass makes the threshold one number for every composition. For isothermal gas at $T_\mathrm{eq}$, $\Lambda = 2 R_\mathrm{B}' / R_\mathrm{ph}$ identically, where $R_\mathrm{B}' = G M_\mathrm{p} \mu_\mathrm{ph} / (2 k_\mathrm{B} T_\mathrm{eq})$ is the Bondi radius at that temperature. Owen & Wu (2016) find that boil-off ends when the photosphere sits at a tenth of the Bondi radius[^cite-owenwu2016], which is therefore $\Lambda = 20$ whatever the composition. That threshold $\Lambda_\mathrm{c}$ (`lambda_crit`) is the default, and the literature spread of 15 to 35 is reported as its band. Its calibration on hydrogen-rich envelopes is an assumption, which the [limitations page](../limitations.md) states.
 
 ## The bolometric wind
 
-The wind runs at the temperature that Misener et al. (2025) recommend for the isothermal formulas [^cite-misener2025], cooler than $T_\mathrm{eq}$. That temperature sets the sound speed and the sonic radius:
+The wind runs at the temperature that Misener et al. (2025) recommend for the isothermal formulas[^cite-misener2025], cooler than $T_\mathrm{eq}$. That temperature sets the sound speed and the sonic radius:
 
 $$T_\mathrm{B} = \frac{T_\mathrm{eq}}{2^{1/4}}, \qquad c_\mathrm{B} = \sqrt{\frac{k_\mathrm{B} T_\mathrm{B}}{\mu_\mathrm{ph}}}, \qquad R_\mathrm{B} = \frac{G M_\mathrm{p}}{2\,c_\mathrm{B}^2} \tag{2}$$
 
 $R_\mathrm{B}$ is larger than $R_\mathrm{B}'$ by $2^{1/4}$, so in the variable $x = R_\mathrm{ph}/R_\mathrm{B}$ the threshold $\Lambda = 20$ sits at $x = 2^{3/4} / 20 = 0.084$.
 
-The rate is the closed-form transonic Parker wind of Owen & Wu (2016), their Eq. (6), with the Mach number at the launch level in the exact Lambert-function form of their Eq. (7) [^cite-owenwu2016]:
+The rate is the closed-form transonic Parker wind of Owen & Wu (2016), their Eq. (6), with the Mach number at the launch level in the exact Lambert-function form of their Eq. (7)[^cite-owenwu2016]:
 
 $$\dot{M}_\mathrm{P} \;=\; \frac{4\pi\,G\,M_\mathrm{p}\,\mathcal{M}}{\kappa\,c_\mathrm{B}}, \qquad \mathcal{M} = \sqrt{-W_0\!\left(-x^{-4}\,e^{\,3 - 4/x}\right)}, \qquad x = \frac{R_\mathrm{ph}}{R_\mathrm{B}} \tag{3}$$
 
@@ -32,13 +32,13 @@ At $x = 1$ the launch level is sonic and $\mathcal{M} = 1$. A launch level outsi
 
 ## The Bondi cap
 
-The rate is capped by the supply the Bondi sphere admits, in the form of Misener et al. (2025), their Eq. (10) [^cite-misener2025]:
+The rate is capped by the supply the Bondi sphere admits, in the form of Misener et al. (2025), their Eq. (10)[^cite-misener2025]:
 
 $$\dot{M}_\mathrm{B} \;=\; 4\pi R_\mathrm{B}^2\, c_\mathrm{B}\, \rho_\mathrm{ph}\, \exp\!\left(2 - \frac{2 R_\mathrm{B}}{R_\mathrm{ph}}\right) \tag{4}$$
 
 This is the launch density carried hydrostatically to the sonic point and multiplied by the sonic speed over the sonic sphere, at the same wind temperature as Eq. (3), the temperature Misener et al. recommend for it. The launch level stands in for their radiative-convective boundary.
 
-Gupta & Schlichting (2020), their Eq. (10), write the cap without the factor $e^2$ and at $T_\mathrm{eq}$ [^cite-gupta2020]. Their form is larger than Eq. (4) by $e^{-2}\, 2^{-3/8} \exp[\Lambda (2^{1/4} - 1)]$, a factor of 4.6 at $\Lambda = 20$.
+Gupta & Schlichting (2020), their Eq. (10), write the cap without the factor $e^2$ and at $T_\mathrm{eq}$[^cite-gupta2020]. Their form is larger than Eq. (4) by $e^{-2}\, 2^{-3/8} \exp[\Lambda (2^{1/4} - 1)]$, a factor of 4.6 at $\Lambda = 20$.
 
 Against the Parker rate the cap is
 
@@ -48,7 +48,7 @@ with $\tau_\mathrm{ph}$ the plane-parallel optical depth of the launch level to 
 
 ## After boil-off
 
-Once $\Lambda \ge \Lambda_\mathrm{c}$ the atmosphere has contracted. The dispatcher still computes the bolometric wind, and its rate past the threshold is called the residual. It carries one more cap: the outflow can no longer draw on the envelope's own inflation and is limited by the heat the interior supplies. Dividing the interior luminosity by the work per unit mass needed to lift gas out of the well gives the cap of Gupta & Schlichting (2019), the cooling-luminosity term of their Eq. (8) [^cite-gupta2019]:
+Once $\Lambda \ge \Lambda_\mathrm{c}$ the atmosphere has contracted. The dispatcher still computes the bolometric wind, and its rate past the threshold is called the residual. It carries one more cap: the outflow can no longer draw on the envelope's own inflation and is limited by the heat the interior supplies. Dividing the interior luminosity by the work per unit mass needed to lift gas out of the well gives the cap of Gupta & Schlichting (2019), the cooling-luminosity term of their Eq. (8)[^cite-gupta2019]:
 
 $$\dot{M}_\mathrm{E} \;=\; \frac{L_\mathrm{int}}{g_\mathrm{p}\,R_\mathrm{p}\,K}, \qquad L_\mathrm{int} = 4\pi R_\mathrm{p}^2 F_\mathrm{int}, \qquad g_\mathrm{p} = \frac{G M_\mathrm{p}}{R_\mathrm{p}^2} \tag{5}$$
 
@@ -69,8 +69,8 @@ and is reported in `diagnostics['bolometric']` on every call. Whether the residu
 
 Whether a bolometric wind persists after contraction is disputed, and the default takes the side that dispatches less.
 
-- Gupta & Schlichting (2019) find that a bolometric wind fed by the cooling interior, core-powered mass loss, persists for gigayears, at the smaller of the Bondi-limited rate and the cooling-luminosity rate of Eq. (5) [^cite-gupta2019].
-- Tang et al. (2024) find that once boil-off is initialised self-consistently, the same wind removes at most 0.1% of the envelope over gigayears [^cite-tang2024]. They attribute the persistent rate to coupling the wind to the core luminosity, to a missing energy-loss term in the wind, and to initial conditions set before boil-off.
+- Gupta & Schlichting (2019) find that a bolometric wind fed by the cooling interior, core-powered mass loss, persists for gigayears, at the smaller of the Bondi-limited rate and the cooling-luminosity rate of Eq. (5)[^cite-gupta2019].
+- Tang et al. (2024) find that once boil-off is initialised self-consistently, the same wind removes at most 0.1% of the envelope over gigayears[^cite-tang2024]. They attribute the persistent rate to coupling the wind to the core luminosity, to a missing energy-loss term in the wind, and to initial conditions set before boil-off.
 
 Here the dispute matters only in a narrow range past the threshold, where the closed-form rate of Eq. (3) has not yet shut off ([measured below](#measured-behaviour)). The default follows Tang et al.: it reports the residual and does not dispatch it. The boil-off criterion is then a jump in the dispatched rate wherever the bolometric rate is still the larger one at the threshold, and continuous where the XUV wind has already overtaken it. A run that wants the rate continuous sets `residual_mode = 'luminosity_capped'`, and the two settings differ by the candidate rate that the diagnostics print either way.
 
@@ -78,7 +78,7 @@ The termination timescale of Tang et al. (their Eq. (8)) is computed on the clos
 
 ## Competition with the XUV wind
 
-While $\Lambda < \Lambda_\mathrm{c}$, the [hydrodynamic wind](wind.md) competes with the bolometric wind and the larger rate is dispatched with its own label. Owen & Schlichting (2024) give the mass loss to photoevaporation when XUV photons are absorbed inside the Bondi radius and drive the stronger outflow, and to the bolometric wind otherwise [^cite-owen2024]. The dispatcher applies the rate comparison and does not test where the photons are absorbed, a simplification the [limitations page](../limitations.md) states. The collisionality switch is not applied while the criterion holds, because a bolometric outflow is penetrated by XUV photons before it turns collisionless (their Eq. (7)).
+While $\Lambda < \Lambda_\mathrm{c}$, the [hydrodynamic wind](wind.md) competes with the bolometric wind and the larger rate is dispatched with its own label. Owen & Schlichting (2024) give the mass loss to photoevaporation when XUV photons are absorbed inside the Bondi radius and drive the stronger outflow, and to the bolometric wind otherwise[^cite-owen2024]. The dispatcher applies the rate comparison and does not test where the photons are absorbed, a simplification the [limitations page](../limitations.md) states. The collisionality switch is not applied while the criterion holds, because a bolometric outflow is penetrated by XUV photons before it turns collisionless (their Eq. (7)).
 
 ## Measured behaviour
 

@@ -6,7 +6,7 @@ ZEPHYRUS provides two scaling laws for the eroded fraction, selected with `zephy
 
 ## The Kegerreis et al. (2020) law
 
-`zephyrus.collision.mass_loss` implements the scaling law of Kegerreis et al. (2020), their Eq. (1) [^cite-kegerreis2020]:
+`zephyrus.collision.mass_loss` implements the scaling law of Kegerreis et al. (2020), their Eq. (1)[^cite-kegerreis2020]:
 
 $$X \;=\; \min\!\left\{0.64 \left[ \left(\frac{v_\mathrm{c}}{v_\mathrm{esc}}\right)^2 \left(\frac{M_\mathrm{i}}{M_\mathrm{tot}}\right)^{1/2} \left(\frac{\rho_\mathrm{i}}{\rho_\mathrm{t}}\right)^{1/2} f_M(b) \right]^{0.65},\; 1\right\} \tag{1}$$
 
@@ -28,7 +28,7 @@ The law is constrained by simulations spanning target masses of roughly 0.3 to 3
 
 ## The Roche et al. (2026) law
 
-Roche et al. (2026) [^cite-roche2026] generalise atmospheric erosion scaling to account explicitly for envelope mass fraction $f_\mathrm{atm} \equiv M_\mathrm{atm} / M_\mathrm{t}^\mathrm{tot}$. The scaling law splits atmospheric loss into near-field erosion ($X_\mathrm{NF}$, loss near the impact site) and far-field erosion ($X_\mathrm{FF}$, loss through ground motion):
+Roche et al. (2026)[^cite-roche2026] generalise atmospheric erosion scaling to account explicitly for envelope mass fraction $f_\mathrm{atm} \equiv M_\mathrm{atm} / M_\mathrm{t}^\mathrm{tot}$. The scaling law splits atmospheric loss into near-field erosion ($X_\mathrm{NF}$, loss near the impact site) and far-field erosion ($X_\mathrm{FF}$, loss through ground motion):
 
 $$X_\mathrm{atm} \;=\; X_\mathrm{NF} + X_\mathrm{FF} \tag{4}$$
 
@@ -76,7 +76,7 @@ The mutual escape speed at contact uses the total target mass and refractory imp
 
 $$v_\mathrm{esc} \;=\; \sqrt{\frac{2\,G\,(M_\mathrm{t}^\mathrm{tot} + M_\mathrm{i}^\mathrm{r})}{R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r}}} \tag{11}$$
 
-The modified specific impact energy $Q'_\mathrm{R}$ follows the interacting-mass formulation of Leinhardt & Stewart (2012) [^cite-leinhardt2012] and Roche et al. (2025) [^cite-roche2025], Eqns. 13 to 18:
+The modified specific impact energy $Q'_\mathrm{R}$ follows the interacting-mass formulation of Leinhardt & Stewart (2012)[^cite-leinhardt2012] and Roche et al. (2025)[^cite-roche2025], Eqns. 13 to 18:
 
 $$Q'_\mathrm{R} \;=\; \frac{\mu_\alpha}{\mu}\, Q_\mathrm{R}, \qquad Q_\mathrm{R} \;=\; \frac{\mu\, v_\mathrm{c}^2}{2\,(M_\mathrm{i}^\mathrm{r} + M_\mathrm{t}^\mathrm{tot})}$$
 
@@ -107,9 +107,9 @@ with $l \equiv R_\mathrm{t}^\mathrm{r} + R_\mathrm{i}^\mathrm{r} - (R_\mathrm{t}
 The scaling coefficients comprise 61 stored values (Roche et al. 2026, Appendix C):
 
 - The 23 near-field mass coefficients ($q_{ij}$, $\zeta_5$, $\zeta_6$) are fitted to a separate suite of initialised SPH planets without impacts (radius ratios 0.1 to 1.0 in steps of 0.1 plus 0.001, $M_\mathrm{t}^\mathrm{r} \in [0.01, 5.0]\,M_\oplus$, $f_\mathrm{atm} \in [0.01, 0.2]$). The exponents $q_{14} = q_{34} = 2$ are fixed. The impact dataset reaches a radius ratio of 1.015.
-- The 38 loss coefficients ($k_{ij}$, $s_{ij}$) are fitted to 296 of the 300 new impact simulations (96 at $f_\mathrm{atm} = 0.01$, 100 at 0.1, and 100 at 0.2, all on a single target mass of about $1\,M_\oplus$) and the 494 simulations at $f_\mathrm{atm} = 0.05$ of Roche et al. (2025) [^cite-roche2025] (spanning multiple target masses), giving 790 rows total. The loss coefficients ($k, s$) were fitted on $R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \ge 0.498$ only. The 0.001 lower bound of the radius-ratio range comes from the separate $f_\mathrm{NF}$ planet-initialisation suite. The velocity exponent is shared across near-field and far-field regimes ($k_{15} = k_{25} = k_{35}$). Away from $1\,M_\oplus$, the impact data cover only $f_\mathrm{atm} = 0.05$.
+- The 38 loss coefficients ($k_{ij}$, $s_{ij}$) are fitted to 296 of the 300 new impact simulations (96 at $f_\mathrm{atm} = 0.01$, 100 at 0.1, and 100 at 0.2, all on a single target mass of about $1\,M_\oplus$) and the 494 simulations at $f_\mathrm{atm} = 0.05$ of Roche et al. (2025)[^cite-roche2025] (spanning multiple target masses), giving 790 rows total. The loss coefficients ($k, s$) were fitted on $R_\mathrm{i}^\mathrm{r} / R_\mathrm{t}^\mathrm{r} \ge 0.498$ only. The 0.001 lower bound of the radius-ratio range comes from the separate $f_\mathrm{NF}$ planet-initialisation suite. The velocity exponent is shared across near-field and far-field regimes ($k_{15} = k_{25} = k_{35}$). Away from $1\,M_\oplus$, the impact data cover only $f_\mathrm{atm} = 0.05$.
 
-All 61 values are transcribed at full precision from the published dataset [^cite-roche2026]. In Table C of Roche et al. (2026), some coefficients are printed with only 2 significant digits ($s_{15}, k_{15}, s_{25}, s_{33}$), making the dataset values necessary for reproduction. Terms fixed in Tables C1 to C3 ($q_{14} = q_{34} = 2$, $q_{37} = q_{48} = 1$, and unlisted parameters fixed to 0) are held in internal constants.
+All 61 values are transcribed at full precision from the published dataset[^cite-roche2026]. In Table C of Roche et al. (2026), some coefficients are printed with only 2 significant digits ($s_{15}, k_{15}, s_{25}, s_{33}$), making the dataset values necessary for reproduction. Terms fixed in Tables C1 to C3 ($q_{14} = q_{34} = 2$, $q_{37} = q_{48} = 1$, and unlisted parameters fixed to 0) are held in internal constants.
 
 ### Calibrated domain and inputs outside it
 
@@ -131,12 +131,12 @@ To support planetary evolution and accretion calculations where conditions cross
 
 ### Physical caveats
 
-The Roche et al. (2026, Sect. 4.1) scaling law does not account for pre-impact planetary rotation, surface liquid water oceans, thermal evolution, or a core mass fraction other than about 0.3 (Sect. 2.1). All simulations assume H2-He envelopes governed by the Hubbard & MacFarlane 1980 [^cite-hubbard1980] equation of state.
+The Roche et al. (2026, Sect. 4.1) scaling law does not account for pre-impact planetary rotation, surface liquid water oceans, thermal evolution, or a core mass fraction other than about 0.3 (Sect. 2.1). All simulations assume H2-He envelopes governed by the Hubbard & MacFarlane 1980[^cite-hubbard1980] equation of state.
 
 Physical effects operate in both directions:
 
 - **Miscibility (overestimate):** Magma-envelope miscibility at high pressures without a sharp boundary can cause the scaling law to overestimate the loss of massive envelopes on young planets (Roche et al. 2026, Sect. 4.1).
-- **Post-impact thermal loss (underestimate):** The law covers the immediate shock- and vapour-plume-driven loss only. It neglects later thermally driven loss (an outflow driven by heat from the post-impact interior, Biersteker & Schlichting 2021), so for primordial H2-He envelopes the total loss can be higher (Roche et al. 2026, Sect. 4.1), while that later loss becomes negligible for envelopes of higher mean molecular weight.
+- **Post-impact thermal loss (underestimate):** The law covers the immediate shock- and vapour-plume-driven loss only. It neglects later thermally driven loss (an outflow driven by heat from the post-impact interior, Biersteker & Schlichting 2021[^cite-biersteker2021]), so for primordial H2-He envelopes the total loss can be higher (Roche et al. 2026, Sect. 4.1), while that later loss becomes negligible for envelopes of higher mean molecular weight.
 - **Atmospheric composition (upper limit):** Heavier atmospheres ($\mathrm{CO}, \mathrm{CO}_2$) are less susceptible to shock-driven removal, so shock-driven loss is an upper limit for a given atmosphere mass (Roche et al. 2026, Sect. 4.3). For PROTEUS atmospheres of higher mean molecular weight ($\mathrm{H}_2\mathrm{O}, \mathrm{CO}_2, \mathrm{O}_2$), the H2-He loss fractions likewise serve as upper limits.
 
 ## Partition across species
@@ -152,4 +152,5 @@ The returned fraction applies to the target's atmosphere as a whole. The caller 
 [^cite-leinhardt2012]: Z. M. Leinhardt, S. T. Stewart, *[Collisions between Gravity-dominated Bodies. I. Outcome Regimes and Scaling Laws](https://doi.org/10.1088/0004-637X/745/1/79)*, The Astrophysical Journal, 745, 79, 2012. [SciX](https://scixplorer.org/abs/2012ApJ...745...79L/abstract).
 
 [^cite-hubbard1980]: W. B. Hubbard, J. J. MacFarlane, *[Structure and evolution of Uranus and Neptune](https://doi.org/10.1029/JB085iB01p00225)*, Journal of Geophysical Research: Solid Earth, 85, 225-234, 1980. [SciX](https://scixplorer.org/abs/1980JGR....85..225H/abstract).
-[^cite-lock2018]: S. J. Lock, S. T. Stewart, M. I. Petaev, Z. Leinhardt, M. T. Mace, S. B. Jacobsen, M. Cuk, *[The Origin of the Moon Within a Terrestrial Synestia](https://doi.org/10.1002/2017JE005333)*, Journal of Geophysical Research: Planets, 123, 910-951, 2018. [SciX](https://scixplorer.org/abs/2018JGRE..123..910L/abstract).
+[^cite-lock2018]: S. J. Lock, S. T. Stewart, M. I. Petaev, Z. Leinhardt, M. T. Mace, S. B. Jacobsen, M. Ćuk, *[The Origin of the Moon Within a Terrestrial Synestia](https://doi.org/10.1002/2017JE005333)*, Journal of Geophysical Research: Planets, 123, 910-951, 2018. [SciX](https://scixplorer.org/abs/2018JGRE..123..910L/abstract).
+[^cite-biersteker2021]: J. B. Biersteker, H. E. Schlichting, *[Losing oceans: The effects of composition on the thermal component of impact-driven atmospheric loss](https://doi.org/10.1093/mnras/staa3614)*, Monthly Notices of the Royal Astronomical Society, 501, 587-595, 2021. [SciX](https://scixplorer.org/abs/2021MNRAS.501..587B/abstract).

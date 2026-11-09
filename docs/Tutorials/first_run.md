@@ -62,7 +62,7 @@ Rxuv                     = Re               # XUV planetary radius              
 
 A few choices worth noting:
 
-- `epsilon = 0.15` is the conservative value adopted by Kasting & Pollack (1983) [^cite-kasting1983] and used in many subsequent rocky-planet studies. The full plausible range is roughly 0.1 to 0.6.
+- `epsilon = 0.15` is the conservative value adopted by Kasting & Pollack (1983)[^cite-kasting1983] and used in many subsequent rocky-planet studies. The full plausible range is roughly 0.1 to 0.6.
 - `Rxuv = Re` sets the XUV-absorbing radius equal to the planetary radius. This is a lower bound on the mass-loss rate; allowing $R_\mathrm{XUV} > R_p$ would increase escape.
 - `tidal_contribution = False` ignores the Roche-lobe enhancement of escape. At 1 au this is a negligible correction, but for close-in planets it should be enabled.
 

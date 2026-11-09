@@ -4,7 +4,7 @@ This page tracks the `@pytest.mark.reference_pinned` test that anchors the assem
 
 | Test id | Reference | Scope |
 |---|---|---|
-| `tests/test_dispatcher.py::test_routing_hydrodynamic_and_el_candidate_matches_el_escape` | Cross-implementation check against `zephyrus.escape.EL_escape` (Erkaev et al. 2007 form, scaling = 2) | The dispatcher's energy-limited candidate equals the released public entry point evaluated with the same efficiency, radii, flux, and tidal factor to $10^{-9}$ relative, and the dispatched rate is the min(EL, RR, PL) winner named by the sub-label. |
+| `tests/test_dispatcher.py::test_routing_hydrodynamic_and_el_candidate_matches_el_escape` | Cross-implementation check against `zephyrus.escape.EL_escape` (Erkaev et al. 2007[^cite-erkaev2007] form, scaling = 2) | The dispatcher's energy-limited candidate equals the released public entry point evaluated with the same efficiency, radii, flux, and tidal factor to $10^{-9}$ relative, and the dispatched rate is the min(EL, RR, PL) winner named by the sub-label. |
 
 ## Notes
 
@@ -15,3 +15,5 @@ The guarantee that every physically posed input returns one result (200 random i
 Cross-implementation cross-check against the package's released energy-limited function, `EL_escape`.
 
 Date of last comparison against the sources: 2026-08-20.
+
+[^cite-erkaev2007]: N. V. Erkaev, Yu. N. Kulikov, H. Lammer, F. Selsis, D. Langmayr, G. F. Jaritz, H. K. Biernat, *[Roche lobe effects on the atmospheric loss from “Hot Jupiters”](https://doi.org/10.1051/0004-6361:20066929)*, Astronomy & Astrophysics, 472, 329-334, 2007. [SciX](https://scixplorer.org/abs/2007A%26A...472..329E/abstract).

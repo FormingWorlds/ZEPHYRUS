@@ -4,7 +4,7 @@ A fluid wind exists only if the gas is still collisional where it becomes supers
 
 ## The Knudsen number at the sonic point
 
-Following Chatterjee & Pierrehumbert (2026), their Eqs. (17) and (18) [^cite-chatterjee2026],
+Following Chatterjee & Pierrehumbert (2026), their Eqs. (17) and (18)[^cite-chatterjee2026],
 
 $$\mathrm{Kn}_\mathrm{s} \;=\; \frac{\ell_\mathrm{s}}{H_\mathrm{s}}, \qquad \ell_\mathrm{s} = \frac{1}{\sqrt{2}\,\sigma_\mathrm{C}\, n_\mathrm{s}}, \qquad H_\mathrm{s} = \frac{(1+\gamma)\, R_\mathrm{s}}{4 + \sqrt{2}\sqrt{5 - 3\gamma}}, \qquad n_\mathrm{s} = \frac{\rho_\mathrm{s}}{\mu_+ m_\mathrm{p}} \tag{1}$$
 
@@ -16,8 +16,8 @@ where $y_j$ is the mole fraction of element $j$ in the atomised composition of t
 
 Each element's cross section comes from the first available source in a fixed order:
 
-1. tabulated collision integrals, as the momentum-transfer cross section $\pi \sigma^2 \Omega^{(1,1)*}$ (Laricchiuta et al. 2009, their Eqs. (2) to (4) [^cite-laricchiuta2009]), validated against measured viscosities
-2. for hydrogen, an inversion of the diffusion coefficient (Zahnle et al. 1990, their Eq. (30) [^cite-zahnle1990], on the compilation of Zahnle & Kasting 1986 [^cite-zahnle1986])
+1. tabulated collision integrals, as the momentum-transfer cross section $\pi \sigma^2 \Omega^{(1,1)*}$ (Laricchiuta et al. 2009, their Eqs. (2) to (4)[^cite-laricchiuta2009]), validated against measured viscosities
+2. for hydrogen, an inversion of the diffusion coefficient (Zahnle et al. 1990, their Eq. (30)[^cite-zahnle1990], on the compilation of Zahnle & Kasting 1986[^cite-zahnle1986])
 3. a geometric hard sphere, whose bias is documented and flagged.
 
 Six elements (Al, P, Cl, K, Ca, Ti) have no tabulated radius yet and fall back on an assumed one, flagged with their own provenance class. The sources of every radius are listed on the [knudsen validation page](../../Validation/knudsen.md).
@@ -30,8 +30,8 @@ A state with $\mathrm{Kn}_\mathrm{s}$ at or below the threshold $\mathrm{Kn}_\ma
 
 The default threshold is 1, and its physical band is 0.1 to 3. The two ends come from different arguments:
 
-- Kinetic simulations place the transition near 0.1 when the heating is deposited in a sharp layer and near 1 when it is distributed (Johnson et al. 2013 [^cite-johnson2013]). The lower part of the band is the physics of the heating geometry, not tuning freedom.
-- The upper edge is not Johnson's number. Chatterjee & Pierrehumbert (2026) [^cite-chatterjee2026] argue, citing the same work, that the energy limit may survive to a sonic Knudsen number of 1 to 3 or beyond, and call how far it survives an open question.
+- Kinetic simulations place the transition near 0.1 when the heating is deposited in a sharp layer and near 1 when it is distributed (Johnson et al. 2013[^cite-johnson2013]). The lower part of the band is the physics of the heating geometry, not tuning freedom.
+- The upper edge is not Johnson's number. Chatterjee & Pierrehumbert (2026)[^cite-chatterjee2026] argue, citing the same work, that the energy limit may survive to a sonic Knudsen number of 1 to 3 or beyond, and call how far it survives an open question.
 
 The diagnostics report the label at both band edges beside every verdict (`diagnostics['knudsen']['counterfactual_labels']`). Each is the label a dispatch with the threshold at that edge returns when no previous branch is supplied (the L1 transfer's own fluid condition moving with it), so a state the switch does not decide, one with the boil-off gate open for instance, reports the same label at both edges.
 

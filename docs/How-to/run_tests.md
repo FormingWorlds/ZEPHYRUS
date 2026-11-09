@@ -61,7 +61,7 @@ Every physics source (the thirteen modules listed in `PHYSICS_SOURCES` of `tools
 - **Monotonicity or symmetry**: the rate is linear in the XUV flux at fixed geometry; it scales as `1 / Mp`; it is larger with the tidal correction than without (`K_tide < 1`) for a close-in orbit; it is zero when the flux is zero.
 - **Pinned numeric value with a discrimination guard**: a closed-form value pinned via `pytest.approx`, plus explicit assertions that a wrong exponent, a wrong scaling branch, a sign flip, or a unit slip would each differ from the correct value by more than the tolerance.
 
-For the collision law the same families read: for Kegerreis et al. (2020), the loss fraction is bounded in `[0, 1]` and capped at 1 for total erosion, vanishes at grazing incidence and at zero contact speed, never decreases with contact speed, and its closed-form pins carry guards against the wrong mass-ratio denominator, wrong exponents, and a wrong gravitational constant; for Roche et al. (2026)[^cite-roche2026], the loss fraction is bounded in `[0, 1]`, $X_\mathrm{FF}$ at $b = 1$ equals $X_\mathrm{FF,zero}$ (0 when $\psi_1 + \psi_3 \le 0$), zero-energy far-field loss is recorded in `diagnostics['X_FF_zero_energy']` and flagged when non-zero, near-field loss $X_\mathrm{NF}$ is held at its $v_\mathrm{esc}$ value below $v_\mathrm{esc}$, and the loss fraction is non-decreasing with contact speed within the stability box.
+For the collision law the same families read: for Kegerreis et al. (2020)[^cite-kegerreis2020], the loss fraction is bounded in `[0, 1]` and capped at 1 for total erosion, vanishes at grazing incidence and at zero contact speed, never decreases with contact speed, and its closed-form pins carry guards against the wrong mass-ratio denominator, wrong exponents, and a wrong gravitational constant; for Roche et al. (2026)[^cite-roche2026], the loss fraction is bounded in `[0, 1]`, $X_\mathrm{FF}$ at $b = 1$ equals $X_\mathrm{FF,zero}$ (0 when $\psi_1 + \psi_3 \le 0$), zero-energy far-field loss is recorded in `diagnostics['X_FF_zero_energy']` and flagged when non-zero, near-field loss $X_\mathrm{NF}$ is held at its $v_\mathrm{esc}$ value below $v_\mathrm{esc}$, and the loss fraction is non-decreasing with contact speed within the stability box.
 
 Tests that meet one or more of these are tagged `@pytest.mark.physics_invariant`. The marker is per-function, not module-level: an error-contract test (an unsupported `scaling` raising `ValueError`) does not carry it.
 
@@ -73,9 +73,9 @@ Tests that pin behaviour against an external anchor are tagged `@pytest.mark.ref
 
 | Source | Anchor | Test |
 |---|---|---|
-| `escape.py` | Erkaev et al. (2007) [^cite-erkaev2007], A&A 472:329, Eq. (21): closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
-| `escape.py` | Lehmer & Catling (2017) [^cite-lehmer2017], ApJ 845:130, Eq. (1): closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
-| `collision.py` | Kegerreis et al. (2020) [^cite-kegerreis2020], ApJL 901:L31, Eq. (1): closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
+| `escape.py` | Erkaev et al. (2007)[^cite-erkaev2007], A&A 472:329, Eq. (21): closed-form energy-limited rate for the default `scaling=2` radius term | `tests/test_escape.py::test_el_escape_scaling2_matches_erkaev2007_closed_form` |
+| `escape.py` | Lehmer & Catling (2017)[^cite-lehmer2017], ApJ 845:130, Eq. (1): closed-form rate for the `scaling=3` radius term | `tests/test_escape.py::test_el_escape_scaling3_matches_lehmer_catling_closed_form` |
+| `collision.py` | Kegerreis et al. (2020)[^cite-kegerreis2020], ApJL 901:L31, Eq. (1): closed-form erosion fraction for identical twin bodies | `tests/test_collision.py::test_scaling_law_pins_the_kegerreis_closed_form` |
 | `collision.py` | Kegerreis et al. (2020), ApJL 901:L31, Tables 1 and 2: simulated loss fractions of the SPH suite | `tests/test_collision.py::test_scaling_law_reproduces_kegerreis_table2_simulations` |
 | `collision.py` | Roche et al. (2026), arXiv:2610.06077, Eqs. (4) to (11), Table C1-C3: 12 reference oracle rows from `scaling_law.csv` | `tests/test_collision.py::test_roche2026_oracle_reproduction` |
 | `collision.py` | Roche et al. (2026), Zenodo doi:10.5281/zenodo.23192423: 8 reference oracle rows on 1 $M_\oplus$ targets through `impact_loss` | `tests/test_collision.py::test_roche2026_oracle_set_a_impact_loss` |
@@ -227,7 +227,7 @@ Nightly (`.github/workflows/nightly.yml`) runs the full suite, uploads coverage 
 
 The repository-wide rules that every PROTEUS-ecosystem submodule follows are at [proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/](https://proteus-framework.org/PROTEUS/Explanations/ecosystem_testing_standard/).
 
-[^cite-erkaev2007]: N. V. Erkaev, Y. N. Kulikov, H. Lammer, F. Selsis, D. Langmayr, G. F. Jaritz, H. K. Biernat, *[Roche lobe effects on the atmospheric loss from “Hot Jupiters”](https://doi.org/10.1051/0004-6361:20066929)*, Astronomy & Astrophysics, 472, 329-334, 2007. [SciX](https://scixplorer.org/abs/2007A%26A...472..329E/abstract).
+[^cite-erkaev2007]: N. V. Erkaev, Yu. N. Kulikov, H. Lammer, F. Selsis, D. Langmayr, G. F. Jaritz, H. K. Biernat, *[Roche lobe effects on the atmospheric loss from “Hot Jupiters”](https://doi.org/10.1051/0004-6361:20066929)*, Astronomy & Astrophysics, 472, 329-334, 2007. [SciX](https://scixplorer.org/abs/2007A%26A...472..329E/abstract).
 
 [^cite-lehmer2017]: O. R. Lehmer, D. C. Catling, *[Rocky Worlds Limited to ∼1.8 Earth Radii by Atmospheric Escape during a Star’s Extreme UV Saturation](https://doi.org/10.3847/1538-4357/aa8137)*, The Astrophysical Journal, 845, 130, 2017. [SciX](https://scixplorer.org/abs/2017ApJ...845..130L/abstract).
 

@@ -4,7 +4,7 @@ Where the gas is too rarefied for a wind, escape proceeds particle by particle f
 
 ## The upper structure
 
-The atmosphere profile usually stops well below the exobase, so the branch builds an extended upper structure above the profile top, with composition and mean molecular mass $\mu_0$ frozen at their values there. The temperature follows the Bates profile in the form Yelle (2024) uses, their Eq. (19) [^cite-yelle2024], and the radius follows from hydrostatic balance, both in the log-pressure coordinate $\zeta = \ln(P_\mathrm{top}/P)$:
+The atmosphere profile usually stops well below the exobase, so the branch builds an extended upper structure above the profile top, with composition and mean molecular mass $\mu_0$ frozen at their values there. The temperature follows the Bates profile in the form Yelle (2024) uses, their Eq. (19)[^cite-yelle2024], and the radius follows from hydrostatic balance, both in the log-pressure coordinate $\zeta = \ln(P_\mathrm{top}/P)$:
 
 $$T(\zeta) \;=\; T_\infty - \left(T_\infty - T_\mathrm{top}\right) e^{-\gamma_\mathrm{B} \zeta}, \qquad \frac{\mathrm{d}r}{\mathrm{d}\zeta} = \frac{k_\mathrm{B}\, T\, r^2}{G M_\mathrm{p}\, \mu_0}, \qquad n = \frac{P_\mathrm{top}\, e^{-\zeta}}{k_\mathrm{B} T} \tag{1}$$
 
@@ -18,17 +18,17 @@ $$\frac{1}{\sqrt{2}\,\sigma_\mathrm{C}\, n} \;\ge\; \frac{k_\mathrm{B}\, T\, r^2
 
 with $\sigma_\mathrm{C}$ the mixture cross section of [the collisionality switch](collisionality.md), taken over the species at the profile top at the local temperature. This defines $R_\mathrm{exo}$, $n_\mathrm{exo}$, and $T_\mathrm{exo} = T(R_\mathrm{exo})$.
 
-The extension is a requirement, not a refinement. The Jeans parameter at the true exobase can differ from its photospheric value by an order of magnitude, and evaluating the escape on photospheric values biases rates toward false retention by up to three orders of magnitude (Johnson et al. 2013 [^cite-johnson2013]).
+The extension is a requirement, not a refinement. The Jeans parameter at the true exobase can differ from its photospheric value by an order of magnitude, and evaluating the escape on photospheric values biases rates toward false retention by up to three orders of magnitude (Johnson et al. 2013[^cite-johnson2013]).
 
 **The exospheric temperature.** $T_\infty$ is prescribed, and it is the branch's dominant sensitivity, because the rate depends on it exponentially. A value below $T_\mathrm{top}$ would build a thermosphere that cools with height, whose exobase is more strongly bound than its anchor, so it is raised to $T_\mathrm{top}$ and flagged. An optional estimator (`T_exo_mode = 'thermostat'`) solves the heating and cooling balance of the [wind temperature](wind.md#the-wind-temperature) at the profile top instead. A local balance without conduction is biased high by construction, so it is not the default.
 
 ## Jeans effusion
 
-Each species $i$, of particle mass $m_i$, leaves the exobase with the Jeans effusion velocity of Yelle (2024), their Eqs. (20) and (21) [^cite-yelle2024],
+Each species $i$, of particle mass $m_i$, leaves the exobase with the Jeans effusion velocity of Yelle (2024), their Eqs. (20) and (21)[^cite-yelle2024],
 
 $$w_{\mathrm{J},i} \;=\; \sqrt{\frac{k_\mathrm{B} T_\mathrm{exo}}{2\pi m_i}}\,(1 + \lambda_i)\, e^{-\lambda_i}, \qquad \lambda_i = \frac{G M_\mathrm{p}\, m_i}{k_\mathrm{B}\, T_\mathrm{exo}\, R_\mathrm{exo}} \tag{3}$$
 
-where $\lambda_i$ is the species Jeans parameter. Direct simulation Monte Carlo runs find the escape rate above the equilibrium Jeans rate, because collisions above the exobase and a non-Maxwellian distribution there feed the escaping tail: about 1.7 times at $\lambda = 6$, falling to about 1.4 at $\lambda = 15$ (Volkov et al. 2011 [^cite-volkovjohnson2011][^cite-volkovtucker2011]). The code interpolates that factor linearly,
+where $\lambda_i$ is the species Jeans parameter. Direct simulation Monte Carlo runs find the escape rate above the equilibrium Jeans rate, because collisions above the exobase and a non-Maxwellian distribution there feed the escaping tail: about 1.7 times at $\lambda = 6$, falling to about 1.4 at $\lambda = 15$ (Volkov et al. 2011[^cite-volkovjohnson2011][^cite-volkovtucker2011]). The code interpolates that factor linearly,
 
 $$C(\lambda) \;=\; \begin{cases} 1.7, & \lambda \le 6 \\ 1.7 - 0.3\,(\lambda - 6)/9, & 6 < \lambda < 15 \\ 1.4, & \lambda \ge 15 \end{cases} \tag{4}$$
 
@@ -52,7 +52,7 @@ The exobase is located by root finding on the closed-form structure, so it does 
 
 ## The combined rate
 
-The two bottlenecks combine by the harmonic mean of Yelle (2024), their Eq. (14) [^cite-yelle2024], which lies below both and tends to the smaller:
+The two bottlenecks combine by the harmonic mean of Yelle (2024), their Eq. (14)[^cite-yelle2024], which lies below both and tends to the smaller:
 
 $$\Phi_i \;=\; \frac{\tilde{\Phi}_{\mathrm{J},i}\; \Phi_{\mathrm{l},i}}{\tilde{\Phi}_{\mathrm{J},i} + \Phi_{\mathrm{l},i}} \tag{8}$$
 
@@ -68,7 +68,7 @@ Two escape temperatures decide whether the exobase can stay hydrostatic at all:
 
 $$T_\mathrm{esc} \;=\; \frac{G M_\mathrm{p}\, \mu_0}{2\, k_\mathrm{B}\, R_\mathrm{exo}}, \qquad T_\mathrm{esc,+} = \frac{T_\mathrm{esc}}{2} \tag{10}$$
 
-The neutral escape temperature $T_\mathrm{esc}$ is where thermal energy rivals binding energy. The plasma escape temperature $T_\mathrm{esc,+}$ is half of it, because in an ionised exosphere the ambipolar electric field shares each ion's binding energy with its electron (Chatterjee & Pierrehumbert 2026, their Eq. (34) [^cite-chatterjee2026]). An exobase with $T_\mathrm{exo}$ above half the selected escape temperature is unstable by their Figure 10 criterion.
+The neutral escape temperature $T_\mathrm{esc}$ is where thermal energy rivals binding energy. The plasma escape temperature $T_\mathrm{esc,+}$ is half of it, because in an ionised exosphere the ambipolar electric field shares each ion's binding energy with its electron (Chatterjee & Pierrehumbert 2026, their Eq. (34)[^cite-chatterjee2026]). An exobase with $T_\mathrm{exo}$ above half the selected escape temperature is unstable by their Figure 10 criterion.
 
 In such states the [hydrodynamic candidate](wind.md#the-hydrodynamic-candidate) competes with the Jeans rate, the larger one is dispatched with its own label, and the state is flagged `gate_rerouted`. Taking the larger keeps the dispatched rate from falling as the exosphere heats past the threshold. Neither candidate describes the outflow of an unstable exosphere, as the [limitations page](../limitations.md) explains.
 

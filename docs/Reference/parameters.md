@@ -52,11 +52,11 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `e_earth` | none | $0.017$ | dimensionless |
 | `a_earth` | none | $1$ | au |
 
-`Fxuv_earth_10Myr` is taken from Fig. 9 of Wordsworth et al. (2018) [^cite-wordsworth2018].
+`Fxuv_earth_10Myr` is taken from Fig. 9 of Wordsworth et al. (2018)[^cite-wordsworth2018].
 
 ### Jupiter
 
-The radius is the IAU 2015 nominal equatorial radius (Prša et al. 2016 [^cite-prsa2016]). The mass is an adopted value, not a nominal constant.
+The radius is the IAU 2015 nominal equatorial radius (Prša et al. 2016[^cite-prsa2016]). The mass is an adopted value, not a nominal constant.
 
 | Name | Symbol | Value | Units |
 |---|---|---|---|
@@ -67,7 +67,7 @@ The radius is the IAU 2015 nominal equatorial radius (Prša et al. 2016 [^cite-p
 
 ### TOI-561 (star)
 
-From Weiss et al. (2021) [^cite-weiss2021].
+From Weiss et al. (2021)[^cite-weiss2021].
 
 | Name | Value | Errorbar | Units |
 |---|---|---|---|
@@ -78,7 +78,7 @@ From Weiss et al. (2021) [^cite-weiss2021].
 
 ### TOI-561 b (planet)
 
-From Brinkman et al. (2023) [^cite-brinkman2023].
+From Brinkman et al. (2023)[^cite-brinkman2023].
 
 | Name | Value | Errorbar | Units |
 |---|---|---|---|
@@ -92,15 +92,15 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 
 | Name | Default | Options / units | Meaning |
 |---|---|---|---|
-| `base_method` | `'lopez'` | `'lopez'`, `'fixed_pressure'`, `'boreas'` | How the XUV wind base is located on the profile. The Lopez (2017) [^cite-lopez2017] level is $P_\mathrm{base} = \mu g / \sigma_{\nu_0}$, about a nanobar. `'boreas'` uses the optional BOREAS solver and falls back to `'lopez'` with a flag when it is absent or does not converge. |
+| `base_method` | `'lopez'` | `'lopez'`, `'fixed_pressure'`, `'boreas'` | How the XUV wind base is located on the profile. The Lopez (2017)[^cite-lopez2017] level is $P_\mathrm{base} = \mu g / \sigma_{\nu_0}$, about a nanobar. `'boreas'` uses the optional BOREAS solver and falls back to `'lopez'` with a flag when it is absent or does not converge. |
 | `base_out_of_range` | `'clamp'` | `'clamp'`, `'extend'` | What happens when the profile top is deeper than the physical base level: clamp to the top level (flagged, distance recorded) or evaluate the base on the extended upper structure. Whether it engages depends on the state: the Lopez base is $\mu g / \sigma_{\nu_0}$, tens of nanobars on an Earth-mass carbon dioxide planet but below a nanobar on a low-gravity hydrogen envelope, so no single profile top clears it everywhere. Read `base_clamped` rather than assuming. |
-| `P_photo` | 2000 | Pa | Photospheric-type level for the energy-limited geometric factor (20 mbar, after Baumeister et al. 2023 [^cite-baumeister2023]). |
+| `P_photo` | 2000 | Pa | Photospheric-type level for the energy-limited geometric factor (20 mbar, after Baumeister et al. 2023[^cite-baumeister2023]). |
 | `P_base_fixed` | 5.0 | Pa | Base pressure for the `'fixed_pressure'` method only. |
 | `kn_crit` | 1.0 | $> 0$ | Sonic-point Knudsen threshold of the fluid-to-kinetic switch. The physical band 0.1 to 3 is a diagnostic constant, not a knob. |
 | `kn_hysteresis` | 1.5 | $\geq 1$ (1 disables the window) | Hysteresis window factor around `kn_crit`, consumed only when the previous result's `rate_branch` is supplied as `prev_regime` and is a wind or hydrostatic label. |
 | `gate` | `'neutral'` | `'neutral'`, `'plasma'` | Which escape temperature the exosphere stability test uses. Both are always computed and disagreements are flagged as contested. |
 | `efficiency` | 0.1 | $0 < \epsilon \leq 1$ | Energy-limited heating efficiency $\epsilon$. |
-| `efficiency_mode` | `'fixed'` | `'fixed'`, `'caldiroli'` | Fixed $\epsilon$, or the Caldiroli et al. (2022) [^cite-caldiroli2022] fitted efficiency converted to the Erkaev geometry, with a guarded fallback below its validity bound. |
+| `efficiency_mode` | `'fixed'` | `'fixed'`, `'caldiroli'` | Fixed $\epsilon$, or the Caldiroli et al. (2022)[^cite-caldiroli2022] fitted efficiency converted to the Erkaev geometry, with a guarded fallback below its validity bound. |
 | `T_exo_mode` | `'prescribed'` | `'prescribed'`, `'thermostat'` | Exobase temperature source. The prescribed value is the hydrostatic branch's dominant sensitivity. The thermostat estimator, a heating-cooling balance at the profile top under the surface-averaged flux $F_\mathrm{XUV}/4$, is biased high by construction. |
 | `T_exo_value` | 1000 | K | The prescribed exobase temperature. |
 | `cool_atomic` | `True` | `True`, `False` | Atomic line cooling (H, C, C+, N, N+, O, O+) in the wind thermostat. |
@@ -108,11 +108,11 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 | `cool_o_finestructure` | `True` | `True`, `False` | Atomic O fine-structure cooling at 63 and 147 micron. |
 | `cool_recombination` | `True` | `True`, `False` | Recombination (continuum) cooling. Disabling all four channels at once is rejected. |
 | `fractionate` | `True` | `True`, `False` | Apply the N-species closure on confirmed hydrodynamic verdicts. Otherwise split by reservoir mass fractions. |
-| `tidal` | `True` | `True`, `False` | Apply the Erkaev et al. (2007) [^cite-erkaev2007] tidal factor. It divides the energy-limited rate and the interior-luminosity cap alike, so that when the residual is admitted (`residual_mode`) the two candidates it compares measure one barrier. `False` sets $K_\mathrm{tide} = 1$ in both. |
-| `photon_limit` | `True` | `True`, `False` | Cap the XUV wind at one particle per intercepted ionising photon, the photon-limited rate of Owen & Alvarez (2016) [^cite-owenalvarez2016] Eq. (10), on the energy-limited rate's disk. It binds where the efficiency exceeds `efficiency_photon_limit`, on shallow wells. `False` restores min(EL, RR), which is what most energy-limited codes in the literature compute. |
-| `recombination_limit` | `True` | `True`, `False` | Admit the recombination-limited rate of Murray-Clay et al. (2009) [^cite-murrayclay2009] as a candidate for the XUV wind. `False` leaves min(EL, PL), or the energy-limited rate alone together with `photon_limit = False`. The chain is still evaluated either way, because the sonic-point Knudsen switch reads its sonic density, so the collisionality verdict does not change with this setting. |
-| `nozzle_temperature` | `'photospheric'` | `'photospheric'`, `'wind'` | Which level the L1 nozzle candidate is launched from: the photospheric level at the profile's own temperature (the construction of Jackson et al. 2017 [^cite-jackson2017]) or the wind base at the thermostat's wind temperature and mean mass (the upper envelope their Figure 9 explores). Both settings take the density, temperature, and mean mass from one level, which is what the Bernoulli cancellation behind the launch-level convention requires. The wind setting places the launch level on the wind's own isothermal column, anchored at the wind base with the ideal-gas density there for the wind's temperature and mean mass, rather than carrying a cold density into a hot sound speed. That column is a device for placing the level consistently with the sound speed evaluating the barrier, not a claim about structure below the anchor, which is far hotter than the atmosphere really is there. Where the anchor itself sits is a separate and physical question, and `base_method` moves it: the two are worth keeping apart, because the level convention cancels and the anchor does not. One consequence to watch under the `lopez` default: on an inflated envelope the wind base can sit outside the planet's Roche lobe, measured at 1.29 lobe radii on a 3 Earth-mass, 2.2 Earth-radius H/He case, in which case the exponent is clamped and the candidate reports the lobe-filling boundary value with `nozzle_saturated` raised. The temperature is the model's dominant uncertainty by its authors' own statement, and it also moves the applicability criterion through the sonic radius, so the setting can decide whether the branch competes at all. The spread across the two settings is analysis, not a module output. |
-| `residual_mode` | `'off'` | `'off'`, `'luminosity_capped'` | Whether the bolometric candidate competes for the rate past the boil-off threshold. It is computed and reported on every call either way. `'luminosity_capped'` admits it, capped by the interior luminosity, which is the core-powered rate of Gupta & Schlichting (2019) [^cite-gupta2019] whose persistence Tang et al. (2024) [^cite-tang2024] dispute. Off by default, following Tang et al.. The price is a jump in the dispatched rate at the boil-off threshold, measured on the [escape regimes](../Explanations/regimes.md) page together with the dispute and the band past the gate where the candidate would win. |
+| `tidal` | `True` | `True`, `False` | Apply the Erkaev et al. (2007)[^cite-erkaev2007] tidal factor. It divides the energy-limited rate and the interior-luminosity cap alike, so that when the residual is admitted (`residual_mode`) the two candidates it compares measure one barrier. `False` sets $K_\mathrm{tide} = 1$ in both. |
+| `photon_limit` | `True` | `True`, `False` | Cap the XUV wind at one particle per intercepted ionising photon, the photon-limited rate of Owen & Alvarez (2016)[^cite-owenalvarez2016] Eq. (10), on the energy-limited rate's disk. It binds where the efficiency exceeds `efficiency_photon_limit`, on shallow wells. `False` restores min(EL, RR), which is what most energy-limited codes in the literature compute. |
+| `recombination_limit` | `True` | `True`, `False` | Admit the recombination-limited rate of Murray-Clay et al. (2009)[^cite-murrayclay2009] as a candidate for the XUV wind. `False` leaves min(EL, PL), or the energy-limited rate alone together with `photon_limit = False`. The chain is still evaluated either way, because the sonic-point Knudsen switch reads its sonic density, so the collisionality verdict does not change with this setting. |
+| `nozzle_temperature` | `'photospheric'` | `'photospheric'`, `'wind'` | Which level the L1 nozzle candidate is launched from: the photospheric level at the profile's own temperature (the construction of Jackson et al. 2017[^cite-jackson2017]) or the wind base at the thermostat's wind temperature and mean mass (the upper envelope their Figure 9 explores). Both settings take the density, temperature, and mean mass from one level, which is what the Bernoulli cancellation behind the launch-level convention requires. The wind setting places the launch level on the wind's own isothermal column, anchored at the wind base with the ideal-gas density there for the wind's temperature and mean mass, rather than carrying a cold density into a hot sound speed. That column is a device for placing the level consistently with the sound speed evaluating the barrier, not a claim about structure below the anchor, which is far hotter than the atmosphere really is there. Where the anchor itself sits is a separate and physical question, and `base_method` moves it: the two are worth keeping apart, because the level convention cancels and the anchor does not. One consequence to watch under the `lopez` default: on an inflated envelope the wind base can sit outside the planet's Roche lobe, measured at 1.29 lobe radii on a 3 Earth-mass, 2.2 Earth-radius H/He case, in which case the exponent is clamped and the candidate reports the lobe-filling boundary value with `nozzle_saturated` raised. The temperature is the model's dominant uncertainty by its authors' own statement, and it also moves the applicability criterion through the sonic radius, so the setting can decide whether the branch competes at all. The spread across the two settings is analysis, not a module output. |
+| `residual_mode` | `'off'` | `'off'`, `'luminosity_capped'` | Whether the bolometric candidate competes for the rate past the boil-off threshold. It is computed and reported on every call either way. `'luminosity_capped'` admits it, capped by the interior luminosity, which is the core-powered rate of Gupta & Schlichting (2019)[^cite-gupta2019] whose persistence Tang et al. (2024)[^cite-tang2024] dispute. Off by default, following Tang et al.. The price is a jump in the dispatched rate at the boil-off threshold, measured on the [escape regimes](../Explanations/regimes.md) page together with the dispute and the band past the gate where the candidate would win. |
 | `lambda_crit` | 20.0 | $> 0$ | Boil-off activation threshold on the restricted Jeans parameter (literature band 15 to 35). |
 | `gamma_bates` | 0.75 | $> 0$ | Shape parameter of the Bates temperature profile of the extended upper structure. |
 | `kzz` | 300 | m² s⁻¹ | Eddy diffusion coefficient when the profile carries no `kzz` column. |
@@ -151,7 +151,7 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 
 [^cite-caldiroli2022]: A. Caldiroli, F. Haardt, E. Gallo, R. Spinelli, I. Malsky, E. Rauscher, *[Irradiation-driven escape of primordial planetary atmospheres. II. Evaporation efficiency of sub-Neptunes through hot Jupiters](https://doi.org/10.1051/0004-6361/202142763)*, Astronomy & Astrophysics, 663, A122, 2022. [SciX](https://scixplorer.org/abs/2022A%26A...663A.122C/abstract).
 
-[^cite-erkaev2007]: N. V. Erkaev, Y. N. Kulikov, H. Lammer, F. Selsis, D. Langmayr, G. F. Jaritz, H. K. Biernat, *[Roche lobe effects on the atmospheric loss from “Hot Jupiters”](https://doi.org/10.1051/0004-6361:20066929)*, Astronomy & Astrophysics, 472, 329-334, 2007. [SciX](https://scixplorer.org/abs/2007A%26A...472..329E/abstract).
+[^cite-erkaev2007]: N. V. Erkaev, Yu. N. Kulikov, H. Lammer, F. Selsis, D. Langmayr, G. F. Jaritz, H. K. Biernat, *[Roche lobe effects on the atmospheric loss from “Hot Jupiters”](https://doi.org/10.1051/0004-6361:20066929)*, Astronomy & Astrophysics, 472, 329-334, 2007. [SciX](https://scixplorer.org/abs/2007A%26A...472..329E/abstract).
 
 [^cite-owenalvarez2016]: J. E. Owen, M. A. Alvarez, *[UV Driven Evaporation of Close-in Planets: Energy-limited, Recombination-limited, and Photon-limited Flows](https://doi.org/10.3847/0004-637X/816/1/34)*, The Astrophysical Journal, 816, 34, 2016. [SciX](https://scixplorer.org/abs/2016ApJ...816...34O/abstract).
 

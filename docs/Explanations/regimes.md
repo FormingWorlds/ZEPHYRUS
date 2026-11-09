@@ -24,7 +24,7 @@ Equations are numbered per page, and a reference to another page names the page.
 
 Four levels of the atmosphere recur on every page:
 
-- **The photospheric working level**, at pressure $P_\mathrm{ph}$ (the setting `P_photo`, default 2000 Pa, that is, 20 mbar, the photosphere-type level of Baumeister et al. 2023 [^cite-baumeister2023]). Its radius, temperature, density, and mean molecular mass are interpolated linearly in log pressure on the profile. When the profile does not span $P_\mathrm{ph}$, the nearest end level is used and the flag `photo_clamped` is raised. This one level is the XUV-absorbing radius of the energy-limited and photon-limited rates, the surface the boil-off criterion is evaluated on, the launch level of the boil-off wind, and the default launch level of the L1 transfer. Their published calibrations refer to different surfaces, so sharing one level is a simplification of the model, not a property of the physics.
+- **The photospheric working level**, at pressure $P_\mathrm{ph}$ (the setting `P_photo`, default 2000 Pa, that is, 20 mbar, the photosphere-type level of Baumeister et al. 2023[^cite-baumeister2023]). Its radius, temperature, density, and mean molecular mass are interpolated linearly in log pressure on the profile. When the profile does not span $P_\mathrm{ph}$, the nearest end level is used and the flag `photo_clamped` is raised. This one level is the XUV-absorbing radius of the energy-limited and photon-limited rates, the surface the boil-off criterion is evaluated on, the launch level of the boil-off wind, and the default launch level of the L1 transfer. Their published calibrations refer to different surfaces, so sharing one level is a simplification of the model, not a property of the physics.
 - **The wind base**, radius $R_\mathrm{base}$, where XUV photons deposit their energy and the hydrodynamic wind starts, near a nanobar ([the hydrodynamic wind](regimes/wind.md), Eq. (1)).
 - **The profile top**, the last level the atmosphere model supplies, at pressure $P_\mathrm{top}$ and radius $R_0$. The hydrostatic branch extends the structure upward from it.
 - **The exobase**, radius $R_\mathrm{exo}$, on that extension, where the mean free path reaches the scale height ([hydrostatic escape](regimes/hydrostatic.md), Eq. (2)).
@@ -116,7 +116,7 @@ A close-in planet's potential barrier is lowered by the star's tidal field. Thre
 
 $$R_\mathrm{Hill} \;=\; a\,(1 - e)\left(\frac{M_\mathrm{p}}{3\,M_\star}\right)^{1/3} \tag{1}$$
 
-The barrier is reduced by the factor of Erkaev et al. (2007), their Eq. (17) [^cite-erkaev2007],
+The barrier is reduced by the factor of Erkaev et al. (2007), their Eq. (17)[^cite-erkaev2007],
 
 $$K(\xi) \;=\; 1 - \frac{3}{2\xi} + \frac{1}{2\xi^3} \;=\; \frac{(\xi - 1)^2\,(2\xi + 1)}{2\xi^3}, \qquad \xi = \frac{R_\mathrm{Hill}}{R_\mathrm{p}} \tag{2}$$
 
@@ -203,13 +203,13 @@ Every threshold above carries a stated physical width, and the dispatcher report
 
 - the labels the state would get at the edges of the collisionality band, $\mathrm{Kn}_\mathrm{c} = 0.1$ and 3
 - the boil-off band, $\Lambda_\mathrm{c} = 15$ to 35
-- the transonic energy criterion of Johnson et al. (2013), their Eq. (10) [^cite-johnson2013], comparing the absorbed power $\epsilon \pi R_\mathrm{XUV}^2 F_\mathrm{XUV}$ with the power needed to drive the flow sonic at all
-- the Jeans-parameter triple of Guo (2024) [^cite-guo2024], which translates the verdict into that classification
+- the transonic energy criterion of Johnson et al. (2013), their Eq. (10)[^cite-johnson2013], comparing the absorbed power $\epsilon \pi R_\mathrm{XUV}^2 F_\mathrm{XUV}$ with the power needed to drive the flow sonic at all
+- the Jeans-parameter triple of Guo (2024)[^cite-guo2024], which translates the verdict into that classification
 - both escape temperatures, with the ionisation fraction at the exobase
-- the tidally corrected critical exobase temperature of Erkaev et al. (2007) [^cite-erkaev2007]
-- the fluid condition checked level by level below the sonic radius, after Owen & Jackson (2012) [^cite-owen2012]
-- two checks on the gravitational potential $\Phi_\mathrm{G} = -G M_\mathrm{p}/R_\mathrm{p}$: the efficiency-collapse range of Caldiroli et al. (2022) [^cite-caldiroli2022], and the threshold of Salz et al. (2016) [^cite-salz2016], whose simulations find energy-limited escape valid below $\log_{10}(-\Phi_\mathrm{G}) = 13.11$ (with $\Phi_\mathrm{G}$ in erg g⁻¹) and hydrodynamically stable thermospheres above about 13.6. Their grid is hydrogen-dominated, so on a heavy atmosphere the check is reported as outside its scope rather than applied
-- the boil-off termination timescales of Tang et al. (2024) [^cite-tang2024]
+- the tidally corrected critical exobase temperature of Erkaev et al. (2007)[^cite-erkaev2007]
+- the fluid condition checked level by level below the sonic radius, after Owen & Jackson (2012)[^cite-owen2012]
+- two checks on the gravitational potential $\Phi_\mathrm{G} = -G M_\mathrm{p}/R_\mathrm{p}$: the efficiency-collapse range of Caldiroli et al. (2022)[^cite-caldiroli2022], and the threshold of Salz et al. (2016)[^cite-salz2016], whose simulations find energy-limited escape valid below $\log_{10}(-\Phi_\mathrm{G}) = 13.11$ (with $\Phi_\mathrm{G}$ in erg g⁻¹) and hydrodynamically stable thermospheres above about 13.6. Their grid is hydrogen-dominated, so on a heavy atmosphere the check is reported as outside its scope rather than applied
+- the boil-off termination timescales of Tang et al. (2024)[^cite-tang2024]
 - a self-consistency check: would the dispatched rate have emptied the supplied reservoirs within the supplied age
 - the provenance class of every species' coefficients
 
@@ -221,7 +221,7 @@ All settings and their defaults are in the [parameter reference](../Reference/pa
 
 [^cite-baumeister2023]: P. Baumeister, N. Tosi, C. Brachmann, J. L. Grenfell, L. Noack, *[Redox state and interior structure control on the long-term habitability of stagnant-lid planets](https://doi.org/10.1051/0004-6361/202245791)*, Astronomy & Astrophysics, 675, A122, 2023. [SciX](https://scixplorer.org/abs/2023A%26A...675A.122B/abstract).
 
-[^cite-erkaev2007]: N. V. Erkaev, Y. N. Kulikov, H. Lammer, F. Selsis, D. Langmayr, G. F. Jaritz, H. K. Biernat, *[Roche lobe effects on the atmospheric loss from “Hot Jupiters”](https://doi.org/10.1051/0004-6361:20066929)*, Astronomy & Astrophysics, 472, 329-334, 2007. [SciX](https://scixplorer.org/abs/2007A%26A...472..329E/abstract).
+[^cite-erkaev2007]: N. V. Erkaev, Yu. N. Kulikov, H. Lammer, F. Selsis, D. Langmayr, G. F. Jaritz, H. K. Biernat, *[Roche lobe effects on the atmospheric loss from “Hot Jupiters”](https://doi.org/10.1051/0004-6361:20066929)*, Astronomy & Astrophysics, 472, 329-334, 2007. [SciX](https://scixplorer.org/abs/2007A%26A...472..329E/abstract).
 
 [^cite-johnson2013]: R. E. Johnson, A. N. Volkov, J. T. Erwin, *[Molecular-kinetic Simulations of Escape from the Ex-planet and Exoplanets: Criterion for Transonic Flow](https://doi.org/10.1088/2041-8205/768/1/L4)*, The Astrophysical Journal Letters, 768, L4, 2013. [SciX](https://scixplorer.org/abs/2013ApJ...768L...4J/abstract).
 
