@@ -89,7 +89,7 @@ Numbers measured with this code, on the states named:
 
 [^cite-fossati2017]: L. Fossati, N. V. Erkaev, H. Lammer, P. E. Cubillos, P. Odert, I. Juvan, K. G. Kislyakova, M. Lendl, D. Kubyshkina, S. J. Bauer, *[Aeronomical constraints to the minimum mass and maximum radius of hot low-mass planets](https://doi.org/10.1051/0004-6361/201629716)*, Astronomy & Astrophysics, 598, A90, 2017. [SciX](https://scixplorer.org/abs/2017A%26A...598A..90F/abstract).
 
-[^cite-owenwu2016]: J. E. Owen, Y. Wu, *[Atmospheres of Low-mass Planets: The "Boil-off"](https://doi.org/10.3847/0004-637X/817/2/107)*, The Astrophysical Journal, 817, 107, 2016. [SciX](https://scixplorer.org/abs/2016ApJ...817..107O/abstract).
+[^cite-owenwu2016]: J. E. Owen, Y. Wu, *[Atmospheres of Low-mass Planets: The “Boil-off”](https://doi.org/10.3847/0004-637X/817/2/107)*, The Astrophysical Journal, 817, 107, 2016. [SciX](https://scixplorer.org/abs/2016ApJ...817..107O/abstract).
 
 [^cite-misener2025]: W. Misener, M. Schulik, H. E. Schlichting, J. E. Owen, *[Blowin’ in the Nonisothermal Wind: Core-powered Mass Loss with Hydrodynamic Radiative Transfer](https://doi.org/10.3847/1538-4357/ada777)*, The Astrophysical Journal, 980, 152, 2025. [SciX](https://scixplorer.org/abs/2025ApJ...980..152M/abstract).
 

@@ -131,7 +131,7 @@ To support planetary evolution and accretion calculations where conditions cross
 
 ### Physical caveats
 
-The Roche et al. (2026, Sect. 4.1) scaling law does not account for pre-impact planetary rotation, surface liquid water oceans, thermal evolution, or a core mass fraction other than about 0.3 (Sect. 2.1). All simulations assume H2-He envelopes governed by the Hubbard & MacFarlane 1980[^cite-hubbard1980] equation of state.
+The Roche et al. (2026, Sect. 4.1) scaling law does not account for pre-impact planetary rotation, surface liquid water oceans, thermal evolution, or a core mass fraction other than about 0.3 (Sect. 2.1). All simulations assume H2-He envelopes governed by the Hubbard & MacFarlane (1980)[^cite-hubbard1980] equation of state.
 
 Physical effects operate in both directions:
 
