@@ -8,7 +8,7 @@ XUV photons deposit their energy where the atmosphere first reaches unit optical
 
 $$P_\mathrm{base} \;=\; \frac{\mu_\mathrm{base}\, g_\mathrm{base}}{\sigma_{\nu_0,\mathrm{H}}}, \qquad g_\mathrm{base} = \frac{G M_\mathrm{p}}{R_\mathrm{base}^2} \tag{1}$$
 
-about a nanobar, with $\mu_\mathrm{base}$ the profile's mean molecular mass at that level. The cross section is the hydrogen photoionisation cross section of Murray-Clay et al. (2009) at their representative photon energy $h\nu_0 = 20$ eV[^cite-murrayclay2009], $\sigma_{\nu_0,\mathrm{H}} = 6 \times 10^{-18} (h\nu_0 / 13.6\ \mathrm{eV})^{-3}$ cm², used for every composition. Because $\mu_\mathrm{base}$ and $R_\mathrm{base}$ depend on the level the pressure selects, the base is found by fixed-point iteration on the profile.
+about a nanobar, with $\mu_\mathrm{base}$ the profile's mean molecular mass at that level. The cross section is the hydrogen photoionisation cross section of Murray-Clay et al. (2009)[^cite-murrayclay2009] at their representative photon energy $h\nu_0 = 20$ eV, $\sigma_{\nu_0,\mathrm{H}} = 6 \times 10^{-18} (h\nu_0 / 13.6\ \mathrm{eV})^{-3}$ cm², used for every composition. Because $\mu_\mathrm{base}$ and $R_\mathrm{base}$ depend on the level the pressure selects, the base is found by fixed-point iteration on the profile.
 
 Two settings change the base:
 
@@ -26,7 +26,7 @@ $$\begin{aligned} (1 - f_+)\, n_\mathrm{base}\, \sigma_{\nu_0}\, \frac{F_\mathrm
 **Heating.** The left side is the photoionisation heating rate per unit volume in the monochromatic-front approximation. Each ionisation leaves $h\nu_0 - E_\mathrm{ion}$ in the gas, with $h\nu_0$ the front's photon energy, $E_\mathrm{ion}$ its ionisation potential, and $\sigma_{\nu_0}$ its photoionisation cross section. $f_+$ is the ionisation fraction from local photoionisation-recombination balance, $f_+^2 / (1 - f_+) = \sigma_{\nu_0} (F_\mathrm{XUV}/4) / (h\nu_0\, \alpha_\mathrm{rec}\, n_\mathrm{base})$. The front follows the composition:
 
 - the hydrogen front ($h\nu_0 = 20$ eV, $E_\mathrm{ion} = 13.6$ eV, $\sigma_{\nu_0} = \sigma_{\nu_0,\mathrm{H}}$) when the atomised hydrogen fraction is one half or more,
-- the nitrogen-like front of Chatterjee & Pierrehumbert (2026) ($h\nu_0 = 33.6$ eV, $E_\mathrm{ion} = 14.53$ eV, $\sigma_{\nu_0} = 10^{-17}$ cm²) otherwise[^cite-chatterjee2026].
+- the nitrogen-like front of Chatterjee & Pierrehumbert (2026)[^cite-chatterjee2026] ($h\nu_0 = 33.6$ eV, $E_\mathrm{ion} = 14.53$ eV, $\sigma_{\nu_0} = 10^{-17}$ cm²) otherwise.
 
 **Cooling.** Four terms stand on the right, each with its own setting, and at least one must stay on:
 

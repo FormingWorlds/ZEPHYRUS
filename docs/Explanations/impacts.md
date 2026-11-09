@@ -145,7 +145,7 @@ The returned fraction applies to the target's atmosphere as a whole. The caller 
 
 [^cite-kegerreis2020]: J. A. Kegerreis, V. R. Eke, D. C. Catling, R. J. Massey, L. F. A. Teodoro, K. J. Zahnle, *[Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density](https://doi.org/10.3847/2041-8213/abb5fb)*, The Astrophysical Journal Letters, 901, L31, 2020. [SciX](https://scixplorer.org/abs/2020ApJ...901L..31K/abstract).
 
-[^cite-roche2026]: M. J. Roche, S. J. Lock, P. J. Carter, Z. M. Leinhardt, *[Giant impacts preferentially remove low-mass atmospheres: a generalised scaling law for impact-driven atmospheric loss](https://doi.org/10.48550/arXiv.2610.06077)*, arXiv e-prints, arXiv:2610.06077, 2026. [SciX](https://scixplorer.org/abs/2026arXiv261006077R/abstract). Dataset: [Zenodo](https://doi.org/10.5281/zenodo.23192423).
+[^cite-roche2026]: M. J. Roche, S. J. Lock, P. J. Carter, Z. M. Leinhardt, *[Giant Impacts Preferentially Remove Low-mass Atmospheres: A Generalised Scaling Law for Impact-driven Atmospheric Loss](https://doi.org/10.3847/2041-8213/aeb26a)*, The Astrophysical Journal Letters, 1011, L52, 2026. [SciX](https://scixplorer.org/abs/2026ApJ..1011L..52R/abstract). Dataset: [Zenodo](https://doi.org/10.5281/zenodo.23192423).
 
 [^cite-roche2025]: M. J. Roche, S. J. Lock, J. Dou, P. J. Carter, J. A. Kegerreis, Z. M. Leinhardt, *[Atmospheric Loss during Giant Impacts: Mechanisms and Scaling of Near- and Far-field Loss](https://doi.org/10.3847/PSJ/add929)*, The Planetary Science Journal, 6, 149, 2025. [SciX](https://scixplorer.org/abs/2025PSJ.....6..149R/abstract).
 

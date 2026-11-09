@@ -28,7 +28,7 @@ Each species $i$, of particle mass $m_i$, leaves the exobase with the Jeans effu
 
 $$w_{\mathrm{J},i} \;=\; \sqrt{\frac{k_\mathrm{B} T_\mathrm{exo}}{2\pi m_i}}\,(1 + \lambda_i)\, e^{-\lambda_i}, \qquad \lambda_i = \frac{G M_\mathrm{p}\, m_i}{k_\mathrm{B}\, T_\mathrm{exo}\, R_\mathrm{exo}} \tag{3}$$
 
-where $\lambda_i$ is the species Jeans parameter. Direct simulation Monte Carlo runs find the escape rate above the equilibrium Jeans rate, because collisions above the exobase and a non-Maxwellian distribution there feed the escaping tail: about 1.7 times at $\lambda = 6$, falling to about 1.4 at $\lambda = 15$ (Volkov et al. 2011[^cite-volkovjohnson2011][^cite-volkovtucker2011]). The code interpolates that factor linearly,
+where $\lambda_i$ is the species Jeans parameter. Direct simulation Monte Carlo runs find the escape rate above the equilibrium Jeans rate, because collisions above the exobase and a non-Maxwellian distribution there feed the escaping tail: about 1.7 times at $\lambda = 6$, falling to about 1.4 at $\lambda = 15$ (Volkov et al. 2011a[^cite-volkov2011a], 2011b[^cite-volkov2011b]). The code interpolates that factor linearly,
 
 $$C(\lambda) \;=\; \begin{cases} 1.7, & \lambda \le 6 \\ 1.7 - 0.3\,(\lambda - 6)/9, & 6 < \lambda < 15 \\ 1.4, & \lambda \ge 15 \end{cases} \tag{4}$$
 
@@ -78,8 +78,8 @@ The setting `gate` chooses the neutral (default) or the plasma escape temperatur
 
 [^cite-johnson2013]: R. E. Johnson, A. N. Volkov, J. T. Erwin, *[Molecular-kinetic Simulations of Escape from the Ex-planet and Exoplanets: Criterion for Transonic Flow](https://doi.org/10.1088/2041-8205/768/1/L4)*, The Astrophysical Journal Letters, 768, L4, 2013. [SciX](https://scixplorer.org/abs/2013ApJ...768L...4J/abstract).
 
-[^cite-volkovjohnson2011]: A. N. Volkov, R. E. Johnson, O. J. Tucker, J. T. Erwin, *[Thermally Driven Atmospheric Escape: Transition from Hydrodynamic to Jeans Escape](https://doi.org/10.1088/2041-8205/729/2/l24)*, The Astrophysical Journal Letters, 729, L24, 2011. [SciX](https://scixplorer.org/abs/2011ApJ...729L..24V/abstract).
+[^cite-volkov2011a]: A. N. Volkov, R. E. Johnson, O. J. Tucker, J. T. Erwin, *[Thermally Driven Atmospheric Escape: Transition from Hydrodynamic to Jeans Escape](https://doi.org/10.1088/2041-8205/729/2/l24)*, The Astrophysical Journal Letters, 729, L24, 2011. [SciX](https://scixplorer.org/abs/2011ApJ...729L..24V/abstract).
 
-[^cite-volkovtucker2011]: A. N. Volkov, O. J. Tucker, J. T. Erwin, R. E. Johnson, *[Kinetic simulations of thermal escape from a single component atmosphere](https://doi.org/10.1063/1.3592253)*, Physics of Fluids, 23, 066601, 2011. [SciX](https://scixplorer.org/abs/2011PhFl...23f6601V/abstract).
+[^cite-volkov2011b]: A. N. Volkov, O. J. Tucker, J. T. Erwin, R. E. Johnson, *[Kinetic simulations of thermal escape from a single component atmosphere](https://doi.org/10.1063/1.3592253)*, Physics of Fluids, 23, 066601, 2011. [SciX](https://scixplorer.org/abs/2011PhFl...23f6601V/abstract).
 
 [^cite-chatterjee2026]: R. D. Chatterjee, R. T. Pierrehumbert, *[Novel Physics of Escaping Secondary Atmospheres May Shape the Cosmic Shoreline](https://doi.org/10.3847/1538-4357/ae2ffa)*, The Astrophysical Journal, 998, 236, 2026. [SciX](https://scixplorer.org/abs/2026ApJ...998..236C/abstract).
