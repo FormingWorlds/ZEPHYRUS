@@ -14,12 +14,12 @@ Mass loss happens through two physically distinct channels, and ZEPHYRUS models 
 
 Which physics carries the continuous loss depends on how tightly the atmosphere is bound, how strongly it is irradiated, and how collisional its outer layers are. Applying a prescription outside its regime gives rates that are wrong by orders of magnitude, so the dispatcher decides the regime of each atmospheric state before choosing a rate. Every state receives one of six regime labels:
 
-- `boiloff`: the atmosphere is so loosely bound that it flows out on the planet's own thermal energy, faster than stellar XUV heating could drive it. This is typical of young, hot, hydrogen-rich planets fresh out of the nebula. The rate is the isothermal Parker wind of Owen & Wu (2016) [^owenwu] at the wind temperature of Misener et al. (2025) [^misener], and the state is recognised by the restricted Jeans parameter of Fossati et al. (2017) [^fossati].
-- `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (Watson et al. 1981 [^watson], in the tidally corrected form of Erkaev et al. 2007 [^erkaev]). The energy-limited rate is the smallest of the three hydrodynamic limits here.
-- `hydrodynamic:RR`: the same fluid wind, with the rate held below the energy limit because the absorbed energy goes into ionisation that recombination re-radiates (the recombination-limited rate of Murray-Clay et al. 2009 [^mc09] is the smallest).
-- `hydrodynamic:PL`: the same fluid wind in a well shallow enough that each ionising photon carries more energy than lifting one particle out costs, so the number of photons rather than their energy sets the rate (the photon-limited rate of Owen & Alvarez 2016 [^owenalvarez] is the smallest).
-- `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape, with the kinetic enhancement of Volkov et al. 2011 [^volkovb]), species by species, capped by how fast diffusion resupplies each species (Yelle 2024 [^yelle]). Whether the wind is collisional enough to exist is decided by the Knudsen number at its sonic point, after Chatterjee & Pierrehumbert (2026) [^cp26].
-- `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017 [^jackson17]) is the largest rate and is dispatched, or the flow reaches the planet's Hill sphere and the label replaces that of the regime that produced the rate, which is then a lower limit (the overflow geometries of Owen & Jackson 2012 [^oj12]). `diagnostics['roche']['rate_branch']` says which reading applies.
+- `boiloff`: the atmosphere is so loosely bound that it flows out on the planet's own thermal energy, faster than stellar XUV heating could drive it. This is typical of young, hot, hydrogen-rich planets fresh out of the nebula. The rate is the isothermal Parker wind of Owen & Wu (2016) [^cite-owenwu2016] at the wind temperature of Misener et al. (2025) [^cite-misener2025], and the state is recognised by the restricted Jeans parameter of Fossati et al. (2017) [^cite-fossati2017].
+- `hydrodynamic:EL`: a fluid wind driven by stellar XUV heating, with the rate set by the energy budget (Watson et al. 1981 [^cite-watson1981], in the tidally corrected form of Erkaev et al. 2007 [^cite-erkaev2007]). The energy-limited rate is the smallest of the three hydrodynamic limits here.
+- `hydrodynamic:RR`: the same fluid wind, with the rate held below the energy limit because the absorbed energy goes into ionisation that recombination re-radiates (the recombination-limited rate of Murray-Clay et al. 2009 [^cite-murrayclay2009] is the smallest).
+- `hydrodynamic:PL`: the same fluid wind in a well shallow enough that each ionising photon carries more energy than lifting one particle out costs, so the number of photons rather than their energy sets the rate (the photon-limited rate of Owen & Alvarez 2016 [^cite-owenalvarez2016] is the smallest).
+- `hydrostatic`: the gas is too rarefied to sustain a fluid wind, and escape proceeds particle by particle from the exosphere (Jeans escape, with the kinetic enhancement of Volkov et al. 2011 [^cite-volkovtucker2011]), species by species, capped by how fast diffusion resupplies each species (Yelle 2024 [^cite-yelle2024]). Whether the wind is collisional enough to exist is decided by the Knudsen number at its sonic point, after Chatterjee & Pierrehumbert (2026) [^cite-chatterjee2026].
+- `roche_overflow`: either the tidally driven transfer through the inner Lagrange point (Jackson et al. 2017 [^cite-jackson2017]) is the largest rate and is dispatched, or the flow reaches the planet's Hill sphere and the label replaces that of the regime that produced the rate, which is then a lower limit (the overflow geometries of Owen & Jackson 2012 [^cite-owen2012]). `diagnostics['roche']['rate_branch']` says which reading applies.
 
 The logic reduces to four questions:
 
@@ -52,7 +52,7 @@ The [escape regimes](regimes.md) section walks through every step with its equat
 
 The regime boundaries are not sharp lines in nature. Each threshold carries a physical band: the collisionality threshold spans a factor of 30 across heating geometries, and the boil-off threshold a factor of about two across the literature. Beside every verdict, ZEPHYRUS reports how close the state sat to each boundary and what the label would have been at the edges of the band.
 
-Whichever regime sets the bulk rate, the loss is also split over chemical species. Hydrodynamic winds fractionate: heavy species lag the outflow through diffusive drag and can drop out of it entirely, which the N-species closure of the [fractionation](fractionation.md) page resolves (Attia & Lichtenberg 2026 [^attia]). The other regimes split the rate by reservoir mass fractions, and the hydrostatic regime is natively per-species.
+Whichever regime sets the bulk rate, the loss is also split over chemical species. Hydrodynamic winds fractionate: heavy species lag the outflow through diffusive drag and can drop out of it entirely, which the N-species closure of the [fractionation](fractionation.md) page resolves (Attia & Lichtenberg 2026 [^cite-attia2026]). The other regimes split the rate by reservoir mass fractions, and the hydrostatic regime is natively per-species.
 
 ## The energy-limited entry point
 
@@ -60,7 +60,7 @@ Whichever regime sets the bulk rate, the loss is also split over chemical specie
 
 ## The impact channel
 
-A giant collision removes part of the target's atmosphere in a single event, on a timescale unrelated to the continuous escape. ZEPHYRUS computes the eroded fraction with the scaling law of Kegerreis et al. (2020) [^kegerreis] for thin atmospheres or that of Roche et al. (2026) [^roche2026] for envelopes of 1% to 20% of the planet mass, selected through `zephyrus.collision.impact_loss`. The [giant impacts](impacts.md) page defines both laws and their fitted domains. The impact channel is not part of the continuous regimes: a label is reserved for it, and the caller applies impact erosion as a discrete event.
+A giant collision removes part of the target's atmosphere in a single event, on a timescale unrelated to the continuous escape. ZEPHYRUS computes the eroded fraction with the scaling law of Kegerreis et al. (2020) [^cite-kegerreis2020] for thin atmospheres or that of Roche et al. (2026) [^cite-roche2026] for envelopes of 1% to 20% of the planet mass, selected through `zephyrus.collision.impact_loss`. The [giant impacts](impacts.md) page defines both laws and their fitted domains. The impact channel is not part of the continuous regimes: a label is reserved for it, and the caller applies impact erosion as a discrete event.
 
 ## Reading guide
 
@@ -74,32 +74,32 @@ A giant collision removes part of the target's atmosphere in a single event, on 
 - [Troubleshooting the dispatcher](../How-to/troubleshooting.md): what to look at when a flag fires or a label surprises you.
 - [Parameter reference](../Reference/parameters.md), [dispatch results](../Reference/results.md), and [API reference](../Reference/api/index.md).
 
-[^owenwu]: Owen, J. E., & Wu, Y. (2016). Atmospheres of low-mass planets: the "boil-off". *The Astrophysical Journal, 817*(2), 107.
+[^cite-owenwu2016]: J. E. Owen, Y. Wu, *[Atmospheres of Low-mass Planets: The "Boil-off"](https://doi.org/10.3847/0004-637X/817/2/107)*, The Astrophysical Journal, 817, 107, 2016. [SciX](https://scixplorer.org/abs/2016ApJ...817..107O/abstract).
 
-[^misener]: Misener, W., et al. (2025). Blowin' in the Nonisothermal Wind: Core-powered Mass Loss with Hydrodynamic Radiative Transfer. *The Astrophysical Journal, 980*(1), 152.
+[^cite-misener2025]: W. Misener, M. Schulik, H. E. Schlichting, J. E. Owen, *[Blowin’ in the Nonisothermal Wind: Core-powered Mass Loss with Hydrodynamic Radiative Transfer](https://doi.org/10.3847/1538-4357/ada777)*, The Astrophysical Journal, 980, 152, 2025. [SciX](https://scixplorer.org/abs/2025ApJ...980..152M/abstract).
 
-[^fossati]: Fossati, L., et al. (2017). Aeronomical constraints to the minimum mass and maximum radius of hot low-mass planets. *Astronomy & Astrophysics, 598*, A90.
+[^cite-fossati2017]: L. Fossati, N. V. Erkaev, H. Lammer, P. E. Cubillos, P. Odert, I. Juvan, K. G. Kislyakova, M. Lendl, D. Kubyshkina, S. J. Bauer, *[Aeronomical constraints to the minimum mass and maximum radius of hot low-mass planets](https://doi.org/10.1051/0004-6361/201629716)*, Astronomy & Astrophysics, 598, A90, 2017. [SciX](https://scixplorer.org/abs/2017A%26A...598A..90F/abstract).
 
-[^watson]: Watson, A. J., Donahue, T. M., & Walker, J. C. G. (1981). The dynamics of a rapidly escaping atmosphere: applications to the evolution of Earth and Venus. *Icarus, 48*(2), 150–166. https://doi.org/10.1016/0019-1035(81)90101-9
+[^cite-watson1981]: A. J. Watson, T. M. Donahue, J. C. G. Walker, *[The dynamics of a rapidly escaping atmosphere: Applications to the evolution of Earth and Venus](https://doi.org/10.1016/0019-1035(81)90101-9)*, Icarus, 48, 150-166, 1981. [SciX](https://scixplorer.org/abs/1981Icar...48..150W/abstract).
 
-[^erkaev]: Erkaev, N. V., Kulikov, Y. N., Lammer, H., et al. (2007). Roche lobe effects on the atmospheric loss from "Hot Jupiters". *Astronomy & Astrophysics, 472*(1), 329–334. https://doi.org/10.1051/0004-6361:20066929
+[^cite-erkaev2007]: N. V. Erkaev, Y. N. Kulikov, H. Lammer, F. Selsis, D. Langmayr, G. F. Jaritz, H. K. Biernat, *[Roche lobe effects on the atmospheric loss from “Hot Jupiters”](https://doi.org/10.1051/0004-6361:20066929)*, Astronomy & Astrophysics, 472, 329-334, 2007. [SciX](https://scixplorer.org/abs/2007A%26A...472..329E/abstract).
 
-[^mc09]: Murray-Clay, R. A., Chiang, E. I., & Murray, N. (2009). Atmospheric Escape From Hot Jupiters. *The Astrophysical Journal, 693*(1), 23–42. https://doi.org/10.1088/0004-637X/693/1/23
+[^cite-murrayclay2009]: R. A. Murray-Clay, E. I. Chiang, N. Murray, *[Atmospheric Escape From Hot Jupiters](https://doi.org/10.1088/0004-637X/693/1/23)*, The Astrophysical Journal, 693, 23-42, 2009. [SciX](https://scixplorer.org/abs/2009ApJ...693...23M/abstract).
 
-[^owenalvarez]: Owen, J. E., & Alvarez, M. A. (2016). UV Driven Evaporation of Close-in Planets: Energy-limited, Recombination-limited, and Photon-limited Flows. *The Astrophysical Journal, 816*(1), 34. https://doi.org/10.3847/0004-637X/816/1/34
+[^cite-owenalvarez2016]: J. E. Owen, M. A. Alvarez, *[UV Driven Evaporation of Close-in Planets: Energy-limited, Recombination-limited, and Photon-limited Flows](https://doi.org/10.3847/0004-637X/816/1/34)*, The Astrophysical Journal, 816, 34, 2016. [SciX](https://scixplorer.org/abs/2016ApJ...816...34O/abstract).
 
-[^volkovb]: Volkov, A. N., Tucker, O. J., Erwin, J. T., & Johnson, R. E. (2011). Kinetic simulations of thermal escape from a single component atmosphere. *Physics of Fluids, 23*(6), 066601. https://doi.org/10.1063/1.3592253
+[^cite-volkovtucker2011]: A. N. Volkov, O. J. Tucker, J. T. Erwin, R. E. Johnson, *[Kinetic simulations of thermal escape from a single component atmosphere](https://doi.org/10.1063/1.3592253)*, Physics of Fluids, 23, 066601, 2011. [SciX](https://scixplorer.org/abs/2011PhFl...23f6601V/abstract).
 
-[^yelle]: Yelle, R. V. (2024). Diffusion limited escape of hydrogen from Mars. *Icarus, 416*, 116099.
+[^cite-yelle2024]: R. V. Yelle, *[Diffusion limited escape of hydrogen from Mars](https://doi.org/10.1016/j.icarus.2024.116099)*, Icarus, 416, 116099, 2024. [SciX](https://scixplorer.org/abs/2024Icar..41616099Y/abstract).
 
-[^cp26]: Chatterjee, R. D., & Pierrehumbert, R. T. (2026). Novel Physics of Escaping Secondary Atmospheres May Shape the Cosmic Shoreline. *The Astrophysical Journal, 998*(2), 236. https://doi.org/10.3847/1538-4357/ae2ffa
+[^cite-chatterjee2026]: R. D. Chatterjee, R. T. Pierrehumbert, *[Novel Physics of Escaping Secondary Atmospheres May Shape the Cosmic Shoreline](https://doi.org/10.3847/1538-4357/ae2ffa)*, The Astrophysical Journal, 998, 236, 2026. [SciX](https://scixplorer.org/abs/2026ApJ...998..236C/abstract).
 
-[^jackson17]: Jackson, B., Arras, P., Penev, K., Peacock, S., & Marchant, P. (2017). A new model of Roche lobe overflow for short-period gaseous planets and binary stars. *The Astrophysical Journal, 835*(2), 145. https://doi.org/10.3847/1538-4357/835/2/145
+[^cite-jackson2017]: B. Jackson, P. Arras, K. Penev, S. Peacock, P. Marchant, *[A New Model of Roche Lobe Overflow for Short-period Gaseous Planets and Binary Stars](https://doi.org/10.3847/1538-4357/835/2/145)*, The Astrophysical Journal, 835, 145, 2017. [SciX](https://scixplorer.org/abs/2017ApJ...835..145J/abstract).
 
-[^oj12]: Owen, J. E., & Jackson, A. P. (2012). Planetary evaporation by UV and X-ray radiation: basic hydrodynamics. *Monthly Notices of the Royal Astronomical Society, 425*(4), 2931. https://doi.org/10.1111/j.1365-2966.2012.21481.x
+[^cite-owen2012]: J. E. Owen, A. P. Jackson, *[Planetary evaporation by UV & X-ray radiation: basic hydrodynamics](https://doi.org/10.1111/j.1365-2966.2012.21481.x)*, Monthly Notices of the Royal Astronomical Society, 425, 2931-2947, 2012. [SciX](https://scixplorer.org/abs/2012MNRAS.425.2931O/abstract).
 
-[^attia]: Attia, M., & Lichtenberg, T. (2026). Atmospheric escape fractionates secondary but not primary atmospheres. *arXiv e-prints*, arXiv:2608.30106. https://doi.org/10.48550/arXiv.2608.30106
+[^cite-attia2026]: M. Attia, T. Lichtenberg, *[Atmospheric escape fractionates secondary but not primary atmospheres](https://doi.org/10.48550/arXiv.2608.30106)*, arXiv e-prints, arXiv:2608.30106, 2026. [SciX](https://scixplorer.org/abs/2026arXiv260830106A/abstract).
 
-[^kegerreis]: Kegerreis, J. A., Eke, V. R., Catling, D. C., Massey, R. J., Teodoro, L. F. A., & Zahnle, K. J. (2020). Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density. *The Astrophysical Journal Letters, 901*(2), L31. https://doi.org/10.3847/2041-8213/abb5fb
+[^cite-kegerreis2020]: J. A. Kegerreis, V. R. Eke, D. C. Catling, R. J. Massey, L. F. A. Teodoro, K. J. Zahnle, *[Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density](https://doi.org/10.3847/2041-8213/abb5fb)*, The Astrophysical Journal Letters, 901, L31, 2020. [SciX](https://scixplorer.org/abs/2020ApJ...901L..31K/abstract).
 
-[^roche2026]: Roche, M. J., Lock, S. J., Carter, P. J., & Leinhardt, Z. M. (2026). Giant impacts preferentially remove low-mass atmospheres: a generalised scaling law for impact-driven atmospheric loss. *The Astrophysical Journal Letters* (accepted), arXiv:2610.06077. https://doi.org/10.48550/arXiv.2610.06077. Dataset: Zenodo, https://doi.org/10.5281/zenodo.23192423.
+[^cite-roche2026]: M. J. Roche, S. J. Lock, P. J. Carter, Z. M. Leinhardt, *[Giant impacts preferentially remove low-mass atmospheres: a generalised scaling law for impact-driven atmospheric loss](https://doi.org/10.48550/arXiv.2610.06077)*, arXiv e-prints, arXiv:2610.06077, 2026. [SciX](https://scixplorer.org/abs/2026arXiv261006077R/abstract). Dataset: [Zenodo](https://doi.org/10.5281/zenodo.23192423).
