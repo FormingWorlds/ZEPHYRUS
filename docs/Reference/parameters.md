@@ -46,17 +46,17 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `Re` | $R_\oplus$ | $6.378 \times 10^{6}$ | m |
 | `Me` | $M_\oplus$ | $5.9722 \times 10^{24}$ | kg |
 | `Me_atm` | none | $5.15 \times 10^{18}$ | kg |
-| `Fxuv_earth_10Myr` | $F_\mathrm{XUV,\oplus}(10\,\mathrm{Myr})$ | $0.626$ | W m⁻² |
+| `Fxuv_earth_10Myr` | $F_\mathrm{XUV,\oplus}(10\,\mathrm{Myr})$ | $0.628$ | W m⁻² |
 | `Fxuv_earth_today` | $F_\mathrm{XUV,\oplus}$ | $4.64 \times 10^{-3}$ | W m⁻² |
 | `age_earth` | none | $4.543 \times 10^{9}$ | yr |
 | `e_earth` | none | $0.017$ | dimensionless |
 | `a_earth` | none | $1$ | au |
 
-`Fxuv_earth_10Myr` is the flux of X-ray and extreme ultraviolet light (XUV) that the Sun delivers at 1 au when it is 10 Myr old. It is the Sun track of XUV model A in Wordsworth et al. (2018)[^cite-wordsworth2018] (Sect. 3.3, Fig. 9). In that model the XUV luminosity is $10^{-3}$ times the bolometric luminosity $L_\mathrm{bol}$, the power the star emits at all wavelengths, until the saturation time of 50 Myr for the Sun. The flux at distance $a$ is therefore
+`Fxuv_earth_10Myr` is the upper-limit flux of X-ray and extreme ultraviolet light (XUV) of model A in Wordsworth et al. (2018)[^cite-wordsworth2018] (Sect. 3.3), at 1 au and a stellar age of 10 Myr. In that model the XUV luminosity is $10^{-3}$ times the bolometric luminosity $L_\mathrm{bol}$, the power the star emits at all wavelengths, until the saturation time of 50 Myr for the Sun. Their Fig. 9 shows the Sun track of this model. The distance of 1 au and the 1 $M_\odot$ track of Baraffe et al. (2015)[^cite-baraffe2015] for $L_\mathrm{bol}$ are the choices of this constant, evaluated with the formula of the paper:
 
 $$F_\mathrm{XUV} = \frac{10^{-3} L_\mathrm{bol}}{4 \pi a^2}, \qquad a = 1\,\mathrm{au}.$$
 
-At 10 Myr, $L_\mathrm{bol} = 10^{-0.337} L_\odot$, the value of the 1 $M_\odot$ track of Baraffe et al. (2015)[^cite-baraffe2015] at that age. With $L_\odot$ and the au of the tables above, this gives 0.6265 W m⁻², stored as 0.626. The luminosity table gives $\log L_\mathrm{bol}$ to 0.001 dex, so the third figure of the flux is uncertain by about 0.1%.
+At 10 Myr the track gives $\log (L_\mathrm{bol}/L_\odot) = -0.337$, with the solar luminosity of the Baraffe et al. tables, $L_\odot = 3.839 \times 10^{26}$ W. This gives 0.6283 W m⁻², and 0.628 is its rounding. The table gives $\log L_\mathrm{bol}$ to 0.001 dex, so the flux is uncertain by about 0.12%.
 
 ### Jupiter
 

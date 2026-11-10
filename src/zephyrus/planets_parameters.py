@@ -17,9 +17,9 @@ Re                = 6.378e6            # Earth radius                          [
 Me                = 5.9722e24          # Earth mass                            [kg]
 
 Me_atm            = 5.15e18            # Mass of the Earth atmopshere          [kg]
-# Fxuv at 1 au and t = 10 Myr: 1e-3 L_bol / (4 pi au^2), Sun track of XUV model A (Wordsworth+18 Fig 9),
-# L_bol = 10^-0.337 Ls from the 1 Msun track of Baraffe+15
-Fxuv_earth_10Myr  = 0.626              # Fxuv received on Earth at t = 10 Myr  [W m-2]
+# Upper-limit XUV model A of Wordsworth+18 (Fig 9): 1e-3 L_bol / (4 pi au^2) at 1 au and t = 10 Myr,
+# L_bol = 10^-0.337 L_sun from the 1 Msun track of Baraffe+15, with its L_sun = 3.839e26 W
+Fxuv_earth_10Myr  = 0.628              # Upper-limit XUV flux at 1 au, t = 10 Myr [W m-2]
 Fxuv_earth_today  = 4.64e-3            # Stellar flux received on Earth today  [W m-2]
 age_earth         = 4.543e9            # Age of the Earth                      [yr]
 e_earth           = 0.017              # Earth eccentricity                    [dimensionless]
