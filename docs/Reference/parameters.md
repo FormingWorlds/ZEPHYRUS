@@ -46,13 +46,17 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `Re` | $R_\oplus$ | $6.378 \times 10^{6}$ | m |
 | `Me` | $M_\oplus$ | $5.9722 \times 10^{24}$ | kg |
 | `Me_atm` | none | $5.15 \times 10^{18}$ | kg |
-| `Fxuv_earth_10Myr` | $F_\mathrm{XUV,\oplus}(10\,\mathrm{Myr})$ | $14.67$ | W m⁻² |
+| `Fxuv_earth_10Myr` | $F_\mathrm{XUV,\oplus}(10\,\mathrm{Myr})$ | $0.628$ | W m⁻² |
 | `Fxuv_earth_today` | $F_\mathrm{XUV,\oplus}$ | $4.64 \times 10^{-3}$ | W m⁻² |
 | `age_earth` | none | $4.543 \times 10^{9}$ | yr |
 | `e_earth` | none | $0.017$ | dimensionless |
 | `a_earth` | none | $1$ | au |
 
-`Fxuv_earth_10Myr` is taken from Fig. 9 of Wordsworth et al. (2018)[^cite-wordsworth2018].
+`Fxuv_earth_10Myr` is the upper-limit flux of X-ray and extreme ultraviolet light (XUV) of model A in Wordsworth et al. (2018)[^cite-wordsworth2018] (Sect. 3.3), at 1 au and a stellar age of 10 Myr. In that model the XUV luminosity is $10^{-3}$ times the bolometric luminosity $L_\mathrm{bol}$, the power the star emits at all wavelengths, until the saturation time of 50 Myr for the Sun. Their Fig. 9 shows the Sun track of this model. The distance of 1 au and the 1 $M_\odot$ track of Baraffe et al. (2015)[^cite-baraffe2015] for $L_\mathrm{bol}$ are the choices of this constant, evaluated with the formula of the paper:
+
+$$F_\mathrm{XUV} = \frac{10^{-3} L_\mathrm{bol}}{4 \pi a^2}, \qquad a = 1\,\mathrm{au}.$$
+
+At 10 Myr the track gives $\log (L_\mathrm{bol}/L_\odot) = -0.337$, with the solar luminosity of the Baraffe et al. tables, $L_\odot = 3.839 \times 10^{26}$ W. This gives 0.6283 W m⁻², and 0.628 is its rounding. The table gives $\log L_\mathrm{bol}$ to 0.001 dex, so the flux is uncertain by about 0.12%.
 
 ### Jupiter
 
@@ -138,6 +142,8 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 | `dt` | s | Optional, carried for the caller's supply cap, never used by the dispatcher itself. |
 
 [^cite-wordsworth2018]: R. D. Wordsworth, L. K. Schaefer, R. A. Fischer, *[Redox Evolution via Gravitational Differentiation on Low-mass Planets: Implications for Abiotic Oxygen, Water Loss, and Habitability](https://doi.org/10.3847/1538-3881/aab608)*, The Astronomical Journal, 155, 195, 2018. [SciX](https://scixplorer.org/abs/2018AJ....155..195W/abstract).
+
+[^cite-baraffe2015]: I. Baraffe, D. Homeier, F. Allard, G. Chabrier, *[New evolutionary models for pre-main sequence and main sequence low-mass stars down to the hydrogen-burning limit](https://doi.org/10.1051/0004-6361/201425481)*, Astronomy & Astrophysics, 577, A42, 2015. [SciX](https://scixplorer.org/abs/2015A%26A...577A..42B/abstract).
 
 [^cite-prsa2016]: A. Prša, P. Harmanec, G. Torres, E. Mamajek, M. Asplund, N. Capitaine, J. Christensen-Dalsgaard, É. Depagne, M. Haberreiter, S. Hekker, J. Hilton, G. Kopp, V. Kostov, D. W. Kurtz, J. Laskar, B. D. Mason, E. F. Milone, M. Montgomery, M. Richards, W. Schmutz, J. Schou, S. G. Stewart, *[Nominal Values for Selected Solar and Planetary Quantities: IAU 2015 Resolution B3](https://doi.org/10.3847/0004-6256/152/2/41)*, The Astronomical Journal, 152, 41, 2016. [SciX](https://scixplorer.org/abs/2016AJ....152...41P/abstract).
 
