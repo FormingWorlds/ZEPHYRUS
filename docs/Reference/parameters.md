@@ -46,13 +46,17 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 | `Re` | $R_\oplus$ | $6.378 \times 10^{6}$ | m |
 | `Me` | $M_\oplus$ | $5.9722 \times 10^{24}$ | kg |
 | `Me_atm` | none | $5.15 \times 10^{18}$ | kg |
-| `Fxuv_earth_10Myr` | $F_\mathrm{XUV,\oplus}(10\,\mathrm{Myr})$ | $0.627$ | W m⁻² |
+| `Fxuv_earth_10Myr` | $F_\mathrm{XUV,\oplus}(10\,\mathrm{Myr})$ | $0.626$ | W m⁻² |
 | `Fxuv_earth_today` | $F_\mathrm{XUV,\oplus}$ | $4.64 \times 10^{-3}$ | W m⁻² |
 | `age_earth` | none | $4.543 \times 10^{9}$ | yr |
 | `e_earth` | none | $0.017$ | dimensionless |
 | `a_earth` | none | $1$ | au |
 
-`Fxuv_earth_10Myr` is the XUV flux at 1 au and 10 Myr on the Sun track of XUV model A of Wordsworth et al. (2018)[^cite-wordsworth2018] (Sect. 3.3, Fig. 9): $F_\mathrm{XUV} = 10^{-3} L_\mathrm{bol} / (4 \pi a^2)$ with $a = 1$ au and $L_\mathrm{bol} = 10^{-0.337} L_\odot$, the value of the 1 $M_\odot$ track of Baraffe et al. (2015)[^cite-baraffe2015] at 10 Myr.
+`Fxuv_earth_10Myr` is the flux of X-ray and extreme ultraviolet light (XUV) that the Sun delivers at 1 au when it is 10 Myr old. It is the Sun track of XUV model A in Wordsworth et al. (2018)[^cite-wordsworth2018] (Sect. 3.3, Fig. 9). In that model the XUV luminosity is $10^{-3}$ times the bolometric luminosity $L_\mathrm{bol}$, the power the star emits at all wavelengths, until the saturation time of 50 Myr for the Sun. The flux at distance $a$ is therefore
+
+$$F_\mathrm{XUV} = \frac{10^{-3} L_\mathrm{bol}}{4 \pi a^2}, \qquad a = 1\,\mathrm{au}.$$
+
+At 10 Myr, $L_\mathrm{bol} = 10^{-0.337} L_\odot$, the value of the 1 $M_\odot$ track of Baraffe et al. (2015)[^cite-baraffe2015] at that age. The table gives the flux at 3 significant figures.
 
 ### Jupiter
 
