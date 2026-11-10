@@ -41,7 +41,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 EPSILON = 0.15
 RP = Re
 RXUV = 1.2 * Re
-FXUV = 14.67  # W m-2, Earth at 10 Myr (Wordsworth et al. 2018, Fig 9)
+FXUV = 14.67  # W m-2, a formula input of the hand-evaluated pins
 
 
 @pytest.mark.reference_pinned
