@@ -9,7 +9,7 @@ A planet close to its star sits inside a Roche lobe, the region where its own gr
 
 ## The transfer through L1
 
-The rate is that of Jackson et al. (2017) [^jackson17], in the mass-transfer tradition of Ritter (1988) [^ritter], rebuilt to hold at planetary mass ratios. In their reading, Roche-lobe overflow and evaporative escape are one unbound hydrodynamic outflow seen at two separations, distinguished by whether the photosphere nearly coincides with the lobe.
+The rate is that of Jackson et al. (2017)[^cite-jackson2017], in the mass-transfer tradition of Ritter (1988)[^cite-ritter1988], rebuilt to hold at planetary mass ratios. In their reading, Roche-lobe overflow and evaporative escape are one unbound hydrodynamic outflow seen at two separations, distinguished by whether the photosphere nearly coincides with the lobe.
 
 **The launch level.** The flow is isothermal at the launch level's temperature $T_\mathrm{launch}$ and mean particle mass $\mu_\mathrm{launch}$. The setting `nozzle_temperature` chooses the level:
 
@@ -20,7 +20,7 @@ The rate is that of Jackson et al. (2017) [^jackson17], in the mass-transfer tra
 
 $$v_\mathrm{th} = \sqrt{\frac{k_\mathrm{B} T_\mathrm{launch}}{\mu_\mathrm{launch}}}, \qquad \Omega^2 = \frac{G (M_\mathrm{p} + M_\star)}{d^3}, \qquad A(q) = 4 + \frac{b_1}{b_2 + q^{1/3} + q^{-1/3}} \tag{1}$$
 
-where $v_\mathrm{th}$ is the isothermal sound speed, $\Omega$ the orbital frequency, and $A$ the dimensionless curvature of the potential at L1 in the fit of their Eq. (10), with $b_1 = 2 \cdot 3^{2/3}$ and $b_2 = b_1/4 - 2$, accurate to 0.3% for all mass ratios. The lobe is the Eggleton (1983) volume-equivalent radius as printed in their Section 2.1 [^eggleton],
+where $v_\mathrm{th}$ is the isothermal sound speed, $\Omega$ the orbital frequency, and $A$ the dimensionless curvature of the potential at L1 in the fit of their Eq. (10), with $b_1 = 2 \cdot 3^{2/3}$ and $b_2 = b_1/4 - 2$, accurate to 0.3% for all mass ratios. The lobe is the Eggleton (1983) volume-equivalent radius as printed in their Section 2.1[^cite-eggleton1983],
 
 $$R_\mathrm{lobe} \;=\; d\, \frac{0.49\, q^{2/3}}{0.6\, q^{2/3} + \ln(1 + q^{1/3})} \tag{2}$$
 
@@ -76,7 +76,7 @@ A state with $\xi_\mathrm{flow} \le 1$, or with $\xi \le 1$ for the planet itsel
 
 **The rate stands.** The screen renames a state and never changes its rate. The radius it tests belongs to the branch that won the rate comparison, so both sides of the screen's boundary hold the same branch. Reporting that branch's own rate keeps the dispatched rate continuous across the boundary, while substituting another branch's formula would make it jump by orders of magnitude at a line the physics puts nowhere in particular. When the screen renames a bound branch, the label means that the flow reaches the lobe, and the rate beside it is the bound-flow estimate, a lower limit on what tides would do.
 
-**Which geometry fired.** Owen & Jackson (2012) separate two overflow geometries [^oj12], and the subflag `roche_subflag` says which one applies:
+**Which geometry fired.** Owen & Jackson (2012) separate two overflow geometries[^cite-owen2012], and the subflag `roche_subflag` says which one applies:
 
 - `dynamical`: the atmosphere itself reaches its Roche lobe, or the planet fills its Hill sphere. The outer extent of the atmosphere, the larger of the profile-top radius and $R_\mathrm{exo}$, is reported as `r_atmosphere` in `diagnostics['roche']` and compared with the periapsis lobe radius of Eq. (2), `r_lobe` in `diagnostics['nozzle']`. This takes precedence whichever candidate carries the rate.
 - `no_transonic`: the atmosphere sits inside its lobe, but its sonic surface would have to sit outside it, so no transonic solution exists. Owen & Jackson describe this as a narrow band and suggest a subsonic wind out to the lobe.
@@ -94,10 +94,10 @@ Numbers measured with this code, on the states named:
 - The fluid condition of Eq. (6) is a criterion boundary. On an 8 Earth-mass, 3 Earth-radius hydrogen envelope at $F_\mathrm{XUV} = 10^{-4}$ W m⁻², at 1000 K, the dispatched rate drops by a factor of 45 where it fails, at 0.0526 au, to the hydrostatic rate. The sonic-point Knudsen number there is 1.015, so the state sits on a second criterion boundary as well, and a wind just inside the collisionality threshold would have made the drop a factor of 113.
 - Under `nozzle_temperature = 'wind'`, the rate holds to 0.5% across a factor of four in launch radius along the wind's isothermal column, and moves by a factor of eleven along the profile's colder one. On a mildly inverted profile, the rate varies by a factor of 2.4 across three decades of launch level, against 1.14 on an isothermal one.
 
-[^jackson17]: Jackson, B., Arras, P., Penev, K., Peacock, S., & Marchant, P. (2017). A new model of Roche lobe overflow for short-period gaseous planets and binary stars. *The Astrophysical Journal, 835*(2), 145. https://doi.org/10.3847/1538-4357/835/2/145
+[^cite-jackson2017]: B. Jackson, P. Arras, K. Penev, S. Peacock, P. Marchant, *[A New Model of Roche Lobe Overflow for Short-period Gaseous Planets and Binary Stars](https://doi.org/10.3847/1538-4357/835/2/145)*, The Astrophysical Journal, 835, 145, 2017. [SciX](https://scixplorer.org/abs/2017ApJ...835..145J/abstract).
 
-[^ritter]: Ritter, H. (1988). Turning on and off mass transfer in cataclysmic binaries. *Astronomy & Astrophysics, 202*, 93.
+[^cite-ritter1988]: H. Ritter, *Turning on and off mass transfer in cataclysmic binaries*, Astronomy & Astrophysics, 202, 93-100, 1988. [SciX](https://scixplorer.org/abs/1988A%26A...202...93R/abstract).
 
-[^eggleton]: Eggleton, P. P. (1983). Approximations to the radii of Roche lobes. *The Astrophysical Journal, 268*, 368. https://doi.org/10.1086/160960
+[^cite-eggleton1983]: P. P. Eggleton, *[Approximations to the radii of Roche lobes](https://doi.org/10.1086/160960)*, The Astrophysical Journal, 268, 368, 1983. [SciX](https://scixplorer.org/abs/1983ApJ...268..368E/abstract).
 
-[^oj12]: Owen, J. E., & Jackson, A. P. (2012). Planetary evaporation by UV and X-ray radiation: basic hydrodynamics. *Monthly Notices of the Royal Astronomical Society, 425*(4), 2931. https://doi.org/10.1111/j.1365-2966.2012.21481.x
+[^cite-owen2012]: J. E. Owen, A. P. Jackson, *[Planetary evaporation by UV & X-ray radiation: basic hydrodynamics](https://doi.org/10.1111/j.1365-2966.2012.21481.x)*, Monthly Notices of the Royal Astronomical Society, 425, 2931-2947, 2012. [SciX](https://scixplorer.org/abs/2012MNRAS.425.2931O/abstract).

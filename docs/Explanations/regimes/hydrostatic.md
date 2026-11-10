@@ -4,7 +4,7 @@ Where the gas is too rarefied for a wind, escape proceeds particle by particle f
 
 ## The upper structure
 
-The atmosphere profile usually stops well below the exobase, so the branch builds an extended upper structure above the profile top, with composition and mean molecular mass $\mu_0$ frozen at their values there. The temperature follows the Bates profile in the form Yelle (2024) uses, their Eq. (19) [^yelle], and the radius follows from hydrostatic balance, both in the log-pressure coordinate $\zeta = \ln(P_\mathrm{top}/P)$:
+The atmosphere profile usually stops well below the exobase, so the branch builds an extended upper structure above the profile top, with composition and mean molecular mass $\mu_0$ frozen at their values there. The temperature follows the Bates profile in the form Yelle (2024) uses, their Eq. (19)[^cite-yelle2024], and the radius follows from hydrostatic balance, both in the log-pressure coordinate $\zeta = \ln(P_\mathrm{top}/P)$:
 
 $$T(\zeta) \;=\; T_\infty - \left(T_\infty - T_\mathrm{top}\right) e^{-\gamma_\mathrm{B} \zeta}, \qquad \frac{\mathrm{d}r}{\mathrm{d}\zeta} = \frac{k_\mathrm{B}\, T\, r^2}{G M_\mathrm{p}\, \mu_0}, \qquad n = \frac{P_\mathrm{top}\, e^{-\zeta}}{k_\mathrm{B} T} \tag{1}$$
 
@@ -18,17 +18,17 @@ $$\frac{1}{\sqrt{2}\,\sigma_\mathrm{C}\, n} \;\ge\; \frac{k_\mathrm{B}\, T\, r^2
 
 with $\sigma_\mathrm{C}$ the mixture cross section of [the collisionality switch](collisionality.md), taken over the species at the profile top at the local temperature. This defines $R_\mathrm{exo}$, $n_\mathrm{exo}$, and $T_\mathrm{exo} = T(R_\mathrm{exo})$.
 
-The extension is a requirement, not a refinement. The Jeans parameter at the true exobase can differ from its photospheric value by an order of magnitude, and evaluating the escape on photospheric values biases rates toward false retention by up to three orders of magnitude (Johnson et al. 2013 [^johnson]).
+The extension is a requirement, not a refinement. The Jeans parameter at the true exobase can differ from its photospheric value by an order of magnitude, and evaluating the escape on photospheric values biases rates toward false retention by up to three orders of magnitude (Johnson et al. 2013[^cite-johnson2013]).
 
 **The exospheric temperature.** $T_\infty$ is prescribed, and it is the branch's dominant sensitivity, because the rate depends on it exponentially. A value below $T_\mathrm{top}$ would build a thermosphere that cools with height, whose exobase is more strongly bound than its anchor, so it is raised to $T_\mathrm{top}$ and flagged. An optional estimator (`T_exo_mode = 'thermostat'`) solves the heating and cooling balance of the [wind temperature](wind.md#the-wind-temperature) at the profile top instead. A local balance without conduction is biased high by construction, so it is not the default.
 
 ## Jeans effusion
 
-Each species $i$, of particle mass $m_i$, leaves the exobase with the Jeans effusion velocity of Yelle (2024), their Eqs. (20) and (21) [^yelle],
+Each species $i$, of particle mass $m_i$, leaves the exobase with the Jeans effusion velocity of Yelle (2024), their Eqs. (20) and (21)[^cite-yelle2024],
 
 $$w_{\mathrm{J},i} \;=\; \sqrt{\frac{k_\mathrm{B} T_\mathrm{exo}}{2\pi m_i}}\,(1 + \lambda_i)\, e^{-\lambda_i}, \qquad \lambda_i = \frac{G M_\mathrm{p}\, m_i}{k_\mathrm{B}\, T_\mathrm{exo}\, R_\mathrm{exo}} \tag{3}$$
 
-where $\lambda_i$ is the species Jeans parameter. Direct simulation Monte Carlo runs find the escape rate above the equilibrium Jeans rate, because collisions above the exobase and a non-Maxwellian distribution there feed the escaping tail: about 1.7 times at $\lambda = 6$, falling to about 1.4 at $\lambda = 15$ (Volkov et al. 2011 [^volkova][^volkovb]). The code interpolates that factor linearly,
+where $\lambda_i$ is the species Jeans parameter. Direct simulation Monte Carlo runs find the escape rate above the equilibrium Jeans rate, because collisions above the exobase and a non-Maxwellian distribution there feed the escaping tail: about 1.7 times at $\lambda = 6$, falling to about 1.4 at $\lambda = 15$ (Volkov et al. 2011a[^cite-volkov2011a], 2011b[^cite-volkov2011b]). The code interpolates that factor linearly,
 
 $$C(\lambda) \;=\; \begin{cases} 1.7, & \lambda \le 6 \\ 1.7 - 0.3\,(\lambda - 6)/9, & 6 < \lambda < 15 \\ 1.4, & \lambda \ge 15 \end{cases} \tag{4}$$
 
@@ -52,7 +52,7 @@ The exobase is located by root finding on the closed-form structure, so it does 
 
 ## The combined rate
 
-The two bottlenecks combine by the harmonic mean of Yelle (2024), their Eq. (14) [^yelle], which lies below both and tends to the smaller:
+The two bottlenecks combine by the harmonic mean of Yelle (2024), their Eq. (14)[^cite-yelle2024], which lies below both and tends to the smaller:
 
 $$\Phi_i \;=\; \frac{\tilde{\Phi}_{\mathrm{J},i}\; \Phi_{\mathrm{l},i}}{\tilde{\Phi}_{\mathrm{J},i} + \Phi_{\mathrm{l},i}} \tag{8}$$
 
@@ -68,18 +68,18 @@ Two escape temperatures decide whether the exobase can stay hydrostatic at all:
 
 $$T_\mathrm{esc} \;=\; \frac{G M_\mathrm{p}\, \mu_0}{2\, k_\mathrm{B}\, R_\mathrm{exo}}, \qquad T_\mathrm{esc,+} = \frac{T_\mathrm{esc}}{2} \tag{10}$$
 
-The neutral escape temperature $T_\mathrm{esc}$ is where thermal energy rivals binding energy. The plasma escape temperature $T_\mathrm{esc,+}$ is half of it, because in an ionised exosphere the ambipolar electric field shares each ion's binding energy with its electron (Chatterjee & Pierrehumbert 2026, their Eq. (34) [^cp26]). An exobase with $T_\mathrm{exo}$ above half the selected escape temperature is unstable by their Figure 10 criterion.
+The neutral escape temperature $T_\mathrm{esc}$ is where thermal energy rivals binding energy. The plasma escape temperature $T_\mathrm{esc,+}$ is half of it, because in an ionised exosphere the ambipolar electric field shares each ion's binding energy with its electron (Chatterjee & Pierrehumbert 2026, their Eq. (34)[^cite-chatterjee2026]). An exobase with $T_\mathrm{exo}$ above half the selected escape temperature is unstable by their Figure 10 criterion.
 
 In such states the [hydrodynamic candidate](wind.md#the-hydrodynamic-candidate) competes with the Jeans rate, the larger one is dispatched with its own label, and the state is flagged `gate_rerouted`. Taking the larger keeps the dispatched rate from falling as the exosphere heats past the threshold. Neither candidate describes the outflow of an unstable exosphere, as the [limitations page](../limitations.md) explains.
 
 The setting `gate` chooses the neutral (default) or the plasma escape temperature. Both are always computed, with the ionisation fraction at the exobase under the surface-averaged flux $F_\mathrm{XUV}/4$. States where the two choices disagree are flagged `contested_ion`, with both branch rates recorded, because the ion physics that would decide them is not modelled.
 
-[^yelle]: Yelle, R. V. (2024). Diffusion limited escape of hydrogen from Mars. *Icarus, 416*, 116099.
+[^cite-yelle2024]: R. V. Yelle, *[Diffusion limited escape of hydrogen from Mars](https://doi.org/10.1016/j.icarus.2024.116099)*, Icarus, 416, 116099, 2024. [SciX](https://scixplorer.org/abs/2024Icar..41616099Y/abstract).
 
-[^johnson]: Johnson, R. E., Volkov, A. N., & Erwin, J. T. (2013). Molecular-Kinetic Simulations of Escape from the Ex-planet and Exoplanets: Criterion for Transonic Flow. *The Astrophysical Journal Letters, 768*(1), L4. https://doi.org/10.1088/2041-8205/768/1/L4
+[^cite-johnson2013]: R. E. Johnson, A. N. Volkov, J. T. Erwin, *[Molecular-kinetic Simulations of Escape from the Ex-planet and Exoplanets: Criterion for Transonic Flow](https://doi.org/10.1088/2041-8205/768/1/L4)*, The Astrophysical Journal Letters, 768, L4, 2013. [SciX](https://scixplorer.org/abs/2013ApJ...768L...4J/abstract).
 
-[^volkova]: Volkov, A. N., et al. (2011). Thermally driven atmospheric escape: transition from hydrodynamic to Jeans escape. *The Astrophysical Journal Letters, 729*(2), L24.
+[^cite-volkov2011a]: A. N. Volkov, R. E. Johnson, O. J. Tucker, J. T. Erwin, *[Thermally Driven Atmospheric Escape: Transition from Hydrodynamic to Jeans Escape](https://doi.org/10.1088/2041-8205/729/2/l24)*, The Astrophysical Journal Letters, 729, L24, 2011. [SciX](https://scixplorer.org/abs/2011ApJ...729L..24V/abstract).
 
-[^volkovb]: Volkov, A. N., Tucker, O. J., Erwin, J. T., & Johnson, R. E. (2011). Kinetic simulations of thermal escape from a single component atmosphere. *Physics of Fluids, 23*(6), 066601. https://doi.org/10.1063/1.3592253
+[^cite-volkov2011b]: A. N. Volkov, O. J. Tucker, J. T. Erwin, R. E. Johnson, *[Kinetic simulations of thermal escape from a single component atmosphere](https://doi.org/10.1063/1.3592253)*, Physics of Fluids, 23, 066601, 2011. [SciX](https://scixplorer.org/abs/2011PhFl...23f6601V/abstract).
 
-[^cp26]: Chatterjee, R. D., & Pierrehumbert, R. T. (2026). Novel Physics of Escaping Secondary Atmospheres May Shape the Cosmic Shoreline. *The Astrophysical Journal, 998*(2), 236. https://doi.org/10.3847/1538-4357/ae2ffa
+[^cite-chatterjee2026]: R. D. Chatterjee, R. T. Pierrehumbert, *[Novel Physics of Escaping Secondary Atmospheres May Shape the Cosmic Shoreline](https://doi.org/10.3847/1538-4357/ae2ffa)*, The Astrophysical Journal, 998, 236, 2026. [SciX](https://scixplorer.org/abs/2026ApJ...998..236C/abstract).

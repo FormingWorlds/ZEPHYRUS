@@ -144,7 +144,7 @@ This works the same way for ZEPHYRUS, dummy, and BOREAS backends.
 
 ## Giant-impact atmosphere loss
 
-Alongside the continuous escape channel above, ZEPHYRUS provides `collision.impact_loss`, which evaluates one of the two giant-impact erosion laws described on the [giant impacts](impacts.md) page: Kegerreis et al. (2020) for thin atmospheres and Roche et al. (2026) for envelopes of 1% to 20% of the planet mass. It is a standalone function of the collision parameters and returns the fraction of the target's atmosphere removed by one impact, for a caller that models giant impacts during accretion. Under both laws the speed is taken at first contact, and the masses and radii exclude the atmosphere, with radii at its base. The Kegerreis law also takes the bulk densities of the atmosphere-free bodies, and the Roche law the target's atmospheric mass fraction.
+Alongside the continuous escape channel above, ZEPHYRUS provides `collision.impact_loss`, which evaluates one of the two giant-impact erosion laws described on the [giant impacts](impacts.md) page: Kegerreis et al. (2020)[^cite-kegerreis2020] for thin atmospheres and Roche et al. (2026)[^cite-roche2026] for envelopes of 1% to 20% of the planet mass. It is a standalone function of the collision parameters and returns the fraction of the target's atmosphere removed by one impact, for a caller that models giant impacts during accretion. Under both laws the speed is taken at first contact, and the masses and radii exclude the atmosphere, with radii at its base. The Kegerreis law also takes the bulk densities of the atmosphere-free bodies, and the Roche law the target's atmospheric mass fraction.
 
 ---
 
@@ -155,3 +155,6 @@ Alongside the continuous escape channel above, ZEPHYRUS provides `collision.impa
 
 !!! warning "The PROTEUS coupling does not fractionate"
     `run_zephyrus` calls `EL_escape` and partitions the bulk rate by mass mixing ratio in the chosen reservoir, so light and heavy elements are not separated in the outflow. ZEPHYRUS itself fractionates through the [dispatcher](regimes.md), which PROTEUS does not call yet. 
+
+[^cite-kegerreis2020]: J. A. Kegerreis, V. R. Eke, D. C. Catling, R. J. Massey, L. F. A. Teodoro, K. J. Zahnle, *[Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density](https://doi.org/10.3847/2041-8213/abb5fb)*, The Astrophysical Journal Letters, 901, L31, 2020. [SciX](https://scixplorer.org/abs/2020ApJ...901L..31K/abstract).
+[^cite-roche2026]: M. J. Roche, S. J. Lock, P. J. Carter, Z. M. Leinhardt, *[Giant Impacts Preferentially Remove Low-mass Atmospheres: A Generalised Scaling Law for Impact-driven Atmospheric Loss](https://doi.org/10.3847/2041-8213/aeb26a)*, The Astrophysical Journal Letters, 1011, L52, 2026. [SciX](https://scixplorer.org/abs/2026ApJ..1011L..52R/abstract). Dataset: [Zenodo](https://doi.org/10.5281/zenodo.23192423).
