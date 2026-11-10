@@ -15,10 +15,13 @@ See ``docs/How-to/run_tests.md`` for the tier and marker conventions.
 import numpy as np
 import pytest
 
+from zephyrus.constants import au2m
 from zephyrus.planets_parameters import (
     L_TOI561,
     M_TOI561,
     R_TOI561,
+    Fxuv_earth_10Myr,
+    Fxuv_earth_today,
     Ls,
     M_TOI561b,
     Me,
@@ -133,3 +136,18 @@ def test_jupiter_nominal_values_recover_gas_giant_density():
     # Gas-giant mean density in SI: about 1240 kg m-3.
     assert rho == pytest.approx(1240.0, rel=0.02, abs=0.0)
     assert 300.0 < Mjup / Me < 330.0
+
+
+def test_fxuv_earth_10myr_is_the_sun_track_of_xuv_model_a():
+    """``Fxuv_earth_10Myr`` is the Sun track of XUV model A at 1 au.
+
+    Wordsworth et al. (2018, Sect. 3.3, Fig. 9) set ``L_XUV = 1e-3 L`` until
+    ``t_sat = 50 Myr`` for the Sun, with ``L`` from Baraffe et al. (2015).
+    The 1 M_sun BHAC15 track gives ``log L/L_sun = -0.337`` at
+    ``log t = 7.000``; the tolerance covers the 0.001 dex rounding of that
+    table. The value 14.67 W m-2 of the Proxima track is more than 20 times
+    higher and fails the pin. The flux must also exceed today's value.
+    """
+    expected = 1e-3 * Ls * 10**-0.337 / (4 * np.pi * au2m**2)
+    assert Fxuv_earth_10Myr == pytest.approx(expected, rel=2e-3, abs=0.0)
+    assert 1e2 < Fxuv_earth_10Myr / Fxuv_earth_today < 1e3
