@@ -56,7 +56,7 @@ This is a reference page for all parameters and constants used in ZEPHYRUS. For 
 
 $$F_\mathrm{XUV} = \frac{10^{-3} L_\mathrm{bol}}{4 \pi a^2}, \qquad a = 1\,\mathrm{au}.$$
 
-At 10 Myr, $L_\mathrm{bol} = 10^{-0.337} L_\odot$, the value of the 1 $M_\odot$ track of Baraffe et al. (2015)[^cite-baraffe2015] at that age. The table gives the flux at 3 significant figures.
+At 10 Myr, $L_\mathrm{bol} = 10^{-0.337} L_\odot$, the value of the 1 $M_\odot$ track of Baraffe et al. (2015)[^cite-baraffe2015] at that age. With $L_\odot$ and the au of the tables above, this gives 0.6265 W m⁻², stored as 0.626. The luminosity table gives $\log L_\mathrm{bol}$ to 0.001 dex, so the third figure of the flux is uncertain by about 0.1%.
 
 ### Jupiter
 
