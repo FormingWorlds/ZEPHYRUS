@@ -92,9 +92,9 @@ def jeans_effusion_velocity(T: float, m: float, lam: float) -> float:
 def anchor_temperature(profile, decades: float = 3.0) -> float:
     """Temperature the upper structure starts from [K].
 
-    The log-pressure mean of the profile temperature over its top
-    ``decades`` decades of pressure, or the topmost level for ``decades``
-    of 0. The top layers of a radiative-convective column are optically
+    The log-pressure mean of the profile temperature over the levels within
+    ``decades`` decades of pressure of the top, or the topmost level for
+    ``decades`` of 0. The top layers of a radiative-convective column are optically
     thin and their temperature is poorly constrained, so a mean is steadier
     than the single top level. A profile spanning fewer decades is averaged
     over its whole height.

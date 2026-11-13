@@ -733,3 +733,26 @@ def test_anchor_weights_by_log_pressure_not_by_level():
     assert anchor_temperature(prof, 1.5) == pytest.approx(700.0 / 3.0, rel=1e-9)
     assert abs(anchor_temperature(prof, 1.5) - float(np.mean(T))) > 10.0
     assert anchor_temperature(prof, 0.25) == pytest.approx(200.0, rel=1e-12)
+
+
+def test_anchor_window_holds_the_levels_inside_it():
+    """A window edge between two levels averages the levels inside, without interpolating.
+
+    Four levels at 1e-3.5, 1e-4, 1e-4.5 and 1e-5 Pa, at 400, 200, 260 and
+    320 K, so the top differs from every level below it. A quarter decade
+    holds the top level alone and returns its 320 K. An edge at 1.25 decades
+    falls between the two lowest levels: the mean runs over the three levels
+    inside, (0.5 * 230 + 0.5 * 290) / 1.0 = 260 K, where interpolating out to
+    the edge would add a quarter-decade cell at 250 K and give 258 K.
+    """
+    lp = np.array([-3.5, -4.0, -4.5, -5.0])
+    prof = Profile(
+        p=10.0**lp,
+        r=R_MARS + np.array([0.0, 1.0e4, 2.0e4, 3.0e4]),
+        T=np.array([400.0, 200.0, 260.0, 320.0]),
+        vmr={'CO2': np.ones(4)},
+        mmw=np.full(4, 44.0095 * amu),
+        kzz=None,
+    )
+    assert anchor_temperature(prof, 0.25) == pytest.approx(320.0, rel=1e-12)
+    assert anchor_temperature(prof, 1.25) == pytest.approx(260.0, rel=1e-12)
