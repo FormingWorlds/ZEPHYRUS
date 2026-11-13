@@ -401,7 +401,7 @@ label changes between 1139 and 1369 Myr: 1.860e+05 to 4.902e-02 kg/s
 ```
 
 !!! warning "Snapshots, not an evolution"
-    The atmosphere is frozen: the same profile is dispatched at every age, so the planet does not respond to the mass it loses, to its own cooling, or to the star. That keeps this tutorial standalone. Once PROTEUS calls the dispatcher, a coupled run will supply a new profile from its atmosphere module at every time step and make the same `dispatch` call as here.
+    The atmosphere is frozen: the same profile is dispatched at every age, so the planet does not respond to the mass it loses, to its own cooling, or to the star. That keeps this tutorial standalone. A coupled PROTEUS run supplies a new profile from its atmosphere module at every time step and makes the same `dispatch` call as here.
 
 The last block draws the track:
 
