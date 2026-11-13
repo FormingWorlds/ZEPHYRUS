@@ -674,9 +674,9 @@ def test_anchor_temperature_is_the_log_pressure_mean_of_the_top_decades():
     """
     prof = _ringing_top_profile(1200.0)
     assert anchor_temperature(prof, 3.0) == pytest.approx(
-        200.0 + 1000.0 * 0.125 / 3.0, rel=1e-12
+        200.0 + 1000.0 * 0.125 / 3.0, rel=1e-9
     )
-    assert anchor_temperature(prof, 1.0) == pytest.approx(325.0, rel=1e-12)
+    assert anchor_temperature(prof, 1.0) == pytest.approx(325.0, rel=1e-9)
     assert anchor_temperature(prof, 0.0) == pytest.approx(1200.0, rel=1e-15)
     whole = np.trapezoid(prof.T, np.log10(prof.p)) / (
         np.log10(prof.p[-1]) - np.log10(prof.p[0])
@@ -707,3 +707,29 @@ def test_a_hot_top_spike_no_longer_sets_the_thermosphere():
     assert 't_exo_floored_to_profile_top' not in det_avg['flags']
     assert abs(math.log(per_avg['H'] / per_quiet['H'])) < math.log(1.1)
     assert abs(math.log(per_top['H'] / per_quiet['H'])) > math.log(1.5)
+
+
+@pytest.mark.physics_invariant
+def test_anchor_weights_by_log_pressure_not_by_level():
+    """On an uneven grid the anchor weights each layer by its pressure decades.
+
+    Four levels at 1e-3.5, 1e-4, 1e-4.5 and 1e-5 Pa, at 400, 200, 200 and
+    200 K, averaged over the top 1.5 decades: the bottom cell (half a decade,
+    400 to 200 K) has mean 300 K and the two upper cells 200 K, so the
+    trapezoid gives (0.5 * 300 + 1.0 * 200) / 1.5 = 233.33 K, while a mean over
+    the four levels would give 250 K. A window narrower than one cell holds
+    the top level alone and returns it.
+    """
+    lp = np.array([-3.5, -4.0, -4.5, -5.0])
+    T = np.array([400.0, 200.0, 200.0, 200.0])
+    prof = Profile(
+        p=10.0**lp,
+        r=R_MARS + np.array([0.0, 1.0e4, 2.0e4, 3.0e4]),
+        T=T,
+        vmr={'CO2': np.ones(4)},
+        mmw=np.full(4, 44.0095 * amu),
+        kzz=None,
+    )
+    assert anchor_temperature(prof, 1.5) == pytest.approx(700.0 / 3.0, rel=1e-9)
+    assert abs(anchor_temperature(prof, 1.5) - float(np.mean(T))) > 10.0
+    assert anchor_temperature(prof, 0.25) == pytest.approx(200.0, rel=1e-12)

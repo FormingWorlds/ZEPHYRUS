@@ -23,7 +23,7 @@ Any other value raises `ValueError` at the top of `proteus.escape.wrapper.run_es
 
 ## Configuring the ZEPHYRUS module
 
-The PROTEUS configuration block for ZEPHYRUS lives under `[escape]` and `[escape.zephyrus]` in the input config file. Every setting of the dispatcher has a key of the same name, with pressures in bar. Unset, they take the ZEPHYRUS defaults listed on the [parameter reference](../Reference/parameters.md). The most used ones:
+The PROTEUS configuration block for ZEPHYRUS lives under `[escape]` and `[escape.zephyrus]` in the input config file. Most settings of the dispatcher have a key of the same name, with pressures in bar, and unset they take the ZEPHYRUS defaults listed on the [parameter reference](../Reference/parameters.md). The exceptions: the prescribed exobase temperature is `T_exo` (`T_exo_value` in ZEPHYRUS), the fixed-pressure wind base is `Pxuv` (`P_base_fixed`), the photospheric opacity `kappa_photo`, an input of each ZEPHYRUS call, is a PROTEUS setting, and `gamma_bates` and `gamma_wind` keep their ZEPHYRUS values. The most used ones:
 
 ```toml
 [escape]
@@ -122,14 +122,14 @@ Any other string raises `ValueError`. After the loss step, inventories that fall
 | `esc_rate_total` | kg s$^{-1}$ | Bulk rate |
 | `esc_rate_{e}` | kg s$^{-1}$ | One per element. Under the dispatcher these are its per-element rates, which sum to the bulk rate |
 | `esc_regime` | - | Regime label as a code: 1 `boiloff`, 2 `hydrodynamic:EL`, 3 `hydrodynamic:RR`, 4 `hydrodynamic:PL`, 5 `hydrostatic`, 6 `roche_overflow`, 0 not set |
-| `esc_rate_branch` | - | Code of the branch that set the rate, before the Roche relabel |
+| `esc_rate_branch` | - | Code of the branch that set the rate: the producing branch under a geometric Roche relabel, `roche_overflow` when the L1 transfer wins |
 | `esc_kn_sonic` | - | Knudsen number at the sonic point, -1 when not evaluated |
 | `esc_lambda` | - | Restricted Jeans parameter of the boil-off test |
 | `esc_T_exo` | K | Exobase temperature of the hydrostatic branch |
 | `esc_T_esc_neutral`, `esc_T_esc_plasma` | K | Neutral and plasma escape temperatures at the exobase |
 | `esc_f_ion_exo` | - | Ionisation fraction at the exobase |
 | `esc_base_clamp_dex` | - | Decades between the wind base and the profile level used, when the base lay outside the profile |
-| `esc_profile_source` | - | Column read: 0 the latest solve, 1 an earlier converged solve, 2 an isothermal column |
+| `esc_profile_source` | - | Column read: 1 the latest solve, 2 an earlier converged solve, 3 an isothermal column, 0 not set |
 | `p_xuv`, `R_xuv` | bar, m | Wind base under the dispatcher. Under `"el"`, `p_xuv` is `Pxuv` and `R_xuv` is re-populated by the atmosphere module |
 | `{e}_kg_total` | kg | Updated by `calc_new_elements` after time-integrating the loss over `dt` |
 
@@ -147,7 +147,7 @@ With `scheme = "el"`, PROTEUS calls `EL_escape` with the tidal flag, the orbit, 
 !!! info "Oxygen"
     Oxygen is debited like every other element. The outgassing module can reset `O_kg_total` on its next call, because the prescribed mantle redox state (`outgas.fO2_shift_IW`) sets it.
 
-The lid seal of PROTEUS (`outgas.lid_seal`) requires this scheme, because a held step scales the atmosphere uniformly.
+The lid seal of PROTEUS (`outgas.lid_seal`) requires an unfractionated reservoir, and so this scheme with ZEPHYRUS, because a held step scales the atmosphere uniformly.
 
 ---
 
@@ -177,7 +177,7 @@ Alongside the continuous escape channel above, ZEPHYRUS provides `collision.impa
     PROTEUS converts the stellar mass from `config.star.mass`, which is in solar masses, to kilograms (`config.star.mass * M_sun`), and the dispatcher pressures from bar to Pa, before calling ZEPHYRUS. If you call ZEPHYRUS yourself with PROTEUS-style inputs, replicate these conversions (see the [first-run tutorial](../Tutorials/first_run.md)).
 
 !!! warning "The column top"
-    The `lopez` wind base sits near a nanobar for hydrogen and above it for heavier gases. The PROTEUS default top of the atmosphere (`atmos_clim.p_top`) is 1e-10 bar, which keeps the base inside the column for most planets. A base above the top is clamped to the top level (`base_out_of_range = "clamp"`), with the distance recorded in `esc_base_clamp_dex`, or the column is extended isothermally above the top (`"extend"`).
+    The `lopez` wind base sits near a nanobar for hydrogen and above it for heavier gases. The PROTEUS default top of the atmosphere (`atmos_clim.p_top`) is 1e-10 bar, which keeps the base inside the column for most planets. A base above the top is clamped to the top level (`base_out_of_range = "clamp"`), with the distance recorded in `esc_base_clamp_dex`, or the column is extended above the top with the Bates upper structure of the hydrostatic branch (`"extend"`).
 
 !!! warning "An unbound envelope"
     A hot, light envelope can be too weakly bound for a hydrostatic column to exist: the isothermal radius diverges before the photospheric level. The climate model then returns a column whose radius at the photosphere grows with its number of levels, and the boil-off rate the dispatcher derives from it follows. The boil-off verdict holds whatever the resolution, but its rate is uncertain by orders of magnitude, and the escape step cap of PROTEUS sets the pace of the loss.

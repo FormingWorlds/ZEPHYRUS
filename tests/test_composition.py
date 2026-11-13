@@ -135,3 +135,16 @@ def test_mean_particle_mass_reproduces_known_mixtures():
     # Convention guards: atomic mean, not pure H and not the molecular mean.
     assert m / amu > 1.2
     assert m / amu < 2.0
+
+
+def test_vanadium_oxide_from_rock_vapour_has_a_mass():
+    """VO, a rock-vapour species of magma ocean atmospheres, carries a mass.
+
+    Vanadium takes its standard atomic weight, 50.942 (IUPAC/CIAAW), so VO
+    weighs 66.941 amu. Without the entry, any atmosphere holding V or VO
+    raised on the mean particle mass and stopped a coupled run.
+    """
+    assert species_mass_amu('V') == pytest.approx(50.942, rel=1e-12)
+    assert species_mass_amu('VO') == pytest.approx(50.942 + 15.999, rel=1e-12)
+    # Discrimination: the oxygen is counted once, not as O2.
+    assert abs(species_mass_amu('VO') - (50.942 + 2 * 15.999)) > 15.0
