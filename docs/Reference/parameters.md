@@ -119,6 +119,7 @@ The settings of the [escape-regime dispatcher](../Explanations/regimes.md). Ever
 | `residual_mode` | `'off'` | `'off'`, `'luminosity_capped'` | Whether the bolometric candidate competes for the rate past the boil-off threshold. It is computed and reported on every call either way. `'luminosity_capped'` admits it, capped by the interior luminosity, which is the core-powered rate of Gupta & Schlichting (2019)[^cite-gupta2019] whose persistence Tang et al. (2024)[^cite-tang2024] dispute. Off by default, following Tang et al. (2024). The price is a jump in the dispatched rate at the boil-off threshold, measured on the [escape regimes](../Explanations/regimes.md) page together with the dispute and the band past the gate where the candidate would win. |
 | `lambda_crit` | 20.0 | $> 0$ | Boil-off activation threshold on the restricted Jeans parameter (literature band 15 to 35). |
 | `gamma_bates` | 0.75 | $> 0$ | Shape parameter of the Bates temperature profile of the extended upper structure. |
+| `T_anchor_decades` | 3.0 | $\geq 0$ | Pressure decades at the top of the profile over which the temperature the upper structure starts from is averaged, in log pressure. 0 takes the topmost level. |
 | `kzz` | 300 | m² s⁻¹ | Eddy diffusion coefficient when the profile carries no `kzz` column. |
 | `gamma_wind` | 1.0 | $1 \leq \gamma \leq 5/3$ | Polytropic index at the sonic point (1 for an isothermal wind). |
 | `hydrostatic_levels_min` | 200 | integer $\geq 2$ | First quadrature grid of the diffusion-limited supply integrals. |

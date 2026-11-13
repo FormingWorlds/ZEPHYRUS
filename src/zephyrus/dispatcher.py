@@ -165,6 +165,7 @@ class DispatchSettings:
     residual_mode: str = 'off'  # 'off' | 'luminosity_capped'
     lambda_crit: float = 20.0  # boil-off activation threshold (band 15 to 35)
     gamma_bates: float = 0.75  # Bates profile shape parameter
+    T_anchor_decades: float = 3.0  # top decades of the profile the Bates anchor averages over
     kzz: float = 3.0e2  # m^2/s eddy diffusion when the profile carries none
     gamma_wind: float = 1.0  # polytropic index at the sonic point (isothermal)
     hydrostatic_levels_min: int = 200  # first quadrature grid of the supply integrals
@@ -208,6 +209,11 @@ class DispatchSettings:
         ):
             if not math.isfinite(value) or value <= 0.0:
                 raise ValueError(f'{name} must be a positive finite value, got {value!r}')
+        if self.T_anchor_decades < 0.0 or not math.isfinite(self.T_anchor_decades):
+            raise ValueError(
+                'T_anchor_decades is a number of pressure decades at or above 0, '
+                f'got {self.T_anchor_decades!r}'
+            )
         if self.kn_hysteresis < 1.0 or not math.isfinite(self.kn_hysteresis):
             raise ValueError(
                 'kn_hysteresis is a window factor at or above 1 (1 disables the '
@@ -508,6 +514,7 @@ def dispatch(inputs: EscapeInputs) -> EscapeResult:
         n_levels_min=st.hydrostatic_levels_min,
         n_levels_max=st.hydrostatic_levels_max,
         rtol=st.hydrostatic_rtol,
+        anchor_decades=st.T_anchor_decades,
     )
     hs_flags = hsd.pop('flags')
     mdot_hs = sum(hs_per_element.values())
@@ -771,7 +778,13 @@ def _resolve_wind_base(inputs: EscapeInputs, t_exo: float) -> tuple[dict, dict]:
         p_target = base.get('p_physical')
         # Only a base above the profile top lies on the extension.
         if p_target is not None and p_target < float(inputs.profile.p[-1]):
-            ext = hs.bates_extension(inputs.profile, inputs.M_p, t_exo, gamma=st.gamma_bates)
+            ext = hs.bates_extension(
+                inputs.profile,
+                inputs.M_p,
+                t_exo,
+                gamma=st.gamma_bates,
+                anchor_decades=st.T_anchor_decades,
+            )
             p_ext = np.asarray(ext['p'])
             if p_target >= p_ext[-1]:
                 lz = np.log(p_ext[::-1])

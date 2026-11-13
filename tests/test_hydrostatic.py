@@ -27,6 +27,7 @@ from scipy.special import erfcx
 from zephyrus.composition import species_mass_amu
 from zephyrus.constants import G, amu, kb
 from zephyrus.hydrostatic import (
+    anchor_temperature,
     bates_extension,
     bates_state,
     find_exobase,
@@ -634,3 +635,75 @@ def test_yelle_harmonic_mean_and_area_referral():
     # mixing ratio is the diffusively enriched exobase value.
     local = d['volkov_C'] * d['w_jeans'] * d['X_tilde_exo'] * det['n_exo']
     assert phi_j == pytest.approx(referral * local, rel=1e-9, abs=0.0)
+
+
+def _ringing_top_profile(spike_K):
+    """A Mars-mass CO2 column whose top level rings about a 200 K upper atmosphere.
+
+    Pressure falls log-uniformly from 1e3 to 1e-5 Pa over 33 levels (eight
+    decades); the temperature is 300 K in the bottom five decades and 200 K
+    above, except the topmost level, which carries ``spike_K``. This is the
+    pattern of an optically thin top layer whose radiative temperature the
+    climate solve leaves poorly constrained.
+    """
+    p = np.logspace(3.0, -5.0, 33)
+    T = np.where(np.log10(p) > -2.0, 300.0, 200.0)
+    T[-1] = spike_K
+    mu = 44.0095 * amu
+    r = np.empty(33)
+    r[0] = R_MARS
+    for i in range(32):
+        H = kb * T[i] * r[i] ** 2 / (G * M_MARS * mu)
+        r[i + 1] = r[i] + H * math.log(p[i] / p[i + 1])
+    vmr = {'CO2': np.full(33, 0.99), 'H': np.full(33, 0.01)}
+    return Profile(p=p, r=r, T=T, vmr=vmr, mmw=np.full(33, mu), kzz=None)
+
+
+@pytest.mark.physics_invariant
+@pytest.mark.reference_pinned
+def test_anchor_temperature_is_the_log_pressure_mean_of_the_top_decades():
+    """The anchor is the trapezoidal log-pressure mean over the top decades.
+
+    On the ringing column with a 1200 K top level, the top three decades
+    span the 200 K layers and the spike, a quarter-decade apart: the
+    trapezoid gives 200 K plus the spike's half cell, 1000 K times 0.125
+    over 3 decades, so 241.67 K. One decade covers four cells of a quarter
+    decade, giving 200 + 1000 * 0.125 = 325 K. Zero decades returns the top
+    level, and more decades than the column holds average the whole column.
+    The top level alone, the most plausible wrong anchor, lands 958 K away.
+    """
+    prof = _ringing_top_profile(1200.0)
+    assert anchor_temperature(prof, 3.0) == pytest.approx(
+        200.0 + 1000.0 * 0.125 / 3.0, rel=1e-12
+    )
+    assert anchor_temperature(prof, 1.0) == pytest.approx(325.0, rel=1e-12)
+    assert anchor_temperature(prof, 0.0) == pytest.approx(1200.0, rel=1e-15)
+    whole = np.trapezoid(prof.T, np.log10(prof.p)) / (
+        np.log10(prof.p[-1]) - np.log10(prof.p[0])
+    )
+    assert anchor_temperature(prof, 40.0) == pytest.approx(whole, rel=1e-12)
+    assert abs(anchor_temperature(prof, 3.0) - 1200.0) > 900.0
+
+
+@pytest.mark.physics_invariant
+def test_a_hot_top_spike_no_longer_sets_the_thermosphere():
+    """A spike in the top level stops setting the thermosphere once the anchor averages.
+
+    With the top level at 1200 K, above the 1000 K prescription, a top-level
+    anchor floors the exobase temperature at the spike, and the hydrogen rate
+    moves to 0.58 of that of the same column with a quiet 200 K top.
+    Averaged over three decades the anchor is 242 K, nothing is floored, and
+    the rate stays within 6% of the quiet column. A hotter anchor can raise
+    or lower the rate depending on which limit sets it, so the size of the
+    change is tested, not its sign.
+    """
+    spiked, quiet = _ringing_top_profile(1200.0), _ringing_top_profile(200.0)
+    _p, det_top = hydrostatic_rates(spiked, M_MARS, 1000.0, anchor_decades=0.0)
+    assert det_top['flags'].get('t_exo_floored_to_profile_top') is True
+    assert det_top['T_exo'] == pytest.approx(1200.0, rel=1e-12)
+    per_avg, det_avg = hydrostatic_rates(spiked, M_MARS, 1000.0)
+    per_quiet, _d = hydrostatic_rates(quiet, M_MARS, 1000.0)
+    per_top, _d = hydrostatic_rates(spiked, M_MARS, 1000.0, anchor_decades=0.0)
+    assert 't_exo_floored_to_profile_top' not in det_avg['flags']
+    assert abs(math.log(per_avg['H'] / per_quiet['H'])) < math.log(1.1)
+    assert abs(math.log(per_top['H'] / per_quiet['H'])) > math.log(1.5)
