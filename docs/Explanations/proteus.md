@@ -97,7 +97,7 @@ The climate step runs after escape in the PROTEUS loop, so escape at step $n$ re
 PROTEUS passes the interior heat flux `F_int`, floored at 10$^{-10}$ W m$^{-2}$. The dispatcher reads it only for the bolometric rate past the boil-off threshold, which is off by default (`residual_mode = "off"`).
 
 !!! info "A frozen mantle"
-    While the mantle is molten, the outgassing step that follows escape re-forms the atmospheric gases from the element totals. Once it has solidified, no step does, so PROTEUS takes each escaping element out of the gases that hold it. Each gas loses the smallest retained fraction among its elements. Oxygen, hydrogen, nitrogen, and sulfur left over form O2, H2, N2, and S2. Leftover carbon pairs with oxygen into CO, then with hydrogen into CH4, and otherwise condenses as graphite. Water that loses its hydrogen therefore leaves O2 behind. Rock vapours keep their masses.
+    While the mantle is molten, the outgassing step that follows escape re-forms the atmospheric gases from the element totals. Once it has solidified, no step does, so PROTEUS takes each escaping element out of the gases that hold it. Each gas loses the smallest retained fraction among its elements. Oxygen, hydrogen, nitrogen, and sulfur left over form O2, H2, N2, and S2. Leftover carbon pairs with oxygen into CO, then with hydrogen into CH4, and otherwise condenses as graphite. Water that loses its hydrogen therefore leaves O2 behind. Rock vapours keep their masses, so the step cap and the escaping shares count only the elements the gases can lose.
 
 ---
 
@@ -122,13 +122,13 @@ Any other string raises `ValueError`. After the loss step, inventories that fall
 | `esc_rate_total` | kg s$^{-1}$ | Bulk rate |
 | `esc_rate_{e}` | kg s$^{-1}$ | One per element. Under the dispatcher these are its per-element rates, which sum to the bulk rate |
 | `esc_regime` | - | Regime label as a code: 1 `boiloff`, 2 `hydrodynamic:EL`, 3 `hydrodynamic:RR`, 4 `hydrodynamic:PL`, 5 `hydrostatic`, 6 `roche_overflow`, 0 not set |
-| `esc_rate_branch` | - | Code of the branch that set the rate: the producing branch under a geometric Roche relabel, `roche_overflow` when the L1 transfer wins |
+| `esc_rate_branch` | - | Code of the branch that set the rate: the producing branch under a geometric Roche relabel, `roche_overflow` when the L1 transfer wins, 0 not set |
 | `esc_kn_sonic` | - | Knudsen number at the sonic point, -1 when not evaluated |
-| `esc_lambda` | - | Restricted Jeans parameter of the boil-off test |
-| `esc_T_exo` | K | Exobase temperature of the hydrostatic branch |
-| `esc_T_esc_neutral`, `esc_T_esc_plasma` | K | Neutral and plasma escape temperatures at the exobase |
-| `esc_f_ion_exo` | - | Ionisation fraction at the exobase |
-| `esc_base_clamp_dex` | - | Decades between the wind base and the profile level used, when the base lay outside the profile |
+| `esc_lambda` | - | Restricted Jeans parameter of the boil-off test, -1 when not evaluated |
+| `esc_T_exo` | K | Exobase temperature of the hydrostatic branch, -1 when not evaluated |
+| `esc_T_esc_neutral`, `esc_T_esc_plasma` | K | Neutral and plasma escape temperatures at the exobase, -1 when not evaluated |
+| `esc_f_ion_exo` | - | Ionisation fraction at the exobase, -1 when not evaluated |
+| `esc_base_clamp_dex` | - | Decades between the wind base and the profile level used, when the base lay outside the profile, 0 otherwise |
 | `esc_profile_source` | - | Column read: 1 the latest solve, 2 an earlier converged solve, 3 an isothermal column, 0 not set |
 | `p_xuv`, `R_xuv` | bar, m | Wind base under the dispatcher. Under `"el"`, `p_xuv` is `Pxuv` and `R_xuv` is re-populated by the atmosphere module |
 | `{e}_kg_total` | kg | Updated by `calc_new_elements` after time-integrating the loss over `dt` |
@@ -180,7 +180,7 @@ Alongside the continuous escape channel above, ZEPHYRUS provides `collision.impa
     The `lopez` wind base sits near a nanobar for hydrogen and above it for heavier gases. The PROTEUS default top of the atmosphere (`atmos_clim.p_top`) is 1e-10 bar, which keeps the base inside the column for most planets. A base above the top is clamped to the top level (`base_out_of_range = "clamp"`), with the distance recorded in `esc_base_clamp_dex`, or the column is extended above the top with the Bates upper structure of the hydrostatic branch (`"extend"`).
 
 !!! warning "An unbound envelope"
-    A hot, light envelope can be too weakly bound for a hydrostatic column to exist: the isothermal radius diverges before the photospheric level. The climate model then returns a column whose radius at the photosphere grows with its number of levels, and the boil-off rate the dispatcher derives from it follows. The boil-off verdict holds whatever the resolution, but its rate is uncertain by orders of magnitude, and the escape step cap of PROTEUS sets the pace of the loss.
+    A hot, light envelope can be too weakly bound for a hydrostatic column to exist: the isothermal radius diverges before the photospheric level. The climate model then returns a column whose radius at the photosphere grows with its number of levels, and the boil-off rate the dispatcher derives from it follows. The boil-off verdict holds whatever the resolution, but its rate is uncertain by orders of magnitude, and the escape step cap of PROTEUS sets the pace of the loss. Without a climate column, PROTEUS gives such an envelope a short isothermal column out to twice the surface radius, which the dispatcher also reads as boil-off.
 
 [^cite-kegerreis2020]: J. A. Kegerreis, V. R. Eke, D. C. Catling, R. J. Massey, L. F. A. Teodoro, K. J. Zahnle, *[Atmospheric Erosion by Giant Impacts onto Terrestrial Planets: A Scaling Law for any Speed, Angle, Mass, and Density](https://doi.org/10.3847/2041-8213/abb5fb)*, The Astrophysical Journal Letters, 901, L31, 2020. [SciX](https://scixplorer.org/abs/2020ApJ...901L..31K/abstract).
 [^cite-roche2026]: M. J. Roche, S. J. Lock, P. J. Carter, Z. M. Leinhardt, *[Giant Impacts Preferentially Remove Low-mass Atmospheres: A Generalised Scaling Law for Impact-driven Atmospheric Loss](https://doi.org/10.3847/2041-8213/aeb26a)*, The Astrophysical Journal Letters, 1011, L52, 2026. [SciX](https://scixplorer.org/abs/2026ApJ..1011L..52R/abstract). Dataset: [Zenodo](https://doi.org/10.5281/zenodo.23192423).

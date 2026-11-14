@@ -735,6 +735,7 @@ def test_anchor_weights_by_log_pressure_not_by_level():
     assert anchor_temperature(prof, 0.25) == pytest.approx(200.0, rel=1e-12)
 
 
+@pytest.mark.physics_invariant
 def test_anchor_window_holds_the_levels_inside_it():
     """A window edge between two levels averages the levels inside, without interpolating.
 
