@@ -89,6 +89,27 @@ def jeans_effusion_velocity(T: float, m: float, lam: float) -> float:
     return math.sqrt(kb * T / (2.0 * math.pi * m)) * (1.0 + lam) * math.exp(-lam)
 
 
+def anchor_temperature(profile, decades: float = 3.0) -> float:
+    """Temperature the upper structure starts from [K].
+
+    The log-pressure mean of the profile temperature over the levels within
+    ``decades`` decades of pressure of the top, or the topmost level for
+    ``decades`` of 0. The top layers of a radiative-convective column are optically
+    thin and their temperature is poorly constrained, so a mean is steadier
+    than the single top level. A profile spanning fewer decades is averaged
+    over its whole height.
+    """
+    T = np.asarray(profile.T, dtype=float)
+    if decades <= 0.0:
+        return float(T[-1])
+    lp = np.log10(np.asarray(profile.p, dtype=float))
+    keep = lp <= lp[-1] + decades
+    x, y = lp[keep], T[keep]
+    if len(x) < 2:
+        return float(T[-1])
+    return float(np.trapezoid(y, x) / (x[-1] - x[0]))
+
+
 def bates_extension(
     profile,
     M_p: float,
@@ -96,6 +117,7 @@ def bates_extension(
     gamma: float = 0.75,
     zeta_max: float = 40.0,
     n_levels: int = 400,
+    anchor_decades: float = 3.0,
 ) -> dict:
     """Bates upper structure above the topmost profile level.
 
@@ -113,11 +135,13 @@ def bates_extension(
     point ``zeta_end``, the frozen ``mu`` [kg], the normalized species
     ``vmr``, the anchor values ``p0`` and ``r0``, the Bates parameters
     (``T_exo``, ``T_top``, ``gamma``, ``M_p``), and ``unbound``.
-    ``bates_state`` evaluates the same structure at any ``zeta``.
+    ``bates_state`` evaluates the same structure at any ``zeta``. The
+    structure starts at the top level's pressure and radius, at the
+    temperature ``anchor_temperature`` gives for ``anchor_decades``.
     """
     p0 = float(profile.p[-1])
     r0 = float(profile.r[-1])
-    t_top = float(profile.T[-1])
+    t_top = anchor_temperature(profile, anchor_decades)
     mu = float(profile.mmw[-1])
     # An exobase colder than the anchor would bind the exobase more strongly
     # than its anchor, inverting the construction. Floored and flagged, not
@@ -240,6 +264,7 @@ def hydrostatic_rates(
     gamma_bates: float = 0.75,
     kzz_default: float = 3.0e2,
     n_levels: int = 400,
+    anchor_decades: float = 3.0,
 ) -> tuple[dict, dict]:
     """Per-species hydrostatic escape mapped onto per-element rates [kg/s].
 
@@ -273,13 +298,17 @@ def hydrostatic_rates(
     provenance, and flags (including ``hydrostatic_lower_limit``, which is
     always on: nonthermal loss channels are absent).
     """
-    structure = _exobase_structure(profile, M_p, T_exo, gamma_bates)
+    structure = _exobase_structure(profile, M_p, T_exo, gamma_bates, anchor_decades)
     return _rates_on_structure(profile, M_p, structure, kzz_default, n_levels)
 
 
-def _exobase_structure(profile, M_p: float, T_exo: float, gamma_bates: float) -> tuple:
+def _exobase_structure(
+    profile, M_p: float, T_exo: float, gamma_bates: float, anchor_decades: float = 3.0
+) -> tuple:
     """The extension, the exobase on it, and the structure flags."""
-    ext = bates_extension(profile, M_p, T_exo, gamma=gamma_bates, n_levels=2)
+    ext = bates_extension(
+        profile, M_p, T_exo, gamma=gamma_bates, n_levels=2, anchor_decades=anchor_decades
+    )
     zeta_x, flags = find_exobase(ext, M_p)
     if ext['t_exo_floored']:
         flags['t_exo_floored_to_profile_top'] = True
@@ -420,6 +449,7 @@ def hydrostatic_rates_refined(
     n_levels_min: int = 200,
     n_levels_max: int = 3200,
     rtol: float = 1.0e-2,
+    anchor_decades: float = 3.0,
 ) -> tuple[dict, dict]:
     """Hydrostatic rates refined until the quadrature stops moving them.
 
@@ -443,7 +473,7 @@ def hydrostatic_rates_refined(
     rather than raising: the rate is still the best available and the
     caller can see how far from the target it is.
     """
-    structure = _exobase_structure(profile, M_p, T_exo, gamma_bates)
+    structure = _exobase_structure(profile, M_p, T_exo, gamma_bates, anchor_decades)
     n = max(2, int(n_levels_min))
     n_max = max(n, int(n_levels_max))
     per_element, detail = _rates_on_structure(profile, M_p, structure, kzz_default, n)

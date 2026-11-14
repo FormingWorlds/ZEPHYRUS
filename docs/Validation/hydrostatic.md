@@ -6,6 +6,7 @@ This page tracks the `@pytest.mark.reference_pinned` tests that anchor the hydro
 |---|---|---|
 | `tests/test_hydrostatic.py::test_volkov_flat_factor_against_published_correction` | Volkov et al. (2011b)[^cite-volkov2011b], Eq. (9) and their printed c(lambda) table | The drifting-Maxwellian flux ratio reduces to unity at zero bulk velocity and reproduces the printed linear coefficient across lambda 1 to 106. The test also demonstrates that this correction and the flat kinetic factor the branch applies have opposite slopes in lambda, so applying both would double-count. |
 | `tests/test_hydrostatic.py::test_yelle_figure1_mars_hydrogen_flux` | Yelle (2024)[^cite-yelle2024], Figure 1 (fully specified Mars model) | The branch reproduces the diffusion-limited hydrogen plateau at $2.4 \times 10^{8}$ cm^-2 s^-1 (40% tolerance: the binary H-CO2 coefficient source of the original calculation is not pinned in the paper), the saturation above 200 K, and the Jeans-limited collapse at 100 K checked as a regime. |
+| `tests/test_hydrostatic.py::test_anchor_temperature_is_the_log_pressure_mean_of_the_top_decades` | Analytical identity: the trapezoidal mean in log pressure | The temperature the upper structure starts from, on a column whose top level carries a spike: the three-decade and one-decade means, the top level at zero decades, and the whole column when the window is wider than it. |
 
 ## Notes
 
@@ -13,9 +14,9 @@ The escape-temperature identities (the lambda = 2 neutral criterion and the plas
 
 ## Anchor type
 
-Published benchmark (printed coefficient table and a published model figure) plus the analytical rest limit.
+Published benchmark (printed coefficient table and a published model figure) plus the analytical rest limit and the anchor-temperature identity.
 
-Date of last comparison against the sources: 2026-08-20.
+Date of last comparison against the sources: 2026-11-13.
 
 [^cite-volkov2011b]: A. N. Volkov, O. J. Tucker, J. T. Erwin, R. E. Johnson, *[Kinetic simulations of thermal escape from a single component atmosphere](https://doi.org/10.1063/1.3592253)*, Physics of Fluids, 23, 066601, 2011. [SciX](https://scixplorer.org/abs/2011PhFl...23f6601V/abstract).
 [^cite-yelle2024]: R. V. Yelle, *[Diffusion limited escape of hydrogen from Mars](https://doi.org/10.1016/j.icarus.2024.116099)*, Icarus, 416, 116099, 2024. [SciX](https://scixplorer.org/abs/2024Icar..41616099Y/abstract).

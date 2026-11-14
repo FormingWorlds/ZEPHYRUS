@@ -2054,6 +2054,15 @@ def test_every_routing_path_has_a_witness_state():
     assert not seen & UNWITNESSED
 
 
+def test_anchor_decades_must_be_a_non_negative_number():
+    """The anchor averages over zero or more pressure decades; anything else is refused."""
+    for bad in (-0.5, math.inf, math.nan):
+        with pytest.raises(ValueError, match='T_anchor_decades'):
+            DispatchSettings(T_anchor_decades=bad).validate()
+    DispatchSettings(T_anchor_decades=0.0).validate()
+    assert DispatchSettings().T_anchor_decades == pytest.approx(3.0, rel=1e-15)
+
+
 def test_settings_and_inputs_error_contract():
     """Malformed settings and physical states raise before any physics runs.
 
